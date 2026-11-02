@@ -62,7 +62,8 @@ API crée un job → table jobs → Worker (Node + Playwright + ffmpeg)
 ## 5. Design
 - **Tout écran passe par le skill `design-taste-frontend`** (`.claude/skills/`).
 - Je déteste le look « vibecodé par IA » ou enfantin : propre, sobre, moderne.
-- Référence d'ambiance : liquidjournal.app (inspiration, **jamais copie**). Version claire voulue. Conflit ouvert : le skill interdit glass, accent serif italique et labels mono → à trancher.
+- Référence d'ambiance : liquidjournal.app (inspiration, **jamais copie**). Version claire voulue.
+- **Décision (2 nov. 2026) : dashboard en glassmorphism clair pour démarrer** (fond blanc/gris clair, panneaux givrés, une image floue derrière). Le style pourra changer ensuite → tout passe par des variables CSS. Cette règle prime sur l'interdiction du glass dans le skill, pour le dashboard. Landing : à trancher (glass, serif italique, labels mono).
 
 ## 6. Légal et business
 - Pas de fausses stats, faux avis, faux compteurs, faux prix barrés (loi française). Prix affichés **TTC**.
