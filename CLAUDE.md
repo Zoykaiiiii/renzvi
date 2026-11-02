@@ -1,7 +1,7 @@
 # CLAUDE.md — SaaS de vidéos d'histoires animées (nom à trouver)
 
 > À mettre **à la racine du projet**. Claude Code le lit au début de chaque session.
-> Le résumé complet de mes autres projets est dans `docs/HISTORIQUE_PROJETS.md`.
+> Le résumé complet de mes autres projets est dans `HISTORIQUE_PROJETS.md` (à la racine).
 
 ---
 
@@ -138,6 +138,8 @@ Tout est synthétisé (aucun souci de droits) : whoosh (bruit filtré balayé), 
 ---
 
 ## 5. Règles de travail pour ce projet
+- **Proposer et critiquer avant de construire.** Pour toute idée ou fonctionnalité : d'abord une proposition + une critique franche (brutale mais constructive), on tranche, ensuite seulement on code. Ne jamais dire « c'est bien » par politesse : sur un ancien projet, Claude validait tout et les retours utilisateurs ont été mauvais juste après.
+- **Tout écran ou page de la webapp (landing, app, dashboard) passe par le skill `design-taste-frontend`** (copie dans `.claude/skills/`). Obligatoire, pas optionnel.
 - Commits petits et fréquents, messages clairs en français.
 - Avant de choisir une techno, donne-moi 2 options max avec coût et délai, et ta reco.
 - Toute fonction qui coûte de l'argent par appel doit être **comptée** (table usage dans Supabase) et plafonnée par utilisateur.
