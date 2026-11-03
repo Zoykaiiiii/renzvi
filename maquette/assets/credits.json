@@ -1,0 +1,48 @@
+[
+ {
+  "file": "assets/lake-mapourika-nz.jpg",
+  "media": "image",
+  "ref": "commons:37785157",
+  "title": "Lake mapourika NZ",
+  "creator": "Richard Palmer",
+  "creatorUrl": null,
+  "date": "2004-07-16",
+  "license": "CC BY-SA 3.0",
+  "licenseCode": "by-sa",
+  "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+  "creditRequired": true,
+  "page": "https://commons.wikimedia.org/wiki/File:Lake_mapourika_NZ.jpeg",
+  "via": "Wikimedia Commons",
+  "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/23/Lake_mapourika_NZ.jpeg/1920px-Lake_mapourika_NZ.jpeg",
+  "width": 1920,
+  "height": 1440,
+  "bytes": 247025,
+  "credit": "\"Lake mapourika NZ\" by Richard Palmer, CC BY-SA 3.0, via Wikimedia Commons",
+  "notes": [
+   "Share-alike: an altered version (recoloured, combined with other pictures) must be shared under the same licence."
+  ],
+  "saved": "2026-11-03T16:25:59.087Z"
+ },
+ {
+  "file": "assets/misty-morning-by-bohinj-lake-3849327601.jpg",
+  "media": "image",
+  "ref": "commons:32660074",
+  "title": "Misty morning by Bohinj lake (3849327601)",
+  "creator": "ufoncz from Czech Republic",
+  "creatorUrl": null,
+  "date": "2009-08-04",
+  "license": "CC BY 2.0",
+  "licenseCode": "by",
+  "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+  "creditRequired": true,
+  "page": "https://commons.wikimedia.org/wiki/File:Misty_morning_by_Bohinj_lake_(3849327601).jpg",
+  "via": "Wikimedia Commons",
+  "image": "https://upload.wikimedia.org/wikipedia/commons/6/6b/Misty_morning_by_Bohinj_lake_%283849327601%29.jpg",
+  "width": 1430,
+  "height": 1074,
+  "bytes": 398291,
+  "credit": "\"Misty morning by Bohinj lake (3849327601)\" by ufoncz from Czech Republic, CC BY 2.0, via Wikimedia Commons",
+  "notes": [],
+  "saved": "2026-11-03T16:25:59.679Z"
+ }
+]
