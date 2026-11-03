@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Renzvi — ta journée sur une seule page</title>
+<meta name="description" content="Renzvi rassemble tes tâches, ton agenda, tes habitudes et ton minuteur focus dans un tableau de bord personnel, sur la photo de ton choix.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+/* Tout le style passe par ces variables. */
+:root{
+  --ground:#f4f4f2; --paper:#ffffff; --ink:#1f201d; --muted:#5b5b57; --accent:#1b6e66;
+  --sheet-1:#dfe9e6; --sheet-2:#e7e6e1; --sheet-3:#1f201d;
+  --glass:rgba(255,255,255,.62); --glass-strong:rgba(255,255,255,.84); --glass-edge:rgba(255,255,255,.72);
+  --tone:rgba(31,32,29,.07);
+  --radius:22px; --pill:999px; --margin:clamp(16px,3vw,40px);
+  --sans:"Instrument Sans",Inter,system-ui,sans-serif; --serif:"Instrument Serif",Georgia,serif;
+  --ease:cubic-bezier(.2,.7,.2,1);
+}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth}
+body{font:17px/1.55 var(--sans);color:var(--ink);background:var(--ground);-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+img{display:block;max-width:100%}
+.wrap{padding:0 var(--margin);max-width:1440px;margin:0 auto}
+h1,h2{font-family:var(--serif);font-weight:400;letter-spacing:-.015em;line-height:1}
+h2{font-size:clamp(40px,5.2vw,80px)}
+.lead{font-size:clamp(17px,1.4vw,20px);max-width:44ch}
+.btn{display:inline-flex;align-items:center;height:48px;padding:0 24px;border-radius:var(--pill);border:0;background:var(--ink);color:#fff;font-weight:500;text-decoration:none;cursor:pointer;transition:transform .25s var(--ease),background .2s}
+.btn:hover{background:#000}
+.btn:active{transform:scale(.97)}
+.btn.soft{background:var(--glass-strong);color:var(--ink)}
+.btn.soft:hover{background:#fff}
+
+/* barre du haut */
+.bar{position:absolute;top:0;left:0;right:0;z-index:5;display:flex;align-items:center;gap:28px;padding:22px var(--margin);color:#fff}
+.mark{display:flex;align-items:center;gap:10px;font-weight:600;font-size:18px;text-decoration:none}
+.mark svg{width:26px;height:26px}
+.bar nav{display:flex;gap:26px;margin-left:auto;font-size:15px}
+.bar nav a{text-decoration:none;opacity:.92}
+.bar nav a:hover{opacity:1;text-decoration:underline;text-underline-offset:4px}
+.bar .btn{height:40px;padding:0 18px;background:#fff;color:var(--ink);font-size:15px}
+
+/* héros : le tableau de bord posé sur la photo */
+.hero{position:relative;min-height:100svh;overflow:hidden;background:#8aa1b4}
+.hero .photo{position:absolute;inset:-40px;background:var(--wall,url(assets/lake-mapourika-nz.jpg)) center/cover;filter:blur(6px) saturate(.95);transform:scale(1.04);transition:background-image .6s}
+.hero .scrim{position:absolute;inset:0;background:rgba(20,24,28,.18)}
+.sheet{position:relative;z-index:2;margin:148px auto 0;width:min(1180px,calc(100% - 2*var(--margin)));min-height:calc(100svh - 148px + 120px);background:var(--glass);-webkit-backdrop-filter:blur(22px) saturate(1.25);backdrop-filter:blur(22px) saturate(1.25);border:1px solid var(--glass-edge);border-radius:var(--radius) var(--radius) 0 0;padding:56px clamp(20px,4vw,56px) 0}
+.sheet h1{font-size:clamp(46px,6.4vw,96px);text-align:center;max-width:15ch;margin:0 auto}
+.sheet .lead{margin:24px auto 0;text-align:center;max-width:52ch}
+.sheet .acts{display:flex;gap:10px;justify-content:center;margin-top:28px;flex-wrap:wrap}
+.desk{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;margin-top:56px;padding-bottom:40px}
+.wall-pick{display:flex;gap:8px;justify-content:center;align-items:center;margin-top:22px;font-size:14px;color:var(--muted)}
+.wall-pick button{width:34px;height:34px;border-radius:var(--pill);border:2px solid #fff;background:center/cover;cursor:pointer;transition:transform .2s var(--ease)}
+.wall-pick button:hover{transform:scale(1.12)}
+.wall-pick button[aria-pressed=true]{outline:2px solid var(--accent);outline-offset:2px}
+
+/* widgets (fragments du vrai produit) */
+.w{background:var(--glass-strong);border-radius:18px;padding:18px;transition:transform .4s var(--ease)}
+.w h3{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.w h3 .chip{margin-left:auto}
+.chip{background:var(--tone);border-radius:var(--pill);padding:1px 9px;font-size:13px;font-weight:500;font-variant-numeric:tabular-nums}
+.big{font-size:40px;line-height:1;font-variant-numeric:tabular-nums}
+.small{font-size:13px;color:var(--muted)}
+.rows{list-style:none;padding:0;display:grid;gap:6px}
+.rows li{display:flex;align-items:center;gap:10px;min-height:42px;padding:0 12px;background:#fff;border-radius:12px;font-size:15px}
+.rows li input{width:17px;height:17px;accent-color:var(--accent)}
+.rows li.done span{color:var(--muted);text-decoration:line-through}
+.ring{position:relative;width:128px;height:128px;margin:4px auto 10px}
+.ring svg{transform:rotate(-90deg)}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-weight:400;font-size:28px;font-variant-numeric:tabular-nums}
+.ev{display:grid;grid-template-columns:48px 1fr;gap:10px;padding:8px 0;font-size:15px}
+.ev+.ev{margin-top:2px}
+.ev time{color:var(--muted);font-variant-numeric:tabular-nums}
+.ev.now time{color:var(--accent);font-weight:600}
+.hab{display:grid;gap:10px;font-size:15px}
+.hab div{display:flex;align-items:center;gap:8px}
+.hab span{flex:1}
+.dots{display:flex;gap:4px}
+.dots i{width:15px;height:15px;border-radius:5px;background:var(--tone)}
+.dots i.on{background:var(--accent)}
+.bar-p{height:8px;border-radius:var(--pill);background:var(--tone);overflow:hidden;margin-top:6px}
+.bar-p i{display:block;height:100%;width:var(--v);background:var(--accent);border-radius:inherit;transform-origin:left;transition:transform 1.2s var(--ease)}
+.note{font-size:15px;line-height:1.5}
+.days{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:12px;color:var(--muted);gap:2px;margin-bottom:8px}
+.days b{display:block;font-weight:400;font-size:15px;color:var(--ink)}
+.days .t{background:var(--ink);color:#fff;border-radius:10px;padding:4px 0}.days .t b{color:#fff}
+.days div{padding:4px 0}
+
+.c3{grid-column:span 3}.c4{grid-column:span 4}.c5{grid-column:span 5}.c6{grid-column:span 6}.c8{grid-column:span 8}
+.float{animation:float 7s ease-in-out infinite}
+.float:nth-child(2n){animation-duration:8.5s;animation-delay:-2s}
+.float:nth-child(3n){animation-duration:9.5s;animation-delay:-4s}
+@keyframes float{50%{translate:0 -6px}}
+
+/* problème : les applis éparpillées se rangent */
+.problem{position:relative;height:220svh;background:var(--ground)}
+.problem .stage{position:sticky;top:0;height:100svh;display:grid;grid-template-columns:5fr 7fr;gap:40px;align-items:center;overflow:hidden}
+.problem p{margin-top:24px}
+.stage>*{min-width:0}
+.apps{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px;border-radius:var(--radius);background:transparent;transition:background .3s}
+.apps.merged{background:var(--sheet-1)}
+.app{background:var(--paper);border-radius:16px;padding:14px;min-height:150px;will-change:transform;outline:6px solid var(--ground)}
+.apps.merged .app{outline-color:transparent}
+.app .tb{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);margin-bottom:10px}
+.app .tb i{width:9px;height:9px;border-radius:50%;background:var(--tone)}
+.app .tb span{margin-left:6px}
+.apps.merged .tb i{display:none}
+.apps.merged .tb span{margin-left:0}
+
+/* fonctionnalités : feuilles empilées */
+.feats{padding:200px 0 0}
+.feats>.wrap>h2{margin-bottom:48px}
+.fsheet{position:sticky;min-height:86svh;border-radius:var(--radius) var(--radius) 0 0;display:grid;grid-template-columns:repeat(12,1fr);gap:24px;padding:22px var(--margin) 48px}
+.fsheet:nth-of-type(1){top:0;background:var(--sheet-1)}
+.fsheet:nth-of-type(2){top:88px;background:var(--sheet-2)}
+.fsheet:nth-of-type(3){top:176px;background:var(--sheet-3);color:#f4f4f2}
+.fsheet:nth-of-type(3) .w{color:var(--ink)}
+.fsheet>h3{grid-column:1/7;font-family:var(--serif);font-weight:400;font-size:clamp(28px,3vw,44px);line-height:1.1;height:50px}
+.fsheet>p{grid-column:1/6;align-self:end;font-size:18px;max-width:40ch}
+.fsheet .fig{grid-column:7/13;grid-row:1/3;align-self:stretch;border-radius:18px;overflow:hidden;position:relative;min-height:440px;background:center/cover}
+.fig .inner{position:absolute;inset:auto 24px 24px 24px;display:grid;gap:12px}
+
+/* widgets : la plaque et ses onglets */
+.show{padding-block:200px 160px}
+.show .split{display:grid;grid-template-columns:1fr 1fr;gap:48px;min-height:88svh}
+.plate{aspect-ratio:1;position:relative;border-radius:var(--radius);overflow:hidden}
+.plate .on{position:absolute;inset:0;padding:clamp(20px,4vw,48px);display:grid;gap:14px;align-content:center;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.plate .on>*{opacity:0;transform:translateY(18px);transition:opacity .5s var(--ease),transform .5s var(--ease)}
+.plate .on.in>*{opacity:1;transform:none}
+.plate .on.in>*:nth-child(2){transition-delay:.07s}.plate .on.in>*:nth-child(3){transition-delay:.14s}
+.side{display:flex;flex-direction:column;justify-content:space-between;gap:40px}
+.tabs{display:flex;gap:22px;flex-wrap:wrap;font-size:18px}
+.tabs button{background:none;border:0;padding:4px 0;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
+.side h3{font-family:var(--serif);font-weight:400;font-size:clamp(32px,3vw,44px);line-height:1.05}
+.side .desc{margin-top:20px;max-width:38ch}
+.side ul{margin-top:20px;padding:0;list-style:none;display:grid;gap:6px}
+.side li::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:10px;vertical-align:middle}
+.soon li::before{background:var(--muted)}
+.cells{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cells a{height:72px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius);text-decoration:none;font-weight:500;background:var(--ink);color:#fff;transition:transform .25s var(--ease)}
+.cells a+a{background:var(--sheet-2);color:var(--ink)}
+.cells a:active{transform:scale(.98)}
+
+/* à toi : réglages en direct */
+.yours{padding:160px 0;background:var(--paper)}
+.yours .grid{display:grid;grid-template-columns:4fr 8fr;gap:48px;align-items:start;margin-top:56px}
+.ctl{display:grid;gap:28px}
+.ctl label,.ctl legend{font-weight:600;font-size:15px;display:block;margin-bottom:10px}
+.ctl fieldset{border:0;padding:0}
+.ctl input[type=range]{width:100%;accent-color:var(--accent)}
+.walls{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.walls button{aspect-ratio:1;border-radius:14px;border:0;background:center/cover;cursor:pointer;transition:transform .2s var(--ease)}
+.walls button:hover{transform:scale(1.05)}
+.walls button[aria-pressed=true]{outline:3px solid var(--accent);outline-offset:2px}
+.seg{display:flex;background:var(--ground);border-radius:var(--pill);padding:4px}
+.seg button{flex:1;height:40px;border:0;border-radius:var(--pill);background:none;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+.preview{position:relative;border-radius:var(--radius);overflow:hidden;min-height:560px;padding:28px;background:#8aa1b4}
+.preview .bg{position:absolute;inset:-30px;background:var(--pw) center/cover;filter:blur(var(--pb,10px));transition:filter .3s}
+.preview .pg{position:relative;display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.preview .w{background:rgba(255,255,255,var(--po,.8));-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);transition:background .3s,grid-column .3s}
+.preview[data-l=a] .p1{grid-column:span 4}.preview[data-l=a] .p2{grid-column:span 2}.preview[data-l=a] .p3,.preview[data-l=a] .p4{grid-column:span 3}
+.preview[data-l=b] .p1{grid-column:span 6}.preview[data-l=b] .p2,.preview[data-l=b] .p3,.preview[data-l=b] .p4{grid-column:span 2}
+
+/* FAQ : fiches à onglets */
+.faq{padding:200px 0 160px}
+.faq .wrap>h2,.cards{max-width:900px;margin-left:auto;margin-right:auto}
+.cards{margin-top:48px;display:grid}
+.card{position:relative;margin-top:-28px;padding-top:40px}
+.card:first-child{margin-top:0}
+.card .tab{position:absolute;top:0;left:calc(var(--i)*150px);width:200px;height:41px;border-radius:14px 14px 0 0;background:inherit;display:flex;align-items:center;padding:0 18px;font-size:15px;font-weight:500}
+.card{background:var(--c)}
+.card:nth-child(3n+1){--c:var(--sheet-1)}.card:nth-child(3n+2){--c:var(--sheet-2)}.card:nth-child(3n){--c:#e6e6e1}
+.card .body{border-radius:0 var(--radius) 0 0;padding:0 28px 30px}
+.card:first-child .body{border-radius:0 var(--radius) 0 0}
+.card button.q{display:block;width:100%;text-align:left;background:none;border:0;padding:14px 0 6px;font-size:20px;font-weight:500;cursor:pointer}
+.card .a{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s var(--ease)}
+.card .a>div{overflow:hidden;max-width:50ch}
+.card.open .a{grid-template-rows:1fr}
+.card .a p{padding-top:8px}
+.cards{background:transparent}
+
+/* appel final : la phrase avec un blanc */
+.cta{padding-block:160px 200px}
+.cta form{font-family:var(--serif);font-size:clamp(24px,2.6vw,36px);max-width:30em;line-height:1.15;letter-spacing:-.015em}
+.cta input{font:inherit;width:7.5em;height:1.1em;border:0;border-radius:.25em;background:var(--sheet-1);padding:0 .25em;vertical-align:baseline}
+.cta input::placeholder{color:#7d8a87}
+.cta button{font:inherit;height:1.1em;padding:0 .3em;border:0;border-radius:.25em;background:var(--accent);color:#fff;cursor:pointer;transition:transform .25s var(--ease)}
+.cta .after{max-width:60ch;font-family:var(--sans);font-size:16px;color:var(--muted);margin-top:24px;line-height:1.5}
+
+/* rideau : le contenu remonte et découvre le pied de page */
+main{position:relative;z-index:1;background:var(--ground)}
+footer{position:sticky;bottom:0;z-index:0;background:var(--ink);color:#e9e9e6;padding:64px 0 32px}
+.blocks{display:flex;gap:4px;align-items:flex-end;height:34svh}
+.blocks span{flex:1;height:var(--h);display:grid;place-items:center;font-family:var(--serif);font-size:clamp(60px,12vw,200px);line-height:1;color:var(--ink);border-radius:14px 14px 0 0}
+.fcols{display:grid;grid-template-columns:repeat(12,1fr);gap:24px;margin-top:56px;font-size:15px}
+.fcols div{grid-column:span 2;display:grid;gap:6px;align-content:start}
+.fcols .cred{grid-column:7/13;color:#bdbdb7;font-size:13px}
+.fcols a{text-decoration:none}.fcols a:hover{text-decoration:underline}
+.copy{display:flex;justify-content:space-between;align-items:center;margin-top:48px;font-size:14px;color:#bdbdb7}
+.copy .btn{height:40px;background:#fff;color:var(--ink)}
+
+/* entrées */
+.js [data-r]{opacity:0;transform:translateY(24px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.js [data-r].in{opacity:1;transform:none}
+
+@media (max-width:900px){
+  .bar nav{display:none}.bar .btn{margin-left:auto}
+  .sheet{margin-top:96px;padding-top:36px}
+  .c3,.c4,.c5,.c6,.c8{grid-column:span 6}
+  .desk .hide-m{display:none}
+  .problem{height:auto}.problem .stage{position:relative;height:auto;grid-template-columns:1fr;padding:120px var(--margin)}
+  .fsheet{top:0!important;grid-template-columns:1fr;min-height:70svh;position:relative;margin-top:-22px}
+  .fsheet>h3,.fsheet>p,.fsheet .fig{grid-column:1;grid-row:auto}
+  .fsheet .fig{min-height:340px;order:-1}
+  .show .split,.yours .grid{grid-template-columns:1fr}
+  .card .tab{left:calc(var(--i)*48px);width:140px}
+  .fcols div{grid-column:span 6}.fcols .cred{grid-column:1/-1}
+}
+@media (max-width:560px){
+  .c3,.c4,.c5,.c6,.c8{grid-column:span 12}
+  .apps{grid-template-columns:1fr 1fr}
+  .cta form{font-size:24px}.cta input{display:block;width:100%;margin:.15em 0}
+  .preview{min-height:auto;padding:16px}.preview .pg>*{grid-column:span 6!important}
+  .blocks{height:22svh}.blocks span{font-size:16vw}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  .js [data-r]{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+<script>document.documentElement.classList.add('js')</script>
+<header class="bar">
+  <a class="mark" href="#top" aria-label="Renzvi, accueil"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="3" fill="#fff"/><rect x="13" y="2" width="9" height="9" rx="3" fill="#fff" opacity=".45"/><rect x="2" y="13" width="9" height="9" rx="3" fill="#fff" opacity=".45"/><rect x="13" y="13" width="9" height="9" rx="3" fill="#fff" opacity=".45"/></svg>Renzvi</a>
+  <nav aria-label="Principale"><a href="#fonctionnalites">Fonctionnalités</a><a href="#widgets">Widgets</a><a href="#personnaliser">Personnaliser</a><a href="#faq">Questions</a></nav>
+  <a class="btn mag" href="#inscription">Être prévenu</a>
+</header>
+
+<main id="top">
+  <section class="hero" aria-labelledby="t">
+    <div class="photo" id="heroPhoto"></div><div class="scrim"></div>
+    <div class="sheet" id="sheet">
+      <h1 id="t" data-r>Ta journée, sur une seule page.</h1>
+      <p class="lead" data-r>Renzvi rassemble tes tâches, ton agenda, tes habitudes et ton minuteur focus dans un tableau de bord à toi, posé sur la photo de ton choix.</p>
+      <div class="acts" data-r><a class="btn mag" href="#inscription">Être prévenu au lancement</a><a class="btn soft mag" href="#widgets">Voir les widgets</a></div>
+      <div class="wall-pick" data-r role="group" aria-label="Changer la photo de fond"><span>Essaie un fond</span></div>
+      <div class="desk" id="desk" data-ui></div>
+    </div>
+  </section>
+
+  <section class="problem" id="probleme" aria-labelledby="tp">
+    <div class="stage wrap">
+      <div>
+        <h2 id="tp" data-r>Trop d'applis. Trop d'onglets.</h2>
+        <p class="lead" data-r>Une appli pour les tâches, une pour l'agenda, une troisième pour les habitudes, un minuteur dans un onglet perdu. Fais défiler : Renzvi les range sur un seul écran.</p>
+      </div>
+      <div class="apps" id="apps" data-ui></div>
+    </div>
+  </section>
+
+  <section class="feats" id="fonctionnalites" aria-labelledby="tf">
+    <div class="wrap"><h2 id="tf" data-r>Un seul écran, fait pour toi.</h2></div>
+    <article class="fsheet">
+      <h3>Tout au même endroit</h3>
+      <p>Tes tâches du jour, ton prochain rendez-vous et ta série d'habitudes se lisent d'un coup d'œil, sans ouvrir trois applis. Une page, que tu gardes ouverte.</p>
+      <div class="fig" data-ui><img src="assets/misty-morning-by-bohinj-lake-3849327601.jpg" alt="" loading="lazy" width="1600" height="1000" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><div class="inner" id="fig1"></div></div>
+    </article>
+    <article class="fsheet">
+      <h3>À ton image</h3>
+      <p>Choisis ta photo de fond, la transparence des panneaux et la place de chaque widget. Ton tableau de bord ne ressemble à celui de personne d'autre.</p>
+      <div class="fig" data-ui><img src="assets/sossusvlei-dune-namib-desert-namibia-luca-galuzzi.jpg" alt="" loading="lazy" width="1600" height="1000" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><div class="inner" id="fig2"></div></div>
+    </article>
+    <article class="fsheet">
+      <h3>Pensé pour un coup d'œil</h3>
+      <p>Pas de menus à fouiller. Tu ouvres Renzvi, tu sais ce qui t'attend, tu lances vingt-cinq minutes de focus et tu t'y mets.</p>
+      <div class="fig" data-ui><img src="assets/foggy-fanal-forest-in-seixal-porto-moniz.jpg" alt="" loading="lazy" width="1600" height="1000" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><div class="inner" id="fig3"></div></div>
+    </article>
+  </section>
+
+  <section class="show wrap" id="widgets" aria-labelledby="tw">
+    <h2 id="tw" data-r style="margin-bottom:48px">Tes outils, à ta façon.</h2>
+    <div class="split">
+      <div class="plate" data-ui data-r><img src="assets/foggy-reflections-loch-tummel.jpg" alt="Loch écossais dans le brouillard" loading="lazy" width="1600" height="1000" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><div class="on in" id="plate"></div></div>
+      <div class="side" data-r>
+        <div class="tabs" role="tablist" aria-label="Catégories de widgets" id="tabs"></div>
+        <div id="tabtext" role="tabpanel"></div>
+        <div class="cells"><a class="mag" href="#inscription">Être prévenu</a><a class="mag" href="#personnaliser">Essayer les réglages</a></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="yours" id="personnaliser" aria-labelledby="ty">
+    <div class="wrap">
+      <h2 id="ty" data-r>Un espace qui te ressemble.</h2>
+      <div class="grid">
+        <div class="ctl" data-r>
+          <fieldset><legend>Photo de fond</legend><div class="walls" id="walls"></div></fieldset>
+          <div><label for="op">Opacité des panneaux</label><input type="range" id="op" min="35" max="95" value="80"></div>
+          <div><label for="bl">Flou du fond</label><input type="range" id="bl" min="0" max="30" value="10"></div>
+          <fieldset><legend>Disposition</legend><div class="seg" id="seg"><button aria-pressed="true" data-l="a">Équilibrée</button><button aria-pressed="false" data-l="b">Tâches en grand</button></div></fieldset>
+        </div>
+        <div class="preview" id="preview" data-l="a" data-ui data-r><div class="bg"></div><div class="pg" id="pg"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="faq" id="faq" aria-labelledby="tq">
+    <div class="wrap">
+      <h2 id="tq" data-r>Tes questions.</h2>
+      <div class="cards" id="cards" data-r></div>
+    </div>
+  </section>
+
+  <section class="cta wrap" id="inscription" aria-labelledby="tc">
+    <h2 id="tc" data-r style="margin-bottom:40px">Garde ta place.</h2>
+    <form id="form" data-r novalidate>
+      Préviens <label class="small" for="em" style="position:absolute;left:-9999px">Ton adresse email</label><input id="em" type="email" placeholder="ton email" autocomplete="email" required> <span>au lancement de Renzvi</span> <button class="mag">Envoyer</button>
+    </form>
+    <p class="after" id="after">Un seul email, le jour où Renzvi ouvre. Rien d'autre, et ton adresse n'est partagée avec personne.</p>
+  </section>
+</main>
+
+<footer aria-labelledby="tfoot">
+  <div class="wrap">
+    <h2 id="tfoot" style="position:absolute;left:-9999px">Renzvi</h2>
+    <div class="blocks" aria-hidden="true"></div>
+    <div class="fcols">
+      <div><b>Produit</b><a href="#fonctionnalites">Fonctionnalités</a><a href="#widgets">Widgets</a><a href="#personnaliser">Personnaliser</a></div>
+      <div><b>Aide</b><a href="#faq">Questions</a><a href="#inscription">Être prévenu</a></div>
+      <div><b>Légal</b><a href="#">Mentions légales</a><a href="#">Confidentialité</a></div>
+      <p class="cred">Photos de fond : <a href="https://commons.wikimedia.org/wiki/File:Lake_mapourika_NZ.jpeg">« Lake mapourika NZ »</a>, Richard Palmer, CC BY-SA 3.0 ; <a href="https://commons.wikimedia.org/wiki/File:Misty_morning_by_Bohinj_lake_(3849327601).jpg">« Misty morning by Bohinj lake »</a>, ufoncz, CC BY 2.0 ; <a href="https://commons.wikimedia.org/wiki/File:Foggy_Reflections_-_Loch_Tummel.jpg">« Foggy Reflections – Loch Tummel »</a>, Eric Kilby, CC BY-SA 4.0 ; <a href="https://commons.wikimedia.org/wiki/File:Foggy_Fanal_forest_in_Seixal,_Porto_Moniz,_Madeira,_2023_May.jpg">« Foggy Fanal forest »</a>, Ximonic, CC BY-SA 4.0 ; <a href="https://commons.wikimedia.org/wiki/File:Sossusvlei_Dune_Namib_Desert_Namibia_Luca_Galuzzi_2004.JPG">« Sossusvlei Dune »</a>, Luca Galuzzi, CC BY-SA 2.5 ; via Wikimedia Commons.</p>
+    </div>
+    <div class="copy"><span>© 2026 Renzvi</span><a class="btn" href="#top">Haut de page</a></div>
+  </div>
+</footer>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const WALLS=[["Lac au matin","lake-mapourika-nz.jpg"],["Brume sur le lac","misty-morning-by-bohinj-lake-3849327601.jpg"],["Loch dans le brouillard","foggy-reflections-loch-tummel.jpg"],["Forêt dans la brume","foggy-fanal-forest-in-seixal-porto-moniz.jpg"],["Dunes","sossusvlei-dune-namib-desert-namibia-luca-galuzzi.jpg"]];
+const url=f=>`url(assets/${f})`;
+const now=new Date(), hhmm=d=>d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+
+/* ---- widgets : un seul jeu de gabarits, réutilisé partout ---- */
+const TASKS=[["Envoyer la facture de novembre",0],["Relire le contrat fournisseur",0],["Réserver le train pour Lyon",0],["Acheter du café",1]];
+const EVENTS=[["09:30","Point avec le comptable"],["12:30","Déjeuner avec Léa"],["15:00","Appel fournisseur"],["18:30","Salle de sport"]];
+const HABITS=[["Boire 2 L d'eau",[1,1,0,1,1,1,1]],["Lire 20 min",[0,1,1,1,0,1,0]],["Marcher",[1,0,1,1,1,0,0]]];
+const W={
+  clock:()=>`<div class="w"><h3>Heure</h3><div class="big js-clock">${hhmm(now)}</div><div class="small">${now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div></div>`,
+  tasks:(n=4)=>`<div class="w"><h3>Tâches <span class="chip">${TASKS.filter(t=>!t[1]).length} restantes</span></h3><ul class="rows">${TASKS.slice(0,n).map(([t,d])=>`<li class="${d?'done':''}"><input type="checkbox" ${d?'checked':''} aria-label="Terminer : ${esc(t)}"><span>${esc(t)}</span></li>`).join('')}</ul></div>`,
+  focus:()=>`<div class="w"><h3>Minuteur focus</h3><div class="ring"><svg width="128" height="128" aria-hidden="true"><circle cx="64" cy="64" r="56" fill="none" stroke="rgba(31,32,29,.1)" stroke-width="7"/><circle class="js-arc" cx="64" cy="64" r="56" fill="none" stroke="#1b6e66" stroke-width="7" stroke-linecap="round" stroke-dasharray="351.9" stroke-dashoffset="0"/></svg><b class="js-timer" role="timer">25:00</b></div><div class="small" style="text-align:center">Session 3 sur 4 aujourd'hui</div></div>`,
+  agenda:(n=4)=>{const d0=new Date(now);d0.setDate(now.getDate()-((now.getDay()+6)%7));const nx=EVENTS.find(e=>e[0]>=hhmm(now));
+    return `<div class="w"><h3>Agenda</h3><div class="days">${[...Array(7)].map((_,i)=>{const d=new Date(d0);d.setDate(d0.getDate()+i);return `<div class="${d.toDateString()===now.toDateString()?'t':''}">${d.toLocaleDateString('fr-FR',{weekday:'short'}).replace('.','')}<b>${d.getDate()}</b></div>`}).join('')}</div>${EVENTS.slice(0,n).map(e=>`<div class="ev ${e===nx?'now':''}"><time>${e[0]}</time><span>${esc(e[1])}</span></div>`).join('')}</div>`},
+  habits:()=>`<div class="w"><h3>Habitudes <span class="chip">${HABITS.filter(h=>h[1][6]).length} / ${HABITS.length}</span></h3><div class="hab">${HABITS.map(([n,w])=>`<div><span>${esc(n)}</span><span class="dots">${w.map(v=>`<i class="${v?'on':''}"></i>`).join('')}</span></div>`).join('')}</div></div>`,
+  notes:()=>`<div class="w"><h3>Notes</h3><p class="note">Rappeler le plombier avant jeudi. Idée cadeau pour maman : le livre de cuisine vu chez Léa.</p></div>`,
+  goal:()=>`<div class="w"><h3>Objectif de la semaine</h3><div class="small">Focus : 6 h 15 sur 10 h</div><div class="bar-p" style="--v:62.5%"><i></i></div><div class="small" style="margin-top:12px">Lecture : 3 soirs sur 5</div><div class="bar-p" style="--v:60%"><i></i></div></div>`,
+};
+
+/* ---- héros ---- */
+$('#desk').innerHTML=[
+  ['c3 float','clock'],['c5 float','tasks'],['c4 float','focus'],
+  ['c5 float hide-m','agenda'],['c4 float hide-m','habits'],['c3 float hide-m','notes']
+].map(([c,k],i)=>`<div class="${c}" data-depth="${[6,10,14,8,12,5][i]}" data-r>${W[k]()}</div>`).join('');
+const pick=$('.wall-pick');
+WALLS.forEach(([n,f],i)=>{const b=document.createElement('button');b.setAttribute('aria-label',n);b.setAttribute('aria-pressed',i===0);b.style.backgroundImage=url(f);
+  b.onclick=()=>{$('#heroPhoto').style.setProperty('--wall',url(f));pick.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b))};pick.append(b)});
+
+/* horloges et minuteur qui tournent vraiment (en accéléré : 1 s = 1 s) */
+setInterval(()=>$$('.js-clock').forEach(e=>e.textContent=hhmm(new Date())),10000);
+let rest=25*60;
+const drawT=()=>{const t=String(rest/60|0).padStart(2,'0')+':'+String(rest%60).padStart(2,'0');$$('.js-timer').forEach(e=>e.textContent=t);$$('.js-arc').forEach(a=>a.style.strokeDashoffset=351.9*(1-rest/1500))};
+if(!RM)setInterval(()=>{rest=rest>0?rest-1:1500;drawT()},1000);
+/* les cases se cochent vraiment */
+document.addEventListener('change',e=>{if(e.target.matches('.rows input'))e.target.closest('li').classList.toggle('done',e.target.checked)});
+
+/* parallaxe à la souris sur le héros */
+if(!RM&&matchMedia('(pointer:fine)').matches){
+  const items=$$('#desk [data-depth]');let raf;
+  $('.hero').addEventListener('mousemove',e=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{const x=e.clientX/innerWidth-.5,y=e.clientY/innerHeight-.5;
+    items.forEach(el=>{const d=+el.dataset.depth;el.firstChild.style.transform=`translate(${-x*d}px,${-y*d}px)`})})});
+}
+
+/* ---- problème : six applis éparpillées qui se rangent au défilement ---- */
+const APPS=[["Rappels",W.tasks(3)],["Calendrier",W.agenda(3)],["Minuteur",W.focus()],["Habitudes",W.habits()],["Notes",W.notes()],["Horloge",W.clock()]];
+$('#apps').innerHTML=APPS.map(([n,h])=>`<div class="app"><div class="tb"><i></i><i></i><i></i><span>${n}</span></div>${h.replace(/^<div class="w">/,'<div>').replace(/<h3>.*?<\/h3>/,'')}</div>`).join('');
+const START=[[-30,-150,-8],[140,-190,6],[120,30,-5],[-20,140,7],[90,190,-6],[100,-40,4]];
+const appsEl=$('#apps'),probe=$('#probleme');
+function scene(){
+  if(innerWidth<=900||RM){appsEl.classList.add('merged');$$('.app').forEach(a=>a.style.transform='');return}
+  const r=probe.getBoundingClientRect(),p=Math.min(1,Math.max(0,-r.top/(r.height-innerHeight)));
+  const k=1-Math.min(1,p/.75), e=k*k*(3-2*k);
+  $$('.app').forEach((a,i)=>{const[x,y,rot]=START[i];a.style.transform=`translate(${x*e}px,${y*e}px) rotate(${rot*e}deg) scale(${1-.08*e})`});
+  appsEl.classList.toggle('merged',p>.78);
+}
+addEventListener('scroll',scene,{passive:true});addEventListener('resize',scene);scene();
+
+/* ---- feuilles de fonctionnalités ---- */
+$('#fig1').innerHTML=W.tasks(3)+W.agenda(2);
+$('#fig2').innerHTML=W.habits()+W.goal();
+$('#fig3').innerHTML=W.focus();
+$('#fig3').style.cssText+='max-width:320px;margin-left:auto';
+
+/* ---- vitrine des widgets par catégorie ---- */
+const CATS=[
+  {n:"Organisation",t:"Ce qui t'attend aujourd'hui",d:"Les tâches du jour, la semaine en une ligne et tes prochains rendez-vous, au même endroit.",l:["Tâches","Agenda","Notes"],w:[W.tasks(4),W.agenda(3)]},
+  {n:"Concentration",t:"Vingt-cinq minutes, sans rien d'autre",d:"Un minuteur focus toujours visible et le temps cumulé de la semaine.",l:["Minuteur focus","Objectif de la semaine"],w:[W.focus(),W.goal()]},
+  {n:"Routine",t:"Les petites choses qui comptent",d:"Coche tes habitudes chaque jour et regarde ta série s'allonger sur la semaine.",l:["Habitudes","Horloge"],w:[W.habits(),W.clock()]},
+  {n:"Bientôt",t:"Ce qui arrive ensuite",d:"Ces widgets ne sont pas encore disponibles. Dis-nous lesquels tu veux en premier en t'inscrivant.",l:["Calories et eau","Séances de sport","Fiches de révision","Journal"],soon:1,w:[]},
+];
+const tabs=$('#tabs');
+function showCat(i){
+  const c=CATS[i];tabs.querySelectorAll('button').forEach((b,j)=>b.setAttribute('aria-selected',i===j));
+  $('#tabtext').innerHTML=`<h3>${c.t}</h3><p class="desc">${c.d}</p><ul class="${c.soon?'soon':''}">${c.l.map(x=>`<li>${x}${c.soon?' <span class="small">(pas encore disponible)</span>':''}</li>`).join('')}</ul>`;
+  const pl=$('#plate');pl.classList.remove('in');
+  setTimeout(()=>{pl.innerHTML=c.w.length?c.w.join(''):`<div class="w" style="text-align:center;padding:40px"><p style="font-family:var(--serif);font-size:32px;line-height:1.1">En préparation</p><p class="small" style="margin-top:8px">${c.l.join(' · ')}</p></div>`;requestAnimationFrame(()=>pl.classList.add('in'))},RM?0:180);
+}
+CATS.forEach((c,i)=>{const b=document.createElement('button');b.role='tab';b.textContent=c.n;b.onclick=()=>showCat(i);
+  b.onkeydown=e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){const j=(i+(e.key==='ArrowRight'?1:CATS.length-1))%CATS.length;tabs.children[j].focus();showCat(j)}};tabs.append(b)});
+showCat(0);
+
+/* ---- réglages en direct ---- */
+const pv=$('#preview');
+$('#pg').innerHTML=`<div class="p1">${W.tasks(4)}</div><div class="p2">${W.focus()}</div><div class="p3">${W.agenda(3)}</div><div class="p4">${W.habits()}</div>`;
+const walls=$('#walls');
+WALLS.forEach(([n,f],i)=>{const b=document.createElement('button');b.setAttribute('aria-label',n);b.setAttribute('aria-pressed',i===2);b.style.backgroundImage=url(f);
+  b.onclick=()=>{pv.style.setProperty('--pw',url(f));walls.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b))};walls.append(b)});
+pv.style.setProperty('--pw',url(WALLS[2][1]));
+$('#op').oninput=e=>pv.style.setProperty('--po',e.target.value/100);
+$('#bl').oninput=e=>pv.style.setProperty('--pb',e.target.value+'px');
+$$('#seg button').forEach(b=>b.onclick=()=>{pv.dataset.l=b.dataset.l;$$('#seg button').forEach(x=>x.setAttribute('aria-pressed',x===b))});
+
+/* ---- FAQ ---- */
+const QA=[
+  ["Le produit","C'est quoi, Renzvi ?","Un tableau de bord personnel dans ton navigateur : tu y poses les widgets dont tu as besoin (tâches, agenda, habitudes, minuteur, notes) sur une photo de fond que tu choisis."],
+  ["Prix","Combien ça coûte ?","Le prix n'est pas encore fixé. Il sera affiché TTC, sans surprise, avant que tu ne paies quoi que ce soit."],
+  ["Données","Qui voit mes données ?","Personne d'autre que toi. Ton tableau de bord est privé par défaut et nous collectons le strict minimum pour qu'il fonctionne."],
+  ["Mobile","Ça marche sur téléphone ?","Oui, le tableau de bord se réorganise sur petit écran. Depuis TikTok ou Instagram, ouvre le lien dans Safari ou Chrome pour te connecter."],
+  ["Lancement","Quand est-ce que ça sort ?","Renzvi est en construction. Laisse ton email plus bas : tu recevras un seul message, le jour de l'ouverture."],
+];
+$('#cards').innerHTML=QA.map(([t,q,a],i)=>`<div class="card ${i?'':'open'}" style="--i:${i}"><div class="tab">${t}</div><div class="body"><button class="q" aria-expanded="${!i}" aria-controls="a${i}">${q}</button><div class="a" id="a${i}"><div><p>${a}</p></div></div></div></div>`).join('');
+$$('.card .q').forEach(b=>b.onclick=()=>{$$('.card').forEach(c=>{const o=c.contains(b);c.classList.toggle('open',o);c.querySelector('.q').setAttribute('aria-expanded',o)})});
+
+/* ---- inscription ---- */
+// shortcut: aucun envoi réel, à brancher (Supabase ou outil d'emailing) avant la mise en ligne.
+$('#form').onsubmit=e=>{e.preventDefault();const v=$('#em');
+  $('#after').textContent=v.checkValidity()?"Inscription pas encore branchée : cette page est une démonstration.":"Il manque une adresse email valide.";};
+
+/* ---- pied de page : le nom construit en blocs ---- */
+const COLS=['#dfe9e6','#ece9e2','#cfe0dc','#e6e6e1','#dfe9e6','#1b6e66'];
+$('.blocks').innerHTML=[...'Renzvi'].map((l,i)=>`<span style="--h:${[100,72,86,64,92,78][i]}%;background:${COLS[i]};${i===5?'color:#fff':''}">${l}</span>`).join('');
+
+/* ---- entrées échelonnées et boutons magnétiques ---- */
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const sib=[...e.target.parentElement.children].filter(x=>x.hasAttribute('data-r'));
+  e.target.style.transitionDelay=(sib.indexOf(e.target)*80)+'ms';e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});
+$$('[data-r]').forEach(el=>io.observe(el));
+const bio=new IntersectionObserver(es=>es.forEach(e=>{e.target.querySelectorAll('.bar-p i').forEach(i=>i.style.transform=e.isIntersecting?'scaleX(1)':'scaleX(0)')}),{threshold:.3});
+$$('.bar-p').forEach(b=>{b.firstChild.style.transform='scaleX(0)';bio.observe(b.parentElement)});
+if(!RM&&matchMedia('(pointer:fine)').matches)$$('.mag').forEach(b=>{
+  b.addEventListener('mousemove',e=>{const r=b.getBoundingClientRect();b.style.transform=`translate(${(e.clientX-r.left-r.width/2)*.18}px,${(e.clientY-r.top-r.height/2)*.25}px)`});
+  b.addEventListener('mouseleave',()=>b.style.transform='')});
+</script>
+</body>
+</html>
