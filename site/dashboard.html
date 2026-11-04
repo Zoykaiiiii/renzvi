@@ -161,6 +161,22 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 .days button.today{color:var(--ink);font-weight:700}
 .days button[aria-pressed=true]{background:var(--accent);color:#fff}
 
+.breath-stage{display:grid;place-items:center;height:168px;margin-top:4px}
+.breath{width:132px;height:132px;border-radius:50%;background:var(--tint);box-shadow:inset 0 0 0 1.5px var(--edge);transform:scale(.6);transition:transform var(--dur,4s) ease-in-out,background-color var(--dur,4s) ease-in-out}
+.breath.in{transform:scale(1);background:rgba(23,25,28,.1)}
+.breath-word{min-height:28px;font-size:18px;font-weight:500;text-align:center}
+.sound{display:flex;align-items:center;gap:12px;min-height:44px}
+.sound span{flex:none;width:104px;font-size:14px}
+.sound input{flex:1;min-width:0;height:32px;accent-color:var(--accent)}
+.add.stack{flex-wrap:wrap}
+.add.stack input[type=text],.add.stack input[type=url]{flex:1 1 100%}
+.add.stack input[type=date]{flex:1 1 140px}
+.row .grow{flex:1;min-width:0;padding:10px 0;overflow-wrap:anywhere}
+.row .left{flex:none;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.row.past .grow,.row.past .left{color:var(--slate);font-weight:400}
+.row a.grow{text-decoration:none}
+.row a.grow:hover{text-decoration:underline;text-underline-offset:3px}
+.row .host{flex:none;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--slate)}
 .credit{padding:32px 0 24px;font-size:12px;color:var(--slate)}
 
 /* Carte d'embarquement : la même dans le widget et dans la scène 3D, sa taille suit font-size. */
@@ -257,6 +273,7 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 }
 @media (prefers-reduced-motion:reduce){
   .cockpit,.flight-end,.hublot,.hublot-wing{animation:none}
+  .breath{transition:none;transform:none}
   .me,.out,.widget,#menu,.ghost,.primary{transition:none}
   .me:active,.out:active,.ghost:active,.primary:active{transform:none}
   .widget:hover{border-radius:var(--r-panel)}
@@ -373,6 +390,13 @@ const SUPABASE_KEY = 'sb_publishable_-RJvqWleUNCM9vu5TumV6w_r2SUd8mQ';
 const MAX_TASKS = 100, MAX_TASK_LENGTH = 140, MAX_HABITS = 12, MAX_HABIT_LENGTH = 60, MAX_NOTES_LENGTH = 15000;
 const SAVE_DELAY = 600, SAVE_RETRY = 5000;
 const FOCUS_CHOICES = [15, 25, 50];
+const BREATH_CHOICES = [1, 3, 5], BREATH_IN = 4000, BREATH_OUT = 6000;
+const MAX_COUNTDOWNS = 5, MAX_COUNTDOWN_TITLE = 60, MAX_LINKS = 12, MAX_LINK_LABEL = 40;
+// Des sons créés par le navigateur (bruit filtré) : aucun fichier, donc aucun droit d'auteur ni poids à télécharger.
+const SOUNDS = [
+  { id: 'pluie', name: 'Pluie' }, { id: 'vent', name: 'Vent' }, { id: 'feu', name: 'Feu de bois' },
+  { id: 'cabine', name: "Cabine d'avion" }, { id: 'blanc', name: 'Bruit blanc' },
+];
 const BASE_WIDGETS = ['vol', 'taches', 'notes'];
 const MIN_FLIGHT = 5, MAX_FLIGHT = 180, FLIGHT_GRACE = 10000, CANCEL_CONFIRM = 3000;
 // Une durée donne une destination : plus le vol est long, plus on va loin. Ce sont des repères, pas de vrais horaires.
@@ -1018,6 +1042,285 @@ const WIDGETS = [
       function draw() {
         list.replaceChildren(...items.map(row));
         refresh();
+      }
+      draw();
+      body.append(form, note, empty, list);
+    },
+  },
+  {
+    id: 'respiration', title: 'Respiration guidée', desc: 'Un cercle qui t\'accompagne pour respirer doucement.',
+    render({ body, meta }) {
+      let length = 3, endAt = null, ticker = null, phase = '';
+      const choices = el('div', 'choices');
+      choices.setAttribute('role', 'group');
+      choices.ariaLabel = 'Durée de la respiration';
+      const circle = el('div', 'breath');
+      circle.setAttribute('aria-hidden', 'true');
+      const stage = el('div', 'breath-stage');
+      stage.append(circle);
+      const word = el('p', 'breath-word', 'Prêt ?');
+      word.setAttribute('aria-hidden', 'true'); // change toutes les quelques secondes : on n'inonde pas un lecteur d'écran
+      const status = el('p', 'zone');
+      status.setAttribute('role', 'status');
+      const hint = el('p', 'zone', `Inspire ${BREATH_IN / 1000} s, expire ${BREATH_OUT / 1000} s. Arrête quand tu veux. Ce n'est pas un soin médical.`);
+      const go = button('primary', 'Commencer', () => (endAt ? finish(false) : start()));
+      const ctrl = el('div', 'ctrl');
+      ctrl.append(go);
+      function setPhase(next) {
+        phase = next;
+        circle.style.setProperty('--dur', `${(next === 'in' ? BREATH_IN : BREATH_OUT) / 1000}s`);
+        circle.classList.toggle('in', next === 'in');
+        word.textContent = next === 'in' ? 'Inspire' : 'Expire';
+      }
+      function tick() {
+        const left = endAt - Date.now();
+        if (left <= 0) return finish(true);
+        const into = (length * 60000 - left) % (BREATH_IN + BREATH_OUT);
+        const next = into < BREATH_IN ? 'in' : 'out';
+        if (next !== phase) setPhase(next);
+        meta.textContent = clockLabel(left);
+      }
+      function start() {
+        endAt = Date.now() + length * 60000;
+        status.textContent = '';
+        for (const b of choices.children) b.disabled = true;
+        go.textContent = 'Arrêter';
+        setPhase('in');
+        // L'heure de fin fait foi : un onglet en arrière-plan ralentit les minuteries du navigateur.
+        ticker = setInterval(tick, 250);
+        tick();
+      }
+      function finish(done) {
+        clearInterval(ticker);
+        endAt = null;
+        phase = '';
+        circle.classList.remove('in');
+        word.textContent = 'Prêt ?';
+        meta.textContent = '';
+        go.textContent = 'Commencer';
+        for (const b of choices.children) b.disabled = false;
+        status.textContent = done ? 'Séance terminée. Prends un instant avant de reprendre.' : '';
+      }
+      for (const n of BREATH_CHOICES) {
+        const b = button('', `${n} min`, () => {
+          length = n;
+          for (const c of choices.children) c.setAttribute('aria-pressed', c === b);
+        });
+        b.setAttribute('aria-pressed', n === length);
+        choices.append(b);
+      }
+      body.append(choices, stage, word, status, hint, ctrl);
+      return () => clearInterval(ticker);
+    },
+  },
+  {
+    id: 'ambiance', title: 'Ambiance sonore', desc: "Pluie, vent, feu de bois, cabine d'avion et bruit blanc, à mélanger.",
+    render({ body, meta, data, save }) {
+      const clamp = v => (Number.isFinite(v) ? Math.min(100, Math.max(0, Math.round(v))) : 0);
+      const volumes = Object.fromEntries(SOUNDS.map(snd => [snd.id, snd.id === 'pluie' && !data?.vol ? 35 : clamp(data?.vol?.[snd.id])]));
+      const note = el('p', 'note');
+      note.hidden = true;
+      let ctx = null, nodes = null, playing = false;
+
+      const noiseBuffer = (kind) => {
+        const rate = ctx.sampleRate, N = rate * 6, fade = Math.floor(rate * .05), raw = new Float32Array(N + fade);
+        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, brown = 0;
+        for (let i = 0; i < raw.length; i++) {
+          const w = Math.random() * 2 - 1;
+          if (kind === 'white') raw[i] = w;
+          else if (kind === 'pink') {
+            b0 = .99886 * b0 + w * .0555179; b1 = .99332 * b1 + w * .0750759; b2 = .969 * b2 + w * .153852;
+            b3 = .8665 * b3 + w * .3104856; b4 = .55 * b4 + w * .5329522; b5 = -.7616 * b5 - w * .016898;
+            raw[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * .5362) * .11; b6 = w * .115926;
+          } else { brown = (brown + .02 * w) / 1.02; raw[i] = brown * 3.5; }
+        }
+        const buffer = ctx.createBuffer(1, N, rate), out = buffer.getChannelData(0);
+        out.set(raw.subarray(0, N));
+        // Fondu enchaîné entre la fin et le début : la boucle ne fait pas de « clic ».
+        for (let i = 0; i < fade; i++) { const a = (i / fade) * Math.PI / 2; out[i] = raw[i] * Math.sin(a) + raw[N + i] * Math.cos(a); }
+        return buffer;
+      };
+      const build = () => {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const master = ctx.createGain();
+        master.gain.value = .5;
+        const limiter = ctx.createDynamicsCompressor();
+        master.connect(limiter);
+        limiter.connect(ctx.destination);
+        const noise = { white: noiseBuffer('white'), pink: noiseBuffer('pink'), brown: noiseBuffer('brown') };
+        const source = kind => { const n = ctx.createBufferSource(); n.buffer = noise[kind]; n.loop = true; n.start(0, Math.random() * 5); return n; };
+        const filter = (type, frequency, q = 1) => { const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = frequency; f.Q.value = q; return f; };
+        const chain = (...list) => list.reduce((a, b) => { a.connect(b); return b; });
+        const timers = [], gains = {}, scale = { pluie: .55, vent: .9, feu: .8, cabine: 1.1, blanc: .3 };
+        for (const { id } of SOUNDS) { const g = ctx.createGain(); g.gain.value = 0; g.connect(master); gains[id] = g; }
+        chain(source('white'), filter('highpass', 700), filter('lowpass', 9000), gains.pluie);
+        // Le vent : un bruit rose dont la bande de fréquence monte et descend très lentement.
+        const wind = filter('bandpass', 450, .6), sway = ctx.createOscillator(), depth = ctx.createGain();
+        sway.frequency.value = .09; depth.gain.value = 260; sway.connect(depth); depth.connect(wind.frequency); sway.start();
+        chain(source('pink'), wind, gains.vent);
+        chain(source('brown'), filter('lowpass', 650), gains.cabine);
+        chain(source('white'), filter('lowpass', 12000), gains.blanc);
+        // Le feu : un grondement grave, et de petits craquements espacés au hasard.
+        chain(source('brown'), filter('lowpass', 240), gains.feu);
+        const crackle = () => {
+          if (ctx.state === 'running' && volumes.feu > 0) {
+            const burst = ctx.createBufferSource(), band = filter('bandpass', 1800 + Math.random() * 2600, 1.4), env = ctx.createGain(), t = ctx.currentTime;
+            burst.buffer = noise.white;
+            env.gain.setValueAtTime(0, t);
+            env.gain.linearRampToValueAtTime(.25 + Math.random() * .5, t + .004);
+            env.gain.exponentialRampToValueAtTime(.001, t + .03 + Math.random() * .07);
+            chain(burst, band, env, gains.feu);
+            burst.start(t, Math.random() * 5, .12);
+          }
+          timers[0] = setTimeout(crackle, 90 + Math.random() * 650);
+        };
+        crackle();
+        nodes = { master, gains, scale, timers };
+      };
+      const apply = id => nodes?.gains[id].gain.setTargetAtTime((volumes[id] / 100) ** 2 * nodes.scale[id], ctx.currentTime, .05);
+
+      const toggle = button('primary', "Lancer l'ambiance", async () => {
+        note.hidden = true;
+        try {
+          if (!playing) {
+            if (!SOUNDS.some(snd => volumes[snd.id] > 0)) { note.textContent = "Monte le volume d'un son pour l'entendre."; note.hidden = false; return; }
+            if (!ctx) { build(); for (const snd of SOUNDS) apply(snd.id); }
+            await ctx.resume();
+          } else await ctx.suspend();
+          playing = !playing;
+          toggle.textContent = playing ? 'Pause' : "Lancer l'ambiance";
+          meta.textContent = playing ? 'En cours' : '';
+        } catch (e) {
+          console.error(e);
+          note.textContent = "Ton navigateur n'a pas pu lancer le son.";
+          note.hidden = false;
+        }
+      });
+      const list = el('div');
+      for (const snd of SOUNDS) {
+        const row = el('label', 'sound');
+        const range = Object.assign(el('input'), { type: 'range', min: 0, max: 100, step: 5, value: volumes[snd.id] });
+        const say = () => range.setAttribute('aria-valuetext', `${volumes[snd.id]} %`);
+        say();
+        range.oninput = () => { volumes[snd.id] = Number(range.value); say(); apply(snd.id); };
+        range.onchange = () => save({ vol: { ...volumes } });
+        row.append(el('span', '', snd.name), range);
+        list.append(row);
+      }
+      const ctrl = el('div', 'ctrl');
+      ctrl.append(toggle);
+      body.append(list, note, ctrl);
+      return () => {
+        nodes?.timers.forEach(clearTimeout);
+        ctx?.close().catch(() => {});
+      };
+    },
+  },
+  {
+    id: 'compte', title: 'Compte à rebours', desc: "Un examen, des vacances, un événement : combien de jours il reste.",
+    render({ body, meta, data, save }) {
+      const validDate = iso => {
+        if (typeof iso !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
+        const [y, m, d] = iso.split('-').map(Number), t = new Date(y, m - 1, d);
+        return t.getFullYear() === y && t.getMonth() === m - 1 && t.getDate() === d;
+      };
+      const daysUntil = iso => {
+        const [y, m, d] = iso.split('-').map(Number), now = new Date();
+        return Math.round((new Date(y, m - 1, d) - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+      };
+      const label = n => n > 1 ? `J-${n}` : n === 1 ? 'Demain' : n === 0 ? "Aujourd'hui" : `Passé (${plural(-n, 'jour')})`;
+      let items = listOf(data?.items).filter(e => typeof e?.title === 'string' && validDate(e.date)).slice(0, MAX_COUNTDOWNS);
+      const note = el('p', 'note');
+      note.hidden = true;
+      const title = Object.assign(el('input'), { type: 'text', placeholder: 'Quel événement ?', maxLength: MAX_COUNTDOWN_TITLE, ariaLabel: "Nom de l'événement", autocomplete: 'off' });
+      const date = Object.assign(el('input'), { type: 'date', ariaLabel: "Date de l'événement" });
+      const form = el('form', 'add stack');
+      form.append(title, date, Object.assign(el('button', 'ghost', 'Ajouter'), { type: 'submit' }));
+      form.onsubmit = e => {
+        e.preventDefault();
+        const text = title.value.trim();
+        note.hidden = false;
+        if (!text) note.textContent = "Donne un nom à l'événement.";
+        else if (!validDate(date.value)) note.textContent = 'Choisis une date.';
+        else if (items.length >= MAX_COUNTDOWNS) note.textContent = `Tu suis déjà ${MAX_COUNTDOWNS} événements. Supprimes-en un pour continuer.`;
+        else {
+          items.push({ id: crypto.randomUUID(), title: text, date: date.value });
+          title.value = date.value = '';
+          note.hidden = true;
+          draw();
+          save({ items });
+        }
+        title.focus();
+      };
+      const list = el('ul', 'rows');
+      const empty = el('p', 'empty', 'Aucun événement. Ajoute ton prochain examen ou tes vacances.');
+      function draw() {
+        // Les prochains d'abord, les plus proches en haut ; les événements passés à la fin.
+        items.sort((a, b) => { const da = daysUntil(a.date), db = daysUntil(b.date); return (da < 0) - (db < 0) || (da < 0 ? db - da : da - db); });
+        list.replaceChildren(...items.map(item => {
+          const n = daysUntil(item.date), li = el('li', `row${n < 0 ? ' past' : ''}`);
+          const remove = button('x', '×', () => { items = items.filter(e => e !== item); draw(); save({ items }); title.focus(); });
+          remove.ariaLabel = `Supprimer : ${item.title}`;
+          li.append(el('span', 'grow', item.title), el('b', 'left', label(n)), remove);
+          return li;
+        }));
+        const upcoming = items.filter(e => daysUntil(e.date) >= 0).length;
+        meta.textContent = items.length ? `${upcoming} à venir` : '';
+        empty.hidden = items.length > 0;
+        list.hidden = !items.length;
+      }
+      draw();
+      body.append(form, note, empty, list);
+    },
+  },
+  {
+    id: 'raccourcis', title: 'Mes raccourcis', desc: 'Tes liens favoris : cours, documents, outils.',
+    render({ body, meta, data, save }) {
+      // Seules les adresses http et https sont acceptées : jamais de « javascript: » ni d'autre schéma.
+      const cleanUrl = raw => {
+        let v = String(raw ?? '').trim();
+        if (!v) return null;
+        if (!/^[a-z][a-z0-9+.-]*:/i.test(v)) v = `https://${v}`;
+        try { const u = new URL(v); return /^https?:$/.test(u.protocol) && u.hostname.includes('.') ? u.href : null; } catch { return null; }
+      };
+      const hostOf = href => new URL(href).hostname.replace(/^www\./, '');
+      let items = listOf(data?.items).filter(l => typeof l?.label === 'string' && cleanUrl(l.url)).slice(0, MAX_LINKS);
+      const note = el('p', 'note');
+      note.hidden = true;
+      const name = Object.assign(el('input'), { type: 'text', placeholder: 'Nom (facultatif)', maxLength: MAX_LINK_LABEL, ariaLabel: 'Nom du raccourci', autocomplete: 'off' });
+      const url = Object.assign(el('input'), { type: 'url', placeholder: 'Adresse du site', ariaLabel: 'Adresse du site', autocomplete: 'off', inputMode: 'url' });
+      const form = el('form', 'add stack');
+      form.noValidate = true; // la vérification du navigateur refuserait « exemple.fr » : on ajoute https:// nous-mêmes
+      form.append(name, url, Object.assign(el('button', 'ghost', 'Ajouter'), { type: 'submit' }));
+      form.onsubmit = e => {
+        e.preventDefault();
+        const href = cleanUrl(url.value);
+        note.hidden = false;
+        if (!href) note.textContent = 'Entre une adresse de site valide, par exemple exemple.fr.';
+        else if (items.length >= MAX_LINKS) note.textContent = `Tu as déjà ${MAX_LINKS} raccourcis. Supprimes-en un pour continuer.`;
+        else {
+          items.push({ id: crypto.randomUUID(), label: name.value.trim() || hostOf(href), url: href });
+          name.value = url.value = '';
+          note.hidden = true;
+          draw();
+          save({ items });
+        }
+        url.focus();
+      };
+      const list = el('ul', 'rows');
+      const empty = el('p', 'empty', 'Pas encore de raccourci. Ajoute ton premier lien.');
+      function draw() {
+        list.replaceChildren(...items.map(item => {
+          const li = el('li', 'row');
+          const a = Object.assign(el('a', 'grow', item.label), { href: cleanUrl(item.url), target: '_blank', rel: 'noopener noreferrer' });
+          const remove = button('x', '×', () => { items = items.filter(l => l !== item); draw(); save({ items }); url.focus(); });
+          remove.ariaLabel = `Supprimer : ${item.label}`;
+          li.append(a, el('span', 'host', hostOf(a.href)), remove);
+          return li;
+        }));
+        meta.textContent = items.length ? plural(items.length, 'lien') : '';
+        empty.hidden = items.length > 0;
+        list.hidden = !items.length;
       }
       draw();
       body.append(form, note, empty, list);

@@ -581,6 +581,162 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await context.close();
   }
 
+  // Nouveaux widgets de détente : respiration, ambiance sonore, compte à rebours, raccourcis.
+  const DETENTE = { wallpaper: 'blanc', widgets: ['respiration', 'ambiance', 'compte', 'raccourcis'], done: true };
+  const section = (page, id) => page.locator(`section[aria-labelledby=title-${id}]`);
+  const dayIso = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.toLocaleDateString('sv'); };
+
+  // Respiration guidée : le cercle suit inspire / expire, la fin est annoncée, rien n'est enregistré.
+  {
+    const { context, page, errors, db } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ecran: DETENTE });
+    await page.clock.install();
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('.breath');
+    const w = section(page, 'respiration');
+    assert.equal(await w.locator('.breath-word').textContent(), 'Prêt ?');
+    await w.getByRole('button', { name: '1 min' }).click();
+    await w.getByRole('button', { name: 'Commencer' }).click();
+    await page.clock.runFor(300);
+    assert.equal(await w.locator('.breath-word').textContent(), 'Inspire');
+    assert.equal(await w.locator('.breath').evaluate(c => c.classList.contains('in')), true);
+    assert.match(await w.locator('.meta').textContent(), /^(01:00|00:5\d)$/);
+    assert.equal(await w.getByRole('button', { name: '3 min' }).isDisabled(), true, 'la durée est figée pendant la séance');
+    await page.clock.runFor(4500);
+    assert.equal(await w.locator('.breath-word').textContent(), 'Expire');
+    assert.equal(await w.locator('.breath').evaluate(c => c.classList.contains('in')), false);
+    await page.clock.runFor(6000);
+    assert.equal(await w.locator('.breath-word').textContent(), 'Inspire', 'le cycle recommence');
+    await w.getByRole('button', { name: 'Arrêter' }).click();
+    assert.equal(await w.locator('.breath-word').textContent(), 'Prêt ?');
+    assert.equal(await w.locator('.meta').textContent(), '');
+    await w.getByRole('button', { name: 'Commencer' }).click();
+    await page.clock.runFor(61000);
+    assert.match(await w.getByRole('status').textContent(), /Séance terminée/);
+    assert.equal(await w.getByRole('button', { name: 'Commencer' }).isVisible(), true);
+    assert.equal(db.saves, 0, 'la respiration n\'enregistre rien');
+    await shot(page, 'detente-respiration');
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+
+  // Ambiance sonore : du vrai son sort (on écoute la sortie), pause, volumes enregistrés, arrêt au retrait du widget.
+  {
+    const { context, page, errors, db } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ecran: DETENTE });
+    await context.addInitScript(() => {
+      const Real = window.AudioContext, connect = AudioNode.prototype.connect;
+      window.__ctxs = [];
+      window.AudioContext = class extends Real { constructor(...a) { super(...a); window.__ctxs.push(this); } };
+      AudioNode.prototype.connect = function (dest, ...rest) {
+        if (dest instanceof AudioDestinationNode) { const c = dest.context; c.__an ??= Object.assign(c.createAnalyser(), { fftSize: 2048 }); connect.call(this, c.__an); }
+        return connect.call(this, dest, ...rest);
+      };
+    });
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('.sound');
+    const w = section(page, 'ambiance');
+    assert.equal(await page.evaluate(() => window.__ctxs.length), 0, 'aucun son avant le clic');
+    assert.equal(await w.locator('.sound input').first().inputValue(), '35', 'la pluie est proposée à volume doux');
+    assert.equal(await w.locator('.sound').count(), 5);
+    await w.getByRole('button', { name: "Lancer l'ambiance" }).click();
+    await w.getByRole('button', { name: 'Pause' }).waitFor();
+    assert.equal(await page.evaluate(() => window.__ctxs[0].state), 'running');
+    await page.waitForFunction(() => {
+      const c = window.__ctxs[0], a = new Float32Array(c.__an?.fftSize || 1);
+      c.__an?.getFloatTimeDomainData(a);
+      return a.some(v => Math.abs(v) > 0.001);
+    }, null, { timeout: 8000 });
+    assert.equal(await w.locator('.meta').textContent(), 'En cours');
+    // Le volume d'un son se règle sans couper les autres, et il est enregistré.
+    await w.locator('.sound').filter({ hasText: 'Feu de bois' }).locator('input').fill('60');
+    await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré');
+    assert.deepEqual(db.rows.ambiance.vol, { pluie: 35, vent: 0, feu: 60, cabine: 0, blanc: 0 });
+    await w.getByRole('button', { name: 'Pause' }).click();
+    await w.getByRole('button', { name: "Lancer l'ambiance" }).waitFor();
+    assert.equal(await page.evaluate(() => window.__ctxs[0].state), 'suspended');
+    // Tout à zéro : on le dit au lieu de lancer un silence.
+    for (const input of await w.locator('.sound input').all()) await input.fill('0');
+    await w.getByRole('button', { name: "Lancer l'ambiance" }).click();
+    assert.match(await w.locator('.note').textContent(), /Monte le volume/);
+    assert.equal(await w.locator('.note').isVisible(), true);
+    await shot(page, 'detente-ambiance');
+    // Retirer le widget ferme le son.
+    await page.click('#open-add');
+    await page.getByRole('button', { name: 'Retirer : Ambiance sonore' }).click();
+    await page.waitForFunction(() => window.__ctxs[0].state === 'closed');
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+
+  // Compte à rebours : jours restants, ordre, validation, limite, texte inoffensif, rechargement.
+  {
+    const { context, page, errors, db } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ecran: DETENTE });
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('.add.stack');
+    const w = section(page, 'compte');
+    const add = async (title, date) => { await w.getByRole('textbox', { name: "Nom de l'événement" }).fill(title); await w.getByLabel("Date de l'événement").fill(date || ''); await w.getByRole('button', { name: 'Ajouter' }).click(); };
+    await add('', dayIso(3));
+    assert.match(await w.locator('.note').textContent(), /Donne un nom/);
+    await add('Sans date', '');
+    assert.match(await w.locator('.note').textContent(), /Choisis une date/);
+    assert.equal(await w.locator('.row').count(), 0);
+    await add('Partiel de maths', dayIso(10));
+    await add('Passé', dayIso(-3));
+    await add("Aujourd'hui test", dayIso(0));
+    await add('Demain test', dayIso(1));
+    assert.deepEqual(await w.locator('.row .left').allTextContents(), ["Aujourd'hui", 'Demain', 'J-10', 'Passé (3 jours)'], 'les plus proches d\'abord, le passé à la fin');
+    assert.equal(await w.locator('.row.past').count(), 1);
+    assert.equal(await w.locator('.meta').textContent(), '3 à venir');
+    await add('<img src=x onerror="window.pirate=1">', dayIso(30));
+    assert.equal(await page.evaluate(() => window.pirate), undefined);
+    assert.equal(await w.locator('.row .grow').filter({ hasText: '<img' }).textContent(), '<img src=x onerror="window.pirate=1">', 'le texte reste du texte');
+    await add('Sixième', dayIso(40));
+    assert.match(await w.locator('.note').textContent(), /5 événements/);
+    assert.equal(await w.locator('.row').count(), 5);
+    await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré');
+    assert.equal(db.rows.compte.items.length, 5);
+    await page.reload();
+    await page.waitForSelector('.row');
+    assert.equal(await w.locator('.row').count(), 5);
+    await w.getByRole('button', { name: 'Supprimer : Passé' }).click();
+    assert.equal(await w.locator('.row').count(), 4);
+    await shot(page, 'detente-compte');
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+
+  // Mes raccourcis : seules les adresses http(s) sont acceptées, les liens s'ouvrent à part, les données douteuses sont ignorées.
+  {
+    const stored = { items: [{ label: 'Piège', url: 'javascript:window.pirate=1' }, { label: 'Cours', url: 'https://cours.exemple.fr/maths' }] };
+    const { context, page, errors, db } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ecran: DETENTE, raccourcis: stored });
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('.add.stack');
+    const w = section(page, 'raccourcis');
+    assert.equal(await w.locator('.row').count(), 1, 'une adresse dangereuse déjà enregistrée n\'est pas affichée');
+    const add = async (name, url) => { await w.getByRole('textbox', { name: 'Nom du raccourci' }).fill(name); await w.getByRole('textbox', { name: 'Adresse du site' }).fill(url); await w.getByRole('button', { name: 'Ajouter' }).click(); };
+    for (const bad of ['javascript:alert(1)', 'ftp://exemple.fr', 'localhost', 'pas une adresse', 'data:text/html,<b>x</b>']) {
+      await add('x', bad);
+      assert.match(await w.locator('.note').textContent(), /adresse de site valide/, bad);
+    }
+    assert.equal(await w.locator('.row').count(), 1);
+    await add('Docs', 'exemple.fr');
+    const link = w.locator('a.grow', { hasText: 'Docs' });
+    assert.equal(await link.getAttribute('href'), 'https://exemple.fr/');
+    assert.equal(await link.getAttribute('target'), '_blank');
+    assert.match(await link.getAttribute('rel'), /noopener/);
+    await add('', 'https://www.exemple.org/page');
+    assert.equal(await w.locator('a.grow', { hasText: 'exemple.org' }).count(), 1, 'sans nom, le nom du site sert de titre');
+    assert.equal(await w.locator('.meta').textContent(), '3 liens');
+    assert.equal(await page.evaluate(() => window.pirate), undefined);
+    await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré');
+    assert.deepEqual(db.rows.raccourcis.items.map(l => l.url), ['https://cours.exemple.fr/maths', 'https://exemple.fr/', 'https://www.exemple.org/page']);
+    for (let i = 0; i < 9; i++) await add('', `https://site${i}.exemple.fr`);
+    await add('', 'https://trop.exemple.fr');
+    assert.match(await w.locator('.note').textContent(), /12 raccourcis/);
+    await shot(page, 'detente-raccourcis');
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+
   // Installer l'app : l'entrée du menu du compte ouvre le guide (détails dans tests/install.check.cjs).
   {
     const { context, page, errors } = await openDashboard(browser, base, { viewport: { width: 390, height: 844 } }, {});
