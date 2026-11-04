@@ -881,6 +881,211 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await bad.context.close();
   }
 
+  // Pause détente : on choisit une pause, un décompte avec un cercle qui se vide, arrêt possible, rien n'est enregistré.
+  {
+    const { context, page, errors, db } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ecran: { wallpaper: 'blanc', widgets: ['pause'], done: true } });
+    await page.clock.install();
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('.break');
+    const w = section(page, 'pause');
+    assert.equal(await w.locator('.break').count(), 4);
+    await w.getByRole('button', { name: /Regarder au loin/ }).click();
+    await page.clock.runFor(300);
+    assert.equal(await w.locator('.break').first().isVisible(), false, 'la liste laisse la place au décompte');
+    assert.match(await w.getByRole('timer').textContent(), /^00:(20|19)$/);
+    assert.match(await w.textContent('.zone'), /lointain/);
+    const offset = () => w.locator('.ring .fill').evaluate(c => parseFloat(c.style.strokeDashoffset));
+    const early = await offset();
+    await page.clock.runFor(10000);
+    assert.match(await w.getByRole('timer').textContent(), /^00:(09|10)$/);
+    assert.ok(await offset() > early + 100, 'le cercle se vide avec le temps');
+    await shot(page, 'detente-pause');
+    await w.getByRole('button', { name: 'Arrêter la pause' }).click();
+    assert.equal(await w.locator('.break').first().isVisible(), true);
+    assert.equal(await w.getByRole('status').textContent(), '');
+    await w.getByRole('button', { name: /S'étirer/ }).click();
+    await page.clock.runFor(61000);
+    assert.match(await w.getByRole('status').textContent(), /Pause terminée : s'étirer/);
+    assert.equal(await w.locator('.break').first().isVisible(), true);
+    assert.equal(db.saves, 0, 'la pause n\'enregistre rien');
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+
+  // Suivi de lecture : un livre, sa progression, des citations, les livres terminés ; tout survit au rechargement.
+  {
+    const { context, page, errors, db } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ecran: { wallpaper: 'blanc', widgets: ['lecture'], done: true } });
+    await page.clock.install();
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('section[aria-labelledby=title-lecture] form');
+    const w = section(page, 'lecture');
+    const choose = async (title, author, pages) => {
+      await w.getByRole('textbox', { name: 'Titre du livre' }).fill(title);
+      await w.getByRole('textbox', { name: 'Auteur' }).fill(author);
+      await w.getByRole('spinbutton', { name: 'Nombre de pages' }).fill(pages);
+      await w.getByRole('button', { name: 'Choisir ce livre' }).click();
+    };
+    await choose('', '', '');
+    assert.match(await w.locator('.note').textContent(), /titre du livre/);
+    for (const bad of ['0', '-5', '99999', '12.5']) {
+      await choose('Un livre', '', bad);
+      assert.match(await w.locator('.note').textContent(), /nombre de pages/, bad);
+    }
+    assert.equal(db.rows.lecture, undefined, 'rien n\'est enregistré tant que le livre est refusé');
+    await choose('<b>Dune</b>', 'Frank Herbert', '400');
+    assert.equal(await w.locator('.book-title').textContent(), '<b>Dune</b>', 'le titre reste du texte');
+    assert.match(await w.textContent('.zone'), /Frank Herbert/);
+    const page_ = w.getByRole('spinbutton', { name: 'Page actuelle' });
+    await page_.fill('100');
+    await page_.blur();
+    assert.match(await w.innerText(), /Page 100 sur 400 · 25 %/);
+    await page_.fill('9999');
+    await page_.blur();
+    assert.match(await w.innerText(), /Page 400 sur 400 · 100 %/, 'la page ne dépasse pas le nombre de pages');
+    await page_.fill('150'); await page_.blur();
+    // Citations : ajout, texte inoffensif, limite, suppression.
+    const quote = w.getByRole('textbox', { name: 'Citation à garder' });
+    const keep = async t => { await quote.fill(t); await w.getByRole('button', { name: 'Garder' }).click(); };
+    await keep('<img src=x onerror="window.pirate=1">');
+    await keep('Je ne dois pas avoir peur.');
+    assert.equal(await page.evaluate(() => window.pirate), undefined);
+    assert.equal(await w.locator('.row.quote').count(), 2);
+    assert.match(await w.locator('.row.quote').first().innerText(), /Je ne dois pas avoir peur\. » — <b>Dune<\/b>/);
+    for (let i = 0; i < 8; i++) await keep(`Citation ${i}`);
+    await keep('Une de trop');
+    assert.match(await w.locator('.note').textContent(), /10 citations/);
+    assert.equal(await w.locator('.row.quote').count(), 10);
+    await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré');
+    assert.deepEqual([db.rows.lecture.book.page, db.rows.lecture.quotes.length], [150, 10]);
+    await page.reload();
+    await w.locator('.book-title').waitFor();
+    assert.match(await w.innerText(), /Page 150 sur 400 · 38 %/);
+    assert.equal(await w.locator('.row.quote').count(), 10);
+    await w.getByRole('button', { name: /Supprimer la citation : Citation 0/ }).click();
+    assert.equal(await w.locator('.row.quote').count(), 9);
+    // Terminer le livre : il faut confirmer, puis il passe dans les livres terminés.
+    await w.getByRole('button', { name: "J'ai fini ce livre" }).click();
+    assert.equal(await w.locator('.book-title').isVisible(), true, 'un seul clic ne termine pas le livre');
+    await w.getByRole('button', { name: 'Vraiment terminé ?' }).click();
+    await w.getByRole('textbox', { name: 'Titre du livre' }).waitFor();
+    assert.equal(await w.locator('.meta').textContent(), '1 livre terminé');
+    assert.equal(await w.locator('.row.quote').count(), 9, 'les citations sont gardées');
+    await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré');
+    assert.deepEqual([db.rows.lecture.book, db.rows.lecture.finished], [null, ['<b>Dune</b>']]);
+    await choose('Sans pages', '', '');
+    assert.match(await w.innerText(), /Page 0/);
+    assert.equal(await w.locator('.bar').isVisible(), false, 'pas de barre sans nombre de pages');
+    await shot(page, 'detente-lecture');
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+  // Données enregistrées trafiquées : valeurs hors limites ou de mauvais type sont ramenées à des valeurs sûres.
+  {
+    const rows = { ecran: { wallpaper: 'blanc', widgets: ['lecture'], done: true }, lecture: { book: { title: 'T'.repeat(500), author: 42, pages: -3, page: 'abc' }, quotes: [{ text: 'x'.repeat(900) }, { text: 123 }, null], finished: ['ok', 5, null] } };
+    const { context, page, errors } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, rows);
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('.book-title');
+    assert.equal(await page.locator('.book-title').textContent().then(t => t.length), 100);
+    assert.match(await section(page, 'lecture').innerText(), /Page 0/);
+    assert.equal(await page.locator('.row.quote').count(), 1);
+    assert.equal(await page.locator('.row.quote .grow').textContent().then(t => t.length), 300 + 4);
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+
+  // Tableau d'inspiration : photos réduites et sans position GPS, 6 au plus, légendes, suppression, rechargement.
+  {
+    const original = fs.readFileSync(path.join(ROOT, 'assets/lake-mapourika-nz.jpg'));
+    const payload = Buffer.from('Exif\0\0GPSLatitude=48.8566 GPSLongitude=2.3522');
+    const withGps = Buffer.concat([original.subarray(0, 2), Buffer.from([0xff, 0xe1, (payload.length + 2) >> 8, (payload.length + 2) & 255]), payload, original.subarray(2)]);
+    assert.ok(withGps.includes('GPSLatitude'), 'la photo de test contient bien une position');
+    const WIDGET = { ecran: { wallpaper: 'blanc', widgets: ['inspiration'], done: true } };
+    const { context, page, errors, db } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, WIDGET);
+    const store = new Map(), uploads = [], removed = [], gets = [], fail = { upload: false };
+    await context.route(/\/storage\/v1\/object\/inspiration/, route => {
+      const req = route.request(), u = new URL(req.url());
+      if (req.method() === 'OPTIONS') return preflight(route);
+      if (req.method() === 'DELETE') { for (const pre of req.postDataJSON().prefixes) { store.delete(`/storage/v1/object/inspiration/${pre}`); removed.push(pre); } return json(route, 200, []); }
+      if (req.method() === 'GET') { gets.push(u.pathname); const b = store.get(u.pathname); return b ? route.fulfill({ status: 200, contentType: 'image/jpeg', headers: { 'access-control-allow-origin': '*' }, body: b }) : json(route, 404, { message: 'absent' }); }
+      if (fail.upload) return json(route, 500, { message: 'panne' });
+      const raw = req.postDataBuffer(), start = raw.indexOf(Buffer.from([0xff, 0xd8, 0xff])), end = raw.lastIndexOf(Buffer.from([0xff, 0xd9]));
+      store.set(u.pathname, raw.subarray(start, end + 2));
+      uploads.push({ path: u.pathname, raw });
+      return json(route, 200, { Key: u.pathname });
+    });
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('section[aria-labelledby=title-inspiration] .empty');
+    const w = section(page, 'inspiration');
+    const pick = (name, buffer, mimeType = 'image/jpeg') => w.locator('input[type=file]').setInputFiles({ name, mimeType, buffer });
+    assert.equal(await w.locator('.meta').textContent(), '0 / 6');
+    await pick('a.jpg', withGps);
+    await w.locator('.insp img').waitFor();
+    assert.equal(uploads.length, 1);
+    assert.equal(uploads[0].path, '/storage/v1/object/inspiration/u1/1.jpg', 'rangée dans le dossier de la personne, emplacement 1');
+    assert.ok(uploads[0].raw.includes(Buffer.from([0xff, 0xd8, 0xff])), 'c\'est bien un JPEG');
+    assert.equal(uploads[0].raw.includes('GPSLatitude') || uploads[0].raw.includes('Exif'), false, 'la position GPS est retirée');
+    assert.ok(store.get(uploads[0].path).length <= 500 * 1024, 'sous la taille permise');
+    assert.ok(store.get(uploads[0].path).length < original.length, 'la photo est réduite');
+    assert.equal(await w.locator('.meta').textContent(), '1 / 6');
+    const cap = w.getByRole('textbox', { name: "Légende de l'image 1" });
+    await cap.fill('<img src=x onerror="window.pirate=1"> Mon bureau');
+    await cap.blur();
+    await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré');
+    assert.deepEqual(db.rows.inspiration.items, [{ slot: 1, caption: '<img src=x onerror="window.pirate=1"> Mon bureau' }]);
+    assert.equal(await page.evaluate(() => window.pirate), undefined);
+    // Six au plus.
+    for (let i = 2; i <= 6; i++) { await pick(`${i}.jpg`, original); await w.locator('.insp').nth(i - 1).waitFor(); }
+    assert.deepEqual(uploads.map(u => u.path.split('/').pop()), ['1.jpg', '2.jpg', '3.jpg', '4.jpg', '5.jpg', '6.jpg']);
+    assert.equal(await w.getByRole('button', { name: 'Ajouter une photo' }).isVisible(), false, 'le bouton disparaît quand le tableau est plein');
+    await pick('7.jpg', original);
+    assert.match(await w.locator('.note').textContent(), /tableau est plein/);
+    assert.equal(uploads.length, 6, 'une septième photo n\'est jamais envoyée');
+    // Suppression : le fichier est effacé, l'emplacement libéré est réutilisé.
+    await w.getByRole('button', { name: "Supprimer l'image 2" }).click();
+    await page.waitForFunction(() => document.querySelectorAll('.insp').length === 5);
+    assert.deepEqual(removed, ['u1/2.jpg']);
+    await pick('neuf.jpg', original);
+    await page.waitForFunction(() => document.querySelectorAll('.insp').length === 6);
+    assert.equal(uploads.at(-1).path, '/storage/v1/object/inspiration/u1/2.jpg');
+    await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré');
+    assert.equal(db.rows.inspiration.items.length, 6);
+    await shot(page, 'detente-inspiration');
+    // Rechargement : les images sont retéléchargées depuis le stockage privé.
+    await page.reload();
+    await page.waitForFunction(() => document.querySelectorAll('.insp img').length === 6 && [...document.querySelectorAll('.insp img')].every(i => i.src.startsWith('blob:') && i.naturalWidth > 0));
+    assert.equal(await w.getByRole('textbox', { name: "Légende de l'image 1" }).inputValue(), '<img src=x onerror="window.pirate=1"> Mon bureau');
+    // Échecs : envoi refusé, fichier qui n'est pas une image.
+    await w.getByRole('button', { name: "Supprimer l'image 6" }).click();
+    await page.waitForFunction(() => document.querySelectorAll('.insp').length === 5);
+    fail.upload = true;
+    await pick('x.jpg', original);
+    await w.locator('.note').filter({ hasText: "L'envoi n'a pas abouti" }).waitFor();
+    assert.equal(await w.locator('.insp').count(), 5, 'rien n\'est ajouté si l\'envoi échoue');
+    fail.upload = false;
+    await pick('notes.txt', Buffer.from('pas une image'), 'text/plain');
+    assert.match(await w.locator('.note').textContent(), /fichier image/);
+    await pick('faux.jpg', Buffer.from('ceci n\'est pas du jpeg'));
+    await w.locator('.note').filter({ hasText: "n'a pas pu être lue" }).waitFor();
+    assert.equal(await w.locator('.insp').count(), 5);
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+  // Données enregistrées trafiquées : emplacements hors limites ou doublons ignorés, légende plafonnée, aucune requête inutile.
+  {
+    const rows = { ecran: { wallpaper: 'blanc', widgets: ['inspiration'], done: true }, inspiration: { items: [{ slot: 9, caption: 'x' }, { slot: 0, caption: 'y' }, { slot: 1, caption: 'A'.repeat(200) }, { slot: 1, caption: 'doublon' }, { slot: '../../autre/1', caption: 'z' }, null, 'mauvais'] } };
+    const { context, page, errors } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, rows);
+    const gets = [];
+    await context.route(/\/storage\/v1\/object\/inspiration/, route => { gets.push(new URL(route.request().url()).pathname); return json(route, 404, { message: 'absent' }); });
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('.insp');
+    assert.equal(await page.locator('.insp').count(), 1);
+    assert.equal(await page.locator('.insp input').inputValue().then(v => v.length), 60);
+    await page.waitForSelector('.insp .blank');
+    assert.deepEqual(gets, ['/storage/v1/object/inspiration/u1/1.jpg'], 'seul un emplacement valide est demandé');
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+
   // Installer l'app : l'entrée du menu du compte ouvre le guide (détails dans tests/install.check.cjs).
   {
     const { context, page, errors } = await openDashboard(browser, base, { viewport: { width: 390, height: 844 } }, {});

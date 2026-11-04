@@ -188,6 +188,24 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 .player.yt{height:auto;aspect-ratio:16/9}
 .pl-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
 .pl-actions a{padding:6px 4px;font-size:14px;font-weight:500;text-decoration:underline;text-underline-offset:3px}
+.ring{display:block;width:132px;height:132px;margin:8px auto 0;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:8}
+.ring .track{stroke:var(--tint)}
+.ring .fill{stroke:var(--accent);stroke-linecap:round;stroke-dasharray:327;transition:stroke-dashoffset .25s linear}
+.ring-time{margin-top:-86px;margin-bottom:44px;text-align:center;font-size:28px;font-variant-numeric:tabular-nums;font-weight:500}
+.break{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;padding:8px 0;border:0;border-bottom:1px solid var(--rule);background:none;font-size:15px;text-align:left}
+.break:last-child{border-bottom:0}
+.break span{flex:none;font-size:13px;color:var(--slate);font-variant-numeric:tabular-nums}
+.book-title{font-size:16px;font-weight:600;overflow-wrap:anywhere}
+.row.quote .grow{font-style:italic}
+.pages{display:flex;align-items:center;gap:8px;margin-top:12px}
+.pages input{width:88px;height:var(--control);padding:0 12px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7)}
+.insp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px;margin-top:8px}
+.insp{position:relative;margin:0;min-width:0}
+.insp img,.insp .blank{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;background:var(--tint)}
+.insp .x{position:absolute;top:4px;right:4px;width:28px;height:28px;background:rgba(255,255,255,.88)}
+.insp input{width:100%;margin-top:4px;padding:6px 2px;border:0;border-bottom:1px solid transparent;border-radius:0;background:none;font-size:12px}
+.insp input:focus-visible{outline:none;border-bottom-color:var(--ink)}
 .credit{padding:32px 0 24px;font-size:12px;color:var(--slate)}
 
 /* Carte d'embarquement : la même dans le widget et dans la scène 3D, sa taille suit font-size. */
@@ -285,6 +303,7 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 @media (prefers-reduced-motion:reduce){
   .cockpit,.flight-end,.hublot,.hublot-wing{animation:none}
   .breath{transition:none;transform:none}
+  .ring .fill{transition:none}
   .me,.out,.widget,#menu,.ghost,.primary{transition:none}
   .me:active,.out:active,.ghost:active,.primary:active{transform:none}
   .widget:hover{border-radius:var(--r-panel)}
@@ -402,6 +421,14 @@ const MAX_TASKS = 100, MAX_TASK_LENGTH = 140, MAX_HABITS = 12, MAX_HABIT_LENGTH 
 const SAVE_DELAY = 600, SAVE_RETRY = 5000;
 const FOCUS_CHOICES = [15, 25, 50];
 const BREATH_CHOICES = [1, 3, 5], BREATH_IN = 4000, BREATH_OUT = 6000;
+const BREAKS = [
+  { id: 'loin', name: 'Regarder au loin', seconds: 20, text: 'Pose les yeux sur quelque chose de lointain, par la fenêtre si possible. Cligne des yeux doucement.' },
+  { id: 'epaules', name: 'Relâcher les épaules', seconds: 30, text: 'Laisse tomber tes épaules, desserre la mâchoire et souffle longuement.' },
+  { id: 'etirer', name: "S'étirer", seconds: 60, text: 'Lève les bras, étire-toi doucement vers le haut, puis de chaque côté. Arrête-toi si ça fait mal.' },
+  { id: 'marcher', name: 'Marcher un peu', seconds: 180, text: 'Lève-toi et marche, même dans la pièce. Reviens quand le temps est écoulé.' },
+];
+const INSP_MAX = 6, INSP_SIDE = 1000, INSP_BYTES = 500 * 1024, INSP_CAPTION = 60;
+const MAX_BOOK_TITLE = 100, MAX_PAGES = 5000, MAX_QUOTE = 300, MAX_QUOTES = 10, MAX_FINISHED = 30;
 const MAX_COUNTDOWNS = 5, MAX_COUNTDOWN_TITLE = 60, MAX_LINKS = 12, MAX_LINK_LABEL = 40;
 // Des sons créés par le navigateur (bruit filtré) : aucun fichier, donc aucun droit d'auteur ni poids à télécharger.
 const SOUNDS = [
@@ -1496,6 +1523,269 @@ const WIDGETS = [
       body.append(note, slot);
     },
   },
+  {
+    id: 'pause', title: 'Pause détente', desc: "Une courte pause guidée : regarder au loin, s'étirer, marcher.",
+    render({ body, meta }) {
+      let ticker = null, endAt = null, chosen = null;
+      const status = el('p', 'zone');
+      status.setAttribute('role', 'status');
+      const list = el('ul', 'rows');
+      const view = el('div');
+      view.hidden = true;
+      const name = el('p', 'book-title');
+      const how = el('p', 'zone');
+      const NS = 'http://www.w3.org/2000/svg';
+      const ring = document.createElementNS(NS, 'svg');
+      ring.setAttribute('class', 'ring');
+      ring.setAttribute('viewBox', '0 0 120 120');
+      ring.setAttribute('aria-hidden', 'true');
+      const track = document.createElementNS(NS, 'circle'), fill = document.createElementNS(NS, 'circle');
+      for (const [c, cls] of [[track, 'track'], [fill, 'fill']]) { c.setAttribute('class', cls); c.setAttribute('cx', 60); c.setAttribute('cy', 60); c.setAttribute('r', 52); ring.append(c); }
+      const time = el('div', 'ring-time');
+      time.setAttribute('role', 'timer');
+      const stop = button('ghost', 'Arrêter la pause', () => finish(false));
+      view.append(name, how, ring, time, stop);
+
+      function tick() {
+        const left = endAt - Date.now();
+        if (left <= 0) return finish(true);
+        time.textContent = clockLabel(left);
+        fill.style.strokeDashoffset = String(327 * (1 - left / (chosen.seconds * 1000)));
+      }
+      function start(b) {
+        chosen = b;
+        endAt = Date.now() + b.seconds * 1000;
+        status.textContent = '';
+        name.textContent = b.name;
+        how.textContent = b.text;
+        list.hidden = true;
+        view.hidden = false;
+        meta.textContent = '';
+        // L'heure de fin fait foi : un onglet en arrière-plan ralentit les minuteries du navigateur.
+        ticker = setInterval(tick, 250);
+        tick();
+        stop.focus();
+      }
+      function finish(done) {
+        clearInterval(ticker);
+        endAt = null;
+        view.hidden = true;
+        list.hidden = false;
+        status.textContent = done ? `Pause terminée : ${chosen.name.toLowerCase()}. Tu peux reprendre.` : '';
+        list.querySelector('button').focus();
+      }
+      for (const b of BREAKS) {
+        const li = el('li');
+        const go = button('break', b.name, () => start(b));
+        go.append(el('span', '', b.seconds < 60 ? `${b.seconds} s` : `${b.seconds / 60} min`));
+        li.append(go);
+        list.append(li);
+      }
+      body.append(list, view, status);
+      return () => clearInterval(ticker);
+    },
+  },
+  {
+    id: 'lecture', title: 'Suivi de lecture', desc: 'Ton livre en cours, ta progression et tes citations.',
+    render({ body, meta, data, save }) {
+      const text = (v, max) => typeof v === 'string' ? v.trim().slice(0, max) : '';
+      const int = (v, max) => Number.isInteger(v) && v >= 0 && v <= max ? v : null;
+      let book = data?.book && text(data.book.title, MAX_BOOK_TITLE)
+        ? { title: text(data.book.title, MAX_BOOK_TITLE), author: text(data.book.author, 60), pages: int(data.book.pages, MAX_PAGES) || null, page: int(data.book.page, MAX_PAGES) ?? 0 } : null;
+      let quotes = listOf(data?.quotes).filter(q => text(q?.text, MAX_QUOTE)).slice(0, MAX_QUOTES).map(q => ({ id: String(q.id || crypto.randomUUID()), text: text(q.text, MAX_QUOTE), book: text(q.book, MAX_BOOK_TITLE) }));
+      let finished = listOf(data?.finished).map(t => text(t, MAX_BOOK_TITLE)).filter(Boolean).slice(0, MAX_FINISHED);
+      const persist = () => save({ book, quotes, finished });
+      const note = el('p', 'note');
+      note.hidden = true;
+      const slot = el('div'), quoteList = el('ul', 'rows'), quoteForm = el('form', 'add stack');
+      const quote = Object.assign(el('input'), { type: 'text', placeholder: 'Une citation à garder', maxLength: MAX_QUOTE, ariaLabel: 'Citation à garder', autocomplete: 'off' });
+      quoteForm.append(quote, Object.assign(el('button', 'ghost', 'Garder'), { type: 'submit' }));
+      quoteForm.onsubmit = e => {
+        e.preventDefault();
+        const t = quote.value.trim();
+        if (!t) return;
+        if (quotes.length >= MAX_QUOTES) { note.textContent = `Tu gardes déjà ${MAX_QUOTES} citations. Supprimes-en une pour continuer.`; note.hidden = false; return; }
+        note.hidden = true;
+        quotes.unshift({ id: crypto.randomUUID(), text: t.slice(0, MAX_QUOTE), book: book?.title ?? '' });
+        quote.value = '';
+        drawQuotes();
+        persist();
+        quote.focus();
+      };
+      function drawQuotes() {
+        quoteList.replaceChildren(...quotes.map(q => {
+          const li = el('li', 'row quote'), remove = button('x', '×', () => { quotes = quotes.filter(x => x !== q); drawQuotes(); persist(); quote.focus(); });
+          remove.ariaLabel = `Supprimer la citation : ${q.text.slice(0, 40)}`;
+          const body = el('span', 'grow', `« ${q.text} »`);
+          if (q.book) body.append(el('small', 'zone', ` — ${q.book}`));
+          li.append(body, remove);
+          return li;
+        }));
+        quoteList.hidden = !quotes.length;
+        meta.textContent = finished.length ? `${plural(finished.length, 'livre')} terminé${finished.length > 1 ? 's' : ''}` : '';
+      }
+      function drawBook() {
+        if (!book) {
+          const title = Object.assign(el('input'), { type: 'text', placeholder: 'Titre du livre', maxLength: MAX_BOOK_TITLE, ariaLabel: 'Titre du livre', autocomplete: 'off' });
+          const author = Object.assign(el('input'), { type: 'text', placeholder: 'Auteur (facultatif)', maxLength: 60, ariaLabel: 'Auteur', autocomplete: 'off' });
+          const pages = Object.assign(el('input'), { type: 'number', placeholder: 'Nombre de pages (facultatif)', min: 1, max: MAX_PAGES, ariaLabel: 'Nombre de pages', inputMode: 'numeric' });
+          const form = el('form', 'add stack');
+          form.noValidate = true;
+          form.append(title, author, pages, Object.assign(el('button', 'ghost', 'Choisir ce livre'), { type: 'submit' }));
+          form.onsubmit = e => {
+            e.preventDefault();
+            const t = title.value.trim(), n = pages.value.trim() === '' ? null : Number(pages.value);
+            if (!t) { note.textContent = 'Donne le titre du livre.'; note.hidden = false; title.focus(); return; }
+            if (n !== null && !(Number.isInteger(n) && n >= 1 && n <= MAX_PAGES)) { note.textContent = `Le nombre de pages doit être un nombre entre 1 et ${MAX_PAGES}.`; note.hidden = false; pages.focus(); return; }
+            note.hidden = true;
+            book = { title: t.slice(0, MAX_BOOK_TITLE), author: author.value.trim().slice(0, 60), pages: n, page: 0 };
+            drawBook();
+            persist();
+          };
+          slot.replaceChildren(form);
+          return;
+        }
+        const head = el('p', 'book-title', book.title);
+        const sub = el('p', 'zone', book.author);
+        sub.hidden = !book.author;
+        const bar = el('div', 'bar'), fill = el('i');
+        bar.append(fill);
+        bar.hidden = !book.pages;
+        const progress = el('p', 'zone');
+        const page = Object.assign(el('input'), { type: 'number', min: 0, max: book.pages ?? MAX_PAGES, value: book.page, ariaLabel: 'Page actuelle', inputMode: 'numeric' });
+        const sync = () => {
+          const pct = book.pages ? Math.round(book.page / book.pages * 100) : null;
+          fill.style.transform = `scaleX(${book.pages ? book.page / book.pages : 0})`;
+          progress.textContent = book.pages ? `Page ${book.page} sur ${book.pages} · ${pct} %` : `Page ${book.page}`;
+        };
+        page.onchange = () => {
+          const v = Number(page.value), max = book.pages ?? MAX_PAGES;
+          book.page = Number.isInteger(v) ? Math.min(Math.max(v, 0), max) : book.page;
+          page.value = book.page;
+          sync();
+          persist();
+        };
+        let sure = null;
+        const done = button('ghost', "J'ai fini ce livre", () => {
+          if (!sure) { done.textContent = 'Vraiment terminé ?'; sure = setTimeout(() => { sure = null; done.textContent = "J'ai fini ce livre"; }, CANCEL_CONFIRM); return; }
+          clearTimeout(sure);
+          finished = [book.title, ...finished].slice(0, MAX_FINISHED);
+          book = null;
+          drawBook();
+          drawQuotes();
+          persist();
+        });
+        const row = el('div', 'pages');
+        row.append(el('span', 'zone', 'Page actuelle'), page, done);
+        sync();
+        slot.replaceChildren(head, sub, bar, progress, row);
+      }
+      drawBook();
+      drawQuotes();
+      body.append(slot, note, quoteForm, quoteList);
+    },
+  },
+  {
+    id: 'inspiration', title: "Tableau d'inspiration", desc: 'Quelques photos à toi, avec une légende, pour un écran qui te ressemble.',
+    render({ body, meta, data, save, user, sb }) {
+      const BUCKET = 'inspiration', pathOf = slot => `${user.id}/${slot}.jpg`;
+      // Chaque fichier a un emplacement de 1 à 6 : la base refuse tout autre nom, donc 6 images au plus par personne.
+      let items = [];
+      for (const i of listOf(data?.items)) {
+        if (Number.isInteger(i?.slot) && i.slot >= 1 && i.slot <= INSP_MAX && !items.some(x => x.slot === i.slot))
+          items.push({ slot: i.slot, caption: typeof i.caption === 'string' ? i.caption.trim().slice(0, INSP_CAPTION) : '' });
+      }
+      const urls = new Map();
+      let gone = false;
+      const note = el('p', 'note');
+      note.hidden = true;
+      const grid = el('div', 'insp-grid');
+      const empty = el('p', 'empty', 'Aucune image. Ajoute une photo qui t\'inspire.');
+      const info = el('p', 'zone', 'Tes photos restent privées : elles sont enregistrées sur ton compte, réduites, sans leur position GPS.');
+      const file = Object.assign(el('input'), { type: 'file', accept: 'image/*', hidden: true });
+      file.setAttribute('aria-label', 'Choisir une photo');
+      const add = button('ghost', 'Ajouter une photo', () => { note.hidden = true; file.click(); });
+
+      // Réduit la photo (et retire ses données de position en la redessinant) jusqu'à tenir sous la taille permise.
+      async function shrink(source) {
+        const bitmap = await createImageBitmap(source);
+        let side = INSP_SIDE;
+        try {
+          for (const quality of [.8, .65, .5]) {
+            const scale = Math.min(1, side / Math.max(bitmap.width, bitmap.height));
+            const canvas = Object.assign(document.createElement('canvas'), { width: Math.round(bitmap.width * scale), height: Math.round(bitmap.height * scale) });
+            canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+            if (blob && blob.size <= INSP_BYTES) return blob;
+            side = Math.round(side * .8);
+          }
+        } finally { bitmap.close(); }
+        return null;
+      }
+      async function show(item, img) {
+        if (urls.has(item.slot)) { img.src = urls.get(item.slot); return; }
+        const { data: blob, error } = await sb.storage.from(BUCKET).download(pathOf(item.slot));
+        if (gone) return;
+        if (error || !blob) { img.replaceWith(el('div', 'blank')); return; }
+        urls.set(item.slot, URL.createObjectURL(blob));
+        img.src = urls.get(item.slot);
+      }
+      function draw() {
+        grid.replaceChildren(...items.map(item => {
+          const fig = el('figure', 'insp');
+          const img = Object.assign(el('img'), { alt: item.caption || "Image d'inspiration", loading: 'lazy' });
+          const caption = Object.assign(el('input'), { type: 'text', value: item.caption, placeholder: 'Légende', maxLength: INSP_CAPTION, ariaLabel: `Légende de l'image ${items.indexOf(item) + 1}`, autocomplete: 'off' });
+          caption.onchange = () => { item.caption = caption.value.trim().slice(0, INSP_CAPTION); img.alt = item.caption || "Image d'inspiration"; save({ items }); };
+          const remove = button('x', '×', async () => {
+            note.hidden = true;
+            items = items.filter(i => i !== item);
+            URL.revokeObjectURL(urls.get(item.slot));
+            urls.delete(item.slot);
+            draw();
+            save({ items });
+            await sb.storage.from(BUCKET).remove([pathOf(item.slot)]);
+            add.focus();
+          });
+          remove.ariaLabel = `Supprimer l'image ${items.indexOf(item) + 1}`;
+          fig.append(img, remove, caption);
+          show(item, img);
+          return fig;
+        }));
+        meta.textContent = `${items.length} / ${INSP_MAX}`;
+        empty.hidden = items.length > 0;
+        grid.hidden = !items.length;
+        add.hidden = items.length >= INSP_MAX;
+      }
+      file.onchange = async () => {
+        const chosen = file.files[0];
+        file.value = '';
+        if (!chosen) return;
+        if (items.length >= INSP_MAX) { note.textContent = `Ton tableau est plein (${INSP_MAX} images). Supprimes-en une pour continuer.`; note.hidden = false; return; }
+        if (!chosen.type.startsWith('image/')) { note.textContent = 'Choisis un fichier image (JPEG, PNG…).'; note.hidden = false; return; }
+        if (chosen.size > MAX_SOURCE_BYTES) { note.textContent = 'Cette image est trop lourde (30 Mo maximum).'; note.hidden = false; return; }
+        add.disabled = true;
+        add.textContent = 'Envoi…';
+        try {
+          const blob = await shrink(chosen);
+          if (!blob) throw new Error('image trop lourde');
+          const slot = [1, 2, 3, 4, 5, 6].find(n => !items.some(i => i.slot === n));
+          const { error } = await sb.storage.from(BUCKET).upload(pathOf(slot), blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '0' });
+          if (error) { note.textContent = "L'envoi n'a pas abouti. Vérifie ta connexion et réessaie."; note.hidden = false; }
+          else if (!gone) {
+            urls.set(slot, URL.createObjectURL(blob));
+            items.push({ slot, caption: '' });
+            draw();
+            save({ items });
+          }
+        } catch { note.textContent = "Cette image n'a pas pu être lue. Essaie une photo JPEG ou PNG."; note.hidden = false; }
+        add.disabled = false;
+        add.textContent = 'Ajouter une photo';
+      };
+      draw();
+      body.append(empty, grid, note, add, file, info);
+      return () => { gone = true; for (const u of urls.values()) URL.revokeObjectURL(u); };
+    },
+  },
 ];
 
 function block(text) {
@@ -1568,7 +1858,7 @@ if (!sb) {
     box.append(head, body);
     let cleanup;
     // Un widget qui plante ne doit pas emporter tout l'écran.
-    try { cleanup = w.render({ body, meta, user, data: stored[w.id], save: data => queueSave(w.id, data) }); }
+    try { cleanup = w.render({ body, meta, user, sb, data: stored[w.id], save: data => queueSave(w.id, data) }); }
     catch (e) { console.error(w.id, e); body.replaceChildren(el('p', 'msg', "Ce widget n'a pas pu se charger.")); }
     $('board').append(box);
     mounted.set(w.id, { box, cleanup });
