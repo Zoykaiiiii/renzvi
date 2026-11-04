@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Renzvi — toutes tes apps, un seul écran</title>
 <meta name="description" content="Renzvi réunit tes widgets de révision, de sport, de détente et d'ambiance sur un tableau de bord que tu composes comme un moodboard.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Renzvi">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="stylesheet" href="install.css">
+<script src="install.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400..600&family=Source+Serif+4:opsz,wght@8..60,400&display=swap" rel="stylesheet">
@@ -276,6 +285,7 @@ footer{background:var(--fog);padding:96px 0 40px}
     <h1 id="t" data-r>Toutes tes apps.<br>Un seul écran.</h1>
     <p class="lead" data-r>Renzvi réunit tes widgets de révision, de sport, de détente et d'ambiance sur un tableau de bord que tu composes comme un moodboard.</p>
     <div class="pair" data-r><a class="btn fill" href="#inscription">Être prévenu au lancement</a><a class="btn ghost" href="#composer">Composer mon écran</a></div>
+    <p class="ins-row" data-install-row><button class="ins-open" type="button" data-install><span>Installer l'app</span></button></p>
 
     <div class="board" data-r data-ui>
       <div class="tiles" id="tiles">

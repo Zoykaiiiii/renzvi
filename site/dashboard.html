@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mon écran — Renzvi</title>
 <meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Renzvi">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="stylesheet" href="install.css">
+<script src="install.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400..700&display=swap" rel="stylesheet">
@@ -273,6 +282,10 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
       <button class="ghost" id="ref-copy" type="button">Copier</button>
     </div>
     <p class="desc" id="ref-info" role="status">Chargement…</p>
+  </div>
+  <div class="acct" data-install-row>
+    <h2>Application</h2>
+    <button class="ghost ins-open ins-menu-btn" type="button" data-install><span>Installer l'app</span></button>
   </div>
   <button class="out" id="logout" type="button">Se déconnecter</button>
   <p class="msg" id="logout-msg" role="alert"></p>

@@ -17,7 +17,7 @@ const USER = { id: 'u1', aud: 'authenticated', role: 'authenticated', email: 'le
 const server = http.createServer((req, res) => {
   const file = path.join(ROOT, decodeURIComponent(req.url.split('?')[0]));
   if (!file.startsWith(ROOT) || !fs.existsSync(file)) { res.writeHead(404); return res.end(); }
-  res.writeHead(200, { 'content-type': file.endsWith('.html') ? 'text/html; charset=utf-8' : 'image/jpeg' });
+  res.writeHead(200, { 'content-type': { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.webmanifest': 'application/manifest+json', '.png': 'image/png' }[path.extname(file)] || 'image/jpeg' });
   fs.createReadStream(file).pipe(res);
 });
 
@@ -577,6 +577,22 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await hide(page, false);
     await page.waitForSelector('#flight-alert', { state: 'hidden' });
     assert.equal(await page.isVisible('#flight-run'), true);
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+
+  // Installer l'app : l'entrée du menu du compte ouvre le guide (détails dans tests/install.check.cjs).
+  {
+    const { context, page, errors } = await openDashboard(browser, base, { viewport: { width: 390, height: 844 } }, {});
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('#screen:not([hidden])');
+    assert.equal(await page.locator('dialog.ins[open]').count(), 0, 'le guide ne s\'ouvre pas tout seul');
+    await page.click('#me');
+    await page.locator('#menu [data-install]').click();
+    await page.waitForSelector('dialog.ins[open]');
+    await page.waitForFunction(() => !document.querySelector('#menu').matches(':popover-open')); // le menu se referme
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('dialog.ins[open]').count(), 0);
     assert.deepEqual(errors, []);
     await context.close();
   }
