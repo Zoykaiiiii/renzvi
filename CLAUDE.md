@@ -10,6 +10,7 @@
 - **Aucun secret dans le code ou le chat.** Variables d'environnement (`.env`, jamais commité) : dis-moi quel nom remplir et où.
 - **Pas de dépense cachée.** Avant toute API payante : coût par utilisateur. Chaque appel payant est compté et plafonné par utilisateur.
 - Commits petits, messages clairs en français.
+- **Pas de PR ni de fusion à faire pour Damien** : quand il dit « commit push », pousser directement sur `main` avec exactement `git push origin main`. Tester avant, ne jamais pousser sans sa demande. À revoir dès qu'il y a des clients payants.
 
 ## 2. Le produit
 **Renzvi : chaque utilisateur a son dashboard personnel composé de widgets.** (À préciser : quels widgets, pour qui, ce qui est payant.)
