@@ -635,8 +635,9 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.waitForSelector('.sound');
     const w = section(page, 'ambiance');
     assert.equal(await page.evaluate(() => window.__ctxs.length), 0, 'aucun son avant le clic');
-    assert.equal(await w.locator('.sound input').first().inputValue(), '35', 'la pluie est proposée à volume doux');
-    assert.equal(await w.locator('.sound').count(), 5);
+    assert.equal(await w.locator('.sound').filter({ hasText: 'Pluie' }).locator('input').inputValue(), '35', 'la pluie est proposée à volume doux');
+    assert.equal(await w.locator('.sound').filter({ hasText: 'Volume général' }).locator('input').inputValue(), '100');
+    assert.equal(await w.locator('.sound').count(), 6, 'le volume général et les cinq sons');
     await w.getByRole('button', { name: "Lancer l'ambiance" }).click();
     await w.getByRole('button', { name: 'Pause' }).waitFor();
     assert.equal(await page.evaluate(() => window.__ctxs[0].state), 'running');
@@ -650,13 +651,26 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await w.locator('.sound').filter({ hasText: 'Feu de bois' }).locator('input').fill('60');
     await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré');
     assert.deepEqual(db.rows.ambiance.vol, { pluie: 35, vent: 0, feu: 60, cabine: 0, blanc: 0 });
+    // Le volume général baisse tout : le signal mesuré en sortie chute nettement, puis il est enregistré.
+    const peak = () => page.evaluate(async () => {
+      const c = window.__ctxs[0], a = new Float32Array(c.__an.fftSize); let max = 0;
+      for (let i = 0; i < 12; i++) { c.__an.getFloatTimeDomainData(a); for (const v of a) max = Math.max(max, Math.abs(v)); await new Promise(r => setTimeout(r, 40)); }
+      return max;
+    });
+    const loud = await peak();
+    await w.locator('.sound').filter({ hasText: 'Volume général' }).locator('input').fill('20');
+    await page.waitForTimeout(400);
+    const quiet = await peak();
+    assert.ok(loud > 0.005 && quiet < loud * 0.25, `le volume général baisse le son (${loud.toFixed(3)} -> ${quiet.toFixed(3)})`);
+    await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré');
+    assert.equal(db.rows.ambiance.master, 20);
     await w.getByRole('button', { name: 'Pause' }).click();
     await w.getByRole('button', { name: "Lancer l'ambiance" }).waitFor();
     assert.equal(await page.evaluate(() => window.__ctxs[0].state), 'suspended');
     // Tout à zéro : on le dit au lieu de lancer un silence.
     for (const input of await w.locator('.sound input').all()) await input.fill('0');
     await w.getByRole('button', { name: "Lancer l'ambiance" }).click();
-    assert.match(await w.locator('.note').textContent(), /Monte le volume/);
+    assert.match(await w.locator('.note').textContent(), /Monte le volume général/);
     assert.equal(await w.locator('.note').isVisible(), true);
     await shot(page, 'detente-ambiance');
     // Retirer le widget ferme le son.
@@ -735,6 +749,136 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await shot(page, 'detente-raccourcis');
     assert.deepEqual(errors, []);
     await context.close();
+  }
+
+  // Playlist : adresses limitées à Spotify et YouTube, titre et pochette demandés à l'ajout puis contrôlés, lecteur seulement au clic.
+  {
+    const SP = '37i9dQZF1DX4sWSpwq3LiO', YT = 'PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI';
+    const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+    const { context, page, errors, db } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ecran: { wallpaper: 'blanc', widgets: ['playlist'], done: true } });
+    const seen = [], answer = { fail: false, reply: { title: 'Peaceful Piano', thumbnail_url: 'https://i.scdn.co/image/abc' } };
+    await context.route(/(spotify\.com|youtube\.com|youtube-nocookie\.com|scdn\.co|ytimg\.com|evil\.test)/, route => {
+      const url = route.request().url(), cors = { 'access-control-allow-origin': '*' };
+      seen.push(url);
+      if (/oembed/.test(url)) return answer.fail ? route.fulfill({ status: 500, headers: cors, body: '{}' }) : route.fulfill({ contentType: 'application/json', headers: cors, body: JSON.stringify(answer.reply) });
+      if (/scdn\.co\/image|ytimg\.com\/vi|evil\.test/.test(url)) return route.fulfill({ contentType: 'image/png', body: PNG });
+      return route.fulfill({ contentType: 'text/html', body: '<p>lecteur</p>' });
+    });
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('section[aria-labelledby=title-playlist] form');
+    const w = section(page, 'playlist');
+    const input = w.getByRole('textbox', { name: /Lien de ta playlist/ });
+    const submit = async text => { await input.fill(text); await w.getByRole('button', { name: 'Ajouter' }).click(); };
+    for (const bad of ['javascript:alert(1)', 'https://evil.com/open.spotify.com/playlist/' + SP, 'https://open.spotify.com.evil.fr/playlist/' + SP,
+      'https://youtube.com.evil.fr/watch?v=dQw4w9WgXcQ', 'https://www.youtube.com/watch?v=trop_court', 'https://open.spotify.com/playlist/court', 'data:text/html,<b>x</b>', 'ftp://open.spotify.com/playlist/' + SP, 'n\'importe quoi', 'https://www.youtube.com/watch?list="><script>window.pirate=1</script>']) {
+      await submit(bad);
+      assert.equal(await w.locator('.note').isVisible(), true, `refusé : ${bad}`);
+    }
+    assert.deepEqual(seen, [], 'un lien refusé ne déclenche aucune requête');
+    assert.equal(db.rows.playlist, undefined);
+    assert.match(await w.textContent('.pl-info.small'), /adresse IP/, 'le formulaire prévient de ce qui part chez le service');
+
+    // Spotify : titre et pochette récupérés à l'ajout, affichés ensuite, lecteur pas encore chargé.
+    await submit(`https://open.spotify.com/intl-fr/playlist/${SP}?si=abc123`);
+    await w.locator('img.pl-cover').waitFor();
+    assert.equal(await w.locator('.pl-title').textContent(), 'Peaceful Piano');
+    assert.equal(await w.locator('img.pl-cover').getAttribute('src'), 'https://i.scdn.co/image/abc');
+    assert.equal(await w.locator('img.pl-cover').getAttribute('referrerpolicy'), 'no-referrer');
+    assert.equal(await w.locator('iframe').count(), 0, 'le lecteur n\'est pas chargé avant le clic');
+    assert.ok(seen.some(u => u.startsWith('https://open.spotify.com/oembed?') && u.includes(encodeURIComponent(`https://open.spotify.com/playlist/${SP}`))), 'titre demandé à l\'ajout');
+    assert.ok(!seen.some(u => /\/embed\//.test(u)), 'aucun lecteur chargé avant le clic');
+    assert.match(await w.innerText(), /à chaque ouverture de ton écran, Spotify reçoit ton adresse IP/);
+    assert.match(await w.innerText(), /30 secondes/);
+    await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré');
+    assert.deepEqual(db.rows.playlist, { provider: 'spotify', kind: 'playlist', id: SP, title: 'Peaceful Piano', thumb: 'https://i.scdn.co/image/abc' });
+    await w.getByRole('button', { name: 'Charger le lecteur' }).click();
+    const frame = w.locator('iframe');
+    assert.equal(await frame.getAttribute('src'), `https://open.spotify.com/embed/playlist/${SP}`);
+    assert.equal(await frame.getAttribute('referrerpolicy'), 'strict-origin-when-cross-origin');
+    assert.equal(await w.getByRole('link', { name: 'Ouvrir sur Spotify' }).getAttribute('href'), `https://open.spotify.com/playlist/${SP}`);
+    await shot(page, 'detente-playlist');
+    await w.getByRole('button', { name: 'Arrêter le lecteur' }).click();
+    assert.equal(await w.locator('iframe').count(), 0);
+
+    // YouTube : un titre piégé reste du texte ; la pochette vient bien de i.ytimg.com.
+    answer.reply = { title: 'Mix <b>chill</b> <img src=x onerror="window.pirate=1">', thumbnail_url: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg' };
+    await w.getByRole('button', { name: 'Changer' }).click();
+    await submit(`https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=${YT}`);
+    await w.locator('img.pl-cover').waitFor();
+    assert.equal(await w.locator('.pl-title').textContent(), 'Mix <b>chill</b> <img src=x onerror="window.pirate=1">');
+    assert.equal(await page.evaluate(() => window.pirate), undefined);
+    await w.getByRole('button', { name: 'Charger le lecteur' }).click();
+    assert.equal(await frame.getAttribute('src'), `https://www.youtube-nocookie.com/embed/videoseries?list=${YT}`);
+
+    // Une pochette hébergée ailleurs est ignorée (et jamais demandée) ; le titre, lui, reste.
+    seen.length = 0;
+    answer.reply = { title: 'Autre', thumbnail_url: 'https://evil.test/x.png' };
+    await w.getByRole('button', { name: 'Changer' }).click();
+    await submit('https://youtu.be/dQw4w9WgXcQ');
+    await w.locator('.pl-title', { hasText: 'Autre' }).waitFor();
+    assert.equal(await w.locator('img.pl-cover').count(), 0);
+    assert.ok(!seen.some(u => u.includes('evil.test')), 'aucune requête vers un serveur d\'images non prévu');
+    await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré');
+    assert.equal(db.rows.playlist.thumb, undefined);
+
+    // Le service ne répond pas : le widget marche quand même, sans titre ni pochette.
+    answer.fail = true;
+    await w.getByRole('button', { name: 'Changer' }).click();
+    await submit(`https://open.spotify.com/track/${SP}`);
+    await w.locator('.pl-title', { hasText: 'Spotify · titre' }).waitFor();
+    assert.equal(await w.locator('img.pl-cover').count(), 0);
+    assert.match(await w.innerText(), /rien n'est chargé avant ton clic/, 'sans pochette, la promesse d\'origine reste vraie');
+    await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré');
+    assert.deepEqual(db.rows.playlist, { provider: 'spotify', kind: 'track', id: SP });
+    await w.getByRole('button', { name: 'Charger le lecteur' }).click();
+    assert.equal(await w.locator('iframe').evaluate(f => f.style.height), '152px');
+
+    // Après rechargement : titre et pochette repris de l'enregistrement, lecteur à recharger au clic.
+    answer.fail = false; answer.reply = { title: 'Peaceful Piano', thumbnail_url: 'https://i.scdn.co/image/abc' };
+    await w.getByRole('button', { name: 'Changer' }).click();
+    await submit(`https://open.spotify.com/playlist/${SP}`);
+    await w.locator('img.pl-cover').waitFor();
+    await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré');
+    await page.reload();
+    await w.locator('img.pl-cover').waitFor();
+    assert.equal(await w.locator('.pl-title').textContent(), 'Peaceful Piano');
+    assert.equal(await w.locator('iframe').count(), 0);
+    // Pochette cassée : un carré neutre la remplace.
+    await w.locator('img.pl-cover').evaluate(img => img.dispatchEvent(new Event('error')));
+    assert.equal(await w.locator('img.pl-cover').count(), 0);
+    assert.equal(await w.locator('.pl-cover').count(), 1);
+    assert.equal(await page.evaluate(() => window.pirate), undefined);
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+  // Données enregistrées trafiquées : adresse d'image étrangère, schéma dangereux, titre démesuré, identifiant piégé.
+  {
+    const rows = {
+      ecran: { wallpaper: 'blanc', widgets: ['playlist'], done: true },
+      playlist: { provider: 'spotify', kind: 'playlist', id: '37i9dQZF1DX4sWSpwq3LiO', title: 'T'.repeat(500), thumb: 'https://evil.test/track.png' },
+    };
+    const { context, page, errors } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, rows);
+    const seen = [];
+    await context.route(/evil\.test|scdn\.co|spotify\.com/, route => { seen.push(route.request().url()); return route.fulfill({ contentType: 'text/html', body: '' }); });
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('.pl-title');
+    assert.equal(await page.locator('.pl-title').textContent().then(t => t.length), 120, 'titre plafonné');
+    assert.equal(await page.locator('img.pl-cover').count(), 0);
+    assert.deepEqual(seen, [], 'aucune requête vers une adresse d\'image non autorisée');
+    await context.close();
+    for (const thumb of ['javascript:alert(1)', 'http://i.scdn.co/image/abc', 'https://i.scdn.co.evil.test/a.png']) {
+      const r = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ...rows, playlist: { ...rows.playlist, title: 'ok', thumb } });
+      await r.page.goto(`${base}/dashboard.html`);
+      await r.page.waitForSelector('.pl-title');
+      assert.equal(await r.page.locator('img.pl-cover').count(), 0, thumb);
+      await r.context.close();
+    }
+    const bad = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ...rows, playlist: { provider: 'youtube', kind: 'video', id: '"><script>x' } });
+    await bad.page.goto(`${base}/dashboard.html`);
+    await bad.page.waitForSelector('section[aria-labelledby=title-playlist] form');
+    assert.equal(await bad.page.locator('iframe').count(), 0);
+    assert.deepEqual([...errors, ...bad.errors], []);
+    await bad.context.close();
   }
 
   // Installer l'app : l'entrée du menu du compte ouvre le guide (détails dans tests/install.check.cjs).

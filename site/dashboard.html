@@ -167,6 +167,8 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 .breath-word{min-height:28px;font-size:18px;font-weight:500;text-align:center}
 .sound{display:flex;align-items:center;gap:12px;min-height:44px}
 .sound span{flex:none;width:104px;font-size:14px}
+.sound.master{margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid var(--rule)}
+.sound.master span{font-weight:600}
 .sound input{flex:1;min-width:0;height:32px;accent-color:var(--accent)}
 .add.stack{flex-wrap:wrap}
 .add.stack input[type=text],.add.stack input[type=url]{flex:1 1 100%}
@@ -177,6 +179,15 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 .row a.grow{text-decoration:none}
 .row a.grow:hover{text-decoration:underline;text-underline-offset:3px}
 .row .host{flex:none;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--slate)}
+.pl-head{display:flex;align-items:center;gap:12px}
+.pl-cover{flex:none;width:80px;height:80px;border-radius:12px;object-fit:cover;background:var(--tint)}
+.pl-title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;font-size:15px;line-height:1.3;font-weight:600}
+.pl-info{margin-top:4px;font-size:14px}
+.pl-info.small{font-size:12px;color:var(--slate)}
+.player{display:block;width:100%;margin-top:12px;border:0;border-radius:12px;background:var(--tint)}
+.player.yt{height:auto;aspect-ratio:16/9}
+.pl-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+.pl-actions a{padding:6px 4px;font-size:14px;font-weight:500;text-decoration:underline;text-underline-offset:3px}
 .credit{padding:32px 0 24px;font-size:12px;color:var(--slate)}
 
 /* Carte d'embarquement : la même dans le widget et dans la scène 3D, sa taille suit font-size. */
@@ -1120,6 +1131,10 @@ const WIDGETS = [
       const volumes = Object.fromEntries(SOUNDS.map(snd => [snd.id, snd.id === 'pluie' && !data?.vol ? 35 : clamp(data?.vol?.[snd.id])]));
       const note = el('p', 'note');
       note.hidden = true;
+      // Volume général : baisse tout d'un coup. Il vit dans le widget, donc il marche pareil sur ordinateur et sur téléphone
+      // (sur un téléphone, les boutons de volume de l'appareil restent le réglage maître).
+      let level = Number.isFinite(data?.master) ? clamp(data.master) : 100;
+      const masterGain = () => (level / 100) ** 2 * .5;
       let ctx = null, nodes = null, playing = false;
 
       const noiseBuffer = (kind) => {
@@ -1143,7 +1158,7 @@ const WIDGETS = [
       const build = () => {
         ctx = new (window.AudioContext || window.webkitAudioContext)();
         const master = ctx.createGain();
-        master.gain.value = .5;
+        master.gain.value = masterGain();
         const limiter = ctx.createDynamicsCompressor();
         master.connect(limiter);
         limiter.connect(ctx.destination);
@@ -1183,6 +1198,7 @@ const WIDGETS = [
         note.hidden = true;
         try {
           if (!playing) {
+            if (level === 0) { note.textContent = "Monte le volume général pour entendre l'ambiance."; note.hidden = false; return; }
             if (!SOUNDS.some(snd => volumes[snd.id] > 0)) { note.textContent = "Monte le volume d'un son pour l'entendre."; note.hidden = false; return; }
             if (!ctx) { build(); for (const snd of SOUNDS) apply(snd.id); }
             await ctx.resume();
@@ -1196,14 +1212,23 @@ const WIDGETS = [
           note.hidden = false;
         }
       });
+      const persist = () => save({ vol: { ...volumes }, master: level });
       const list = el('div');
+      const main = el('label', 'sound master');
+      const mainRange = Object.assign(el('input'), { type: 'range', min: 0, max: 100, step: 5, value: level });
+      const sayMain = () => mainRange.setAttribute('aria-valuetext', `${level} %`);
+      sayMain();
+      mainRange.oninput = () => { level = Number(mainRange.value); sayMain(); nodes?.master.gain.setTargetAtTime(masterGain(), ctx.currentTime, .05); };
+      mainRange.onchange = persist;
+      main.append(el('span', '', 'Volume général'), mainRange);
+      list.append(main);
       for (const snd of SOUNDS) {
         const row = el('label', 'sound');
         const range = Object.assign(el('input'), { type: 'range', min: 0, max: 100, step: 5, value: volumes[snd.id] });
         const say = () => range.setAttribute('aria-valuetext', `${volumes[snd.id]} %`);
         say();
         range.oninput = () => { volumes[snd.id] = Number(range.value); say(); apply(snd.id); };
-        range.onchange = () => save({ vol: { ...volumes } });
+        range.onchange = persist;
         row.append(el('span', '', snd.name), range);
         list.append(row);
       }
@@ -1324,6 +1349,151 @@ const WIDGETS = [
       }
       draw();
       body.append(form, note, empty, list);
+    },
+  },
+  {
+    id: 'playlist', title: 'Playlist', desc: 'Ta playlist Spotify ou YouTube, à portée de main.',
+    render({ body, meta, data, save }) {
+      const SPOTIFY = ['playlist', 'album', 'track', 'episode', 'show', 'artist'];
+      const KIND = { playlist: 'playlist', album: 'album', track: 'titre', episode: 'épisode', show: 'podcast', artist: 'artiste', video: 'vidéo' };
+      // Seuls ces deux services et ces formes d'adresse sont acceptés : on ne garde que le type et l'identifiant, jamais l'adresse saisie.
+      const valid = d => !!d && ((d.provider === 'spotify' && SPOTIFY.includes(d.kind) && /^[A-Za-z0-9]{22}$/.test(d.id))
+        || (d.provider === 'youtube' && ((d.kind === 'playlist' && /^[A-Za-z0-9_-]{10,64}$/.test(d.id)) || (d.kind === 'video' && /^[A-Za-z0-9_-]{11}$/.test(d.id)))));
+      const parse = raw => {
+        const text = String(raw ?? '').trim();
+        let m = text.match(/^spotify:(playlist|album|track|episode|show|artist):([A-Za-z0-9]{22})$/);
+        if (m) return { provider: 'spotify', kind: m[1], id: m[2] };
+        let u;
+        try { u = new URL(/^https?:\/\//i.test(text) ? text : `https://${text}`); } catch { return null; }
+        if (!/^https?:$/.test(u.protocol)) return null;
+        const host = u.hostname.toLowerCase();
+        let found = null;
+        if (host === 'open.spotify.com') {
+          m = u.pathname.match(/^\/(?:intl-[a-z-]+\/)?(playlist|album|track|episode|show|artist)\/([A-Za-z0-9]{22})\/?$/);
+          if (m) found = { provider: 'spotify', kind: m[1], id: m[2] };
+        } else if (['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com'].includes(host)) {
+          const list = u.searchParams.get('list'), v = u.searchParams.get('v');
+          if (list) found = { provider: 'youtube', kind: 'playlist', id: list };
+          else if (u.pathname === '/watch' && v) found = { provider: 'youtube', kind: 'video', id: v };
+        } else if (host === 'youtu.be') {
+          m = u.pathname.match(/^\/([A-Za-z0-9_-]{11})$/);
+          if (m) found = { provider: 'youtube', kind: 'video', id: m[1] };
+        }
+        return valid(found) ? found : null;
+      };
+      const NAME = { spotify: 'Spotify', youtube: 'YouTube' };
+      const embedUrl = c => c.provider === 'spotify' ? `https://open.spotify.com/embed/${c.kind}/${c.id}`
+        : c.kind === 'playlist' ? `https://www.youtube-nocookie.com/embed/videoseries?list=${c.id}` : `https://www.youtube-nocookie.com/embed/${c.id}`;
+      const openUrl = c => c.provider === 'spotify' ? `https://open.spotify.com/${c.kind}/${c.id}`
+        : c.kind === 'playlist' ? `https://www.youtube.com/playlist?list=${c.id}` : `https://www.youtube.com/watch?v=${c.id}`;
+
+      // La pochette ne s'affiche que si elle vient du serveur d'images du service : jamais une adresse quelconque.
+      const THUMB_HOSTS = { spotify: ['i.scdn.co'], youtube: ['i.ytimg.com'] };
+      const safeThumb = (provider, raw) => {
+        try { const u = new URL(raw); return u.protocol === 'https:' && THUMB_HOSTS[provider].includes(u.hostname) ? u.href : null; } catch { return null; }
+      };
+      const clean = d => {
+        if (!valid(d)) return null;
+        const title = typeof d.title === 'string' ? d.title.trim().slice(0, 120) : '', thumb = safeThumb(d.provider, d.thumb);
+        return { provider: d.provider, kind: d.kind, id: d.id, ...(title && { title }), ...(thumb && { thumb }) };
+      };
+      // Au moment d'ajouter le lien (un geste volontaire), on demande son titre et sa pochette au service. Si ça échoue, le widget marche sans.
+      const lookup = async found => {
+        const link = found.provider === 'spotify' ? `https://open.spotify.com/${found.kind}/${found.id}`
+          : found.kind === 'playlist' ? `https://www.youtube.com/playlist?list=${found.id}` : `https://www.youtube.com/watch?v=${found.id}`;
+        const api = found.provider === 'spotify' ? 'https://open.spotify.com/oembed' : 'https://www.youtube.com/oembed';
+        const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 6000);
+        try {
+          const r = await fetch(`${api}?format=json&url=${encodeURIComponent(link)}`, { signal: ctl.signal, credentials: 'omit', referrerPolicy: 'no-referrer' });
+          if (!r.ok) return found;
+          const d = await r.json();
+          return clean({ ...found, title: d.title, thumb: d.thumbnail_url }) ?? found;
+        } catch { return found; } finally { clearTimeout(timer); }
+      };
+      let current = clean(data), editing = !current;
+      const note = el('p', 'note');
+      note.hidden = true;
+      const slot = el('div');
+
+      function drawForm() {
+        const input = Object.assign(el('input'), { type: 'text', placeholder: 'Lien Spotify ou YouTube', ariaLabel: 'Lien de ta playlist Spotify ou YouTube', autocomplete: 'off', maxLength: 300 });
+        const form = el('form', 'add');
+        form.noValidate = true;
+        form.append(input, Object.assign(el('button', 'ghost', 'Ajouter'), { type: 'submit' }));
+        const add = form.querySelector('button');
+        form.onsubmit = async e => {
+          e.preventDefault();
+          const found = parse(input.value);
+          if (!found) { note.textContent = 'Ce lien n\'est pas reconnu. Colle l\'adresse d\'une playlist, d\'un album ou d\'une vidéo Spotify ou YouTube.'; note.hidden = false; input.focus(); return; }
+          note.hidden = true;
+          add.disabled = true;
+          add.textContent = '…';
+          current = await lookup(found);
+          editing = false;
+          save(current);
+          draw();
+        };
+        const info = el('p', 'pl-info small', 'Dans Spotify ou YouTube, choisis « Partager » puis « Copier le lien », et colle-le ici. En ajoutant le lien, Renzvi demande son titre et sa pochette à Spotify ou YouTube, qui reçoivent ton adresse IP.');
+        const parts = [form, info];
+        if (current) parts.push(button('link', 'Annuler', () => { editing = false; note.hidden = true; draw(); }));
+        slot.replaceChildren(...parts);
+        input.focus();
+      }
+
+      function drawCard() {
+        const name = NAME[current.provider];
+        const kind = `${name} · ${KIND[current.kind]}`;
+        const blank = () => el('div', 'pl-cover');
+        let cover = blank();
+        if (current.thumb) {
+          // Pas de « referrer » envoyé avec l'image, et si elle ne charge plus on garde un carré neutre.
+          cover = Object.assign(el('img', 'pl-cover'), { src: current.thumb, alt: '', loading: 'lazy', referrerPolicy: 'no-referrer' });
+          cover.onerror = () => cover.replaceWith(blank());
+        }
+        const label = el('div');
+        label.append(el('p', 'pl-title', current.title || kind), ...(current.title ? [el('p', 'pl-info small', kind)] : []));
+        const consent = el('div', 'pl-head');
+        consent.append(cover, label);
+        const why = el('p', 'pl-info small', (current.thumb
+          ? `La pochette et le titre viennent de ${name} : à chaque ouverture de ton écran, ${name} reçoit ton adresse IP. Le lecteur, lui, n'est chargé qu'après ton clic, et ${name} peut alors utiliser ses cookies.`
+          : `Le lecteur est fourni par ${name} et rien n'est chargé avant ton clic. En le chargeant, ${name} reçoit ton adresse IP et peut utiliser ses cookies.`)
+          + (current.provider === 'spotify' ? ' En général, sans compte Spotify connecté dans ce navigateur, tu n\'entends que des extraits de 30 secondes.' : ' YouTube peut afficher des publicités.'));
+        const actions = el('div', 'pl-actions');
+        let frame = null;
+        const load = button('primary', 'Charger le lecteur', () => {
+          frame = Object.assign(el('iframe', current.provider === 'youtube' ? 'player yt' : 'player'), {
+            src: embedUrl(current), title: `Lecteur ${name}`, loading: 'lazy', allowFullscreen: true,
+            referrerPolicy: 'strict-origin-when-cross-origin', // YouTube refuse de jouer (erreur 153) sans cet en-tête
+            allow: 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture',
+          });
+          if (current.provider === 'spotify') frame.style.height = ['track', 'episode'].includes(current.kind) ? '152px' : '352px';
+          why.hidden = true;
+          load.hidden = true;
+          stop.hidden = false;
+          slot.insertBefore(frame, actions);
+          stop.focus();
+        });
+        const stop = button('ghost', 'Arrêter le lecteur', () => {
+          frame.remove();
+          frame = null;
+          why.hidden = false;
+          load.hidden = false;
+          stop.hidden = true;
+          load.focus();
+        });
+        stop.hidden = true;
+        const change = button('ghost', 'Changer', () => { editing = true; draw(); });
+        const open = Object.assign(el('a', '', `Ouvrir sur ${name}`), { href: openUrl(current), target: '_blank', rel: 'noopener noreferrer' });
+        actions.append(load, stop, change, open);
+        slot.replaceChildren(consent, why, actions);
+      }
+
+      function draw() {
+        meta.textContent = current && !editing ? NAME[current.provider] : '';
+        if (editing) drawForm(); else drawCard();
+      }
+      draw();
+      body.append(note, slot);
     },
   },
 ];
