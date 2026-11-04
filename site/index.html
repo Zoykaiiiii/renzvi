@@ -46,8 +46,9 @@ section{padding:var(--gap) 0}
 .btn.ghost:hover{background:var(--ink);color:#fff}
 .btn:active{transform:scale(.97)}
 .pair{display:flex;gap:10px;flex-wrap:wrap}
-.tlink{font-size:16px;font-weight:450}
-.tlink:hover{text-decoration:underline;text-underline-offset:4px}
+.signin{padding:10px 0}
+.tlink,.signin{font-size:16px;font-weight:450;white-space:nowrap}
+.tlink:hover,.signin:hover{text-decoration:underline;text-underline-offset:4px}
 
 /* barre */
 .bar{position:relative;z-index:5;display:flex;align-items:center;height:76px}
@@ -253,6 +254,7 @@ footer{background:var(--fog);padding:96px 0 40px}
   .mini-ticket .code{font-size:26px}
   .gone{font-size:17px}
 }
+@media (max-width:359px){.bar .btn{display:none}}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
   .js [data-r]{opacity:1;transform:none}
@@ -266,7 +268,7 @@ footer{background:var(--fog);padding:96px 0 40px}
 <header class="wrap bar">
   <a class="mark" href="#top" aria-label="Renzvi, accueil"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="3" fill="#17191c"/><rect x="13" y="2" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="2" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="13" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/></svg>Renzvi</a>
   <nav aria-label="Principale"><a href="#composer">Le concept</a><a href="#widgets">Les widgets</a><a href="#modes">Les modes</a></nav>
-  <div class="right"><a class="tlink" href="#questions">Questions →</a><a class="btn fill" href="#inscription">Être prévenu</a></div>
+  <div class="right"><a class="tlink" href="#questions">Questions →</a><a class="signin" href="login.html">Connexion</a><a class="btn fill" href="#inscription">Être prévenu</a></div>
 </header>
 
 <main id="top">
