@@ -83,17 +83,67 @@ async function open(browser, base, options = {}, query = '') {
     await page.route(`${API}/verify*`, r => json(r, 200, { access_token: JWT, token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, refresh_token: 'r', user: USER }));
     await page.fill('#code', '12345678'); // Supabase peut être réglé sur 6 à 10 chiffres
     await page.click('#verify');
-    await page.waitForSelector('#step-done:not([hidden])');
-    assert.equal(await page.textContent('#account'), 'lea@exemple.fr');
-    await shot(page, 'desktop-done');
+    await page.waitForURL('**/dashboard.html');
+    await page.waitForSelector('#app:not([hidden])');
+    await shot(page, 'desktop-dashboard');
 
+    // Déjà connecté : le login renvoie directement au dashboard.
+    await page.goto(`${base}/login.html`);
+    await page.waitForURL('**/dashboard.html');
+
+    // Les notes survivent à un rechargement.
+    await page.fill('.notes', 'Appeler le comptable <b>');
     await page.reload();
-    await page.waitForSelector('#step-done:not([hidden])');
+    await page.waitForSelector('#app:not([hidden])');
+    assert.equal(await page.inputValue('.notes'), 'Appeler le comptable <b>');
 
-    await page.route(`${API}/logout*`, r => r.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*' } }));
+    // Déconnexion, même réseau coupé : Supabase efface la session de l'appareil, retour au login.
+    await page.click('#me');
+    await page.waitForSelector('#logout', { state: 'visible' });
+    assert.equal(await page.textContent('#who'), 'lea@exemple.fr');
+    await page.route(`${API}/logout*`, r => r.abort());
     await page.click('#logout');
-    await page.waitForSelector('#step-email:not([hidden])');
+    await page.waitForURL('**/login.html');
+    assert.equal(await page.evaluate(() => localStorage.getItem('sb-xjkmztfsyyccveaeyzov-auth-token')), null);
+
+    // Plus de session : le dashboard est inaccessible.
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForURL('**/login.html');
     assert.deepEqual(errors, []);
+  }
+
+  // Dashboard : prénom Google, aucun débordement du grand écran au petit téléphone, Échap ferme le menu.
+  for (const width of [1440, 768, 390, 320]) {
+    const context = await browser.newContext({ viewport: { width, height: 800 } });
+    await context.addInitScript(session => localStorage.setItem('sb-xjkmztfsyyccveaeyzov-auth-token', session), JSON.stringify({ access_token: JWT, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: { ...USER, user_metadata: { full_name: 'Léa Martin' } } }));
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('#app:not([hidden])');
+    assert.equal(await page.textContent('#hello'), 'Bonjour Léa.');
+    assert.equal(await page.textContent('#me'), 'L');
+    assert.match(await page.textContent('.time'), /^\d\d:\d\d$/);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0, `débordement à ${width}`);
+    await page.click('#me');
+    await page.waitForSelector('#logout', { state: 'visible' });
+    const menu = await page.locator('#menu').boundingBox();
+    assert.ok(menu.x >= 0 && menu.x + menu.width <= width, `menu coupé à ${width}`);
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('#logout', { state: 'hidden' });
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+
+  // Dashboard : bibliothèque Supabase indisponible, on le dit au lieu d'afficher un écran vide.
+  {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await page.route('https://cdn.jsdelivr.net/**', r => r.abort());
+    await page.goto(`${base}/dashboard.html`);
+    assert.match(await page.textContent('#blocked'), /Recharge la page/);
+    assert.equal(await page.isVisible('#app'), false);
+    await context.close();
   }
 
   // Google : on part vers Supabase avec le bon retour et une protection PKCE.

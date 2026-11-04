@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mon écran — Renzvi</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400..600&display=swap" rel="stylesheet">
+<style>
+/* Tous les choix visuels passent par ces variables : changer de style = changer ce bloc. */
+:root{
+  --ink:#17191c; --slate:#55565c; --error:#b3261e;
+  --ground:#fff; --backdrop:url(assets/lake-mapourika-nz.jpg); --backdrop-opacity:.1; --backdrop-filter:blur(64px) brightness(1.3);
+  --glass:rgba(255,255,255,.56); --glass-edge:rgba(255,255,255,.88); --glass-blur:blur(26px) saturate(1.5);
+  --glass-shine:inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 0 rgba(255,255,255,.4),0 0 0 1px rgba(23,25,28,.05),0 2px 6px rgba(23,25,28,.05);
+  --sans:-apple-system,BlinkMacSystemFont,"Hanken Grotesk",ui-sans-serif,system-ui,sans-serif;
+  --r-panel:28px; --r-panel-morph:36px 26px 34px 30px; --pill:9999px;
+  --spring:cubic-bezier(.34,1.56,.64,1); --gap:16px;
+}
+*{box-sizing:border-box;margin:0}
+[hidden]{display:none!important}
+body{font:400 16px/1.5 var(--sans);letter-spacing:-.008em;color:var(--ink);background:var(--ground);min-height:100dvh;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:-120px;z-index:-1;background:var(--backdrop) center/cover;filter:var(--backdrop-filter);opacity:var(--backdrop-opacity)}
+button,textarea{font:inherit;letter-spacing:inherit;color:inherit}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+/* 12 x 77 + 11 x 16 = 1100 : toutes les largeurs de widgets tombent sur ces colonnes. */
+.col{width:min(1100px,100% - 32px);margin-inline:auto}
+.top{display:flex;align-items:center;justify-content:space-between;height:76px}
+.mark{display:inline-flex;align-items:center;gap:10px;min-height:44px;font-size:18px;font-weight:600;text-decoration:none}
+.mark svg{width:24px;height:24px}
+
+.glass{background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shine)}
+
+.me{width:44px;height:44px;border-radius:var(--pill);font-weight:600;cursor:pointer;transition:transform .45s var(--spring)}
+.me:active{transform:scale(.92)}
+/* Le menu sort du bouton de compte et se déforme en panneau. */
+#menu{position:fixed;inset:68px max(16px,calc((100vw - 1100px)/2)) auto auto;margin:0;width:min(300px,100vw - 32px);padding:16px;border-radius:24px;color:inherit;transform-origin:top right;transition:transform .45s var(--spring),border-radius .45s var(--spring),opacity .18s,display .45s allow-discrete,overlay .45s allow-discrete;--glass:rgba(255,255,255,.82);box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 16px 40px rgba(23,25,28,.14)}
+#menu:not(:popover-open){opacity:0;transform:scale(.3);border-radius:var(--pill)}
+@starting-style{#menu:popover-open{opacity:0;transform:scale(.3);border-radius:var(--pill)}}
+#who{font-size:14px;color:var(--slate);overflow-wrap:anywhere}
+.out{display:block;width:100%;height:44px;margin-top:12px;border:0;border-radius:var(--pill);background:var(--ink);color:#fff;font-weight:500;cursor:pointer;transition:transform .15s}
+.out:active{transform:scale(.98)}
+.out:disabled{cursor:progress}
+
+.hello{padding:40px 0 32px}
+h1{font-size:32px;line-height:1.15;font-weight:500;letter-spacing:-.024em}
+.msg{color:var(--error)}
+#menu .msg{margin-top:8px;font-size:14px}
+#menu .msg:empty{display:none}
+.blocked{padding-top:40px}
+
+.board{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:var(--gap)}
+.w-4{grid-column:span 4}.w-8{grid-column:span 8}.w-12{grid-column:span 12}
+.widget{display:flex;flex-direction:column;padding:24px;border-radius:var(--r-panel);transition:border-radius .6s var(--spring),transform .6s var(--spring)}
+@media (hover:hover){.widget:hover{border-radius:var(--r-panel-morph);transform:scale(1.006)}}
+h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
+.body{flex:1;display:flex;flex-direction:column;margin-top:12px;min-height:0}
+
+.notes{flex:1;width:100%;min-height:128px;padding:0;border:0;background:none;resize:none;line-height:1.55}
+.notes:focus-visible{outline:none}
+.widget:has(.notes:focus-visible){outline:1.5px solid rgba(23,25,28,.55);outline-offset:0}
+.notes::placeholder{color:var(--slate);opacity:1}
+.stamp{margin-top:8px;font-size:12px;line-height:16px;color:var(--slate)}
+
+.clock{flex:1;display:flex;flex-direction:column;justify-content:center}
+.time{font-size:40px;line-height:1.1;font-weight:400;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.zone{margin-top:6px;font-size:14px;color:var(--slate)}
+
+.slot{grid-column:1/-1;padding:16px 24px;border:1px dashed rgba(23,25,28,.28);border-radius:var(--r-panel);font-size:14px;color:var(--slate)}
+.credit{padding:32px 0 24px;font-size:12px;color:var(--slate)}
+
+@media (max-width:760px){
+  .w-4,.w-8{grid-column:1/-1}
+  .hello{padding:16px 0 24px}
+  h1{font-size:28px}
+  .widget{padding:20px}
+}
+@media (prefers-reduced-motion:reduce){
+  .me,.out,.widget,#menu{transition:none}
+  .me:active,.out:active{transform:none}
+  .widget:hover{transform:none;border-radius:var(--r-panel)}
+}
+</style>
+</head>
+<body>
+<header class="col top">
+  <a class="mark" href="./" aria-label="Renzvi, accueil"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="3" fill="#17191c"/><rect x="13" y="2" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="2" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="13" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/></svg><span>Renzvi</span></a>
+  <button class="me glass" id="me" type="button" popovertarget="menu" aria-label="Mon compte" hidden></button>
+</header>
+<div class="glass" id="menu" popover>
+  <p id="who"></p>
+  <button class="out" id="logout" type="button">Se déconnecter</button>
+  <p class="msg" id="logout-msg" role="alert"></p>
+</div>
+
+<main class="col" id="app" hidden>
+  <div class="hello">
+    <h1 id="hello">Bonjour.</h1>
+  </div>
+  <div class="board" id="board">
+    <p class="slot">Tes prochains widgets viendront se poser ici.</p>
+  </div>
+  <p class="credit">Fond : « Lake mapourika NZ » par Richard Palmer, <a href="https://creativecommons.org/licenses/by-sa/3.0/">CC BY-SA 3.0</a>, via Wikimedia Commons.</p>
+</main>
+<p class="col msg blocked" id="blocked" role="alert" hidden></p>
+<noscript><p class="col msg blocked">Active JavaScript pour ouvrir ton écran.</p></noscript>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>
+<script>
+// Clé publique par conception : ce sont les règles de sécurité de la base qui protègent les données.
+const SUPABASE_URL = 'https://xjkmztfsyyccveaeyzov.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_-RJvqWleUNCM9vu5TumV6w_r2SUd8mQ';
+const $ = id => document.getElementById(id);
+const el = (tag, className, text) => Object.assign(document.createElement(tag), { className, textContent: text ?? '' });
+
+// Ajouter un widget = ajouter une entrée ici. size : 4, 8 ou 12 colonnes.
+const WIDGETS = [
+  {
+    id: 'notes', title: 'Notes', size: 8,
+    render(body, user) {
+      // shortcut: notes gardées dans ce navigateur, non synchronisées et lisibles sur un ordinateur partagé ; à passer dans Supabase avec les premières vraies données.
+      const key = `renzvi:notes:${user.id}`;
+      const notes = el('textarea', 'notes');
+      notes.placeholder = 'Une idée, une liste, un numéro…';
+      notes.setAttribute('aria-labelledby', 'title-notes');
+      const stamp = el('p', 'stamp', 'Gardées sur cet appareil');
+      stamp.setAttribute('role', 'status');
+      try { notes.value = localStorage.getItem(key) ?? ''; } catch {}
+      notes.oninput = () => {
+        try { localStorage.setItem(key, notes.value); stamp.textContent = 'Gardées sur cet appareil'; stamp.classList.remove('msg'); }
+        catch { stamp.textContent = "Impossible d'enregistrer sur cet appareil."; stamp.classList.add('msg'); }
+      };
+      body.append(notes, stamp);
+    },
+  },
+  {
+    id: 'heure', title: 'Heure', size: 4,
+    render(body) {
+      const box = el('div', 'clock');
+      const time = el('time', 'time');
+      const date = el('p', 'zone');
+      const tick = () => {
+        const now = new Date();
+        time.textContent = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        const day = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+        date.textContent = day[0].toUpperCase() + day.slice(1);
+      };
+      tick();
+      setInterval(tick, 1000);
+      box.append(time, date);
+      body.append(box);
+    },
+  },
+];
+
+function buildBoard(user) {
+  const slot = $('board').firstElementChild;
+  for (const w of WIDGETS) {
+    const box = el('section', `widget glass w-${w.size}`);
+    const title = el('h2', '', w.title);
+    title.id = `title-${w.id}`;
+    box.setAttribute('aria-labelledby', title.id);
+    const body = el('div', 'body');
+    box.append(title, body);
+    // Un widget qui plante ne doit pas emporter tout l'écran.
+    try { w.render(body, user); }
+    catch (e) { console.error(w.id, e); body.replaceChildren(el('p', 'msg', "Ce widget n'a pas pu se charger.")); }
+    $('board').insertBefore(box, slot);
+  }
+}
+
+function enter(user) {
+  const meta = user.user_metadata ?? {};
+  const first = (meta.full_name || meta.name || '').trim().split(/\s+/)[0];
+  $('hello').textContent = first ? `Bonjour ${first}.` : 'Bonjour.';
+  $('who').textContent = user.email ?? '';
+  $('me').textContent = (first || user.email || '?')[0].toUpperCase();
+  $('me').hidden = false;
+  if (!$('board').querySelector('.widget')) buildBoard(user);
+  $('app').hidden = false;
+}
+
+function block(text) {
+  $('app').hidden = true;
+  $('blocked').textContent = text;
+  $('blocked').hidden = false;
+}
+
+if (!window.supabase) {
+  block('Impossible de charger ton écran. Recharge la page.');
+} else {
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { flowType: 'pkce' } });
+  const toLogin = () => location.replace('login.html');
+
+  async function check() {
+    const { data, error } = await sb.auth.getSession();
+    if (error && !data.session) return block('Impossible de vérifier ta connexion. Recharge la page.');
+    if (data.session) enter(data.session.user); else toLogin();
+  }
+  check();
+  // Après une déconnexion, le bouton Retour ne doit pas réafficher l'écran gardé en mémoire.
+  addEventListener('pageshow', e => { if (e.persisted) check(); });
+  sb.auth.onAuthStateChange(event => { if (event === 'SIGNED_OUT') toLogin(); });
+
+  $('logout').onclick = async () => {
+    $('logout-msg').textContent = '';
+    $('logout').disabled = true;
+    const { error } = await sb.auth.signOut();
+    $('logout').disabled = false;
+    if (error) $('logout-msg').textContent = "La déconnexion n'a pas abouti. Réessaie.";
+  };
+}
+</script>
+</body>
+</html>

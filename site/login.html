@@ -102,12 +102,6 @@ form .btn{margin-top:12px}
       </div>
     </section>
 
-    <section id="step-done" hidden>
-      <h1>Connexion réussie</h1>
-      <p class="sub">Compte : <span class="who" id="account"></span>. Ton tableau de bord arrivera ici.</p>
-      <button class="btn google first" id="logout" type="button">Se déconnecter</button>
-    </section>
-
     <noscript><p class="msg">Active JavaScript pour te connecter.</p></noscript>
   </div>
 </main>
@@ -124,7 +118,7 @@ const IN_APP = /Instagram|FBAN|FBAV|FB_IAB|TikTok|musical_ly|Bytedance/i;
 let userEmail = '', timer;
 
 function show(step) {
-  for (const s of ['email', 'code', 'done']) $('step-' + s).hidden = s !== step;
+  for (const s of ['email', 'code']) $('step-' + s).hidden = s !== step;
 }
 function fail(field, msgId, text) {
   $(msgId).textContent = text;
@@ -155,10 +149,6 @@ function countdown() {
   tick();
   timer = setInterval(tick, 1000);
 }
-function signedIn(user) {
-  $('account').textContent = user.email || '';
-  show('done');
-}
 
 if (IN_APP.test(navigator.userAgent)) {
   $('google-block').hidden = true;
@@ -178,8 +168,9 @@ if (!window.supabase) {
 } else {
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { flowType: 'pkce' } });
 
-  sb.auth.getSession().then(({ data }) => { if (data.session) signedIn(data.session.user); });
-  sb.auth.onAuthStateChange((event, session) => { if (session) signedIn(session.user); else if (event === 'SIGNED_OUT') show('email'); });
+  const toDashboard = () => location.replace('dashboard.html');
+  sb.auth.getSession().then(({ data }) => { if (data.session) toDashboard(); });
+  sb.auth.onAuthStateChange((event, session) => { if (session) toDashboard(); });
 
   $('google').onclick = async () => {
     busy($('google'), 'Ouverture de Google…');
@@ -238,12 +229,6 @@ if (!window.supabase) {
     $('email').focus();
   };
 
-  $('logout').onclick = async () => {
-    busy($('logout'), 'Déconnexion…');
-    const { error } = await sb.auth.signOut();
-    busy($('logout'));
-    if (error) $('account').textContent = explain(error);
-  };
 }
 </script>
 </body>
