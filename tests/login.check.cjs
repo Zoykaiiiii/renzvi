@@ -211,7 +211,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     assert.equal(await page.locator('.widget').count(), 3);
     assert.equal(await page.isVisible('#setup'), false);
     await saved(page);
-    assert.deepEqual(db.rows.ecran, { wallpaper: 'foret', widgets: ['taches', 'minuteur', 'notes'], done: true });
+    assert.deepEqual(db.rows.ecran, { wallpaper: 'foret', widgets: ['vol', 'taches', 'notes'], done: true });
     await shot(page, 'ecran-photo');
     await page.reload();
     await page.waitForSelector('.widget');
@@ -356,6 +356,150 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.reload();
     await page.waitForFunction(() => localStorage.getItem('renzvi:ref') === null);
     assert.deepEqual(db.claims, ['ABCD1234']);
+    await context.close();
+  }
+
+  const VOL_SCREEN = { wallpaper: 'blanc', widgets: ['vol'], done: true };
+  const hide = (page, hidden) => page.evaluate(h => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => h });
+    window.dispatchEvent(new Event('visibilitychange'));
+  }, hidden);
+
+  // Vol : vraie animation et vrai plein écran, puis compteur.
+  {
+    const { context, page, errors } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ecran: VOL_SCREEN });
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('.boarding');
+    assert.match(await page.locator('.broute').textContent(), /PAR → LYS/);
+    assert.equal(await page.locator('.vol-time output').textContent(), '25 min');
+    await shot(page, 'vol-0-widget');
+    await page.getByRole('button', { name: 'Déchirer et décoller' }).click();
+    await page.waitForSelector('.scene-ticket');
+    assert.ok(await page.evaluate(() => document.fullscreenElement?.id === 'flight'), 'plein écran demandé');
+    assert.equal(await page.locator('.piece').count(), 2, 'le ticket est bien en deux morceaux');
+    if (SHOTS) {
+      for (const [ms, name] of [[500, 'vol-1-arrivee'], [650, 'vol-2-tension'], [450, 'vol-3-dechirure'], [300, 'vol-4-envol']]) {
+        await page.waitForTimeout(ms);
+        await shot(page, name);
+      }
+    }
+    await page.waitForSelector('#flight-run:not([hidden])', { timeout: 6000 });
+    assert.equal(await page.locator('.scene-ticket').count(), 0);
+    assert.match(await page.textContent('#flight-clock'), /^2[45]:\d\d$/);
+    assert.match(await page.textContent('#flight-eta'), /^Arrivée à \d\d:\d\d$/);
+    await shot(page, 'vol-5-compteur');
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+
+  // Vol sans animation : durée choisie, destination liée, atterrissage compté, annulation en deux temps.
+  {
+    const { context, page, errors, db } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }, { ecran: VOL_SCREEN });
+    await page.clock.install();
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('.boarding');
+    const range = page.locator('.vol-time input');
+    await range.evaluate(r => { r.value = 90; r.dispatchEvent(new Event('input', { bubbles: true })); r.dispatchEvent(new Event('change', { bubbles: true })); });
+    assert.equal(await page.locator('.vol-time output').textContent(), '1 h 30');
+    assert.match(await page.locator('.broute').textContent(), /LIS/);
+    await range.evaluate(r => { r.value = 5; r.dispatchEvent(new Event('input', { bubbles: true })); r.dispatchEvent(new Event('change', { bubbles: true })); });
+    const go = page.getByRole('button', { name: 'Déchirer et décoller' });
+    await go.click();
+    await page.waitForSelector('#flight-run:not([hidden])');
+    assert.equal(await page.textContent('#flight-clock'), '05:00');
+    assert.match(await page.title(), /05:00 — Nantes/);
+    assert.ok(await page.locator('#app').evaluate(a => a.inert), 'le dashboard est inaccessible pendant le vol');
+    await page.clock.runFor(60000);
+    assert.equal(await page.textContent('#flight-clock'), '04:00');
+    await page.getByRole('button', { name: 'Annuler le vol' }).click();
+    await page.clock.runFor(3100);
+    assert.equal(await page.textContent('#flight-cancel'), 'Annuler le vol', 'un clic isolé n\'annule pas');
+    assert.equal(await page.isVisible('#flight-end'), false);
+    await page.clock.runFor(4 * 60000);
+    await page.waitForSelector('#flight-end:not([hidden])');
+    assert.equal(await page.textContent('#flight-end-title'), 'Atterri à Nantes');
+    await shot(page, 'vol-6-atterri');
+    await page.click('#flight-close');
+    assert.equal(await page.isVisible('#flight'), false);
+    assert.ok(await page.evaluate(() => !document.fullscreenElement));
+    assert.equal(await page.locator('#app').evaluate(a => a.inert), false);
+    assert.equal(await page.title(), 'Mon écran — Renzvi');
+    assert.equal(await page.locator('section[aria-labelledby=title-vol] .meta').textContent(), "Aujourd'hui : 1 vol · 5 min");
+    await page.clock.runFor(2000);
+    await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré');
+    assert.deepEqual([db.rows.vol.minutes, db.rows.vol.flights, db.rows.vol.length], [5, 1, 5]);
+
+    // Annulation volontaire : deux clics, rien n'est compté.
+    await go.click();
+    await page.waitForSelector('#flight-run:not([hidden])');
+    await page.getByRole('button', { name: 'Annuler le vol' }).click();
+    await page.getByRole('button', { name: 'Vraiment annuler ?' }).click();
+    assert.equal(await page.textContent('#flight-end-title'), 'Vol annulé');
+    await page.click('#flight-close');
+    assert.equal(await page.locator('section[aria-labelledby=title-vol] .meta').textContent(), "Aujourd'hui : 1 vol · 5 min");
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+
+  // Quitter le vol : sortie du plein écran rattrapable, annulation au bout de 10 s, onglet caché pareil même s'il se réveille tard.
+  {
+    const { context, page, errors, db } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }, { ecran: VOL_SCREEN });
+    await page.clock.install();
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('.boarding');
+    const go = page.getByRole('button', { name: 'Déchirer et décoller' });
+    await go.click();
+    await page.waitForSelector('#flight-run:not([hidden])');
+
+    await page.evaluate(() => document.exitFullscreen());
+    await page.waitForSelector('#flight-alert:not([hidden])');
+    assert.equal(await page.textContent('#flight-alert-title'), 'Tu as quitté le plein écran');
+    await shot(page, 'vol-7-alerte');
+    await page.click('#flight-back');
+    await page.waitForFunction(() => document.fullscreenElement?.id === 'flight');
+    await page.waitForSelector('#flight-alert', { state: 'hidden' });
+    assert.equal(await page.isVisible('#flight-run'), true, 'le vol continue');
+
+    await page.evaluate(() => document.exitFullscreen());
+    await page.waitForSelector('#flight-alert:not([hidden])');
+    await page.clock.runFor(10500);
+    await page.waitForSelector('#flight-end:not([hidden])');
+    assert.equal(await page.textContent('#flight-end-title'), 'Vol annulé');
+    assert.equal(db.rows.vol?.flights ?? 0, 0);
+    await page.click('#flight-close');
+
+    await go.click();
+    await page.waitForSelector('#flight-run:not([hidden])');
+    await hide(page, true);
+    await page.clock.setSystemTime(Date.now() + 60000); // l'onglet dort : aucune minuterie ne tourne
+    await hide(page, false);
+    await page.waitForSelector('#flight-end:not([hidden])');
+    assert.equal(await page.textContent('#flight-end-title'), 'Vol annulé');
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+
+  // iPhone : pas de plein écran possible pour une page web. Le vol couvre l'écran et quitter l'appli l'annule toujours.
+  {
+    const { context, page, errors } = await openDashboard(browser, base, { viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' }, { ecran: VOL_SCREEN });
+    await context.addInitScript(() => { delete Element.prototype.requestFullscreen; });
+    await page.clock.install();
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('.boarding');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0);
+    await page.getByRole('button', { name: 'Déchirer et décoller' }).click();
+    await page.waitForSelector('#flight-run:not([hidden])');
+    const cover = await page.locator('#flight').boundingBox();
+    assert.deepEqual([cover.x, cover.y, cover.width, cover.height], [0, 0, 390, 844]);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0);
+    await shot(page, 'vol-8-mobile');
+    await hide(page, true);
+    await page.waitForSelector('#flight-alert:not([hidden])');
+    assert.equal(await page.isVisible('#flight-back'), false);
+    await hide(page, false);
+    await page.waitForSelector('#flight-alert', { state: 'hidden' });
+    assert.equal(await page.isVisible('#flight-run'), true);
+    assert.deepEqual(errors, []);
     await context.close();
   }
 

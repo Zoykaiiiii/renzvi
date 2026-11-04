@@ -154,6 +154,49 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 
 .credit{padding:32px 0 24px;font-size:12px;color:var(--slate)}
 
+/* Carte d'embarquement : la même dans le widget et dans la scène 3D, sa taille suit font-size. */
+.boarding{display:grid;grid-template-columns:72fr 28fr;border-radius:1em;background:#fff;color:var(--ink);box-shadow:0 0 0 1px var(--rule);font-size:var(--boarding-size,14px);line-height:1.3;overflow:hidden}
+.bmain{min-width:0;padding:1em 1.15em}
+.bstub{display:flex;flex-direction:column;justify-content:space-between;gap:.5em;min-width:0;padding:1em .9em;border-left:.15em dashed var(--edge);background:var(--tint)}
+.blabel{font-size:.8em;color:var(--slate)}
+.broute{margin-top:.15em;font-size:2.2em;line-height:1.1;font-weight:600;letter-spacing:-.02em;white-space:nowrap}
+.bcity{font-size:.86em;color:var(--slate)}
+.bfields{display:flex;flex-wrap:wrap;gap:.3em 1.3em;margin-top:.7em}
+.bfields div{min-width:0}
+.bfields dt{font-size:.75em;color:var(--slate)}
+.bfields dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.bstub svg{display:block;width:100%;height:3em}
+.bstub p{font-size:.8em;font-weight:600;text-align:center;white-space:nowrap}
+.vol-time{display:block;margin-top:14px;font-size:14px;font-weight:500}
+.vol-time output{float:right;font-variant-numeric:tabular-nums}
+.vol-time input{display:block;width:100%;height:32px;margin-top:2px;accent-color:var(--accent)}
+.vol-go{align-self:flex-start;margin-top:10px}
+
+/* Le vol : plein écran, au-dessus de tout. */
+#flight{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:24px 16px;background:var(--flight-bg);color:#fff;overflow:hidden;--flight-bg:#0e1116;--flight-muted:#b4b8c0}
+#flight::backdrop{background:#0e1116}
+#flight h2,#flight p{letter-spacing:-.008em}
+.scene{position:absolute;inset:0;display:grid;place-items:center;perspective:1100px;pointer-events:none}
+.scene-ticket{position:relative;width:min(1000px,90vw);transform-style:preserve-3d;--boarding-size:clamp(11px,2.5vw,27px)}
+.piece{transform-style:preserve-3d;will-change:transform,opacity}
+.piece+.piece{position:absolute;inset:0}
+.shard{position:absolute;width:8px;height:5px;background:#fff;will-change:transform,opacity}
+.cockpit,.flight-end{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;width:min(720px,100%);text-align:center;animation:flight-in .6s ease-out}
+@keyframes flight-in{from{opacity:0;transform:translateY(16px)}}
+#flight :focus-visible{outline-color:#fff}
+.flight-route{font-size:clamp(18px,3vw,24px);font-weight:500}
+.flight-clock{font-size:clamp(72px,18vw,176px);line-height:1;font-weight:400;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.flight-eta{color:var(--flight-muted)}
+.flight-path{position:relative;width:100%;height:32px;margin:20px 0 28px}
+.flight-path::before{content:"";position:absolute;inset:15px 0 auto;height:2px;background:rgba(255,255,255,.22)}
+.flight-path svg{position:absolute;top:4px;left:0;width:24px;height:24px;margin-left:-12px;fill:#fff;transform:rotate(90deg)}
+#flight .ghost{background:none;border-color:rgba(255,255,255,.4);color:#fff;height:44px}
+#flight .primary{background:#fff;color:var(--ink);height:44px}
+.flight-alert{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;background:var(--flight-bg);text-align:center}
+.flight-alert h2,.flight-end h2{font-size:32px;line-height:1.15;font-weight:500}
+.flight-alert p,.flight-end p{color:var(--flight-muted)}
+.flight-end .primary{margin-top:16px}
+
 @media (max-width:760px){
   .hello{padding:12px 0 20px}
   .setup{margin-top:8px;padding:20px}
@@ -167,6 +210,7 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
   .choices button{height:38px}
 }
 @media (prefers-reduced-motion:reduce){
+  .cockpit,.flight-end{animation:none}
   .me,.out,.widget,#menu,.ghost,.primary{transition:none}
   .me:active,.out:active,.ghost:active,.primary:active{transform:none}
   .widget:hover{border-radius:var(--r-panel)}
@@ -218,6 +262,27 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
   <p class="credit" id="credit" hidden></p>
 </main>
 
+<section id="flight" role="dialog" aria-modal="true" aria-label="Vol de focus" hidden>
+  <div class="scene" id="flight-scene" aria-hidden="true"></div>
+  <div class="cockpit" id="flight-run" hidden>
+    <p class="flight-route" id="flight-route"></p>
+    <div class="flight-clock" id="flight-clock" role="timer"></div>
+    <p class="flight-eta" id="flight-eta"></p>
+    <div class="flight-path" aria-hidden="true"><svg id="flight-plane" viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.500V19l-2 1.500V22l3.500-1 3.500 1v-1.500L13 19v-5.500z"/></svg></div>
+    <button class="ghost" id="flight-cancel" type="button">Annuler le vol</button>
+  </div>
+  <div class="flight-alert" id="flight-alert" role="alert" hidden>
+    <h2 id="flight-alert-title"></h2>
+    <p>Reviens, sinon le vol est annulé dans <span id="flight-alert-left"></span> s.</p>
+    <button class="primary" id="flight-back" type="button">Reprendre le vol</button>
+  </div>
+  <div class="flight-end" id="flight-end" hidden>
+    <h2 id="flight-end-title"></h2>
+    <p id="flight-end-text"></p>
+    <button class="primary" id="flight-close" type="button">Fermer</button>
+  </div>
+</section>
+
 <dialog class="glass" id="wall-dialog" aria-labelledby="wall-title">
   <h2 id="wall-title">Fond d'écran</h2>
   <div id="wall-slot"></div>
@@ -241,7 +306,15 @@ const SUPABASE_KEY = 'sb_publishable_-RJvqWleUNCM9vu5TumV6w_r2SUd8mQ';
 const MAX_TASKS = 100, MAX_TASK_LENGTH = 140, MAX_HABITS = 12, MAX_HABIT_LENGTH = 60, MAX_NOTES_LENGTH = 15000;
 const SAVE_DELAY = 600, SAVE_RETRY = 5000;
 const FOCUS_CHOICES = [15, 25, 50];
-const BASE_WIDGETS = ['taches', 'minuteur', 'notes'];
+const BASE_WIDGETS = ['vol', 'taches', 'notes'];
+const MIN_FLIGHT = 5, MAX_FLIGHT = 180, FLIGHT_GRACE = 10000, CANCEL_CONFIRM = 3000;
+// Une durée donne une destination : plus le vol est long, plus on va loin. Ce sont des repères, pas de vrais horaires.
+const ROUTES = [
+  { upTo: 20, code: 'NTE', city: 'Nantes' }, { upTo: 30, code: 'LYS', city: 'Lyon' },
+  { upTo: 50, code: 'GVA', city: 'Genève' }, { upTo: 75, code: 'FCO', city: 'Rome' },
+  { upTo: 105, code: 'LIS', city: 'Lisbonne' }, { upTo: 150, code: 'ATH', city: 'Athènes' },
+  { upTo: MAX_FLIGHT, code: 'IST', city: 'Istanbul' },
+];
 const WALLPAPERS = [
   { id: 'lac', name: 'Lac', file: 'lake-mapourika-nz.jpg', title: 'Lake mapourika NZ', by: 'Richard Palmer', license: 'CC BY-SA 3.0', url: 'https://creativecommons.org/licenses/by-sa/3.0/' },
   { id: 'brume', name: 'Brume', file: 'misty-morning-by-bohinj-lake-3849327601.jpg', title: 'Misty morning by Bohinj lake', by: 'ufoncz', license: 'CC BY 2.0', url: 'https://creativecommons.org/licenses/by/2.0' },
@@ -273,10 +346,225 @@ function addForm(placeholder, maxLength, onAdd) {
   return { form, input };
 }
 
+const firstName = user => (user.user_metadata?.full_name || user.user_metadata?.name || '').trim().split(/\s+/)[0];
+const durationLabel = minutes => minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h${minutes % 60 ? ` ${String(minutes % 60).padStart(2, '0')}` : ''}`;
+const clockLabel = ms => {
+  const total = Math.ceil(ms / 1000);
+  const parts = [Math.floor(total / 60) % 60, total % 60].map(n => String(n).padStart(2, '0'));
+  return (total >= 3600 ? [Math.floor(total / 3600), ...parts] : parts).join(':');
+};
+
+function boardingPass(ticket) {
+  const pass = el('div', 'boarding');
+  const main = el('div', 'bmain');
+  const fields = el('dl', 'bfields');
+  for (const [label, value] of [['Passager', ticket.passenger], ['Durée', durationLabel(ticket.minutes)], ['Vol', ticket.number]]) {
+    const field = el('div');
+    field.append(el('dt', '', label), el('dd', '', value));
+    fields.append(field);
+  }
+  main.append(el('p', 'blabel', "Carte d'embarquement"), el('p', 'broute', `PAR → ${ticket.route.code}`), el('p', 'bcity', `Paris → ${ticket.route.city}`), fields);
+  const stub = el('div', 'bstub');
+  // Code-barres purement décoratif, tiré du numéro de vol pour rester le même d'un affichage à l'autre.
+  let x = 0, seed = ticket.minutes * 7 + 3, bars = '';
+  while (x < 64) {
+    seed = (seed * 31 + 11) % 97;
+    const width = 1 + seed % 3;
+    bars += `<rect x="${x}" width="${width}" height="24"/>`;
+    x += width + 1 + (seed >> 2) % 2;
+  }
+  stub.innerHTML = `<svg viewBox="0 0 64 24" preserveAspectRatio="none" aria-hidden="true">${bars}</svg>`;
+  stub.append(el('p', '', ticket.number));
+  pass.append(main, stub);
+  return pass;
+}
+
+// Déchirure 3D : deux copies du même ticket, découpées le long de la même ligne irrégulière, qui partent chacune de leur côté.
+async function tearAnimation(ticket) {
+  const scene = $('flight-scene');
+  const wrap = el('div', 'scene-ticket');
+  const jag = [];
+  for (let y = 0; y <= 100; y += 4) jag.push(`${72 + (y % 8 ? 0.7 : -0.7) * (0.5 + Math.random())}% ${y}%`);
+  const piece = polygon => {
+    const p = el('div', 'piece');
+    const paper = boardingPass(ticket);
+    paper.style.clipPath = `polygon(${polygon})`;
+    p.append(paper);
+    return p;
+  };
+  const main = piece(['0 0', ...jag, '0 100%'].join(','));
+  const stub = piece(['100% 0', ...jag, '100% 100%'].join(','));
+  main.style.transformOrigin = '72% 50%';
+  stub.style.transformOrigin = '72% 50%';
+  wrap.append(main, stub);
+  scene.replaceChildren(wrap);
+  const play = (node, frames, options) => node.animate(frames, { fill: 'forwards', ...options }).finished;
+
+  await play(wrap, [
+    { transform: 'translateY(50px) rotateX(38deg) rotateY(-24deg) scale(.7)', opacity: 0 },
+    { transform: 'rotateX(10deg) rotateY(-8deg) scale(1)', opacity: 1 },
+  ], { duration: 750, easing: 'cubic-bezier(.2,1.2,.3,1)' });
+  // On tire : le papier résiste et vibre avant de céder.
+  await Promise.all([
+    play(main, [{ transform: 'none' }, { transform: 'translateX(-2px) rotateZ(-.5deg)' }, { transform: 'translateX(-3px) rotateZ(.2deg)' }, { transform: 'translateX(-7px) rotateZ(-1.2deg) rotateY(-5deg)' }], { duration: 420, easing: 'ease-in' }),
+    play(stub, [{ transform: 'none' }, { transform: 'translateX(2px) rotateZ(.6deg)' }, { transform: 'translateX(3px) rotateZ(-.2deg)' }, { transform: 'translateX(9px) rotateZ(1.6deg) rotateY(7deg)' }], { duration: 420, easing: 'ease-in' }),
+  ]);
+  const rect = wrap.getBoundingClientRect();
+  const shards = Array.from({ length: 18 }, () => {
+    const s = el('i', 'shard');
+    s.style.left = '72%';
+    s.style.top = `${Math.random() * 100}%`;
+    wrap.append(s);
+    const dx = (Math.random() - .5) * rect.width * .7, dy = 120 + Math.random() * 380, dz = (Math.random() - .3) * 500;
+    return play(s, [
+      { transform: 'none', opacity: 1 },
+      { transform: `translate3d(${dx}px,${dy}px,${dz}px) rotate3d(${Math.random()},${Math.random()},${Math.random()},${200 + Math.random() * 500}deg)`, opacity: 0 },
+    ], { duration: 700 + Math.random() * 500, easing: 'cubic-bezier(.3,.1,.7,1)' });
+  });
+  await Promise.all([
+    // Le talon tombe, le billet file vers le passager.
+    play(stub, [{ transform: 'translateX(9px) rotateZ(1.6deg) rotateY(7deg)', opacity: 1 }, { transform: 'translate3d(170px,560px,-320px) rotateX(-75deg) rotateY(48deg) rotateZ(32deg)', opacity: 0 }], { duration: 1050, easing: 'cubic-bezier(.45,.05,.8,.5)' }),
+    play(main, [{ transform: 'translateX(-7px) rotateZ(-1.2deg) rotateY(-5deg)', opacity: 1 }, { opacity: 1, offset: .55 }, { transform: 'translate3d(-50px,-190px,980px) rotateX(-24deg) rotateY(10deg)', opacity: 0 }], { duration: 1050, easing: 'cubic-bezier(.5,0,.8,.4)' }),
+    ...shards,
+  ]);
+  scene.replaceChildren();
+}
+
+function startFlight(ticket, onLanded, returnFocus) {
+  const box = $('flight');
+  const pageTitle = document.title;
+  const page = [document.querySelector('header'), $('app')];
+  let endAt, total = ticket.minutes * 60000, leftAt = null, ticker, wakeLock = null, fullscreen = false, flying = false, confirmTimer;
+
+  const show = part => {
+    for (const id of ['flight-run', 'flight-end']) $(id).hidden = id !== part;
+    $('flight-alert').hidden = true;
+  };
+  const away = () => document.hidden || (fullscreen && !document.fullscreenElement);
+
+  function tick() {
+    if (!flying) return;
+    const now = Date.now();
+    if (away()) leftAt ??= now;
+    // Vérifié même au retour : un onglet en arrière-plan peut ne se réveiller qu'une fois le délai dépassé.
+    if (leftAt !== null && now - leftAt >= FLIGHT_GRACE) return finish(false);
+    if (!away()) leftAt = null;
+    $('flight-alert').hidden = leftAt === null;
+    if (leftAt !== null) {
+      $('flight-alert-title').textContent = document.hidden ? 'Tu as quitté le vol' : 'Tu as quitté le plein écran';
+      $('flight-alert-left').textContent = Math.ceil((FLIGHT_GRACE - (now - leftAt)) / 1000);
+      $('flight-back').hidden = document.hidden || !box.requestFullscreen;
+    }
+    const remaining = endAt - now;
+    if (remaining <= 0) return finish(true);
+    $('flight-clock').textContent = clockLabel(remaining);
+    document.title = `${clockLabel(remaining)} — ${ticket.route.city}`;
+    $('flight-plane').style.left = `${(1 - remaining / total) * 100}%`;
+  }
+  function finish(landed) {
+    flying = false;
+    clearInterval(ticker);
+    clearTimeout(confirmTimer);
+    removeEventListener('visibilitychange', tick);
+    document.removeEventListener('fullscreenchange', tick);
+    wakeLock?.release().catch(() => {});
+    document.title = pageTitle;
+    $('flight-end-title').textContent = landed ? `Atterri à ${ticket.route.city}` : 'Vol annulé';
+    $('flight-end-text').textContent = landed ? `${durationLabel(ticket.minutes)} de focus. Bien joué.` : "Ce vol ne compte pas dans ta journée.";
+    show('flight-end');
+    $('flight-close').focus();
+    if (landed) onLanded();
+  }
+  function close() {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    box.hidden = true;
+    for (const part of page) part.inert = false;
+    returnFocus.focus();
+  }
+
+  for (const part of page) part.inert = true;
+  $('flight-run').hidden = $('flight-end').hidden = $('flight-alert').hidden = true;
+  $('flight-scene').replaceChildren();
+  box.hidden = false;
+  // Doit partir tout de suite : le navigateur n'accepte le plein écran que dans la foulée du clic.
+  const entered = box.requestFullscreen ? box.requestFullscreen().then(() => true, () => false) : Promise.resolve(false);
+  $('flight-close').onclick = close;
+  $('flight-back').onclick = () => box.requestFullscreen?.().catch(() => {});
+  $('flight-cancel').textContent = 'Annuler le vol';
+  $('flight-cancel').onclick = () => {
+    if (confirmTimer) return finish(false);
+    $('flight-cancel').textContent = 'Vraiment annuler ?';
+    confirmTimer = setTimeout(() => { confirmTimer = null; $('flight-cancel').textContent = 'Annuler le vol'; }, CANCEL_CONFIRM);
+  };
+  (async () => {
+    // shortcut: l'iPhone ne propose pas le plein écran aux pages web : l'écran y est couvert et seule la sortie de l'appli annule le vol.
+    fullscreen = await entered;
+    navigator.wakeLock?.request('screen').then(lock => { wakeLock = lock; }, () => {});
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      // Une animation peut rester figée dans un onglet caché : le vol ne doit pas en dépendre.
+      await Promise.race([tearAnimation(ticket).catch(() => {}), new Promise(resolve => setTimeout(resolve, 4000))]);
+      $('flight-scene').replaceChildren();
+    }
+    endAt = Date.now() + total;
+    $('flight-route').textContent = `Paris → ${ticket.route.city}`;
+    $('flight-eta').textContent = `Arrivée à ${new Date(endAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+    flying = true;
+    show('flight-run');
+    $('flight-cancel').focus();
+    addEventListener('visibilitychange', tick);
+    document.addEventListener('fullscreenchange', tick);
+    ticker = setInterval(tick, 250);
+    tick();
+  })();
+}
+
 // Ajouter un widget = ajouter une entrée ici, et son identifiant dans la liste autorisée de la table widget_state
 // (Heure n'enregistre rien, elle n'y figure pas). render reçoit ses données enregistrées (ou rien) et save() pour
 // les enregistrer ; il peut renvoyer une fonction appelée quand le widget est retiré de l'écran.
 const WIDGETS = [
+  {
+    id: 'vol', title: 'Vol de focus', desc: 'Déchire ton ticket et décolle en plein écran.',
+    render({ body, meta, data, save, user }) {
+      const validLength = Number.isInteger(data?.length) && data.length >= MIN_FLIGHT && data.length <= MAX_FLIGHT;
+      let length = validLength ? data.length : 25;
+      let day = dayKey(new Date());
+      const sameDay = data?.day === day;
+      let minutes = sameDay && Number.isFinite(data?.minutes) ? data.minutes : 0;
+      let flights = sameDay && Number.isFinite(data?.flights) ? data.flights : 0;
+      const slot = el('div');
+      const label = el('label', 'vol-time', 'Durée du vol');
+      const output = el('output');
+      const range = Object.assign(el('input'), { type: 'range', min: MIN_FLIGHT, max: MAX_FLIGHT, step: 5, value: length });
+      label.append(output, range);
+      const persist = () => save({ length, day, minutes, flights });
+      const ticket = () => ({
+        minutes: length,
+        route: ROUTES.find(r => length <= r.upTo),
+        number: `RZ ${100 + length}`,
+        passenger: firstName(user) || 'Toi',
+      });
+      function draw() {
+        output.textContent = durationLabel(length);
+        slot.replaceChildren(boardingPass(ticket()));
+        meta.textContent = `Aujourd'hui : ${plural(flights, 'vol')} · ${minutes} min`;
+      }
+      range.oninput = () => { length = Number(range.value); draw(); };
+      range.onchange = persist;
+      const go = button('primary vol-go', 'Déchirer et décoller', () => {
+        const flightMinutes = length;
+        startFlight(ticket(), () => {
+          const today = dayKey(new Date());
+          if (today !== day) { day = today; minutes = 0; flights = 0; }
+          minutes += flightMinutes;
+          flights += 1;
+          persist();
+          draw();
+        }, go);
+      });
+      draw();
+      body.append(slot, label, go);
+    },
+  },
   {
     id: 'taches', title: 'Tâches', desc: 'Ta liste de choses à faire.',
     render({ body, meta, data, save }) {
@@ -812,8 +1100,7 @@ if (!sb) {
 
   function enter(user) {
     userId = user.id;
-    const meta = user.user_metadata ?? {};
-    const first = (meta.full_name || meta.name || '').trim().split(/\s+/)[0];
+    const first = firstName(user);
     $('hello').textContent = first ? `Bonjour ${first}.` : 'Bonjour.';
     $('who').textContent = user.email ?? '';
     $('me').textContent = (first || user.email || '?')[0].toUpperCase();
