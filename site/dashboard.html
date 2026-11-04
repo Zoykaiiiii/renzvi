@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400..600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400..700&display=swap" rel="stylesheet">
 <style>
 /* Tous les choix visuels passent par ces variables : changer de style = changer ce bloc. */
 :root{
@@ -181,21 +181,58 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 .piece{transform-style:preserve-3d;will-change:transform,opacity}
 .piece+.piece{position:absolute;inset:0}
 .shard{position:absolute;width:8px;height:5px;background:#fff;will-change:transform,opacity}
-.cockpit,.flight-end{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;width:min(720px,100%);text-align:center;animation:flight-in .6s ease-out}
+/* Le hublot : le paysage est dessiné dans le canvas ; le cadre, le store et l'aile restent en CSS et SVG pour rester nets. */
+.hublot{--grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");position:absolute;inset:0;isolation:isolate;display:grid;place-items:center;background:var(--grain),radial-gradient(62vmax 54vmax at 50% 50%,color-mix(in srgb,var(--glow,#9db4c8) 20%,#10131a),#0d1016 72%);background-blend-mode:soft-light,normal;animation:hublot-in 1.2s ease-out} /* taste-skill-ignore : la paroi mate et la lumière du hublot font partie de la scène */
+@keyframes hublot-in{from{opacity:0}}
+/* L'alcôve moulée autour du hublot, puis le joint sombre, le plastique crème éclairé et le filet de lumière contre la vitre. */
+.hublot-frame{position:relative;width:var(--hublot-size);aspect-ratio:.72;padding:clamp(13px,4.6%,26px);border-radius:48%/38%;background:var(--grain),linear-gradient(155deg,color-mix(in srgb,var(--glow,#9db4c8) 14%,#e6e0d1),color-mix(in srgb,var(--glow,#9db4c8) 10%,#b5ae9d) 46%,color-mix(in srgb,var(--glow,#9db4c8) 8%,#8f897a) 74%,color-mix(in srgb,var(--glow,#9db4c8) 12%,#c6bfae));background-blend-mode:soft-light,normal;box-shadow:0 0 0 2px #0a0d13,0 0 0 3px rgba(255,255,255,.08),0 0 70px 12px color-mix(in srgb,var(--glow,#9db4c8) 42%,transparent),0 0 170px 50px color-mix(in srgb,var(--glow,#9db4c8) 12%,transparent),inset 0 1px 1px rgba(255,255,255,.7),inset 0 -2px 3px rgba(40,34,20,.45)} /* taste-skill-ignore : le halo vient de la lumière du dehors, c'est la scène */
+.hublot-frame::before{content:"";position:absolute;inset:-12% -17%;z-index:-1;border-radius:47%/41%;background:rgba(6,8,13,.3);box-shadow:inset 0 10px 22px rgba(0,0,0,.5),inset 0 -2px 3px rgba(255,255,255,.1),inset 0 0 60px rgba(0,0,0,.22),0 2px 0 rgba(255,255,255,.05),0 -1px 0 rgba(0,0,0,.5)} /* taste-skill-ignore : le relief de l'alcôve */
+.hublot-view{position:relative;width:100%;height:100%;overflow:hidden;border-radius:47%/37%;background:linear-gradient(#5f96c9,#d6e4ee 45%,#f4f7f9 62%,#a9bccb);box-shadow:0 0 0 2px rgba(255,255,255,.85),0 0 16px 4px color-mix(in srgb,var(--glow,#9db4c8) 55%,#fff)} /* taste-skill-ignore : ciel de secours si le navigateur ne peut pas dessiner le paysage */
+.hublot-view canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hublot-wing{position:absolute;inset:0;width:100%;height:100%;animation:wing-sway 9s ease-in-out infinite alternate;transform-origin:100% 80%}
+.wing-tip{fill:#9aa2aa}
+.wing-glow{fill:var(--glow,#9db4c8);opacity:.26}
+.wing-flap{fill:none;stroke:rgba(23,25,28,.24);stroke-width:1px;vector-effect:non-scaling-stroke}
+.wing-rivets{fill:none;stroke:rgba(23,25,28,.2);stroke-width:1px;stroke-dasharray:1 5;vector-effect:non-scaling-stroke}
+.wing-edge{fill:none;stroke:rgba(255,255,255,.75);stroke-width:1px;vector-effect:non-scaling-stroke}
+@keyframes wing-sway{from{transform:rotate(-.5deg)}to{transform:rotate(.5deg)}}
+/* Le store : fines nervures de plastique, et une ombre portée sur la vitre. */
+.hublot-shade{position:absolute;inset:0 0 auto;height:15%;background:repeating-linear-gradient(rgba(60,52,36,.07) 0 1px,transparent 1px 5px),linear-gradient(#e7e2d6,#c4bfb1);box-shadow:0 8px 18px rgba(0,0,0,.28)} /* taste-skill-ignore : le store porte une ombre, c'est ce qui donne la profondeur */
+.hublot-shade::after{content:"";position:absolute;left:38%;right:38%;bottom:6px;height:4px;border-radius:var(--pill);background:rgba(23,25,28,.28)}
+/* Le verre : reflet en biais, bord assombri et voile au centre pour que l'heure reste lisible sur les nuages clairs. */
+.hublot-view::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(118deg,rgba(255,255,255,.1),rgba(255,255,255,0) 26%,rgba(255,255,255,0) 72%,rgba(255,255,255,.05)),radial-gradient(closest-side,rgba(12,16,26,.2),rgba(12,16,26,.1) 55%,rgba(12,16,26,0));box-shadow:inset 0 0 26px 6px rgba(0,0,0,.3),inset 0 3px 6px rgba(0,0,0,.45);pointer-events:none} /* taste-skill-ignore : le verre du hublot */
+.cockpit{position:absolute;inset:0;display:grid;padding:24px 16px;pointer-events:none;animation:hublot-in .6s ease-out}
+.cockpit button{pointer-events:auto}
+/* L'heure au centre exact de l'écran, donc du hublot : sa taille suit la largeur du hublot pour que « 3:00:00 » y tienne. */
+.flight-clock{grid-area:1/1;place-self:center;font-size:calc(var(--hublot-size)*.235);line-height:1;font-weight:700;letter-spacing:-.025em;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px rgba(8,11,18,.45),0 2px 26px rgba(8,11,18,.55)}
+#flight{--hublot-size:min(76vw,calc((100dvh - 264px)*.72))}
+.flight-deck,.flight-end{grid-area:1/1;align-self:end;justify-self:center;display:flex;flex-direction:column;align-items:center;gap:4px;width:min(720px,100%);text-align:center}
+.flight-end{position:relative;animation:flight-in .6s ease-out}
+.flight-end h2{font-size:32px;line-height:1.15;font-weight:500}
+.flight-end .primary{margin-top:16px}
 @keyframes flight-in{from{opacity:0;transform:translateY(16px)}}
 #flight :focus-visible{outline-color:#fff}
-.flight-route{font-size:clamp(18px,3vw,24px);font-weight:500}
-.flight-clock{font-size:clamp(72px,18vw,176px);line-height:1;font-weight:400;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
-.flight-eta{color:var(--flight-muted)}
-.flight-path{position:relative;width:100%;height:32px;margin:20px 0 28px}
-.flight-path::before{content:"";position:absolute;inset:15px 0 auto;height:2px;background:rgba(255,255,255,.22)}
-.flight-path svg{position:absolute;top:4px;left:0;width:24px;height:24px;margin-left:-12px;fill:#fff;transform:rotate(90deg)}
+.flight-route{font-size:16px;font-weight:500}
+.flight-eta{margin-bottom:10px;font-size:14px;color:var(--flight-muted)}
+/* Écran large : le hublot prend la hauteur et les informations passent dans les coins. */
+@media (min-aspect-ratio:1/1){
+  #flight{--hublot-size:min(42vw,calc(68dvh*.72))}
+  .flight-deck,.flight-end{width:100%;display:grid;grid-template-columns:1fr auto;align-items:end;justify-items:start;gap:2px 16px;text-align:left}
+  .flight-deck button,.flight-end button{grid-area:1/2/3/3;align-self:end}
+  .flight-eta{margin:0}
+  .flight-end .primary{margin:0}
+  .flight-end h2{font-size:24px}
+}
+/* Téléphone couché : le hublot occupe toute la hauteur. */
+@media (max-height:520px) and (min-aspect-ratio:1/1){
+  #flight{--hublot-size:calc((100dvh - 32px)*.72)}
+  .cockpit{padding:16px}
+}
 #flight .ghost{background:none;border-color:rgba(255,255,255,.4);color:#fff;height:44px}
 #flight .primary{background:#fff;color:var(--ink);height:44px}
 .flight-alert{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;background:var(--flight-bg);text-align:center}
-.flight-alert h2,.flight-end h2{font-size:32px;line-height:1.15;font-weight:500}
+.flight-alert h2{font-size:32px;line-height:1.15;font-weight:500}
 .flight-alert p,.flight-end p{color:var(--flight-muted)}
-.flight-end .primary{margin-top:16px}
 
 @media (max-width:760px){
   .hello{padding:12px 0 20px}
@@ -210,7 +247,7 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
   .choices button{height:38px}
 }
 @media (prefers-reduced-motion:reduce){
-  .cockpit,.flight-end{animation:none}
+  .cockpit,.flight-end,.hublot,.hublot-wing{animation:none}
   .me,.out,.widget,#menu,.ghost,.primary{transition:none}
   .me:active,.out:active,.ghost:active,.primary:active{transform:none}
   .widget:hover{border-radius:var(--r-panel)}
@@ -263,13 +300,30 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 </main>
 
 <section id="flight" role="dialog" aria-modal="true" aria-label="Vol de focus" hidden>
+  <div class="hublot" id="flight-window" aria-hidden="true" hidden>
+    <div class="hublot-frame">
+      <div class="hublot-view" id="flight-view">
+        <svg class="hublot-wing" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <defs><linearGradient id="wing-light" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e8ebee"/><stop offset=".6" stop-color="#c3c9cf"/><stop offset="1" stop-color="#8f979f"/></linearGradient></defs>
+          <path class="wing-tip" d="M47 70.500 43.500 62.500 45.500 62.500 51 70z"/>
+          <path fill="url(#wing-light)" d="M100 60 50 70 47 70.500 100 96z"/>
+          <path class="wing-glow" d="M100 60 50 70 47 70.500 100 96z"/>
+          <path class="wing-flap" d="M100 84 62 74.800"/>
+          <path class="wing-rivets" d="M100 69 56 71.500M100 78 60 73.500"/>
+          <path class="wing-edge" d="M100 60 50 70"/>
+        </svg>
+        <div class="hublot-shade"></div>
+      </div>
+    </div>
+  </div>
   <div class="scene" id="flight-scene" aria-hidden="true"></div>
   <div class="cockpit" id="flight-run" hidden>
-    <p class="flight-route" id="flight-route"></p>
     <div class="flight-clock" id="flight-clock" role="timer"></div>
-    <p class="flight-eta" id="flight-eta"></p>
-    <div class="flight-path" aria-hidden="true"><svg id="flight-plane" viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.500V19l-2 1.500V22l3.500-1 3.500 1v-1.500L13 19v-5.500z"/></svg></div>
-    <button class="ghost" id="flight-cancel" type="button">Annuler le vol</button>
+    <div class="flight-deck">
+      <p class="flight-route" id="flight-route"></p>
+      <p class="flight-eta" id="flight-eta"></p>
+      <button class="ghost" id="flight-cancel" type="button">Annuler le vol</button>
+    </div>
   </div>
   <div class="flight-alert" id="flight-alert" role="alert" hidden>
     <h2 id="flight-alert-title"></h2>
@@ -430,11 +484,148 @@ async function tearAnimation(ticket) {
   scene.replaceChildren();
 }
 
+// La lumière du vol, du décollage à l'atterrissage : on part en plein jour et on arrive au coucher du soleil.
+const SKY = [
+  { zenith: [.30, .50, .74], horizon: [.82, .87, .92], lit: [.98, .98, .98], shade: [.56, .65, .76] },
+  { zenith: [.34, .48, .68], horizon: [.93, .85, .76], lit: [.99, .95, .89], shade: [.57, .60, .68] },
+  { zenith: [.34, .38, .56], horizon: [.99, .71, .47], lit: [1, .83, .71], shade: [.50, .42, .52] },
+];
+const skyAt = progress => {
+  const p = Math.min(Math.max(progress, 0), 1) * (SKY.length - 1), i = Math.min(Math.floor(p), SKY.length - 2), f = p - i;
+  return Object.fromEntries(Object.keys(SKY[0]).map(k => [k, SKY[i][k].map((v, c) => v + (SKY[i + 1][k][c] - v) * f)]));
+};
+const LANDSCAPE_SHADER = `precision highp float;
+uniform vec2 size; uniform float t, day; uniform vec3 zenith, horizon, lit, shade;
+float hash(vec2 p){ vec3 q = fract(p.xyx * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
+float noise(vec2 p){
+  vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+  return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+}
+// La hauteur des nuages en un point : de grosses masses rondes, puis des bourgeons de plus en plus fins.
+float tops(vec2 p){
+  float a = .62, v = 0.;
+  for (int i = 0; i < 3; i++) {
+    float n = noise(p);
+    v += a * (i == 0 ? n : abs(2. * n - 1.));
+    p = p * 2.07 + vec2(11.7, 4.1);
+    a *= .42;
+  }
+  return v * .7;
+}
+void main(){
+  vec2 uv = gl_FragCoord.xy / size;
+  float aspect = size.x / size.y, line = .56, x = (uv.x - .5) * aspect;
+  vec2 sun2d = vec2(-.12, mix(.80, .655, day));
+  float toSun = length(vec2(x, uv.y) - sun2d);
+  vec3 sky = mix(horizon, zenith, smoothstep(0., .4, uv.y - line));
+  sky = mix(sky, lit, clamp(exp(-toSun * 7.) * .55 + exp(-toSun * 40.), 0., 1.));
+  vec3 color = sky;
+  if (uv.y < line + .02) {
+    // On descend tranche par tranche le long du regard jusqu'au sommet du premier nuage, puis on affine le point touché.
+    vec3 ray = normalize(vec3(x * 1.1, (uv.y - line) * 1.25 - .012, 1.));
+    vec3 from = vec3(t * .035, 1., 0.);
+    float slope = max(-ray.y, .012), dist = .34 / slope, stepBy = .042 / slope, before = dist, hit = 0.;
+    for (int i = 0; i < 12; i++) {
+      vec3 p = from + ray * dist;
+      if (p.y < tops(p.xz * 1.5)) { hit = 1.; break; }
+      before = dist;
+      dist += stepBy;
+    }
+    for (int i = 0; i < 3; i++) {
+      float middle = (before + dist) * .5;
+      vec3 p = from + ray * middle;
+      if (p.y < tops(p.xz * 1.5)) dist = middle; else before = middle;
+    }
+    vec2 q = (from + ray * dist).xz * 1.5;
+    float height = tops(q);
+    // Le côté tourné vers le soleil est clair, le creux entre deux nuages tombe dans une ombre douce.
+    float towards = clamp((height - tops(q + vec2(-.14, .1))) * 6.5 + .5 + (noise(q * 7.) - .5) * .16, 0., 1.);
+    float tall = smoothstep(.2, .48, height);
+    vec3 cloud = mix(shade, lit, clamp(towards * .62 + tall * .6, 0., 1.));
+    cloud = mix(cloud, lit, exp(-length(vec2(x, uv.y - line) - vec2(sun2d.x, -.03)) * 4.) * .3 * day);
+    float haze = 1. - exp(-dist * dist * .014);
+    color = mix(mix(shade, cloud, hit), horizon, haze);
+    color = mix(color, sky, smoothstep(line - .004, line + .012, uv.y));
+  }
+  // Un grain très fin : plus de bandes dans les dégradés, et la texture d'une vraie vitre.
+  color += (hash(gl_FragCoord.xy + fract(t) * 91.) - .5) * .022;
+  gl_FragColor = vec4(color, 1.);
+}`;
+const REDUCED_MOTION = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Démarre le paysage et renvoie la fonction qui l'arrête. Rien ici ne touche au compteur : si le dessin échoue, le vol continue devant le ciel de secours.
+function startWindowView(view, progressOf) {
+  const canvas = el('canvas');
+  const gl = canvas.getContext('webgl', { alpha: false, antialias: false, powerPreference: 'low-power' });
+  const paintGlow = () => { const [r, g, b] = skyAt(progressOf()).horizon; $('flight-window').style.setProperty('--glow', `rgb(${r * 255} ${g * 255} ${b * 255})`); };
+  paintGlow();
+  const glowTimer = setInterval(paintGlow, 15000);
+  const stopGlow = () => { clearInterval(glowTimer); $('flight-window').style.removeProperty('--glow'); };
+  if (!gl) return stopGlow;
+  const compile = (type, source) => { const s = gl.createShader(type); gl.shaderSource(s, source); gl.compileShader(s); return s; };
+  const program = gl.createProgram();
+  gl.attachShader(program, compile(gl.VERTEX_SHADER, 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}'));
+  gl.attachShader(program, compile(gl.FRAGMENT_SHADER, LANDSCAPE_SHADER));
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return stopGlow;
+  gl.useProgram(program);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const corner = gl.getAttribLocation(program, 'p');
+  gl.enableVertexAttribArray(corner);
+  gl.vertexAttribPointer(corner, 2, gl.FLOAT, false, 0, 0);
+  const uniform = Object.fromEntries(['size', 't', 'day', ...Object.keys(SKY[0])].map(name => [name, gl.getUniformLocation(program, name)]));
+
+  // Les nuages sont flous : une image basse définition suffit et ménage la batterie sur un vol de 3 h.
+  const MAX_WIDTH = 520;
+  let scale = 1;
+  const fit = () => {
+    const width = Math.min(view.clientWidth * Math.min(devicePixelRatio, 2), MAX_WIDTH) * scale;
+    canvas.width = Math.max(1, Math.round(width));
+    canvas.height = Math.max(1, Math.round(width * view.clientHeight / (view.clientWidth || 1)));
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    last = -Infinity;
+  };
+  const still = REDUCED_MOTION();
+  const seed = Math.random() * 100;
+  let interval = still ? 30000 : 1000 / 20, last = -Infinity, late = 0, raf;
+  function draw(now) {
+    raf = requestAnimationFrame(draw);
+    if (now - last < interval) return;
+    // Téléphone trop lent : on baisse la définition, puis on laisse le paysage presque immobile plutôt que de le faire chauffer.
+    late = last > 0 && now - last > interval * 2 ? late + 1 : Math.max(0, late - 1);
+    if (late > 20) {
+      late = 0;
+      if (scale > .5) { scale = .5; fit(); } else interval = 2000;
+    }
+    last = now;
+    const progress = progressOf(), sky = skyAt(progress);
+    gl.uniform2f(uniform.size, canvas.width, canvas.height);
+    gl.uniform1f(uniform.t, seed + (still ? 0 : now / 1000));
+    gl.uniform1f(uniform.day, Math.min(Math.max(progress, 0), 1));
+    for (const name of Object.keys(sky)) gl.uniform3fv(uniform[name], sky[name]);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+  const watcher = new ResizeObserver(fit);
+  view.prepend(canvas);
+  watcher.observe(view);
+  fit();
+  raf = requestAnimationFrame(draw);
+  return () => {
+    cancelAnimationFrame(raf);
+    watcher.disconnect();
+    stopGlow();
+    gl.getExtension('WEBGL_lose_context')?.loseContext();
+    canvas.remove();
+  };
+}
+
 function startFlight(ticket, onLanded, returnFocus) {
   const box = $('flight');
   const pageTitle = document.title;
   const page = [document.querySelector('header'), $('app')];
-  let endAt, total = ticket.minutes * 60000, leftAt = null, ticker, wakeLock = null, fullscreen = false, flying = false, confirmTimer;
+  let endAt, total = ticket.minutes * 60000, leftAt = null, ticker, wakeLock = null, fullscreen = false, flying = false, confirmTimer, stopView = null;
+  const keepAwake = () => navigator.wakeLock?.request('screen').then(lock => { wakeLock = lock; }, () => {});
 
   const show = part => {
     for (const id of ['flight-run', 'flight-end']) $(id).hidden = id !== part;
@@ -459,7 +650,8 @@ function startFlight(ticket, onLanded, returnFocus) {
     if (remaining <= 0) return finish(true);
     $('flight-clock').textContent = clockLabel(remaining);
     document.title = `${clockLabel(remaining)} — ${ticket.route.city}`;
-    $('flight-plane').style.left = `${(1 - remaining / total) * 100}%`;
+    // Le téléphone rend ce verrou dès qu'on quitte l'onglet : sans ça, l'écran s'éteint au retour et le vol s'annule tout seul.
+    if (!document.hidden && wakeLock?.released) { wakeLock = null; keepAwake(); }
   }
   function finish(landed) {
     flying = false;
@@ -477,6 +669,8 @@ function startFlight(ticket, onLanded, returnFocus) {
   }
   function close() {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    stopView?.();
+    $('flight-window').hidden = true;
     box.hidden = true;
     for (const part of page) part.inert = false;
     returnFocus.focus();
@@ -499,13 +693,15 @@ function startFlight(ticket, onLanded, returnFocus) {
   (async () => {
     // shortcut: l'iPhone ne propose pas le plein écran aux pages web : l'écran y est couvert et seule la sortie de l'appli annule le vol.
     fullscreen = await entered;
-    navigator.wakeLock?.request('screen').then(lock => { wakeLock = lock; }, () => {});
-    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    keepAwake();
+    if (!REDUCED_MOTION()) {
       // Une animation peut rester figée dans un onglet caché : le vol ne doit pas en dépendre.
       await Promise.race([tearAnimation(ticket).catch(() => {}), new Promise(resolve => setTimeout(resolve, 4000))]);
       $('flight-scene').replaceChildren();
     }
     endAt = Date.now() + total;
+    $('flight-window').hidden = false;
+    try { stopView = startWindowView($('flight-view'), () => 1 - (endAt - Date.now()) / total); } catch { /* le paysage est un décor : le vol continue sans lui */ }
     $('flight-route').textContent = `Paris → ${ticket.route.city}`;
     $('flight-eta').textContent = `Arrivée à ${new Date(endAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
     flying = true;

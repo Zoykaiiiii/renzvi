@@ -387,7 +387,85 @@ async function openDashboard(browser, base, options, rows, prepare) {
     assert.equal(await page.locator('.scene-ticket').count(), 0);
     assert.match(await page.textContent('#flight-clock'), /^2[45]:\d\d$/);
     assert.match(await page.textContent('#flight-eta'), /^Arrivée à \d\d:\d\d$/);
+    // Le hublot : le paysage est bien dessiné (pas une image uniforme) et l'heure, en gras, est en plein milieu de l'écran.
+    assert.equal(await page.locator('#flight-view canvas').count(), 1);
+    const clock = await page.locator('#flight-clock').boundingBox();
+    assert.ok(Math.abs(clock.x + clock.width / 2 - 720) <= 1 && Math.abs(clock.y + clock.height / 2 - 450) <= 1, 'l\'heure est au centre de l\'écran');
+    assert.ok(Number(await page.locator('#flight-clock').evaluate(c => getComputedStyle(c).fontWeight)) >= 700, 'l\'heure est en gras');
+    await page.waitForFunction(() => {
+      const canvas = document.querySelector('#flight-view canvas');
+      const copy = document.createElement('canvas');
+      copy.width = copy.height = 16;
+      const paint = copy.getContext('2d');
+      paint.drawImage(canvas, 0, 0, 16, 16);
+      const { data } = paint.getImageData(0, 0, 16, 16);
+      return data.some((v, i) => i % 4 !== 3 && Math.abs(v - data[i % 4]) > 30);
+    });
     await shot(page, 'vol-5-compteur');
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+
+  // Vol de 3 h sur téléphone : l'heure la plus longue tient dans le hublot, et rien ne chevauche le hublot en bas.
+  {
+    const { context, page, errors } = await openDashboard(browser, base, { viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' }, { ecran: VOL_SCREEN });
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('.boarding');
+    await page.locator('.vol-time input').fill('180');
+    await page.getByRole('button', { name: 'Déchirer et décoller' }).click();
+    await page.waitForSelector('#flight-run:not([hidden])');
+    assert.match(await page.textContent('#flight-clock'), /^[23]:\d\d:\d\d$/);
+    const view = await page.locator('#flight-view').boundingBox();
+    const clock = await page.locator('#flight-clock').boundingBox();
+    const route = await page.locator('#flight-route').boundingBox();
+    assert.ok(clock.x >= view.x && clock.x + clock.width <= view.x + view.width, 'l\'heure tient dans le hublot');
+    assert.ok(route.y >= view.y + view.height, 'le trajet est sous le hublot');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0);
+    await shot(page, 'vol-9-long');
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+
+  // Hublot : sans dessin possible, le vol marche quand même ; le paysage est libéré à la fermeture ; téléphone couché sans débordement.
+  {
+    const { context, page, errors } = await openDashboard(browser, base, { viewport: { width: 844, height: 390 }, reducedMotion: 'reduce' }, { ecran: VOL_SCREEN });
+    await context.addInitScript(() => { HTMLCanvasElement.prototype.getContext = () => null; });
+    await page.clock.install();
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('.boarding');
+    await page.locator('.vol-time input').fill('5');
+    await page.getByRole('button', { name: 'Déchirer et décoller' }).click();
+    await page.waitForSelector('#flight-run:not([hidden])');
+    assert.equal(await page.locator('#flight-view canvas').count(), 0);
+    assert.equal(await page.isVisible('.hublot-frame'), true, 'le hublot reste affiché devant le ciel de secours');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0);
+    await page.clock.fastForward(5 * 60000);
+    await page.waitForSelector('#flight-end:not([hidden])');
+    assert.equal(await page.textContent('#flight-end-title'), 'Atterri à Nantes');
+    await page.click('#flight-close');
+    assert.equal(await page.isVisible('.hublot-frame'), false);
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+  {
+    const { context, page, errors } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }, { ecran: VOL_SCREEN });
+    await context.addInitScript(() => {
+      window.locks = [];
+      Object.defineProperty(navigator, 'wakeLock', { value: { request: async () => { const lock = { released: false, release: async () => {} }; window.locks.push(lock); return lock; } } });
+    });
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('.boarding');
+    await page.getByRole('button', { name: 'Déchirer et décoller' }).click();
+    await page.waitForSelector('#flight-run:not([hidden])');
+    await page.waitForFunction(() => window.locks.length === 1);
+    // L'écran reste allumé après un aller-retour : le navigateur a rendu le verrou, le vol le redemande.
+    await page.evaluate(() => { window.locks[0].released = true; });
+    await page.waitForFunction(() => window.locks.length === 2);
+    await page.getByRole('button', { name: 'Annuler le vol' }).click();
+    await page.getByRole('button', { name: 'Vraiment annuler ?' }).click();
+    assert.equal(await page.locator('#flight-view canvas').count(), 1, 'le paysage reste derrière l\'écran de fin');
+    await page.click('#flight-close');
+    assert.equal(await page.locator('#flight-view canvas').count(), 0, 'le paysage est arrêté à la fermeture');
     assert.deepEqual(errors, []);
     await context.close();
   }
