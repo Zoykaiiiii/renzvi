@@ -11,19 +11,26 @@
 <style>
 /* Tous les choix visuels passent par ces variables : changer de style = changer ce bloc. */
 :root{
-  --ink:#17191c; --slate:#55565c; --error:#b3261e;
-  --ground:#fff; --backdrop:url(assets/lake-mapourika-nz.jpg); --backdrop-opacity:.1; --backdrop-filter:blur(64px) brightness(1.3);
+  --ink:#17191c; --slate:#55565c; --error:#b3261e; --accent:#1b6e66;
+  --tint:rgba(23,25,28,.06); --rule:rgba(23,25,28,.08); --edge:rgba(23,25,28,.2);
+  --ground:#fff; --wall-glass:rgba(255,255,255,.82);
   --glass:rgba(255,255,255,.56); --glass-edge:rgba(255,255,255,.88); --glass-blur:blur(26px) saturate(1.5);
   --glass-shine:inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 0 rgba(255,255,255,.4),0 0 0 1px rgba(23,25,28,.05),0 2px 6px rgba(23,25,28,.05);
   --sans:-apple-system,BlinkMacSystemFont,"Hanken Grotesk",ui-sans-serif,system-ui,sans-serif;
   --r-panel:28px; --r-panel-morph:36px 26px 34px 30px; --pill:9999px;
-  --spring:cubic-bezier(.34,1.56,.64,1); --gap:16px;
+  --spring:cubic-bezier(.34,1.56,.64,1); --gap:16px; --control:40px;
 }
 *{box-sizing:border-box;margin:0}
 [hidden]{display:none!important}
 body{font:400 16px/1.5 var(--sans);letter-spacing:-.008em;color:var(--ink);background:var(--ground);min-height:100dvh;-webkit-font-smoothing:antialiased}
-body::before{content:"";position:fixed;inset:-120px;z-index:-1;background:var(--backdrop) center/cover;filter:var(--backdrop-filter);opacity:var(--backdrop-opacity)}
-button,textarea{font:inherit;letter-spacing:inherit;color:inherit}
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:var(--wall,none) center/cover}
+/* Sur une photo (même sombre), tout ce qui porte du texte reçoit un fond de verre assez opaque pour rester lisible. */
+body.has-wall{--glass:var(--wall-glass)}
+body.has-wall :is(.mark,#hello,.credit,#saved:not(:empty),#board-empty,#load-error){padding:4px 14px;border-radius:18px;background:var(--wall-glass);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
+body.has-wall .credit{width:fit-content;margin-block:32px 24px}
+body.has-wall .ghost{background:var(--wall-glass)}
+button,textarea,input{font:inherit;letter-spacing:inherit;color:inherit}
+button{cursor:pointer}
 a{color:inherit}
 :focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 
@@ -35,54 +42,134 @@ a{color:inherit}
 
 .glass{background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shine)}
 
-.me{width:44px;height:44px;border-radius:var(--pill);font-weight:600;cursor:pointer;transition:transform .45s var(--spring)}
+.me{width:44px;height:44px;border-radius:var(--pill);font-weight:600;transition:transform .45s var(--spring)}
 .me:active{transform:scale(.92)}
 /* Le menu sort du bouton de compte et se déforme en panneau. */
 #menu{position:fixed;inset:68px max(16px,calc((100vw - 1100px)/2)) auto auto;margin:0;width:min(300px,100vw - 32px);padding:16px;border-radius:24px;color:inherit;transform-origin:top right;transition:transform .45s var(--spring),border-radius .45s var(--spring),opacity .18s,display .45s allow-discrete,overlay .45s allow-discrete;--glass:rgba(255,255,255,.82);box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 16px 40px rgba(23,25,28,.14)}
 #menu:not(:popover-open){opacity:0;transform:scale(.3);border-radius:var(--pill)}
 @starting-style{#menu:popover-open{opacity:0;transform:scale(.3);border-radius:var(--pill)}}
 #who{font-size:14px;color:var(--slate);overflow-wrap:anywhere}
-.out{display:block;width:100%;height:44px;margin-top:12px;border:0;border-radius:var(--pill);background:var(--ink);color:#fff;font-weight:500;cursor:pointer;transition:transform .15s}
+.out{display:block;width:100%;height:44px;margin-top:12px;border:0;border-radius:var(--pill);background:var(--ink);color:#fff;font-weight:500;transition:transform .15s}
 .out:active{transform:scale(.98)}
 .out:disabled{cursor:progress}
 
-.hello{padding:40px 0 32px}
+.hello{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;padding:24px 0 24px}
 h1{font-size:32px;line-height:1.15;font-weight:500;letter-spacing:-.024em}
+#saved{font-size:12px;color:var(--slate)}
+#saved.bad{color:var(--error)}
 .msg{color:var(--error)}
 #menu .msg{margin-top:8px;font-size:14px}
 #menu .msg:empty{display:none}
 .blocked{padding-top:40px}
+#retry{display:block;margin-top:8px;padding:10px 0;border:0;background:none;font-weight:500;text-decoration:underline;text-underline-offset:3px}
 
-.board{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:var(--gap)}
-.w-4{grid-column:span 4}.w-8{grid-column:span 8}.w-12{grid-column:span 12}
-.widget{display:flex;flex-direction:column;padding:24px;border-radius:var(--r-panel);transition:border-radius .6s var(--spring),transform .6s var(--spring)}
-@media (hover:hover){.widget:hover{border-radius:var(--r-panel-morph);transform:scale(1.006)}}
+/* Autant de colonnes de 340 px que la largeur permet : marche avec n'importe quelle sélection de widgets. */
+.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr));gap:var(--gap)}
+.tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#board-empty{width:fit-content;font-size:14px;color:var(--slate)}
+
+.setup{width:min(720px,100%);margin:24px auto 48px;padding:32px;border-radius:var(--r-panel)}
+.setup h1{font-size:28px}
+.lead{margin-top:8px;color:var(--slate)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-top:20px}
+.tile{display:flex;align-items:flex-end;aspect-ratio:3/2;padding:0;border:1px solid var(--edge);border-radius:16px;background:#fff center/cover;overflow:hidden}
+.tile span{width:100%;padding:4px 10px;background:var(--wall-glass);font-size:13px;font-weight:500;text-align:left}
+.tile[aria-pressed=true]{outline:3px solid var(--ink);outline-offset:2px}
+.tile:disabled{cursor:progress}
+.pick-note{margin-top:12px;font-size:14px;color:var(--error)}
+.pick-note:empty{display:none}
+.base{list-style:none;padding:0;margin-top:20px}
+.base li,.catalog li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--rule)}
+.base li{display:block}
+.base li:last-child,.catalog li:last-child{border-bottom:0}
+.base b,.catalog b{font-weight:600}
+.desc{font-size:14px;color:var(--slate)}
+.catalog{list-style:none;padding:0;margin-top:12px}
+
+dialog.glass{width:min(640px,100vw - 32px);max-height:85dvh;margin:auto;padding:24px;border-radius:var(--r-panel);color:inherit;overflow:auto;--glass:rgba(255,255,255,.92)}
+dialog::backdrop{background:rgba(23,25,28,.3)}
+dialog h2{font-size:20px;line-height:1.3}
+dialog .actions{justify-content:flex-end}
+
+.acct{margin-top:12px;padding-top:12px;border-top:1px solid var(--rule)}
+.acct p{font-size:14px}
+.acct .desc{margin-top:2px;font-size:12px}
+.ref{display:flex;gap:6px;margin-top:6px}
+.ref input{flex:1;min-width:0;height:36px;padding:0 10px;border:1px solid var(--edge);border-radius:10px;background:#fff;font-size:12px}
+.ref .ghost{height:36px;padding:0 12px;font-size:13px}
+.widget{display:flex;flex-direction:column;min-width:0;padding:24px;border-radius:var(--r-panel);transition:border-radius .6s var(--spring)}
+@media (hover:hover){.widget:hover{border-radius:var(--r-panel-morph)}}
+.head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
+.meta{font-size:12px;line-height:20px;color:var(--slate);font-variant-numeric:tabular-nums;white-space:nowrap}
 .body{flex:1;display:flex;flex-direction:column;margin-top:12px;min-height:0}
+.empty{flex:1;display:grid;place-items:center;padding:12px 0;font-size:14px;color:var(--slate);text-align:center}
+.note{margin-top:8px;font-size:12px;color:var(--error)}
 
-.notes{flex:1;width:100%;min-height:128px;padding:0;border:0;background:none;resize:none;line-height:1.55}
+.add{display:flex;gap:8px}
+.add input{flex:1;min-width:0;height:var(--control);padding:0 16px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7)}
+.add input::placeholder{color:var(--slate);opacity:1}
+.ghost{flex:none;height:var(--control);padding:0 16px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7);font-size:14px;font-weight:500;transition:transform .15s}
+.ghost:active{transform:scale(.97)}
+.primary{flex:none;height:var(--control);padding:0 20px;border:0;border-radius:var(--pill);background:var(--ink);color:#fff;font-size:14px;font-weight:500;transition:transform .15s}
+.primary:active{transform:scale(.97)}
+.x{flex:none;width:32px;height:32px;border:0;border-radius:var(--pill);background:none;color:var(--slate);font-size:18px;line-height:1}
+.x:hover{background:var(--tint);color:var(--ink)}
+.link{align-self:flex-start;margin-top:8px;padding:6px 0;border:0;background:none;font-size:14px;font-weight:500;text-decoration:underline;text-underline-offset:3px}
+
+.rows{flex:1;list-style:none;padding:0;margin-top:8px;max-height:340px;overflow-y:auto}
+.row{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--rule)}
+.row:last-child{border-bottom:0}
+.row label{flex:1;min-width:0;display:flex;align-items:center;gap:12px;min-height:44px;padding:8px 0;cursor:pointer}
+.row input{flex:none;width:18px;height:18px;accent-color:var(--accent)}
+.row span{min-width:0;overflow-wrap:anywhere}
+.row.done span{color:var(--slate);text-decoration:line-through}
+
+.notes{flex:1;width:100%;min-height:132px;padding:0;border:0;background:none;resize:none;line-height:1.55}
 .notes:focus-visible{outline:none}
 .widget:has(.notes:focus-visible){outline:1.5px solid rgba(23,25,28,.55);outline-offset:0}
 .notes::placeholder{color:var(--slate);opacity:1}
-.stamp{margin-top:8px;font-size:12px;line-height:16px;color:var(--slate)}
 
-.clock{flex:1;display:flex;flex-direction:column;justify-content:center}
-.time{font-size:40px;line-height:1.1;font-weight:400;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.zone{margin-top:6px;font-size:14px;color:var(--slate)}
+.time{display:block;font-size:40px;line-height:1.1;font-weight:400;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.zone{margin-top:4px;font-size:14px;color:var(--slate)}
 
-.slot{grid-column:1/-1;padding:16px 24px;border:1px dashed rgba(23,25,28,.28);border-radius:var(--r-panel);font-size:14px;color:var(--slate)}
+.choices{display:flex;gap:4px;align-self:flex-start;padding:3px;border-radius:var(--pill);background:var(--tint)}
+.choices button{height:32px;min-width:56px;padding:0 10px;border:0;border-radius:var(--pill);background:none;font-size:13px;font-variant-numeric:tabular-nums}
+.choices button[aria-pressed=true]{background:#fff;font-weight:600}
+.choices button:disabled{color:var(--slate);cursor:default}
+.focus-time{margin-top:12px}
+.bar{height:6px;margin-top:12px;border-radius:var(--pill);background:var(--tint);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:inherit;background:var(--accent);transform-origin:left;transform:scaleX(0)}
+.ctrl{display:flex;gap:8px;margin-top:16px}
+
+.habit{padding:8px 0;border-bottom:1px solid var(--rule)}
+.habit:last-child{border-bottom:0}
+.habit-name{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px;font-size:14px}
+.habit-name span{min-width:0;overflow-wrap:anywhere}
+.days{display:flex;gap:4px;margin-top:4px}
+.days button{flex:1;min-width:0;height:32px;padding:0;border:0;border-radius:10px;background:var(--tint);color:var(--slate);font-size:12px}
+.days button.today{color:var(--ink);font-weight:700}
+.days button[aria-pressed=true]{background:var(--accent);color:#fff}
+
 .credit{padding:32px 0 24px;font-size:12px;color:var(--slate)}
 
 @media (max-width:760px){
-  .w-4,.w-8{grid-column:1/-1}
-  .hello{padding:16px 0 24px}
+  .hello{padding:12px 0 20px}
+  .setup{margin-top:8px;padding:20px}
+  .ref input,.ref .ghost{height:44px}
   h1{font-size:28px}
   .widget{padding:20px}
+  .rows{max-height:none}
+  .x{width:44px;height:44px}
+  .days button{height:44px}
+  .ghost,.primary,.add input{height:44px}
+  .choices button{height:38px}
 }
 @media (prefers-reduced-motion:reduce){
-  .me,.out,.widget,#menu{transition:none}
-  .me:active,.out:active{transform:none}
-  .widget:hover{transform:none;border-radius:var(--r-panel)}
+  .me,.out,.widget,#menu,.ghost,.primary{transition:none}
+  .me:active,.out:active,.ghost:active,.primary:active{transform:none}
+  .widget:hover{border-radius:var(--r-panel)}
 }
 </style>
 </head>
@@ -93,19 +180,55 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 </header>
 <div class="glass" id="menu" popover>
   <p id="who"></p>
+  <div class="acct">
+    <h2>Abonnement</h2>
+    <p>Gratuit</p>
+    <p class="desc">Renzvi est gratuit pour l'instant.</p>
+  </div>
+  <div class="acct">
+    <h2>Parrainage</h2>
+    <div class="ref" id="ref-row" hidden>
+      <input id="ref-link" type="text" readonly aria-label="Ton lien de parrainage">
+      <button class="ghost" id="ref-copy" type="button">Copier</button>
+    </div>
+    <p class="desc" id="ref-info" role="status">Chargement…</p>
+  </div>
   <button class="out" id="logout" type="button">Se déconnecter</button>
   <p class="msg" id="logout-msg" role="alert"></p>
 </div>
 
 <main class="col" id="app" hidden>
-  <div class="hello">
-    <h1 id="hello">Bonjour.</h1>
+  <section class="setup glass" id="setup" hidden></section>
+  <div id="screen" hidden>
+    <div class="hello">
+      <h1 id="hello">Bonjour.</h1>
+      <div class="tools">
+        <p id="saved" role="status"></p>
+        <button class="ghost" id="open-wall" type="button">Fond d'écran</button>
+        <button class="ghost" id="open-add" type="button">Ajouter un widget</button>
+      </div>
+    </div>
+    <div class="board" id="board"></div>
+    <p id="board-empty" hidden>Ton écran est vide. Ajoute un widget quand tu veux.</p>
   </div>
-  <div class="board" id="board">
-    <p class="slot">Tes prochains widgets viendront se poser ici.</p>
+  <div id="load-error" role="alert" hidden>
+    <p class="msg">Impossible de charger ton écran.</p>
+    <button id="retry" type="button">Réessayer</button>
   </div>
-  <p class="credit">Fond : « Lake mapourika NZ » par Richard Palmer, <a href="https://creativecommons.org/licenses/by-sa/3.0/">CC BY-SA 3.0</a>, via Wikimedia Commons.</p>
+  <p class="credit" id="credit" hidden></p>
 </main>
+
+<dialog class="glass" id="wall-dialog" aria-labelledby="wall-title">
+  <h2 id="wall-title">Fond d'écran</h2>
+  <div id="wall-slot"></div>
+  <form class="actions" method="dialog"><button class="primary">Fermer</button></form>
+</dialog>
+<dialog class="glass" id="add-dialog" aria-labelledby="add-title">
+  <h2 id="add-title">Tes widgets</h2>
+  <p class="desc">Si tu retires un widget, son contenu est gardé : tu le retrouves en le remettant.</p>
+  <ul class="catalog" id="catalog"></ul>
+  <form class="actions" method="dialog"><button class="primary">Fermer</button></form>
+</dialog>
 <p class="col msg blocked" id="blocked" role="alert" hidden></p>
 <noscript><p class="col msg blocked">Active JavaScript pour ouvrir ton écran.</p></noscript>
 
@@ -114,33 +237,112 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 // Clé publique par conception : ce sont les règles de sécurité de la base qui protègent les données.
 const SUPABASE_URL = 'https://xjkmztfsyyccveaeyzov.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_-RJvqWleUNCM9vu5TumV6w_r2SUd8mQ';
+// Limites choisies pour rester sous les 64 Ko par widget imposés par la base, même en caractères spéciaux.
+const MAX_TASKS = 100, MAX_TASK_LENGTH = 140, MAX_HABITS = 12, MAX_HABIT_LENGTH = 60, MAX_NOTES_LENGTH = 15000;
+const SAVE_DELAY = 600, SAVE_RETRY = 5000;
+const FOCUS_CHOICES = [15, 25, 50];
+const BASE_WIDGETS = ['taches', 'minuteur', 'notes'];
+const WALLPAPERS = [
+  { id: 'lac', name: 'Lac', file: 'lake-mapourika-nz.jpg', title: 'Lake mapourika NZ', by: 'Richard Palmer', license: 'CC BY-SA 3.0', url: 'https://creativecommons.org/licenses/by-sa/3.0/' },
+  { id: 'brume', name: 'Brume', file: 'misty-morning-by-bohinj-lake-3849327601.jpg', title: 'Misty morning by Bohinj lake', by: 'ufoncz', license: 'CC BY 2.0', url: 'https://creativecommons.org/licenses/by/2.0' },
+  { id: 'loch', name: 'Loch', file: 'foggy-reflections-loch-tummel.jpg', title: 'Foggy Reflections - Loch Tummel', by: 'Eric Kilby', license: 'CC BY-SA 4.0', url: 'https://creativecommons.org/licenses/by-sa/4.0' },
+  { id: 'foret', name: 'Forêt', file: 'foggy-fanal-forest-in-seixal-porto-moniz.jpg', title: 'Foggy Fanal forest in Seixal', by: 'Ximonic (Simo Räsänen)', license: 'CC BY-SA 4.0', url: 'https://creativecommons.org/licenses/by-sa/4.0' },
+  { id: 'dune', name: 'Dune', file: 'sossusvlei-dune-namib-desert-namibia-luca-galuzzi.jpg', title: 'Sossusvlei Dune Namib Desert Namibia', by: 'Luca Galuzzi', license: 'CC BY-SA 2.5', url: 'https://creativecommons.org/licenses/by-sa/2.5' },
+];
+// Photo personnelle : réduite et réenregistrée dans le navigateur avant l'envoi, ce qui retire aussi ses données GPS.
+const MAX_SOURCE_BYTES = 30 * 1048576, MAX_UPLOAD_BYTES = 3 * 1048576, MAX_PHOTO_SIDE = 2560;
+
 const $ = id => document.getElementById(id);
 const el = (tag, className, text) => Object.assign(document.createElement(tag), { className, textContent: text ?? '' });
+const button = (className, text, onclick) => Object.assign(el('button', className, text), { type: 'button', onclick });
+const listOf = value => Array.isArray(value) ? value : [];
+// Date locale au format AAAA-MM-JJ ('sv' est la locale qui donne ce format).
+const dayKey = date => date.toLocaleDateString('sv');
+const plural = (n, word) => `${n} ${word}${n > 1 ? 's' : ''}`;
 
-// Ajouter un widget = ajouter une entrée ici. size : 4, 8 ou 12 colonnes.
+function addForm(placeholder, maxLength, onAdd) {
+  const form = el('form', 'add');
+  const input = Object.assign(el('input'), { type: 'text', placeholder, maxLength, ariaLabel: placeholder, autocomplete: 'off' });
+  form.append(input, Object.assign(el('button', 'ghost', 'Ajouter'), { type: 'submit' }));
+  form.onsubmit = e => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (text && onAdd(text)) input.value = '';
+    input.focus();
+  };
+  return { form, input };
+}
+
+// Ajouter un widget = ajouter une entrée ici, et son identifiant dans la liste autorisée de la table widget_state
+// (Heure n'enregistre rien, elle n'y figure pas). render reçoit ses données enregistrées (ou rien) et save() pour
+// les enregistrer ; il peut renvoyer une fonction appelée quand le widget est retiré de l'écran.
 const WIDGETS = [
   {
-    id: 'notes', title: 'Notes', size: 8,
-    render(body, user) {
-      // shortcut: notes gardées dans ce navigateur, non synchronisées et lisibles sur un ordinateur partagé ; à passer dans Supabase avec les premières vraies données.
-      const key = `renzvi:notes:${user.id}`;
-      const notes = el('textarea', 'notes');
-      notes.placeholder = 'Une idée, une liste, un numéro…';
-      notes.setAttribute('aria-labelledby', 'title-notes');
-      const stamp = el('p', 'stamp', 'Gardées sur cet appareil');
-      stamp.setAttribute('role', 'status');
-      try { notes.value = localStorage.getItem(key) ?? ''; } catch {}
-      notes.oninput = () => {
-        try { localStorage.setItem(key, notes.value); stamp.textContent = 'Gardées sur cet appareil'; stamp.classList.remove('msg'); }
-        catch { stamp.textContent = "Impossible d'enregistrer sur cet appareil."; stamp.classList.add('msg'); }
-      };
-      body.append(notes, stamp);
+    id: 'taches', title: 'Tâches', desc: 'Ta liste de choses à faire.',
+    render({ body, meta, data, save }) {
+      let items = listOf(data?.items);
+      const note = el('p', 'note');
+      note.hidden = true;
+      const { form, input } = addForm('Nouvelle tâche', MAX_TASK_LENGTH, text => {
+        if (items.length >= MAX_TASKS) {
+          note.textContent = `Ta liste est pleine (${MAX_TASKS} tâches). Supprimes-en une pour continuer.`;
+          note.hidden = false;
+          return false;
+        }
+        items.unshift({ id: crypto.randomUUID(), text, done: false });
+        draw();
+        save({ items });
+        return true;
+      });
+      const list = el('ul', 'rows');
+      const empty = el('p', 'empty', "Rien à faire pour l'instant. Ajoute ta première tâche.");
+      const clear = button('link', 'Effacer les terminées', () => {
+        items = items.filter(t => !t.done);
+        draw();
+        save({ items });
+        input.focus();
+      });
+      function refresh() {
+        const left = items.filter(t => !t.done).length;
+        meta.textContent = items.length ? `${left} à faire` : '';
+        empty.hidden = items.length > 0;
+        list.hidden = !items.length;
+        clear.hidden = left === items.length;
+        note.hidden = true;
+      }
+      function row(task) {
+        const li = el('li', `row${task.done ? ' done' : ''}`);
+        const label = el('label');
+        const check = Object.assign(el('input'), { type: 'checkbox', checked: !!task.done });
+        // Pas de redessin ici : la case garde le focus clavier.
+        check.onchange = () => {
+          task.done = check.checked;
+          li.classList.toggle('done', task.done);
+          refresh();
+          save({ items });
+        };
+        label.append(check, el('span', '', task.text));
+        const remove = button('x', '×', () => {
+          items = items.filter(t => t !== task);
+          draw();
+          save({ items });
+          input.focus();
+        });
+        remove.ariaLabel = `Supprimer : ${task.text}`;
+        li.append(label, remove);
+        return li;
+      }
+      function draw() {
+        list.replaceChildren(...items.map(row));
+        refresh();
+      }
+      draw();
+      body.append(form, note, empty, list, clear);
     },
   },
   {
-    id: 'heure', title: 'Heure', size: 4,
-    render(body) {
-      const box = el('div', 'clock');
+    id: 'heure', title: 'Heure', desc: "L'heure et la date du jour.",
+    render({ body }) {
       const time = el('time', 'time');
       const date = el('p', 'zone');
       const tick = () => {
@@ -150,39 +352,181 @@ const WIDGETS = [
         date.textContent = day[0].toUpperCase() + day.slice(1);
       };
       tick();
-      setInterval(tick, 1000);
-      box.append(time, date);
-      body.append(box);
+      const ticker = setInterval(tick, 1000);
+      body.append(time, date);
+      return () => clearInterval(ticker);
+    },
+  },
+  {
+    id: 'minuteur', title: 'Minuteur focus', desc: 'Des sessions de 15, 25 ou 50 minutes.',
+    render({ body, meta, data, save }) {
+      // shortcut: une session en cours est perdue si la page est rechargée ; enregistrer l'heure de fin si ça gêne à l'usage.
+      const pageTitle = document.title;
+      let length = FOCUS_CHOICES.includes(data?.length) ? data.length : 25;
+      let day = dayKey(new Date());
+      let minutes = data?.day === day && Number.isFinite(data?.minutes) ? data.minutes : 0;
+      let remaining = length * 60000, endAt = null, ticker = null;
+
+      const choices = el('div', 'choices');
+      choices.setAttribute('role', 'group');
+      choices.ariaLabel = 'Durée de la session';
+      const time = el('div', 'time focus-time');
+      time.setAttribute('role', 'timer');
+      const bar = el('div', 'bar');
+      bar.setAttribute('aria-hidden', 'true');
+      const fill = el('i');
+      bar.append(fill);
+      const go = button('primary', 'Démarrer', toggle);
+      const reset = button('ghost', 'Remettre', () => { stop(); remaining = length * 60000; draw(); });
+      const ctrl = el('div', 'ctrl');
+      ctrl.append(go, reset);
+      const persist = () => save({ length, day, minutes });
+
+      function draw() {
+        const total = Math.ceil(remaining / 1000);
+        const label = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+        time.textContent = label;
+        fill.style.transform = `scaleX(${1 - remaining / (length * 60000)})`;
+        if (endAt) document.title = `${label} — Renzvi`;
+        for (const b of choices.children) b.disabled = !!endAt || remaining !== length * 60000;
+        go.textContent = endAt ? 'Pause' : remaining === length * 60000 ? 'Démarrer' : 'Reprendre';
+        meta.textContent = `Aujourd'hui : ${minutes} min`;
+      }
+      function stop() {
+        clearInterval(ticker);
+        endAt = null;
+        document.title = pageTitle;
+      }
+      function finish() {
+        stop();
+        const today = dayKey(new Date());
+        if (today !== day) { day = today; minutes = 0; }
+        minutes += length;
+        remaining = length * 60000;
+        persist();
+        document.title = 'Session terminée — Renzvi';
+        draw();
+      }
+      function toggle() {
+        if (endAt) {
+          remaining = endAt - Date.now();
+          stop();
+        } else {
+          endAt = Date.now() + remaining;
+          // L'heure de fin fait foi : un onglet en arrière-plan ralentit les minuteries du navigateur.
+          ticker = setInterval(() => {
+            remaining = endAt - Date.now();
+            if (remaining <= 0) finish(); else draw();
+          }, 250);
+        }
+        draw();
+      }
+      for (const n of FOCUS_CHOICES) {
+        const b = button('', `${n} min`, () => {
+          length = n;
+          remaining = n * 60000;
+          for (const c of choices.children) c.setAttribute('aria-pressed', c === b);
+          persist();
+          draw();
+        });
+        b.setAttribute('aria-pressed', n === length);
+        choices.append(b);
+      }
+      draw();
+      body.append(choices, time, bar, ctrl);
+      return stop;
+    },
+  },
+  {
+    id: 'notes', title: 'Notes', desc: 'Une idée, une liste, un numéro.',
+    render({ body, data, save, user }) {
+      // Reprend les notes écrites quand elles étaient gardées dans le navigateur, puis efface cette copie.
+      const oldKey = `renzvi:notes:${user.id}`;
+      let text = typeof data?.text === 'string' ? data.text : '';
+      try {
+        const old = localStorage.getItem(oldKey);
+        if (data === undefined && old) { text = old; save({ text }); }
+        else if (data !== undefined) localStorage.removeItem(oldKey);
+      } catch {}
+      const notes = Object.assign(el('textarea', 'notes'), { placeholder: 'Une idée, une liste, un numéro…', maxLength: MAX_NOTES_LENGTH, value: text });
+      notes.setAttribute('aria-labelledby', 'title-notes');
+      notes.oninput = () => save({ text: notes.value });
+      body.append(notes);
+    },
+  },
+  {
+    id: 'habitudes', title: 'Habitudes', desc: 'Ce que tu veux tenir, jour après jour.',
+    render({ body, meta, data, save }) {
+      let items = listOf(data?.items);
+      const now = new Date();
+      const today = dayKey(now);
+      const week = Array.from({ length: 7 }, (_, i) => new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6 + i));
+      const oldest = dayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30));
+      const note = el('p', 'note');
+      note.hidden = true;
+      // On ne garde que 30 jours : assez pour l'affichage et un futur suivi, sans dépasser la taille permise.
+      const persist = () => {
+        for (const h of items) h.days = listOf(h.days).filter(d => d >= oldest);
+        save({ items });
+      };
+      const { form, input } = addForm('Nouvelle habitude', MAX_HABIT_LENGTH, name => {
+        if (items.length >= MAX_HABITS) {
+          note.textContent = `Tu suis déjà ${MAX_HABITS} habitudes. Supprimes-en une pour continuer.`;
+          note.hidden = false;
+          return false;
+        }
+        items.push({ id: crypto.randomUUID(), name, days: [] });
+        draw();
+        persist();
+        return true;
+      });
+      const list = el('ul', 'rows');
+      const empty = el('p', 'empty', 'Pas encore d\'habitude. Ajoute celle que tu veux tenir.');
+      function refresh() {
+        const doneToday = items.filter(h => listOf(h.days).includes(today)).length;
+        meta.textContent = items.length ? `${doneToday} sur ${items.length} aujourd'hui` : '';
+        empty.hidden = items.length > 0;
+        list.hidden = !items.length;
+        note.hidden = true;
+      }
+      function row(habit) {
+        const li = el('li', 'habit');
+        const head = el('div', 'habit-name');
+        const remove = button('x', '×', () => {
+          items = items.filter(h => h !== habit);
+          draw();
+          persist();
+          input.focus();
+        });
+        remove.ariaLabel = `Supprimer : ${habit.name}`;
+        head.append(el('span', '', habit.name), remove);
+        const days = el('div', 'days');
+        for (const date of week) {
+          const key = dayKey(date);
+          const letter = date.toLocaleDateString('fr-FR', { weekday: 'narrow' });
+          const b = button(key === today ? 'today' : '', letter, () => {
+            const on = !listOf(habit.days).includes(key);
+            habit.days = on ? [...listOf(habit.days), key] : habit.days.filter(d => d !== key);
+            b.setAttribute('aria-pressed', on);
+            refresh();
+            persist();
+          });
+          b.ariaLabel = `${habit.name}, ${date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`;
+          b.setAttribute('aria-pressed', listOf(habit.days).includes(key));
+          days.append(b);
+        }
+        li.append(head, days);
+        return li;
+      }
+      function draw() {
+        list.replaceChildren(...items.map(row));
+        refresh();
+      }
+      draw();
+      body.append(form, note, empty, list);
     },
   },
 ];
-
-function buildBoard(user) {
-  const slot = $('board').firstElementChild;
-  for (const w of WIDGETS) {
-    const box = el('section', `widget glass w-${w.size}`);
-    const title = el('h2', '', w.title);
-    title.id = `title-${w.id}`;
-    box.setAttribute('aria-labelledby', title.id);
-    const body = el('div', 'body');
-    box.append(title, body);
-    // Un widget qui plante ne doit pas emporter tout l'écran.
-    try { w.render(body, user); }
-    catch (e) { console.error(w.id, e); body.replaceChildren(el('p', 'msg', "Ce widget n'a pas pu se charger.")); }
-    $('board').insertBefore(box, slot);
-  }
-}
-
-function enter(user) {
-  const meta = user.user_metadata ?? {};
-  const first = (meta.full_name || meta.name || '').trim().split(/\s+/)[0];
-  $('hello').textContent = first ? `Bonjour ${first}.` : 'Bonjour.';
-  $('who').textContent = user.email ?? '';
-  $('me').textContent = (first || user.email || '?')[0].toUpperCase();
-  $('me').hidden = false;
-  if (!$('board').querySelector('.widget')) buildBoard(user);
-  $('app').hidden = false;
-}
 
 function block(text) {
   $('app').hidden = true;
@@ -190,10 +534,294 @@ function block(text) {
   $('blocked').hidden = false;
 }
 
-if (!window.supabase) {
+const sb = window.supabase?.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { flowType: 'pkce' } });
+
+if (!sb) {
   block('Impossible de charger ton écran. Recharge la page.');
 } else {
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { flowType: 'pkce' } });
+  // shortcut: si deux appareils sont ouverts en même temps, le dernier qui enregistre un widget écrase l'autre ; à revoir si des utilisateurs s'en plaignent.
+  const pending = new Map();
+  const mounted = new Map();
+  let userId, saveTimer, saving = null, loaded = false, stored = {}, photoUrl = null, referral = null;
+  // done reste faux tant que le premier lancement n'est pas terminé : on le reprend au retour.
+  const screen = { wallpaper: 'blanc', widgets: [], done: false };
+  const saveScreen = () => queueSave('ecran', { ...screen });
+  const photoPath = () => `${userId}/fond.jpg`;
+
+  function showSaved(text, bad = false) {
+    $('saved').textContent = text;
+    $('saved').classList.toggle('bad', bad);
+  }
+  function queueSave(widget, data) {
+    // Tenu à jour : un widget remis sur l'écran doit retrouver son dernier contenu, pas celui du chargement.
+    stored[widget] = data;
+    pending.set(widget, data);
+    showSaved('Enregistrement…');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, SAVE_DELAY);
+  }
+  function flush() {
+    clearTimeout(saveTimer);
+    if (saving) return saving;
+    if (!pending.size) return Promise.resolve(true);
+    saving = (async () => {
+      while (pending.size) {
+        const batch = [...pending];
+        pending.clear();
+        const updated_at = new Date().toISOString();
+        const { error } = await sb.from('widget_state').upsert(batch.map(([widget, data]) => ({ user_id: userId, widget, data, updated_at })));
+        if (error) {
+          // Une modification plus récente, déjà en attente, ne doit pas être écrasée par l'ancienne.
+          for (const [widget, data] of batch) if (!pending.has(widget)) pending.set(widget, data);
+          showSaved('Pas encore enregistré. Nouvel essai…', true);
+          saveTimer = setTimeout(flush, SAVE_RETRY);
+          return false;
+        }
+      }
+      showSaved('Enregistré');
+      return true;
+    })().finally(() => { saving = null; });
+    return saving;
+  }
+  addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
+  addEventListener('beforeunload', e => { if (pending.size || saving) e.preventDefault(); });
+
+  function mount(w, user) {
+    const box = el('section', 'widget glass');
+    const title = el('h2', '', w.title);
+    title.id = `title-${w.id}`;
+    box.setAttribute('aria-labelledby', title.id);
+    const meta = el('p', 'meta');
+    const head = el('div', 'head');
+    head.append(title, meta);
+    const body = el('div', 'body');
+    box.append(head, body);
+    let cleanup;
+    // Un widget qui plante ne doit pas emporter tout l'écran.
+    try { cleanup = w.render({ body, meta, user, data: stored[w.id], save: data => queueSave(w.id, data) }); }
+    catch (e) { console.error(w.id, e); body.replaceChildren(el('p', 'msg', "Ce widget n'a pas pu se charger.")); }
+    $('board').append(box);
+    mounted.set(w.id, { box, cleanup });
+  }
+  function unmount(id) {
+    const m = mounted.get(id);
+    m.cleanup?.();
+    m.box.remove();
+    mounted.delete(id);
+  }
+  function refreshBoard() {
+    $('board-empty').hidden = mounted.size > 0;
+  }
+
+  function showScreen(user) {
+    $('setup').hidden = true;
+    $('screen').hidden = false;
+    for (const id of screen.widgets) if (!mounted.has(id)) mount(WIDGETS.find(w => w.id === id), user);
+    refreshBoard();
+    $('open-add').onclick = () => { drawCatalog(user); $('add-dialog').showModal(); };
+    $('open-wall').onclick = () => {
+      $('wall-slot').replaceChildren(wallpaperPicker());
+      $('wall-dialog').showModal();
+    };
+  }
+
+  function drawCatalog(user) {
+    $('catalog').replaceChildren(...WIDGETS.map(w => {
+      const li = el('li');
+      const text = el('div');
+      text.append(el('b', '', w.title), el('p', 'desc', w.desc));
+      const on = screen.widgets.includes(w.id);
+      const action = button('ghost', on ? 'Retirer' : 'Ajouter', () => {
+        if (on) {
+          screen.widgets = screen.widgets.filter(id => id !== w.id);
+          unmount(w.id);
+        } else {
+          screen.widgets = [...screen.widgets, w.id];
+          mount(w, user);
+        }
+        refreshBoard();
+        saveScreen();
+        drawCatalog(user);
+        $('catalog').querySelector(`[data-widget=${w.id}]`).focus();
+      });
+      action.dataset.widget = w.id;
+      action.ariaLabel = `${on ? 'Retirer' : 'Ajouter'} : ${w.title}`;
+      li.append(text, action);
+      return li;
+    }));
+  }
+
+  function applyWallpaper() {
+    const library = WALLPAPERS.find(w => w.id === screen.wallpaper);
+    const url = library ? `url(assets/${library.file})` : screen.wallpaper === 'perso' && photoUrl ? `url(${photoUrl})` : null;
+    if (url) document.documentElement.style.setProperty('--wall', url);
+    else document.documentElement.style.removeProperty('--wall');
+    document.body.classList.toggle('has-wall', !!url);
+    $('credit').hidden = !library;
+    if (library) {
+      const link = Object.assign(el('a', '', library.license), { href: library.url });
+      $('credit').replaceChildren(`Fond : « ${library.title} » par ${library.by}, `, link, ', via Wikimedia Commons.');
+    }
+  }
+  async function loadPhoto() {
+    const { data, error } = await sb.storage.from('fonds').download(photoPath());
+    if (error) return showSaved("Ta photo de fond n'a pas pu se charger.", true);
+    photoUrl = URL.createObjectURL(data);
+    if (screen.wallpaper === 'perso') applyWallpaper();
+  }
+  function chooseWallpaper(id) {
+    // On ne garde pas une photo personnelle dont l'utilisateur ne se sert plus.
+    if (screen.wallpaper === 'perso' && id !== 'perso') {
+      sb.storage.from('fonds').remove([photoPath()]);
+      photoUrl = null;
+    }
+    screen.wallpaper = id;
+    applyWallpaper();
+    saveScreen();
+  }
+  async function shrinkPhoto(file) {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_PHOTO_SIDE / Math.max(bitmap.width, bitmap.height));
+    const canvas = Object.assign(document.createElement('canvas'), { width: Math.round(bitmap.width * scale), height: Math.round(bitmap.height * scale) });
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.82));
+  }
+  function wallpaperPicker() {
+    const box = el('div');
+    const tiles = el('div', 'tiles');
+    const note = el('p', 'pick-note');
+    note.setAttribute('role', 'alert');
+    const file = Object.assign(el('input'), { type: 'file', accept: 'image/*', hidden: true });
+    file.setAttribute('aria-label', 'Ta photo de fond');
+    const options = [{ id: 'blanc', name: 'Blanc' }, ...WALLPAPERS, { id: 'perso', name: 'Ta photo' }];
+    const entries = options.map(o => {
+      const tile = button('tile', '', () => {
+        note.textContent = '';
+        if (o.id === 'perso') return file.click();
+        chooseWallpaper(o.id);
+        mark();
+      });
+      tile.append(el('span', '', o.name));
+      if (o.file) tile.style.backgroundImage = `url(assets/${o.file})`;
+      tile.dataset.wall = o.id;
+      tiles.append(tile);
+      return tile;
+    });
+    const photoTile = entries.at(-1);
+    function mark() {
+      for (const t of entries) t.setAttribute('aria-pressed', t.dataset.wall === screen.wallpaper);
+      photoTile.style.backgroundImage = photoUrl ? `url(${photoUrl})` : '';
+    }
+    file.onchange = async () => {
+      const chosen = file.files[0];
+      file.value = '';
+      if (!chosen) return;
+      note.textContent = '';
+      if (chosen.size > MAX_SOURCE_BYTES) { note.textContent = "Cette image est trop lourde (30 Mo maximum)."; return; }
+      photoTile.disabled = true;
+      photoTile.firstChild.textContent = 'Envoi…';
+      try {
+        const blob = await shrinkPhoto(chosen);
+        if (!blob || blob.size > MAX_UPLOAD_BYTES) throw new Error('image trop lourde');
+        const { error } = await sb.storage.from('fonds').upload(photoPath(), blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '0' });
+        if (error) note.textContent = "L'envoi n'a pas abouti. Vérifie ta connexion et réessaie.";
+        else {
+          photoUrl = URL.createObjectURL(blob);
+          chooseWallpaper('perso');
+        }
+      } catch { note.textContent = "Cette image n'a pas pu être lue. Essaie une photo JPEG ou PNG."; }
+      photoTile.disabled = false;
+      photoTile.firstChild.textContent = 'Ta photo';
+      mark();
+    };
+    mark();
+    box.append(tiles, file, note);
+    return box;
+  }
+
+  function setupWallpaper(user) {
+    const setup = $('setup');
+    const lead = el('p', 'lead', 'Tu pourras en changer quand tu veux.');
+    const actions = el('div', 'actions');
+    actions.append(button('primary', 'Continuer', () => setupWidgets(user)));
+    setup.replaceChildren(el('h1', '', "Choisis ton fond d'écran"), lead, wallpaperPicker(), actions);
+    setup.hidden = false;
+  }
+  function setupWidgets(user) {
+    const finish = widgets => {
+      screen.widgets = widgets;
+      screen.done = true;
+      saveScreen();
+      showScreen(user);
+    };
+    const base = el('ul', 'base');
+    for (const id of BASE_WIDGETS) {
+      const w = WIDGETS.find(x => x.id === id);
+      const li = el('li');
+      li.append(el('b', '', w.title), el('p', 'desc', w.desc));
+      base.append(li);
+    }
+    const actions = el('div', 'actions');
+    actions.append(button('primary', 'Mettre ces widgets', () => finish(BASE_WIDGETS)), button('ghost', 'Commencer sans widget', () => finish([])));
+    $('setup').replaceChildren(el('h1', '', 'Tes premiers widgets'), el('p', 'lead', 'Trois pour commencer. Ensuite, le bouton « Ajouter un widget » te permet d\'en ajouter ou d\'en retirer.'), base, actions);
+  }
+
+  async function loadBoard(user) {
+    $('load-error').hidden = true;
+    const { data, error } = await sb.from('widget_state').select('widget,data').eq('user_id', user.id);
+    // Sans données, on n'affiche rien : un écran vide écraserait ce qui est enregistré.
+    if (error) { $('load-error').hidden = false; $('retry').onclick = () => loadBoard(user); return; }
+    loaded = true;
+    stored = Object.fromEntries(data.map(row => [row.widget, row.data]));
+    const saved = stored.ecran ?? {};
+    const known = id => WIDGETS.some(w => w.id === id);
+    screen.widgets = [...new Set(listOf(saved.widgets))].filter(known);
+    screen.done = saved.done === true;
+    if (saved.wallpaper === 'perso' || saved.wallpaper === 'blanc' || WALLPAPERS.some(w => w.id === saved.wallpaper)) screen.wallpaper = saved.wallpaper;
+    applyWallpaper();
+    if (screen.wallpaper === 'perso') loadPhoto();
+    if (screen.done) showScreen(user); else setupWallpaper(user);
+  }
+
+  async function claimReferral() {
+    let code = null;
+    try { code = localStorage.getItem('renzvi:ref'); } catch {}
+    if (!code) return;
+    const { error } = await sb.rpc('claim_referral', { p_code: code });
+    // Refusé ou accepté, c'est réglé ; seule une panne justifie de réessayer à la prochaine visite.
+    if (!error) try { localStorage.removeItem('renzvi:ref'); } catch {}
+  }
+  async function loadReferral() {
+    if (referral) return;
+    const { data, error } = await sb.rpc('get_my_referral');
+    if (error || !data?.[0]) { $('ref-info').textContent = 'Code indisponible pour le moment.'; return; }
+    referral = data[0];
+    $('ref-link').value = `${location.origin}/login.html?ref=${referral.referral_code}`;
+    $('ref-row').hidden = false;
+    $('ref-info').textContent = `Ton code : ${referral.referral_code} · ${plural(referral.referral_count, 'filleul')}`;
+  }
+  $('menu').addEventListener('toggle', e => { if (e.newState === 'open') loadReferral(); });
+  $('ref-copy').onclick = async () => {
+    try {
+      await navigator.clipboard.writeText($('ref-link').value);
+      $('ref-copy').textContent = 'Copié';
+      setTimeout(() => { $('ref-copy').textContent = 'Copier'; }, 2000);
+    } catch { $('ref-link').select(); }
+  };
+
+  function enter(user) {
+    userId = user.id;
+    const meta = user.user_metadata ?? {};
+    const first = (meta.full_name || meta.name || '').trim().split(/\s+/)[0];
+    $('hello').textContent = first ? `Bonjour ${first}.` : 'Bonjour.';
+    $('who').textContent = user.email ?? '';
+    $('me').textContent = (first || user.email || '?')[0].toUpperCase();
+    $('me').hidden = false;
+    $('app').hidden = false;
+    if (!loaded) { loadBoard(user); claimReferral(); }
+  }
+
   const toLogin = () => location.replace('login.html');
 
   async function check() {
@@ -209,6 +837,12 @@ if (!window.supabase) {
   $('logout').onclick = async () => {
     $('logout-msg').textContent = '';
     $('logout').disabled = true;
+    // On enregistre d'abord : déconnecté, on ne pourrait plus le faire.
+    if (!await flush()) {
+      $('logout').disabled = false;
+      $('logout-msg').textContent = "Tes derniers changements ne sont pas enregistrés. Vérifie ta connexion et réessaie.";
+      return;
+    }
     const { error } = await sb.auth.signOut();
     $('logout').disabled = false;
     if (error) $('logout-msg').textContent = "La déconnexion n'a pas abouti. Réessaie.";

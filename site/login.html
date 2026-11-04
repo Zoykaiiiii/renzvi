@@ -117,6 +117,10 @@ const $ = id => document.getElementById(id);
 const IN_APP = /Instagram|FBAN|FBAV|FB_IAB|TikTok|musical_ly|Bytedance/i;
 let userEmail = '', timer;
 
+// Lien de parrainage : le code est gardé jusqu'à l'arrivée sur le dashboard, même après le détour par Google.
+const refCode = new URLSearchParams(location.search).get('ref');
+if (/^[0-9A-F]{8}$/i.test(refCode ?? '')) { try { localStorage.setItem('renzvi:ref', refCode.toUpperCase()); } catch {} }
+
 function show(step) {
   for (const s of ['email', 'code']) $('step-' + s).hidden = s !== step;
 }
