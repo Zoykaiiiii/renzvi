@@ -211,7 +211,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     assert.equal(await page.locator('.widget').count(), 3);
     assert.equal(await page.isVisible('#setup'), false);
     await saved(page);
-    assert.deepEqual(db.rows.ecran, { wallpaper: 'foret', widgets: ['vol', 'taches', 'notes'], done: true, accent: 'vert', sizes: {} });
+    assert.deepEqual(db.rows.ecran, { wallpaper: 'foret', widgets: ['vol', 'taches', 'notes'], done: true, accent: 'vert', sizes: {}, pages: [{ id: 'p1', name: 'Mon écran' }], where: {} });
     await shot(page, 'ecran-photo');
     await page.reload();
     await page.waitForSelector('.widget');

@@ -63,7 +63,7 @@ async function openBoard(browser, base, options, rows, prepare) {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto(`${base}/dashboard.html`);
-  await page.waitForSelector('#board .widget, #board-empty:not([hidden])');
+  await page.waitForSelector('#board .widget:not([hidden]), #board-empty:not([hidden])');
   return { context, db, page, errors };
 }
 
@@ -235,7 +235,7 @@ async function photo(browser, kind) {
     await saved(page, 'Enregistré');
     assert.deepEqual(db.rows.ecran.widgets, moved);
     await page.reload();
-    await page.waitForSelector('#board .widget');
+    await page.waitForSelector('#board .widget:not([hidden])');
     assert.deepEqual(await order(page), moved);
     assert.equal(await page.locator('#board [data-widget=notes]').getAttribute('data-size'), 'l');
     assert.deepEqual(errors, []);
@@ -423,7 +423,7 @@ async function photo(browser, kind) {
     await saved(page, 'Enregistré');
     assert.equal(db.rows.ecran.accent, 'terre');
     await page.reload();
-    await page.waitForSelector('#board .widget');
+    await page.waitForSelector('#board .widget:not([hidden])');
     assert.equal(await page.evaluate(() => document.documentElement.dataset.accent), 'terre');
     await context.close();
   }
@@ -487,6 +487,152 @@ async function photo(browser, kind) {
     await context.close();
   }
 
+  // Pages : créer, ranger, renommer, retrouver au rechargement ; le premier écran reste inchangé.
+  {
+    const tabs = page => page.$$eval('#page-tabs button', b => b.map(n => n.textContent));
+    const visible = page => page.$$eval('#board > .widget:not([hidden])', b => b.map(n => n.dataset.widget));
+    const moveTo = (page, id, name) => page.locator(`#board [data-widget=${id}] select`).selectOption({ label: name });
+    const { page, db, errors, context } = await openBoard(browser, base, desk, { ...few(), notes: { text: 'Mon texte précieux' } });
+    assert.equal(await page.isVisible('#page-bar'), false, 'une seule page : aucune barre en utilisation normale');
+    await page.click('#open-custom');
+    assert.equal(await page.isVisible('#page-delete'), false, 'on ne peut pas supprimer la dernière page');
+    assert.equal(await page.locator('#board [data-widget=notes] select').isVisible(), false);
+    // Création : nom vide = nom proposé ; un nom piégé reste du texte.
+    await page.click('#page-new');
+    await page.keyboard.press('Enter');
+    assert.deepEqual(await tabs(page), ['Mon écran', 'Page 2']);
+    assert.deepEqual(await visible(page), [], 'la nouvelle page est vide');
+    assert.match(await page.textContent('#board-empty'), /Cette page est vide/);
+    assert.ok(await page.locator('#page-tabs [aria-pressed=true]').evaluate(n => n === document.activeElement));
+    await page.click('#page-rename');
+    await page.fill('#page-dialog input', '<b>piège</b>');
+    await page.keyboard.press('Enter');
+    assert.deepEqual(await tabs(page), ['Mon écran', '<b>piège</b>'], 'un nom reste du texte');
+    assert.equal(await page.locator('#page-tabs b').count(), 0);
+    await page.click('#page-rename');
+    await page.fill('#page-dialog input', 'x'.repeat(40));
+    assert.equal((await page.inputValue('#page-dialog input')).length, 24, 'nom limité à 24 caractères');
+    await page.fill('#page-dialog input', 'Détente');
+    await page.keyboard.press('Enter');
+    assert.deepEqual(await tabs(page), ['Mon écran', 'Détente']);
+    // Ranger un widget : il quitte la page affichée, et son texte le suit.
+    await page.getByRole('button', { name: 'Mon écran', exact: true }).click();
+    await moveTo(page, 'notes', 'Détente');
+    assert.deepEqual(await visible(page), ['taches', 'heure', 'minuteur']);
+    assert.match(await page.textContent('#page-note'), /Notes est maintenant sur « Détente »/);
+    // Avant/Après ne comptent que les widgets de la page affichée.
+    assert.ok(await page.getByRole('button', { name: 'Déplacer Tâches avant le widget précédent' }).isDisabled());
+    await page.getByRole('button', { name: 'Déplacer Tâches après le widget suivant' }).click();
+    assert.deepEqual(await visible(page), ['heure', 'taches', 'minuteur']);
+    assert.equal(await page.textContent('#custom-live'), 'Tâches : position 2 sur 3');
+    await mouseDrag(page, 'minuteur', 'heure');
+    assert.deepEqual(await visible(page), ['minuteur', 'heure', 'taches']);
+    await page.click('#custom-done');
+    assert.equal(await page.isVisible('#page-bar'), true, 'plusieurs pages : les onglets restent');
+    assert.equal(await page.isVisible('#page-new'), false, 'créer une page reste dans Personnaliser');
+    await page.getByRole('button', { name: 'Détente', exact: true }).click();
+    assert.deepEqual(await visible(page), ['notes']);
+    assert.equal(await page.inputValue('.notes'), 'Mon texte précieux');
+    await saved(page, 'Enregistré');
+    assert.deepEqual(db.rows.ecran.pages.map(p => p.name), ['Mon écran', 'Détente']);
+    assert.deepEqual(db.rows.notes, { text: 'Mon texte précieux' }, 'ranger un widget ne touche pas à son contenu');
+    // Rechargement : mêmes pages, même rangement, et on revient sur la dernière page ouverte.
+    await page.reload();
+    await page.waitForSelector('#board .widget:not([hidden])');
+    assert.deepEqual(await tabs(page), ['Mon écran', 'Détente']);
+    assert.deepEqual(await visible(page), ['notes']);
+    await page.getByRole('button', { name: 'Mon écran', exact: true }).click();
+    assert.deepEqual(await visible(page), ['minuteur', 'heure', 'taches']);
+    // Le catalogue dit où est un widget ; ajouté, il arrive sur la page affichée.
+    await page.click('#open-add');
+    assert.match(await page.locator('#catalog li', { hasText: 'Notes' }).first().textContent(), /Sur la page « Détente »/);
+    await page.getByRole('button', { name: 'Ajouter : Habitudes' }).click();
+    await page.locator('#add-dialog .primary').click();
+    assert.ok((await visible(page)).includes('habitudes'));
+    // Supprimer une page : confirmation, puis ses widgets et leur contenu passent sur la voisine.
+    await page.getByRole('button', { name: 'Détente', exact: true }).click();
+    await page.click('#open-custom');
+    await page.click('#page-delete');
+    assert.match(await page.textContent('#page-dialog'), /1 widget et leur contenu passeront sur « Mon écran »/);
+    await page.locator('#page-dialog').getByRole('button', { name: 'Annuler' }).click();
+    assert.deepEqual(await tabs(page), ['Mon écran', 'Détente'], 'annuler ne supprime rien');
+    await page.click('#page-delete');
+    await page.locator('#page-dialog .primary').click();
+    assert.deepEqual(await tabs(page), ['Mon écran']);
+    assert.ok((await visible(page)).includes('notes'));
+    assert.equal(await page.inputValue('.notes'), 'Mon texte précieux');
+    await saved(page, 'Enregistré');
+    assert.deepEqual(db.rows.notes, { text: 'Mon texte précieux' });
+    assert.deepEqual(db.rows.ecran.pages.map(p => p.name), ['Mon écran']);
+    // Limite de 6 pages.
+    for (let i = 0; i < 5; i++) { await page.click('#page-new'); await page.keyboard.press('Enter'); }
+    assert.ok(await page.isDisabled('#page-new'));
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+  // Supprimer la première page ne perd aucun widget, y compris ceux qui n'avaient jamais été rangés.
+  {
+    const pages = [{ id: 'a', name: 'Une' }, { id: 'b', name: 'Deux' }, { id: 'c', name: 'Trois' }];
+    const { page, context } = await openBoard(browser, base, desk, few({ pages, where: { notes: 'b', heure: 'c' } }));
+    await page.click('#open-custom');
+    await page.click('#page-delete');
+    await page.locator('#page-dialog .primary').click();
+    const count = await page.$$eval('#page-tabs button', b => b.length);
+    assert.equal(count, 2);
+    const all = [];
+    for (const name of ['Deux', 'Trois']) {
+      await page.getByRole('button', { name, exact: true }).click();
+      all.push(...await page.$$eval('#board > .widget:not([hidden])', b => b.map(n => n.dataset.widget)));
+    }
+    assert.deepEqual(all.sort(), [...SMALL].sort());
+    await context.close();
+  }
+  // Configurations de pages abîmées : l'écran s'ouvre, aucun widget ne disparaît.
+  for (const bad of [{ pages: 'cassé', where: 3 }, { pages: [null, { id: 1, name: 'x' }, { id: 'a', name: '   ' }], where: { notes: 'inconnue' } }, { pages: [{ id: 'a', name: 'Une' }, { id: 'a', name: 'Doublon' }], where: null }, { pages: [], where: [] }]) {
+    const { page, errors, context } = await openBoard(browser, base, desk, few(bad));
+    assert.deepEqual((await page.$$eval('#board > .widget:not([hidden])', b => b.map(n => n.dataset.widget))).sort(), [...SMALL].sort());
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+  // Changer de page ne coupe rien : lecteur non rechargé, minuteur qui continue.
+  {
+    const rows = { ...everything(), ecran: { wallpaper: 'blanc', widgets: ['playlist', 'minuteur', 'notes'], done: true, pages: [{ id: 'a', name: 'Une' }, { id: 'b', name: 'Deux' }], where: { notes: 'b' } } };
+    const { page, context } = await openBoard(browser, base, desk, rows);
+    let loads = 0;
+    page.on('request', r => { if (r.url().includes('open.spotify.com/embed')) loads++; });
+    await page.getByRole('button', { name: 'Charger le lecteur' }).click();
+    await page.waitForFunction(() => document.querySelector('iframe')?.contentDocument === null);
+    await page.locator('[data-widget=minuteur]').getByRole('button', { name: 'Démarrer' }).click();
+    await page.waitForFunction(() => document.querySelector('.focus-time').textContent !== '25:00');
+    const before = await page.textContent('.focus-time');
+    await page.getByRole('button', { name: 'Deux', exact: true }).click();
+    assert.equal(await page.isVisible('[data-widget=minuteur]'), false);
+    await page.waitForTimeout(2200);
+    await page.getByRole('button', { name: 'Une', exact: true }).click();
+    assert.ok(await page.textContent('.focus-time') < before, 'le minuteur a continué sur l\'autre page');
+    assert.equal(loads, 1, 'le lecteur n\'a pas été rechargé');
+    await page.click('#open-custom');
+    await page.locator('#board [data-widget=playlist] select').selectOption({ label: 'Deux' });
+    await page.getByRole('button', { name: 'Deux', exact: true }).click();
+    assert.equal(await page.locator('[data-widget=playlist] iframe').isVisible(), true);
+    assert.equal(loads, 1, 'ranger le lecteur sur une autre page ne le recharge pas');
+    await context.close();
+  }
+  // Pages sur téléphone : beaucoup de pages aux noms longs, sans débordement de l'écran.
+  for (const width of [320, 390, 768]) {
+    const pages = ['Mon écran', 'Révisions de droit civil', 'Détente du soir', 'Sport', 'Lectures', 'Projets'].map((name, i) => ({ id: `p${i}`, name }));
+    const { page, context } = await openBoard(browser, base, { viewport: { width, height: 800 } }, everything({ wallpaper: 'lac', pages, where: { notes: 'p1', vol: 'p1' } }));
+    await page.click('#open-custom');
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width} px : pas de défilement de côté`);
+    const select = await page.locator('#board [data-widget=taches] select').boundingBox();
+    const box = await page.locator('#board [data-widget=taches]').boundingBox();
+    assert.ok(select.x + select.width <= box.x + box.width);
+    await page.locator('#page-tabs button').last().scrollIntoViewIfNeeded();
+    await page.locator('#page-tabs button').last().click();
+    assert.equal(await page.locator('#page-tabs button').last().getAttribute('aria-pressed'), 'true');
+    await context.close();
+  }
+
   // Captures et courte vidéo pour valider le rendu à l'œil.
   if (SHOTS) {
     const composition = {
@@ -494,6 +640,8 @@ async function photo(browser, kind) {
       widgets: ['vol', 'taches', 'heure', 'minuteur', 'compte', 'pause', 'notes', 'ambiance', 'habitudes'],
       sizes: { vol: 'l', heure: 's', minuteur: 's', compte: 's', pause: 's' },
     };
+    const PAGES = [{ id: 'cours', name: 'Cours' }, { id: 'detente', name: 'Détente' }, { id: 'sport', name: 'Sport' }];
+    const PAGE_WHERE = { ambiance: 'detente', pause: 'detente', habitudes: 'detente', notes: 'sport' };
     const full = async (page, name, width) => {
       await page.setViewportSize({ width, height: await page.evaluate(() => document.documentElement.scrollHeight) });
       await page.waitForTimeout(250);
@@ -508,6 +656,10 @@ async function photo(browser, kind) {
       ['390-brume-bleu', 390, { wallpaper: 'brume', accent: 'bleu' }, false],
       ['390-brume-bleu-personnaliser', 390, { wallpaper: 'brume', accent: 'bleu' }, true],
       ['320-loch-terre-cuite', 320, { wallpaper: 'loch', accent: 'terre' }, true],
+      ['pages-1440', 1440, { pages: PAGES, where: PAGE_WHERE }, false],
+      ['pages-1440-personnaliser', 1440, { pages: PAGES, where: PAGE_WHERE }, true],
+      ['pages-390', 390, { wallpaper: 'brume', accent: 'bleu', pages: PAGES, where: PAGE_WHERE }, false],
+      ['pages-390-personnaliser', 390, { wallpaper: 'brume', accent: 'bleu', pages: PAGES, where: PAGE_WHERE }, true],
     ]) {
       const { page, context } = await openBoard(browser, base, { viewport: { width, height: 900 } }, { ...everything(), ecran: { ...composition, done: true, ...extra } });
       if (editing) await page.click('#open-custom');
