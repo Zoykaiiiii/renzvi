@@ -3,572 +3,354 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Renzvi — toutes tes apps, un seul écran</title>
-<meta name="description" content="Renzvi réunit tes widgets de révision, de sport, de détente et d'ambiance sur un tableau de bord que tu composes comme un moodboard.">
+<meta name="robots" content="noindex">
+<title>Renzvi — ton espace de widgets</title>
+<meta name="description" content="Renzvi est un espace personnel composé de widgets, organisé comme un moodboard : tâches, minuteur, notes, musique, ambiance. Pour travailler, apprendre, organiser ta journée et souffler.">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#f6f5f4">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Renzvi">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="landing/prairie.webp" as="image">
 <link rel="stylesheet" href="install.css">
+<link rel="stylesheet" href="landing.css">
 <script src="install.js" defer></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400..600&family=Source+Serif+4:opsz,wght@8..60,400&display=swap" rel="stylesheet">
-<style>
-/* Style inspiré de « Steep » (Refero) : serif éditorial sur papier blanc, presque monochrome, une seule touche pêche. */
-:root{
-  --ink:#17191c; --paper:#fff; --mist:#f2f2f3; --fog:#fafafb; --stone:#e7e6e1;
-  --slate:#6b6f7a; /* un ton plus foncé que l'original pour rester lisible (contraste 5:1) */
-  --peach:#fbe1d1; --sienna:#5d2a1a; --line:#ececec;
-  --serif:"Source Serif 4","Tiempos Headline",Georgia,serif;
-  --sans:"Hanken Grotesk",ui-sans-serif,system-ui,sans-serif;
-  --r-card:24px; --r-float:20px; --r-small:16px; --pill:9999px;
-  --float-shadow:0 0 0 1px rgba(23,25,28,.05),0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1); /* taste-skill-ignore : seuls les widgets (data-ui) portent cette ombre, c'est la signature du style */
-  --max:1200px; --gap:128px; --m:clamp(16px,3vw,32px);
-  --ease:cubic-bezier(.2,.7,.2,1);
-}
-*{box-sizing:border-box;margin:0}
-html{scroll-behavior:smooth}
-body{font:430 18px/1.5 var(--sans);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;overflow-x:hidden}
-button,input{font:inherit;color:inherit}
-a{color:inherit;text-decoration:none}
-:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
-.wrap{max-width:calc(var(--max) + 2*var(--m));margin:0 auto;padding:0 var(--m)}
-h1,h2{font-family:var(--serif);font-weight:400;font-optical-sizing:auto}
-h1{font-size:clamp(40px,7vw,90px);line-height:1.08;letter-spacing:-.025em}
-h2{font-size:clamp(36px,5vw,64px);line-height:1.12;letter-spacing:-.015em}
-h3{font-size:26px;font-weight:450;line-height:1.18;letter-spacing:-.009em}
-.lead{font-size:20px;line-height:1.4;max-width:48ch}
-.muted{color:var(--slate)}
-.tag{font-size:14px;color:var(--slate)}
-.band{background:var(--fog)}
-section{padding:var(--gap) 0}
-
-/* boutons : une pilule pleine, une pilule fantôme */
-.btn{display:inline-flex;align-items:center;justify-content:center;height:48px;padding:0 22px;border-radius:var(--pill);font-size:16px;font-weight:450;cursor:pointer;border:1px solid var(--ink);transition:transform .25s var(--ease),background .2s,color .2s}
-.btn.fill{background:var(--ink);color:#fff}
-.btn.fill:hover{background:#000}
-.btn.ghost{background:transparent;color:var(--ink)}
-.btn.ghost:hover{background:var(--ink);color:#fff}
-.btn:active{transform:scale(.97)}
-.pair{display:flex;gap:10px;flex-wrap:wrap}
-.signin{padding:10px 0}
-.tlink,.signin{font-size:16px;font-weight:450;white-space:nowrap}
-.tlink:hover,.signin:hover{text-decoration:underline;text-underline-offset:4px}
-
-/* barre */
-.bar{position:relative;z-index:5;display:flex;align-items:center;height:76px}
-.mark{display:flex;align-items:center;gap:10px;font-weight:550;font-size:18px}
-.mark svg{width:26px;height:26px}
-.bar nav{position:absolute;left:50%;transform:translateX(-50%);display:flex;gap:32px;font-size:16px}
-.bar nav a:hover{text-decoration:underline;text-underline-offset:4px}
-.bar .right{margin-left:auto;display:flex;align-items:center;gap:20px}
-.bar .btn{height:40px;padding:0 18px}
-
-/* widgets */
-.float{background:var(--paper);border-radius:var(--r-float);box-shadow:var(--float-shadow);padding:16px 20px 18px} /* taste-skill-ignore : widget data-ui */
-.float .t{font-size:15px;font-weight:500;display:flex;align-items:center;gap:8px}
-.float .t .tag{margin-left:auto;font-weight:430}
-.soon-tag{font-size:13px;font-weight:450;color:var(--sienna);background:var(--peach);border-radius:var(--pill);padding:1px 9px}
-.metric{font-size:20px;font-weight:500;font-variant-numeric:tabular-nums}
-.big-num{font-family:var(--serif);font-size:44px;line-height:1;letter-spacing:-.015em;font-variant-numeric:tabular-nums}
-.checks{list-style:none;padding:0;display:grid;gap:6px;margin-top:12px;font-size:15px}
-.checks li{display:flex;gap:10px;align-items:center;min-height:36px;padding:0 12px;border-radius:12px;background:var(--fog)}
-.checks input{width:16px;height:16px;accent-color:var(--ink)}
-.checks li.done span{color:var(--slate);text-decoration:line-through}
-.dots{display:flex;gap:5px;margin-top:12px}
-.dots span{width:20px;height:20px;border-radius:7px;background:var(--mist)}
-.dots span.on{background:var(--ink)}
-.wave{display:flex;gap:3px;align-items:flex-end;height:28px;margin-top:12px}
-.wave span{width:4px;border-radius:2px;background:var(--ink);height:30%;animation:wave 1.4s ease-in-out infinite}
-.wave span:nth-child(2n){animation-delay:-.4s}.wave span:nth-child(3n){animation-delay:-.8s}
-@keyframes wave{50%{height:100%}}
-.track{display:flex;justify-content:space-between;font-size:15px;padding:8px 0}
-.track+.track{border-top:1px solid var(--line)} /* taste-skill-ignore : lignes d'une liste dans un widget data-ui */
-.ring{display:flex;align-items:center;gap:14px;margin-top:10px}
-.ring svg{flex:none;transform:rotate(-90deg)}
-.quote{font-family:var(--serif);font-size:26px;line-height:1.2;margin-top:8px}
-.glass{display:flex;gap:4px;margin-top:12px}
-.glass span{flex:1;height:26px;border-radius:6px;background:var(--mist)}
-.glass span.on{background:var(--ink)}
-.mini-ticket{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end}
-.mini-ticket .code{font-family:var(--serif);font-size:32px;line-height:1}
-.prog{height:6px;border-radius:var(--pill);background:var(--mist);margin-top:16px;overflow:hidden}
-.prog span{display:block;height:100%;width:100%;background:var(--sienna);border-radius:inherit;transform-origin:left;transform:scaleX(0);transition:transform 1s linear}
-
-/* héros : le moodboard qu'on réarrange */
-.hero{padding-block:56px var(--gap);text-align:center}
-.hero .lead{margin:28px auto 0}
-.hero .pair{justify-content:center;margin-top:32px}
-.board{margin-top:72px;background:var(--mist);border-radius:var(--r-card);padding:20px;text-align:left}
-.tiles{display:grid;grid-template-columns:repeat(12,1fr);grid-auto-flow:dense;gap:16px}
-.tile{position:relative;cursor:grab;user-select:none;-webkit-user-select:none}
-.tile.dragging{z-index:10;cursor:grabbing;transition:none!important;box-shadow:0 0 0 1px rgba(23,25,28,.06),0 30px 50px -10px rgba(0,0,0,.25)} /* taste-skill-ignore : widget en cours de déplacement */
-.tile input,.tile button:not(.grip){cursor:pointer}
-.grip{position:absolute;bottom:10px;right:10px;width:30px;height:30px;border:0;border-radius:10px;background:transparent;display:grid;place-items:center;cursor:grab;touch-action:none;color:var(--slate);opacity:0;transition:opacity .2s,background .2s}
-.tile:hover .grip,.grip:focus-visible{opacity:1}
-.grip:hover{background:var(--mist)}
-.grip::before{content:"";width:3px;height:3px;border-radius:50%;background:currentColor;box-shadow:6px 0,0 5px,6px 5px,0 10px,6px 10px;transform:translate(-3px,-5px)} /* taste-skill-ignore : les 6 points de la poignée, pas une ombre */
-@media (hover:none){.grip{opacity:1}}
-.w3{grid-column:span 3}.w4{grid-column:span 4}.w5{grid-column:span 5}.w2{grid-column:span 2}
-.tall{grid-row:span 2}
-.photo{padding:0;overflow:hidden;min-height:260px;background:url(assets/lake-mapourika-nz.jpg) center/cover;display:flex;align-items:flex-end}
-.photo .cap{margin:14px;background:rgba(255,255,255,.9);border-radius:12px;padding:8px 12px;font-size:14px}
-.board-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px;font-size:15px;color:var(--slate)}
-.board-foot button{background:none;border:0;padding:0;font-size:15px;font-weight:450;color:var(--ink);cursor:pointer}
-.board-foot button:hover{text-decoration:underline;text-underline-offset:4px}
-
-/* deux colonnes texte + interface */
-.two{display:grid;grid-template-columns:5fr 7fr;gap:80px;align-items:center}
-.two.flip{grid-template-columns:7fr 5fr}
-.points{display:grid;gap:28px;margin-top:40px}
-.points p{max-width:42ch}
-.points b{display:block;font-weight:500;font-size:20px;margin-bottom:4px}
-
-/* composer : bibliothèque + aperçu */
-.composer{padding:24px}
-.lib{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.lib button,.walls button{height:38px;padding:0 14px;border-radius:var(--pill);border:1px solid var(--line);background:var(--paper);cursor:pointer;font-size:15px;transition:background .2s,border-color .2s,color .2s}
-.lib button:hover,.walls button:hover{border-color:var(--ink)}
-.lib button[aria-pressed=true],.walls button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
-.walls{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-.preview{margin-top:20px;border-radius:var(--r-float);padding:14px;min-height:250px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-content:start;background:var(--fog) center/cover;transition:background-color .4s}
-.preview[data-w=lac]{background-image:url(assets/lake-mapourika-nz.jpg)}
-.preview[data-w=pierre]{background-color:var(--stone)}
-.pv{background:rgba(255,255,255,.92);border-radius:14px;padding:12px 14px;font-size:14px;animation:pop .35s var(--ease)}
-.pv b{display:block;font-size:15px;font-weight:500;margin-bottom:4px}
-@keyframes pop{from{opacity:0;transform:scale(.94)}}
-.empty{grid-column:1/-1;color:var(--slate);font-size:15px;padding:12px}
-
-/* catégories */
-.tabs{display:flex;gap:24px;flex-wrap:wrap;font-size:18px;margin-top:36px}
-.tabs button{background:none;border:0;padding:4px 0;cursor:pointer;color:var(--slate);border-bottom:2px solid transparent;font-weight:450}
-.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--ink)}
-.panel h3{margin-top:32px}
-.panel .desc{margin-top:14px;max-width:40ch}
-.panel ul{list-style:none;padding:0;margin-top:20px;display:grid;gap:8px}
-.panel li{display:flex;gap:10px;align-items:baseline}
-.panel li::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--ink);transform:translateY(-2px)}
-.plate{position:relative;background:var(--mist);border-radius:var(--r-card);padding:28px;min-height:460px;display:grid;grid-template-columns:repeat(6,1fr);gap:14px;align-content:center}
-.plate>*{opacity:0;transform:translateY(16px);transition:opacity .45s var(--ease),transform .45s var(--ease)}
-.plate.in>*{opacity:1;transform:none}
-.plate.in>*:nth-child(2){transition-delay:.07s}.plate.in>*:nth-child(3){transition-delay:.14s}
-.plate .s6{grid-column:span 6}.plate .s3{grid-column:span 3}.plate .s4{grid-column:span 4}.plate .s2{grid-column:span 2}
-.ticket{display:grid;grid-template-columns:1fr 120px;padding:0;overflow:hidden}
-.ticket .main{padding:18px 20px}
-.ticket .stub{border-left:4px dotted #d4d4d6;background:var(--fog);padding:18px 16px;display:flex;flex-direction:column;justify-content:space-between;gap:10px}
-.ticket .stub .btn{height:36px;padding:0 12px;font-size:14px}
-.ticket.torn{grid-template-columns:1fr}
-.ticket.torn .stub{display:none}
-.ticket .state{display:none;margin-top:10px}
-.ticket.torn .state{display:block}
-.ticket.torn .fields{display:none}
-.fields{display:flex;gap:22px;font-size:14px;margin-top:12px}
-.fields span{display:block;color:var(--slate)}
-.fields b{font-weight:500}
-.subj{display:grid;gap:10px;margin-top:12px;font-size:15px}
-.subj div{display:grid;grid-template-columns:76px 1fr 56px;gap:10px;align-items:center}
-.subj .barx{height:8px;border-radius:var(--pill);background:var(--mist);overflow:hidden}
-.subj .barx i{display:block;height:100%;background:var(--sienna);border-radius:inherit;width:var(--w)}
-.subj span:last-child{text-align:right;font-variant-numeric:tabular-nums}
-.vol{display:grid;grid-template-columns:110px 1fr;gap:12px;align-items:center;font-size:15px;margin-top:10px}
-.vol input{width:100%;accent-color:var(--ink)}
-
-/* modes */
-.seg{display:inline-flex;padding:4px;border-radius:var(--pill);background:var(--mist);margin-top:36px}
-.seg button{height:42px;padding:0 24px;border:0;border-radius:var(--pill);background:none;cursor:pointer;font-size:16px;font-weight:450;transition:background .25s,color .25s}
-.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
-.band .seg{background:var(--stone)}
-.mode-box{display:grid;border-radius:var(--r-card);overflow:hidden;background:var(--mist)}
-.mode{grid-area:1/1;padding:28px;min-height:420px;display:grid;grid-template-columns:repeat(6,1fr);gap:14px;align-content:start;opacity:0;transform:scale(.985);transition:opacity .5s var(--ease),transform .5s var(--ease),visibility 0s .5s;pointer-events:none;visibility:hidden}
-.mode.on{opacity:1;transform:none;pointer-events:auto;visibility:visible;transition-delay:0s}
-.mode .s2{grid-column:span 2}.mode .s3{grid-column:span 3}.mode .s4{grid-column:span 4}.mode .s6{grid-column:span 6}
-.mode.chill{background:url(assets/lake-mapourika-nz.jpg) center/cover}
-.mode.chill .float{background:rgba(255,255,255,.9)}
-
-/* la seule carte pêche de la page */
-.peach{background:var(--peach);color:var(--sienna);border-radius:var(--r-card);padding:56px;display:grid;grid-template-columns:5fr 6fr;gap:56px;align-items:center}
-.peach h2{color:var(--sienna)}
-.peach p{font-size:18px;max-width:40ch;margin-top:20px}
-.gone{list-style:none;padding:0;display:grid;gap:10px;font-size:20px}
-.gone li{display:flex;justify-content:space-between;gap:12px;background:rgba(255,255,255,.55);border-radius:14px;padding:12px 18px}
-.gone li .x{text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:transparent;transition:text-decoration-color .6s var(--ease)}
-.gone.in li .x{text-decoration-color:var(--sienna)}
-.gone li:nth-child(2) .x{transition-delay:.12s}.gone li:nth-child(3) .x{transition-delay:.24s}.gone li:nth-child(4) .x{transition-delay:.36s}.gone li:nth-child(5) .x{transition-delay:.48s}
-.gone .n{font-size:14px;white-space:nowrap}
-.gone li.all{background:var(--sienna);color:var(--peach);font-weight:500}
-
-/* questions */
-.faq .two{align-items:start}
-.faq h2{position:sticky;top:40px}
-details{background:var(--paper);border-radius:var(--r-small);padding:0 24px}
-details+details{margin-top:8px}
-summary{list-style:none;cursor:pointer;padding:22px 0;font-size:20px;font-weight:480;display:flex;justify-content:space-between;gap:16px}
-summary::-webkit-details-marker{display:none}
-summary::after{content:"+";font-weight:400;color:var(--slate);transition:transform .3s var(--ease)}
-details[open] summary::after{transform:rotate(45deg)}
-details p{padding:0 0 24px;max-width:56ch}
-
-/* inscription */
-.cta{text-align:center}
-.cta h2{max-width:20ch;margin:0 auto}
-.cta form{display:flex;gap:10px;justify-content:center;margin-top:40px;flex-wrap:wrap}
-.cta input{width:min(360px,100%);height:48px;border:1px solid var(--line);border-radius:var(--r-small);padding:0 16px;background:var(--paper)}
-.cta input::placeholder{color:#8a8d96}
-.cta .muted{margin-top:16px;font-size:15px}
-
-/* pied de page */
-footer{background:var(--fog);padding:96px 0 40px}
-.wordmark{display:flex;align-items:center;gap:clamp(16px,3vw,40px)}
-.wordmark svg{width:clamp(64px,11vw,150px);height:auto;flex:none}
-.wordmark span{font-family:var(--serif);font-size:clamp(80px,17vw,230px);line-height:.9;letter-spacing:-.035em}
-.fcols{display:grid;grid-template-columns:repeat(3,1fr) 2fr;gap:32px;margin-top:72px;font-size:15px;color:var(--slate)}
-.fcols div{display:grid;gap:8px;align-content:start}
-.fcols b{color:var(--ink);font-weight:500}
-.fcols a:hover{color:var(--ink);text-decoration:underline}
-.copy{display:flex;justify-content:space-between;margin-top:56px;font-size:14px;color:var(--slate)}
-
-/* entrées */
-.js [data-r]{opacity:0;transform:translateY(22px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
-.js [data-r].in{opacity:1;transform:none}
-
-@media (max-width:1080px){
-  .w3,.w4,.w5{grid-column:span 6}.w2{grid-column:span 3}
-  .two,.two.flip{grid-template-columns:1fr;gap:48px}
-  .two.flip>.ui{order:2}
-  .peach{grid-template-columns:1fr;padding:40px 28px}
-  .faq h2{position:static}
-}
-@media (max-width:760px){
-  :root{--gap:96px}
-  .bar nav,.bar .tlink{display:none}
-  .fcols{grid-template-columns:1fr 1fr}
-  .fcols .cred{grid-column:1/-1}
-  .w3,.w4,.w5{grid-column:span 12}.w2{grid-column:span 6}
-  .tall{grid-row:auto}.photo{min-height:200px}
-  .mode,.plate{grid-template-columns:repeat(2,1fr);padding:16px}
-  .mode>*,.plate>*{grid-column:span 2!important}
-  .preview{grid-template-columns:1fr 1fr}
-}
-@media (max-width:560px){
-  h1{font-size:36px}
-  .lead{font-size:18px}
-  .board{padding:12px}
-  .board-foot{flex-direction:column;align-items:flex-start}
-  .m-hide{display:none}
-  .quote{font-size:22px}
-  .mini-ticket .code{font-size:26px}
-  .gone{font-size:17px}
-}
-@media (max-width:359px){.bar .btn{display:none}}
-@media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
-  .js [data-r]{opacity:1;transform:none}
-  .gone li .x{text-decoration-color:var(--sienna)}
-}
-</style>
+<script src="landing.js" defer></script>
+<script src="lockin.js" defer></script>
+<script>document.documentElement.classList.add('js')</script>
 </head>
 <body>
-<script>document.documentElement.classList.add('js')</script>
+<a class="skip" href="#contenu">Aller au contenu</a>
 
-<header class="wrap bar">
-  <a class="mark" href="#top" aria-label="Renzvi, accueil"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="3" fill="#17191c"/><rect x="13" y="2" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="2" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="13" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/></svg>Renzvi</a>
-  <nav aria-label="Principale"><a href="#composer">Le concept</a><a href="#widgets">Les widgets</a><a href="#modes">Les modes</a></nav>
-  <div class="right"><a class="tlink" href="#questions">Questions →</a><a class="signin" href="login.html">Connexion</a><a class="btn fill" href="#inscription">Être prévenu</a></div>
+<header class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a class="mark" href="#top" aria-label="Renzvi, haut de page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="3" fill="#17191c"/><rect x="13" y="2" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="2" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="13" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/></svg>Renzvi</a>
+    <nav class="nav-links" aria-label="Sections de la page">
+      <a href="#composer">Composer</a><a href="#modes">Study et Chill</a><a href="#vol">Vol de focus</a><a href="#widgets">Widgets</a><a href="#offres">Offres</a><a href="#questions">Questions</a>
+    </nav>
+    <div class="nav-end">
+      <a class="signin" href="login.html">Connexion</a>
+      <a class="btn btn-primary" href="login.html">Essayer Renzvi</a>
+      <button class="menu-btn" type="button" popovertarget="menu" aria-label="Ouvrir le menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg></button>
+    </div>
+  </div>
+  <div id="menu" popover aria-label="Menu">
+    <a href="#composer">Composer son espace</a>
+    <a href="#modes">Study et Chill</a>
+    <a href="#vol">Vol de focus</a>
+    <a href="#widgets">Les widgets</a>
+    <a href="#offres">Offres envisagées</a>
+    <a href="#questions">Questions</a>
+    <a href="login.html">Essayer Renzvi</a>
+  </div>
 </header>
 
-<main id="top">
-  <section class="hero wrap" aria-labelledby="t">
-    <h1 id="t" data-r>Toutes tes apps.<br>Un seul écran.</h1>
-    <p class="lead" data-r>Renzvi réunit tes widgets de révision, de sport, de détente et d'ambiance sur un tableau de bord que tu composes comme un moodboard.</p>
-    <div class="pair" data-r><a class="btn fill" href="#inscription">Être prévenu au lancement</a><a class="btn ghost" href="#composer">Composer mon écran</a></div>
-    <p class="ins-row" data-install-row><button class="ins-open" type="button" data-install><span>Installer l'app</span></button></p>
+<main id="contenu">
+  <!-- A. Premier écran -->
+  <section class="hero" id="top" aria-labelledby="titre">
+    <div class="wrap">
+      <h1 class="display enter" id="titre">Ton espace.<br>Pour chaque moment.</h1>
+      <p class="intro enter enter-2">Renzvi est un espace personnel que tu composes comme un moodboard&nbsp;: tâches, minuteur, notes, musique, ambiance, sur la photo de ton choix. Pour bosser, réviser ou souffler.</p>
+      <div class="hero-actions enter enter-3">
+        <a class="btn btn-primary btn-lg" href="login.html">Créer mon espace</a>
+        <a class="btn btn-soft btn-lg" href="#composer">Voir comment ça marche</a>
+        <span class="ins-row" data-install-row><button class="ins-open" type="button" data-install><span>Installer l'app</span></button></span>
+      </div>
 
-    <div class="board" data-r data-ui>
-      <div class="tiles" id="tiles">
-        <div class="tile float photo w3 tall" data-name="Ton fond"><span class="cap">Ton fond, ta photo</span></div>
-        <div class="tile float w5" data-name="Tâches">
-          <div class="t">Tâches du jour <span class="tag">1 sur 3</span></div>
-          <ul class="checks">
-            <li><input type="checkbox" aria-label="Terminer : relire le chapitre 4"><span>Relire le chapitre 4</span></li>
-            <li><input type="checkbox" aria-label="Terminer : séance jambes"><span>Séance jambes</span></li>
-            <li class="done"><input type="checkbox" checked aria-label="Terminer : appeler mamie"><span>Appeler mamie</span></li>
+      <figure class="enter enter-4" style="margin:0">
+        <div class="stage" id="heroStage" data-ui role="img" aria-label="Aperçu du dashboard Renzvi : une prairie peinte en fond et des widgets posés dessus (Vol de focus, Tâches, Minuteur focus, Heure, Notes, Habitudes). Un widget Ambiance sonore vient s'ajouter et les autres lui font de la place, puis le fond passe à La Nuit étoilée.">
+          <div class="app" aria-hidden="true">
+            <div class="wall" data-w="prairie" style="background-image:url(landing/prairie.webp)"></div>
+            <div class="wall" data-w="nuit" style="opacity:0"></div>
+            <div class="app-bar">
+              <span class="app-pill"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="9" height="9" rx="3" fill="#17191c"/><rect x="13" y="2" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="2" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="13" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/></svg>Renzvi</span>
+              <span class="app-avatar">L</span>
+            </div>
+            <div class="app-head">
+              <span class="app-hello">Bonjour Léa.</span>
+              <span class="app-tools"><span class="app-chip" data-chip="fond">Fond d'écran</span><span class="app-chip" data-chip="ajout">Ajouter un widget</span></span>
+            </div>
+            <div class="sheet" id="heroSheet"><p>Ajouter un widget</p><span>Playlist</span><span data-hl>Ambiance sonore</span><span>Respiration guidée</span><span>Suivi de lecture</span></div>
+            <div class="grid" id="heroGrid"></div>
+            <span class="pointer" id="heroPointer"><svg viewBox="0 0 24 24"><path d="M5 3l14 8-6 1.6L10 19z" fill="#17191c" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg></span>
+          </div>
+        </div>
+        <figcaption class="stage-cap"><span>Le dashboard de Renzvi, avec des données d'exemple.</span><button type="button" id="heroReplay" hidden>Rejouer l'animation</button></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- C. Composer son espace -->
+  <section id="composer" aria-labelledby="t-composer">
+    <div class="wrap compose">
+      <div class="compose-text">
+        <h2 class="h2 reveal" id="t-composer">Compose ton espace.</h2>
+        <p class="intro reveal">Ajoute ce qui te sert, retire le reste, choisis ton fond. Les widgets se rangent tout seuls, et ton espace est enregistré dans ton compte&nbsp;: tu le retrouves à chaque visite.</p>
+        <div class="reveal">
+          <p class="ctrl-l" id="l-widgets">Widgets <span id="pickCount" class="num" aria-live="polite">4 sur l'écran</span></p>
+          <div class="chips" id="chips" role="group" aria-labelledby="l-widgets" style="margin-top:12px"></div>
+        </div>
+        <div class="reveal">
+          <p class="ctrl-l" id="l-fond">Fond</p>
+          <div class="swatches" id="swatches" role="group" aria-labelledby="l-fond" style="margin-top:12px"></div>
+        </div>
+      </div>
+      <div class="reveal">
+        <div class="panel panel-sand">
+          <div class="mini" id="composeStage" data-ui role="img" aria-label="Aperçu de ton espace, mis à jour selon tes choix.">
+            <div class="app" aria-hidden="true">
+              <div class="wall" data-w="prairie" style="background-image:url(landing/prairie.webp)"></div>
+              <div class="wall" style="opacity:0"></div>
+              <div class="grid" id="composeGrid"></div>
+            </div>
+          </div>
+          <p class="panel-foot"><span>Démonstration&nbsp;: rien n'est enregistré sur cette page.</span><span class="num" id="composeState" aria-live="polite"></span></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- D. Study et Chill -->
+  <section id="modes" aria-labelledby="t-modes">
+    <div class="wrap">
+      <div class="modes-head">
+        <div class="sec-head">
+          <h2 class="h2 reveal" id="t-modes">Study pour bosser. Chill pour souffler.</h2>
+          <p class="intro reveal">Un mode, c'est une composition&nbsp;: des widgets et un fond. Tu passes de l'un à l'autre et chacun garde ta disposition.</p>
+        </div>
+        <div class="seg reveal" id="modeSeg" role="group" aria-label="Choisir une composition">
+          <button type="button" data-mode="study" aria-pressed="true">Study</button>
+          <button type="button" data-mode="chill" aria-pressed="false">Chill</button>
+          <button type="button" data-mode="cahier" aria-pressed="false">Study avec cahier <span class="tag tag-soon">Bientôt</span></button>
+        </div>
+      </div>
+      <div class="panel panel-stone reveal">
+        <div class="mini mode-stage" id="modeStage" data-ui role="img" aria-label="Composition Study : Vol de focus, Minuteur focus, Tâches, Compte à rebours, Notes, Mes raccourcis, Heure et Habitudes, sur un fond de chat derrière un mur blanc.">
+          <div class="app" aria-hidden="true">
+            <div class="wall" data-w="chat" style="background-image:url(landing/chat.webp)"></div>
+            <div class="wall" style="opacity:0"></div>
+            <div class="grid" id="modeGrid"></div>
+          </div>
+        </div>
+        <p class="panel-foot"><span id="modeCaption">Study&nbsp;: tes outils de travail et de révision.</span><span>Aperçu du concept&nbsp;: le passage d'un mode à l'autre arrive bientôt.</span></p>
+      </div>
+      <div class="mode-note reveal">
+        <p>Aujourd'hui, tu composes un espace et tu le modifies à la main. Les modes enregistrés, puis le cahier de cours au centre de Study, viendront ensuite. Deux autres modes sont envisagés pour plus tard&nbsp;: Sport et Bien-être.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Vol de focus : la scène avion (démonstration). Vue depuis le siège, puis on se rapproche du hublot. -->
+  <section class="plane" id="vol" data-dark aria-labelledby="t-vol">
+    <div class="pl-veil" aria-hidden="true"></div>
+    <div class="pl-stage" id="plStage">
+      <div class="pl-cabin" id="plCabin" data-ui aria-hidden="true">
+        <div class="pl-wall">
+          <div class="pl-bin"></div>
+          <div class="pl-seam pl-seam-a"></div><div class="pl-seam pl-seam-b"></div>
+          <div class="pl-pool"></div>
+        </div>
+        <div class="pl-window" id="plWindow">
+          <div class="hublot-frame">
+            <div class="hublot-view" id="plView">
+              <div class="pl-far" id="plFar"></div>
+              <svg class="hublot-wing" id="plWing" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <defs><linearGradient id="pl-wing-light" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e2e6ea"/><stop offset=".55" stop-color="#aeb6be"/><stop offset="1" stop-color="#78818b"/></linearGradient></defs>
+                <path class="wing-tip" d="M47 70.500 43.500 62.500 45.500 62.500 51 70z"/>
+                <path fill="url(#pl-wing-light)" d="M100 60 50 70 47 70.500 100 96z"/>
+                <path class="wing-glow" d="M100 60 50 70 47 70.500 100 96z"/>
+                <path class="wing-flap" d="M100 84 62 74.800"/>
+                <path class="wing-rivets" d="M100 69 56 71.500M100 78 60 73.500"/>
+                <path class="wing-edge" d="M100 60 50 70"/>
+              </svg>
+              <div class="hublot-shade" id="plShade"></div>
+            </div>
+          </div>
+        </div>
+        <div class="pl-seat" id="plSeat"></div>
+      </div>
+      <div class="pl-scene" id="lkScene" aria-hidden="true"></div>
+      <div class="wrap pl-copy" id="plCopy">
+        <h2 class="h2" id="t-vol">C'est le moment de te concentrer.</h2>
+        <p class="intro">Le Vol de focus transforme une séance de travail en vol. Tu choisis la durée, tu déchires ton ticket et le compte à rebours s'affiche dans le hublot.</p>
+        <div class="pl-ticket" id="lkTicket" data-ui>
+          <div class="boarding">
+            <div class="bmain"><p class="blabel">Carte d'embarquement</p><p class="broute">PAR → LYS</p><p class="bcity">Paris → Lyon</p>
+              <dl class="bfields"><div><dt>Passager</dt><dd>Léa</dd></div><div><dt>Durée</dt><dd>25 min</dd></div><div><dt>Vol</dt><dd>RZ 125</dd></div></dl></div>
+            <div class="bstub"><svg viewBox="0 0 64 24" preserveAspectRatio="none" aria-hidden="true"><rect x="0" width="1" height="24"/><rect x="2" width="3" height="24"/><rect x="6" width="2" height="24"/><rect x="10" width="3" height="24"/><rect x="14" width="2" height="24"/><rect x="18" width="1" height="24"/><rect x="21" width="2" height="24"/><rect x="24" width="3" height="24"/><rect x="29" width="1" height="24"/><rect x="32" width="1" height="24"/><rect x="34" width="3" height="24"/><rect x="39" width="3" height="24"/><rect x="43" width="3" height="24"/><rect x="48" width="3" height="24"/><rect x="53" width="1" height="24"/><rect x="56" width="2" height="24"/><rect x="59" width="2" height="24"/><rect x="63" width="3" height="24"/></svg><p>RZ 125</p></div>
+          </div>
+        </div>
+      </div>
+      <div class="pl-hud" id="plHud" hidden>
+        <div class="flight-clock" id="lkClock" role="timer" aria-label="Compte à rebours de la démonstration">25:00</div>
+      </div>
+      <div class="wrap pl-bar">
+        <div class="lk-controls">
+          <div class="lk-durations" id="lkDurations" role="group" aria-label="Durée du vol" hidden>
+            <span class="seg-ink" aria-hidden="true"></span><button type="button" data-min="15" aria-pressed="false">15 min</button><button type="button" data-min="25" aria-pressed="true">25 min</button><button type="button" data-min="50" aria-pressed="false">50 min</button>
+          </div>
+          <div class="lk-actions">
+            <button class="btn btn-lg lk-go" type="button" id="lkGo" hidden>Déchirer et décoller</button>
+            <button class="btn btn-lg lk-go" type="button" id="lkReplay" hidden>Rejouer</button>
+            <button class="btn btn-lg lk-quit" type="button" id="lkQuit" hidden>Quitter la démonstration</button>
+          </div>
+        </div>
+        <div class="pl-deck" id="plDeck" hidden><p class="flight-route" id="lkRoute">Paris → Lyon</p><p class="flight-eta" id="lkEta"></p></div>
+        <p class="lk-note" id="lkNote" role="status">Démonstration&nbsp;: aucune séance n'est lancée et rien n'est enregistré. Dans l'app, le vol se fait en plein écran et s'annule si tu quittes l'écran.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- E. Les widgets -->
+  <section id="widgets" aria-labelledby="t-widgets">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 class="h2 reveal" id="t-widgets">Quatorze widgets, déjà dans l'app.</h2>
+        <p class="intro reveal">Touche un nom pour voir le widget. Chacun s'ajoute, se retire et se range sur ton espace.</p>
+      </div>
+      <div class="lib">
+        <div class="lib-list reveal" id="libList"></div>
+        <div class="panel panel-sand reveal">
+          <div class="lib-show">
+            <div class="mini" id="libStage" data-ui>
+              <div class="wall" data-w="nuit" style="background-image:url(landing/nuit.webp)"></div>
+              <div id="libWidget" aria-hidden="true"></div>
+            </div>
+            <div class="lib-desc" id="libDesc" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="soon" aria-labelledby="t-soon">
+        <div class="reveal">
+          <h3 class="h3" id="t-soon">Bientôt dans Renzvi</h3>
+          <p class="body" style="margin-top:12px;max-width:44ch">Des idées en préparation, pas encore disponibles. La plus attendue&nbsp;: un cahier de cours en grand, entouré de tes petits widgets.</p>
+          <div class="soon-vision" style="margin-top:24px" data-ui role="img" aria-label="Aperçu du concept : un grand widget cahier de cours au centre, entouré des widgets Minuteur focus, Notes et Tâches.">
+            <div class="app" aria-hidden="true">
+              <div class="wall" data-w="trou" style="background-image:url(landing/trou.webp)"></div>
+              <div class="grid" id="visionGrid"></div>
+            </div>
+          </div>
+          <p class="concept-cap"><span class="tag tag-soon">Aperçu du concept</span>Pas encore développé.</p>
+        </div>
+        <div class="soon-card reveal">
+          <ul class="soon-list">
+            <li><b>Cahier de cours <span class="tag tag-soon">Bientôt</span></b><p>Tes cours en grand widget, au milieu de ton espace Study.</p></li>
+            <li><b>Flashcards <span class="tag tag-soon">Bientôt</span></b><p>Des cartes à retourner pour réviser entre deux séances.</p></li>
+            <li><b>Modes enregistrés <span class="tag tag-soon">Bientôt</span></b><p>Study, Chill&nbsp;: passer d'une composition à l'autre en un geste.</p></li>
+            <li><b>Révision avec l'IA <span class="tag tag-soon">Idée</span></b><p>Des outils pour réviser à partir de tes cours, prévus dans l'offre Pro IA.</p></li>
+            <li><b>Sport <span class="tag tag-soon">Plus tard</span></b><p>Un mode pour tes séances et ton suivi.</p></li>
+            <li><b>Bien-être <span class="tag tag-soon">Plus tard</span></b><p>Un mode pour ralentir et prendre soin de toi.</p></li>
           </ul>
         </div>
-        <div class="tile float w4" data-name="Ticket de vol">
-          <div class="t">Ticket de vol</div>
-          <div class="mini-ticket" style="margin-top:10px"><div><div class="code">PAR → LYS</div><div class="tag">25 min de focus</div></div><div class="metric js-flight">25:00</div></div>
-          <div class="prog" aria-hidden="true"><span class="js-prog"></span></div>
-          <div class="fields"><div><span>Escale</span><b>aucune</b></div><div><span>Siège</span><b>12A</b></div><div><span>Si tu pars</span><b>vol annulé</b></div></div>
-        </div>
-        <div class="tile float w2" data-name="Compte à rebours"><div class="t">Partiel</div><div class="big-num" style="margin-top:10px">J-12</div></div>
-        <div class="tile float w2" data-name="Eau"><div class="t">Eau</div><div class="metric" style="margin-top:8px">5 / 8</div><div class="glass" aria-hidden="true"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span><span></span></div></div>
-        <div class="tile float w5" data-name="Playlist"><div class="t">Playlist <span class="tag">Spotify ou YouTube</span></div><div class="track" style="margin-top:6px"><span>Pluie douce et piano</span><span class="tag">1 h 12</span></div><div class="track"><span>Lofi du dimanche</span><span class="tag">48 min</span></div></div>
-        <div class="tile float w3 m-hide" data-name="Pas du jour"><div class="t">Pas du jour <span class="soon-tag">bientôt</span></div><div class="ring"><svg width="54" height="54" aria-hidden="true"><circle cx="27" cy="27" r="22" fill="none" stroke="#f2f2f3" stroke-width="7"/><circle cx="27" cy="27" r="22" fill="none" stroke="#5d2a1a" stroke-width="7" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="30.4"/></svg><div><div class="metric">6 240</div><div class="tag">sur 8 000</div></div></div></div>
-        <div class="tile float w3 m-hide" data-name="Citation"><div class="t">Phrase du jour</div><p class="quote">Un pas après l'autre.</p></div>
-        <div class="tile float w3 m-hide" data-name="Ambiance"><div class="t">Ambiance</div><div class="muted" style="font-size:15px;margin-top:6px">Pluie sur la vitre</div><div class="wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>
-        <div class="tile float w3 m-hide" data-name="Habitudes"><div class="t">Habitudes <span class="tag">5 jours</span></div><div class="dots"><span class="on"></span><span class="on"></span><span></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></div>
-      </div>
-      <div class="board-foot"><span id="boardHint">Attrape un widget et pose-le où tu veux.</span><button type="button" id="shuffle">Mélanger le tableau</button></div>
-    </div>
-  </section>
-
-  <section class="band" id="composer" aria-labelledby="tc1">
-    <div class="wrap two">
-      <div>
-        <h2 id="tc1" data-r>Compose ton moodboard.</h2>
-        <div class="points">
-          <p data-r><b>Choisis tes widgets</b>Révision, sport, détente, ambiance : tu prends ce qui te sert et tu laisses le reste.</p>
-          <p data-r><b>Place-les où tu veux</b>Grand pour ce qui compte, petit pour le reste. Ton écran suit ta journée, pas l'inverse.</p>
-          <p data-r><b>Donne-lui ton fond</b>Une photo à toi, une couleur calme : c'est ton espace, il doit te ressembler.</p>
-        </div>
-      </div>
-      <div class="ui" data-r>
-        <div class="float composer" data-ui>
-          <div class="t">Ajouter des widgets <span class="tag" id="count"></span></div>
-          <div class="lib" id="lib" role="group" aria-label="Widgets à ajouter"></div>
-          <div class="t" style="margin-top:20px">Fond</div>
-          <div class="walls" id="walls" role="group" aria-label="Choisir le fond"><button type="button" data-w="lac" aria-pressed="true">Lac au matin</button><button type="button" data-w="papier" aria-pressed="false">Papier</button><button type="button" data-w="pierre" aria-pressed="false">Pierre</button></div>
-          <div class="preview" id="preview" data-w="lac" aria-live="polite"></div>
-        </div>
       </div>
     </div>
   </section>
 
-  <section id="widgets" aria-labelledby="tw">
-    <div class="wrap two flip">
-      <div class="ui" data-ui><div class="plate in" id="plate"></div></div>
-      <div>
-        <h2 id="tw" data-r>Un widget pour chaque moment.</h2>
-        <div class="tabs" role="tablist" aria-label="Catégories de widgets" id="tabs" data-r></div>
-        <div class="panel" id="panel" role="tabpanel" aria-live="polite"></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="band" id="modes" aria-labelledby="tm">
-    <div class="wrap two">
-      <div>
-        <h2 id="tm" data-r>Change de mode en un clic.</h2>
-        <p class="lead" data-r style="margin-top:24px">Le matin, Study : tes tâches, ton compte à rebours et un vol de focus. Le soir, Chill : une photo, l'heure, une note et ta musique. Tout le tableau de bord change, fond compris.</p>
-        <div class="seg" role="group" aria-label="Choisir le mode" id="seg" data-r><button type="button" aria-pressed="true" data-m="study">Study</button><button type="button" aria-pressed="false" data-m="chill">Chill</button></div>
-      </div>
-      <div class="ui" data-r>
-        <div class="mode-box" data-ui>
-          <div class="mode study on" id="mStudy">
-            <div class="float s4"><div class="mini-ticket"><div><div class="tag">Vol en cours</div><div class="code">PAR → ROM</div></div><div style="text-align:right"><div class="tag">Atterrissage</div><div class="metric">dans 42 min</div></div></div></div>
-            <div class="float s2"><div class="t">Partiel</div><div class="big-num" style="margin-top:8px">J-12</div></div>
-            <div class="float s3"><div class="t">À réviser</div><ul class="checks"><li><input type="checkbox" aria-label="Terminer : chapitre 4"><span>Chapitre 4</span></li><li><input type="checkbox" aria-label="Terminer : exercice 12"><span>Exercice 12</span></li><li class="done"><input type="checkbox" checked aria-label="Terminer : fiches contrats"><span>Fiches contrats</span></li></ul></div>
-            <div class="float s3"><div class="t">Son d'ambiance</div><div class="muted" style="font-size:15px;margin-top:6px">Cabine d'avion</div><div class="wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>
-          </div>
-          <div class="mode chill" id="mChill">
-            <div class="float s3"><div class="tag">Il est</div><div class="big-num js-clock" style="margin-top:6px">--:--</div><div class="tag js-day"></div></div>
-            <div class="float s3"><div class="t">Note</div><p style="font-size:15px;margin-top:8px">Appeler mamie dimanche. Finir le livre avant les vacances.</p></div>
-            <div class="float s6"><div class="t">Ta playlist <span class="tag">Spotify ou YouTube</span></div><div class="track" style="margin-top:6px"><span>Pluie douce et piano</span><span class="tag">1 h 12</span></div><div class="track"><span>Lofi du dimanche</span><span class="tag">48 min</span></div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="moins" aria-labelledby="tg">
+  <!-- F. Offres envisagées -->
+  <section id="offres" aria-labelledby="t-offres">
     <div class="wrap">
-      <div class="peach" data-r>
-        <div>
-          <h2 id="tg">Cinq onglets en moins.</h2>
-          <p>Ta liste de tâches, ton minuteur, ta playlist, tes habitudes et tes notes vivaient chacun dans leur coin. Renzvi les pose tous sur la même page.</p>
+      <div class="price-top">
+        <div class="sec-head">
+          <h2 class="h2 reveal" id="t-offres">Des offres claires, en TTC.</h2>
+          <p class="notice reveal">Offres envisagées — lancement à venir</p>
         </div>
-        <ul class="gone" id="gone">
-          <li><span class="x">Ta liste de tâches</span><span class="n">onglet 1</span></li>
-          <li><span class="x">Ton minuteur de focus</span><span class="n">onglet 2</span></li>
-          <li><span class="x">Ta playlist pour bosser</span><span class="n">onglet 3</span></li>
-          <li><span class="x">Ton suivi d'habitudes</span><span class="n">onglet 4</span></li>
-          <li><span class="x">Tes notes rapides</span><span class="n">onglet 5</span></li>
-          <li class="all"><span>Renzvi, tout au même endroit</span><span>1 écran</span></li>
-        </ul>
+        <div class="seg reveal" id="billing" role="group" aria-label="Période de facturation">
+          <button type="button" data-bill="mois" aria-pressed="true">Mensuel</button>
+          <button type="button" data-bill="an" aria-pressed="false">Annuel</button>
+        </div>
+      </div>
+      <div class="plans">
+        <article class="plan reveal" aria-labelledby="p-free">
+          <div class="plan-name"><h3 class="h3" id="p-free">Gratuit</h3></div>
+          <p class="price"><b>0&nbsp;€</b></p>
+          <p class="price-sub">Pour découvrir Renzvi.</p>
+          <ul class="plan-list">
+            <li>Un moodboard avec une sélection de widgets</li>
+            <li>Fonds d'écran au choix</li>
+            <li>Limites exactes encore à confirmer</li>
+          </ul>
+          <a class="btn btn-soft" href="login.html">Essayer le prototype</a>
+        </article>
+        <article class="plan feature reveal" aria-labelledby="p-pro">
+          <div class="plan-name"><h3 class="h3" id="p-pro">Pro</h3></div>
+          <p class="price" data-price="pro" aria-live="polite"><b class="num">7,90&nbsp;€</b><span>TTC par mois</span></p>
+          <p class="price-sub" data-sub="pro">ou 76&nbsp;€ TTC par an</p>
+          <ul class="plan-list">
+            <li>Plusieurs espaces enregistrés</li>
+            <li>Tous les widgets classiques</li>
+            <li>Personnalisation complète&nbsp;: fonds, photo perso, disposition</li>
+            <li>Offre cible, enrichie à mesure que ces fonctions arrivent</li>
+          </ul>
+          <p class="plan-state">Pas encore en vente.</p>
+        </article>
+        <article class="plan reveal" aria-labelledby="p-ia">
+          <div class="plan-name"><h3 class="h3" id="p-ia">Pro IA</h3><span class="tag tag-soon">À venir</span></div>
+          <p class="price" data-price="ia" aria-live="polite"><b class="num">15,90&nbsp;€</b><span>TTC par mois</span></p>
+          <p class="price-sub" data-sub="ia">ou 153&nbsp;€ TTC par an</p>
+          <ul class="plan-list">
+            <li>Tout le Pro</li>
+            <li>Outils de révision avec l'IA, pas encore développés</li>
+            <li>Avec un quota d'utilisation, précisé avant le lancement</li>
+          </ul>
+          <p class="plan-state">Pas encore en vente.</p>
+        </article>
+      </div>
+      <p class="price-foot reveal">Ces prix sont des hypothèses&nbsp;: aucun abonnement n'est vendu aujourd'hui et rien ne t'est facturé. Le prototype actuel est gratuit.</p>
+    </div>
+  </section>
+
+  <!-- G. Questions -->
+  <section class="faq" id="questions" aria-labelledby="t-faq">
+    <div class="wrap faq-in">
+      <h2 class="h2 reveal" id="t-faq">Questions fréquentes</h2>
+      <div class="faq-list reveal">
+        <details open><summary>C'est quoi, Renzvi&nbsp;?</summary><p>Un espace personnel fait de widgets, que tu organises comme un moodboard. Tu choisis tes outils (tâches, minuteur, notes, musique, ambiance…), tu les ranges, tu choisis ton fond. Le même espace sert à travailler, apprendre, organiser ta journée et décompresser.</p></details>
+        <details><summary>Qu'est-ce qui marche déjà&nbsp;?</summary><p>Le dashboard&nbsp;: les quatorze widgets présentés plus haut, les fonds d'écran, ta propre photo, et la sauvegarde dans ton compte. Les modes Study et Chill, le cahier de cours, les flashcards et l'IA sont des aperçus&nbsp;: ils ne sont pas encore développés.</p></details>
+        <details><summary>Sur quels appareils&nbsp;?</summary><p>Dans ton navigateur, sur ordinateur, tablette et téléphone. Tu peux aussi l'installer sur ton écran d'accueil avec le bouton «&nbsp;Installer l'app&nbsp;». Depuis TikTok ou Instagram, ouvre d'abord le lien dans Safari ou Chrome.</p></details>
+        <details><summary>Comment je me connecte&nbsp;?</summary><p>Avec ton compte Google, ou avec un code à usage unique envoyé par email. Pas de mot de passe à retenir.</p></details>
+        <details><summary>Qui voit mes données&nbsp;?</summary><p>Toi seul. Ton espace est privé par défaut et on ne garde que le nécessaire pour le faire fonctionner&nbsp;: ton email et le contenu de tes widgets.</p></details>
+        <details><summary>Le Vol de focus bloque-t-il mon téléphone&nbsp;?</summary><p>Non. C'est une séance de concentration présentée comme un vol&nbsp;: tu choisis la durée, tu déchires ton ticket et le compte à rebours s'affiche en plein écran. Si tu quittes l'écran, le vol est annulé. Il ne bloque ni ton téléphone ni tes applis.</p></details>
+        <details><summary>Combien ça coûte&nbsp;?</summary><p>Le prototype est gratuit. Les offres Pro et Pro IA sont envisagées, avec des prix TTC&nbsp;; rien n'est vendu tant que le lancement n'est pas annoncé.</p></details>
       </div>
     </div>
   </section>
 
-  <section class="band faq" id="questions" aria-labelledby="tq">
-    <div class="wrap two">
-      <h2 id="tq" data-r>Tes questions.</h2>
-      <div data-r>
-        <details open><summary>C'est quoi, Renzvi ?</summary><p>Une app qui réunit tous tes petits outils du quotidien (révision, sport, détente, ambiance) sur un seul tableau de bord. Tu choisis tes widgets, tu les places où tu veux, tu mets ton fond.</p></details>
-        <details><summary>Qu'est-ce qui sera là au lancement ?</summary><p>Les modes Study et Chill : tâches, minuteur et ticket de vol, compte à rebours d'examen, habitudes, notes, sons d'ambiance et playlist. Les widgets marqués « bientôt » arrivent ensuite.</p></details>
-        <details><summary>Renzvi comptera mes pas ?</summary><p>Pas au lancement. Une page web ne peut pas lire le compteur de pas de ton téléphone : ce widget arrivera avec l'application mobile, ou en saisie à la main.</p></details>
-        <details><summary>Combien ça coûte ?</summary><p>Il y aura une version gratuite. Le prix de la version Pro sera affiché TTC avant l'ouverture, sans surprise.</p></details>
-        <details><summary>Qui voit mes données ?</summary><p>Toi seul. Ton tableau de bord est privé par défaut et on ne collecte que le strict nécessaire.</p></details>
-        <details><summary>Ça marche sur téléphone ?</summary><p>Oui. Depuis TikTok ou Instagram, ouvre le lien dans Safari ou Chrome pour pouvoir te connecter.</p></details>
+  <!-- Conclusion -->
+  <section class="close" data-dark aria-labelledby="t-close">
+    <div class="wrap close-in">
+      <div>
+        <h2 class="h2 reveal" id="t-close">Ton espace t'attend.</h2>
+        <p class="reveal">Connecte-toi avec Google ou un code reçu par email, puis pose tes premiers widgets.</p>
+        <div class="close-actions reveal">
+          <a class="btn btn-primary btn-lg" href="login.html">Créer mon espace</a>
+          <a class="btn btn-soft btn-lg" href="#top" data-replay>Revoir la démo</a>
+        </div>
       </div>
-    </div>
-  </section>
-
-  <section class="cta" id="inscription" aria-labelledby="tc">
-    <div class="wrap">
-      <h2 id="tc" data-r>Garde ta place.</h2>
-      <form id="form" novalidate data-r>
-        <label for="em" style="position:absolute;left:-9999px">Ton adresse email</label>
-        <input id="em" type="email" placeholder="ton@email.fr" autocomplete="email" required>
-        <button class="btn fill" type="submit">Être prévenu</button>
-        <a class="btn ghost" href="#top">Revoir le tableau</a>
-      </form>
-      <p class="muted" id="after" role="status">Un seul email, le jour de l'ouverture. Ton adresse n'est partagée avec personne.</p>
+      <svg class="close-art reveal" viewBox="0 0 24 24" role="img" aria-label="Logo Renzvi"><rect x="2" y="2" width="9" height="9" rx="3" fill="#fff"/><rect x="13" y="2" width="9" height="9" rx="3" fill="#fff" opacity=".22"/><rect x="2" y="13" width="9" height="9" rx="3" fill="#fff" opacity=".22"/><rect x="13" y="13" width="9" height="9" rx="3" fill="#fff" opacity=".22"/></svg>
     </div>
   </section>
 </main>
 
-<footer aria-label="Pied de page">
+<footer>
   <div class="wrap">
-    <div class="wordmark" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="9" height="9" rx="3" fill="#17191c"/><rect x="13" y="2" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="2" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="13" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/></svg><span>Renzvi</span></div>
-    <div class="fcols">
-      <div><b>Produit</b><a href="#composer">Le concept</a><a href="#widgets">Les widgets</a><a href="#modes">Les modes</a></div>
-      <div><b>Aide</b><a href="#questions">Questions</a><a href="#inscription">Être prévenu</a></div>
-      <div><b>Légal</b><a href="#">Mentions légales</a><a href="#">Confidentialité</a></div>
-      <p class="cred">Photo : <a href="https://commons.wikimedia.org/wiki/File:Lake_mapourika_NZ.jpeg">« Lake mapourika NZ »</a>, Richard Palmer, <a href="https://creativecommons.org/licenses/by-sa/3.0/">CC BY-SA 3.0</a>, via Wikimedia Commons. Données des widgets : exemples.</p>
+    <div class="foot">
+      <div>
+        <a class="mark" href="#top" aria-label="Renzvi, haut de page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="3" fill="#17191c"/><rect x="13" y="2" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="2" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="13" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/></svg>Renzvi</a>
+        <p class="editorial" style="margin-top:16px;max-width:30ch">Un espace à toi, pour bosser, apprendre et souffler.</p>
+      </div>
+      <div class="foot-links">
+        <div><b>Découvrir</b><a href="#composer">Composer</a><a href="#modes">Study et Chill</a><a href="#vol">Vol de focus</a><a href="#widgets">Widgets</a></div>
+        <div><b>Compte</b><a href="login.html">Connexion</a><a href="#offres">Offres envisagées</a><a href="#questions">Questions</a></div>
+        <div><b>Légal</b><p>Mentions légales et confidentialité&nbsp;: en préparation.</p></div>
+      </div>
     </div>
-    <div class="copy"><span>© 2026 Renzvi</span><a class="tlink" href="#top">Haut de page →</a></div>
+    <p class="credits">Fonds d'écran des démonstrations&nbsp;: images fournies pour le prototype, sources et licences à confirmer avant toute mise en ligne. «&nbsp;La Nuit étoilée&nbsp;», Vincent van Gogh (1889), domaine public. Polices Inter et Source Serif 4, licence SIL OFL. Contenus des widgets&nbsp;: exemples. © 2026 Renzvi.</p>
   </div>
 </footer>
-
-<script>
-const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const mmss=s=>String(s/60|0).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
-
-/* horloges réelles */
-const tick=()=>{const d=new Date();$$('.js-clock').forEach(e=>e.textContent=d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));$$('.js-day').forEach(e=>e.textContent=d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}))};
-tick();setInterval(tick,10000);
-document.addEventListener('change',e=>{if(e.target.matches('.checks input'))e.target.closest('li').classList.toggle('done',e.target.checked)});
-/* le petit ticket du tableau tourne pour de vrai */
-{let s=25*60;if(!RM)setInterval(()=>{s=s>0?s-1:1500;$$('.js-flight').forEach(e=>e.textContent=mmss(s));$$('.js-prog').forEach(e=>e.style.transform='scaleX('+(1-s/1500)+')')},1000)}
-
-/* ---- le moodboard : glisser pour réarranger (animation FLIP), flèches au clavier ---- */
-const tiles=$('#tiles');
-$$('.tile').forEach(t=>{const b=document.createElement('button');b.type='button';b.className='grip';
-  b.setAttribute('aria-label','Déplacer le widget '+t.dataset.name+' (flèches gauche et droite)');t.append(b)});
-function flip(mutate){
-  const items=$$('.tile'),before=new Map(items.map(el=>[el,el.getBoundingClientRect()]));
-  mutate();
-  if(RM)return;
-  items.forEach(el=>{if(el.classList.contains('dragging'))return;const a=before.get(el),b=el.getBoundingClientRect(),dx=a.left-b.left,dy=a.top-b.top;
-    if(!dx&&!dy)return;el.style.transition='none';el.style.transform=`translate(${dx}px,${dy}px)`;
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{el.style.transition='transform .45s var(--ease)';el.style.transform=''}))});
-}
-function swap(a,b){if(a===b)return;const ph=document.createElement('div');a.replaceWith(ph);b.replaceWith(a);ph.replaceWith(b)}
-let drag=null;
-tiles.addEventListener('pointerdown',e=>{
-  const t=e.target.closest('.tile');if(!t||e.button!==0)return;
-  const onGrip=e.target.closest('.grip');
-  if(!onGrip&&(e.pointerType!=='mouse'||e.target.closest('input,label,button')))return; // au doigt : seulement par la poignée, pour laisser défiler la page
-  e.preventDefault();
-  const r=t.getBoundingClientRect();
-  drag={t,x0:e.clientX,y0:e.clientY,ox:0,oy:0,left:r.left,top:r.top,moved:false};
-  t.setPointerCapture(e.pointerId);
-});
-tiles.addEventListener('pointermove',e=>{
-  if(!drag)return;const{t}=drag,dx=e.clientX-drag.x0,dy=e.clientY-drag.y0;
-  if(!drag.moved&&Math.hypot(dx,dy)<6)return;
-  if(!drag.moved){drag.moved=true;t.classList.add('dragging')}
-  const move=()=>t.style.transform=`translate(${dx+drag.ox}px,${dy+drag.oy}px) rotate(1.2deg)`;
-  move();
-  t.style.visibility='hidden';const under=document.elementFromPoint(e.clientX,e.clientY)?.closest('.tile');t.style.visibility='';
-  if(under&&under!==t){
-    flip(()=>swap(t,under));
-    // la tuile a changé de case : on compense pour qu'elle reste sous le pointeur
-    const tr=t.style.transform;t.style.transform='none';const n=t.getBoundingClientRect();
-    drag.ox+=drag.left-n.left;drag.oy+=drag.top-n.top;drag.left=n.left;drag.top=n.top;move();
-    $('#boardHint').textContent='Ton tableau, ton ordre.';
-  }
-});
-const endDrag=()=>{if(!drag)return;const{t,moved}=drag;drag=null;t.classList.remove('dragging');
-  if(moved&&!RM){t.style.transition='transform .35s var(--ease)';requestAnimationFrame(()=>t.style.transform='')}else t.style.transform=''};
-tiles.addEventListener('pointerup',endDrag);tiles.addEventListener('pointercancel',endDrag);
-tiles.addEventListener('keydown',e=>{
-  const g=e.target.closest('.grip');if(!g)return;const t=g.closest('.tile');
-  const sib=e.key==='ArrowLeft'||e.key==='ArrowUp'?t.previousElementSibling:e.key==='ArrowRight'||e.key==='ArrowDown'?t.nextElementSibling:null;
-  if(!sib)return;e.preventDefault();flip(()=>swap(t,sib));g.focus();
-});
-$('#shuffle').onclick=()=>flip(()=>{const a=$$('.tile');for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;tiles.append(a.splice(j,1)[0])}tiles.append(a[0])});
-
-/* ---- composer : bibliothèque de widgets + fond ---- */
-const LIB=[["Tâches","3 choses à faire aujourd'hui"],["Minuteur","25:00 de focus"],["Playlist","Pluie douce et piano"],["Habitudes","Série de 5 jours"],["Citation","Un pas après l'autre."],["Compte à rebours","Partiel dans 12 jours"],["Notes","Rappeler le plombier"],["Ambiance","Pluie sur la vitre"]];
-const picked=new Set(["Tâches","Minuteur","Playlist"]);
-const lib=$('#lib'),pv=$('#preview');
-function drawPreview(){
-  pv.innerHTML=picked.size?LIB.filter(w=>picked.has(w[0])).map(w=>`<div class="pv"><b>${esc(w[0])}</b>${esc(w[1])}</div>`).join(''):'<p class="empty">Ton écran est vide : ajoute un widget.</p>';
-  $('#count').textContent=picked.size+(picked.size>1?' widgets':' widget');
-  lib.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',picked.has(b.dataset.n)));
-}
-LIB.forEach(w=>{const b=document.createElement('button');b.type='button';b.dataset.n=w[0];b.textContent=w[0];
-  b.onclick=()=>{picked.has(w[0])?picked.delete(w[0]):picked.add(w[0]);drawPreview()};lib.append(b)});
-drawPreview();
-$$('#walls button').forEach(b=>b.onclick=()=>{pv.dataset.w=b.dataset.w;$$('#walls button').forEach(x=>x.setAttribute('aria-pressed',x===b))});
-
-/* ---- catégories ---- */
-const RING=`<div class="ring"><svg width="54" height="54" aria-hidden="true"><circle cx="27" cy="27" r="22" fill="none" stroke="#f2f2f3" stroke-width="7"/><circle cx="27" cy="27" r="22" fill="none" stroke="#5d2a1a" stroke-width="7" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="30.4"/></svg><div><div class="metric">6 240</div><div class="tag">sur 8 000</div></div></div>`;
-const WAVE='<div class="wave" aria-hidden="true">'+'<span></span>'.repeat(16)+'</div>';
-const CATS=[
-  {n:"Study",when:"Au lancement",t:"Pour bosser sans t'éparpiller",d:"Tes tâches, tes examens et tes séances de focus. Le ticket de vol transforme chaque séance en trajet : si tu quittes la page avant l'arrivée, le vol est annulé.",
-   l:["Ticket de vol (séance de focus)","Compte à rebours d'examen","Temps par matière","Tâches du jour"],
-   plate:`<div class="float ticket s6" id="mt"><div class="main"><div class="t">Carte d'embarquement</div><div class="mini-ticket" style="margin-top:10px"><div class="code">PAR → LYS</div></div><div class="fields"><div><span>Durée</span><b>25 min</b></div><div><span>Escale</span><b>aucune</b></div><div><span>Siège</span><b>12A</b></div></div><div class="state" role="status"><div class="tag" id="mtL">En vol vers Lyon</div><div class="big-num" id="mtR">25:00</div></div></div><div class="stub"><div class="tag">Talon</div><button class="btn fill" type="button" id="mtB">Déchirer</button></div></div>
-     <div class="float s2"><div class="t">Partiel</div><div class="big-num" style="margin-top:8px">J-12</div></div>
-     <div class="float s4"><div class="t">Temps par matière</div><div class="subj"><div><span>Droit</span><span class="barx"><i style="--w:100%"></i></span><span>4 h 10</span></div><div><span>Économie</span><span class="barx"><i style="--w:74%"></i></span><span>3 h 05</span></div><div><span>Anglais</span><span class="barx"><i style="--w:32%"></i></span><span>1 h 20</span></div></div></div>`},
-  {n:"Sport",when:"Bientôt, après le lancement",t:"Pour bouger un peu chaque jour",d:"Tes pas, ton eau et tes séances, à côté du reste. Le compteur de pas viendra avec l'application mobile.",
-   l:["Pas du jour","Eau","Minuteur d'intervalles","Séances de la semaine"],
-   plate:`<div class="float s3"><div class="t">Pas du jour <span class="soon-tag">bientôt</span></div>${RING}</div>
-     <div class="float s3"><div class="t">Eau <span class="soon-tag">bientôt</span></div><div class="metric" style="margin-top:8px">5 verres sur 8</div><div class="glass" aria-hidden="true"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span><span></span></div></div>
-     <div class="float s6"><div class="t">Intervalles <span class="soon-tag">bientôt</span></div><div class="mini-ticket" style="margin-top:10px"><div><div class="big-num">00:40</div><div class="tag">effort, tour 3 sur 8</div></div><div class="tag">puis 20 s de repos</div></div></div>`},
-  {n:"Chill",when:"Au lancement",t:"Pour souffler",d:"L'heure, une phrase, une note et ta musique, sur une photo que tu aimes. Rien à faire, juste un écran agréable à regarder.",
-   l:["Horloge","Phrase du jour","Notes","Playlist (Spotify ou YouTube)"],
-   plate:`<div class="float s3"><div class="tag">Il est</div><div class="big-num js-clock" style="margin-top:6px">--:--</div></div>
-     <div class="float s3"><div class="t">Phrase du jour</div><p class="quote">Un pas après l'autre.</p></div>
-     <div class="float s6"><div class="t">Playlist</div><div class="track" style="margin-top:6px"><span>Pluie douce et piano</span><span class="tag">1 h 12</span></div><div class="track"><span>Lofi du dimanche</span><span class="tag">48 min</span></div></div>`},
-  {n:"Ambiance",when:"Au lancement",t:"Pour l'atmosphère",d:"Des sons qui couvrent le bruit autour de toi, que tu mélanges et règles un par un.",
-   l:["Pluie","Café","Cabine d'avion","Feu de bois"],
-   plate:`<div class="float s6"><div class="t">Mélangeur d'ambiance</div>
-     <div class="vol"><label for="v1">Pluie</label><input id="v1" type="range" value="70"></div>
-     <div class="vol"><label for="v2">Café</label><input id="v2" type="range" value="30"></div>
-     <div class="vol"><label for="v3">Cabine d'avion</label><input id="v3" type="range" value="0"></div>
-     <div class="vol"><label for="v4">Feu de bois</label><input id="v4" type="range" value="45"></div></div>
-     <div class="float s6"><div class="t">En ce moment</div><div class="muted" style="font-size:15px;margin-top:6px">Pluie et feu de bois</div>${WAVE}</div>`},
-];
-const tabs=$('#tabs'),plate=$('#plate'),panel=$('#panel');let flightT=null;
-function showCat(i){
-  const c=CATS[i];tabs.querySelectorAll('button').forEach((b,j)=>{b.setAttribute('aria-selected',i===j);b.tabIndex=i===j?0:-1});
-  panel.innerHTML=`<h3>${c.t}</h3><p class="tag" style="margin-top:6px">${c.when}</p><p class="desc">${c.d}</p><ul>${c.l.map(x=>`<li>${x}</li>`).join('')}</ul>`;
-  clearInterval(flightT);plate.classList.remove('in');
-  setTimeout(()=>{plate.innerHTML=c.plate;tick();wireTicket();requestAnimationFrame(()=>plate.classList.add('in'))},RM?0:160);
-}
-function wireTicket(){
-  const b=$('#mtB');if(!b)return;
-  b.onclick=()=>{const t=$('#mt'),end=Date.now()+25*60000;t.classList.add('torn');
-    const f=()=>{const s=Math.max(0,Math.round((end-Date.now())/1000));$('#mtR').textContent=mmss(s);if(!s){clearInterval(flightT);$('#mtL').textContent='Atterri à Lyon'}};
-    f();flightT=setInterval(f,1000)};
-}
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&$('#mt.torn')&&$('#mtL').textContent.startsWith('En vol')){clearInterval(flightT);$('#mtL').textContent='Vol annulé : tu as quitté la page';$('#mtR').textContent='Annulé'}});
-CATS.forEach((c,i)=>{const b=document.createElement('button');b.type='button';b.role='tab';b.textContent=c.n;b.onclick=()=>showCat(i);
-  b.onkeydown=e=>{if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;const j=(i+(e.key==='ArrowRight'?1:CATS.length-1))%CATS.length;tabs.children[j].focus();showCat(j)};tabs.append(b)});
-showCat(0);
-
-/* ---- modes ---- */
-$$('#seg button').forEach(b=>b.onclick=()=>{$$('#seg button').forEach(x=>x.setAttribute('aria-pressed',x===b));
-  $('#mStudy').classList.toggle('on',b.dataset.m==='study');$('#mChill').classList.toggle('on',b.dataset.m==='chill')});
-
-/* ---- entrées échelonnées ---- */
-const io=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;const el=e.target;
-  const sib=[...el.parentElement.children].filter(x=>x.hasAttribute('data-r'));el.style.transitionDelay=(Math.max(0,sib.indexOf(el))*80)+'ms';el.classList.add('in');
-  el.querySelectorAll('.gone').forEach(g=>setTimeout(()=>g.classList.add('in'),500));
-  io.unobserve(el)}),{threshold:.15});
-$$('[data-r]').forEach(el=>io.observe(el));
-
-/* ---- inscription ---- */
-// shortcut: aucun envoi réel, à brancher (Supabase ou outil d'emailing) avant la mise en ligne.
-$('#form').onsubmit=e=>{e.preventDefault();$('#after').textContent=$('#em').checkValidity()?"Merci. L'inscription n'est pas encore branchée : cette page est une démonstration.":"Il manque une adresse email valide."};
-</script>
 </body>
 </html>

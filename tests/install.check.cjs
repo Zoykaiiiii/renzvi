@@ -11,7 +11,7 @@ const ROOT = path.join(__dirname, '..', 'site');
 const SHOTS = process.argv[2];
 const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.jpg': 'image/jpeg' };
 const server = http.createServer((req, res) => {
-  const file = path.join(ROOT, decodeURIComponent(req.url.split('?')[0]));
+  const file = path.join(ROOT, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
   if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); return res.end(); }
   res.writeHead(200, { 'content-type': TYPES[path.extname(file)] || 'application/octet-stream' });
   fs.createReadStream(file).pipe(res);
@@ -121,6 +121,27 @@ async function walk(page, name, expectedSteps, { finalLast = true } = {}) {
     const { page, context } = await visit(browser, DESKTOP);
     const served = await page.evaluate(async () => (await fetch('manifest.webmanifest')).headers.get('content-type'));
     assert.match(served, /manifest/);
+    await context.close();
+  }
+
+  // L'accueil est bien la landing, sans fichier manquant ni appel à un autre site ; l'ancienne adresse y mène.
+  for (const options of [DESKTOP, { ...PHONE, userAgent: UA.iosSafari }]) {
+    const { page, context, errors } = await visit(browser, options, { page: '' });
+    const missing = [], outside = [];
+    page.on('response', r => { if (r.status() >= 400) missing.push(r.url()); });
+    page.on('request', r => { if (!r.url().startsWith('http://127.0.0.1') && !r.url().startsWith('data:')) outside.push(r.url()); });
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    assert.equal(await page.title(), 'Renzvi — ton espace de widgets');
+    assert.ok(await page.isVisible('h1'));
+    assert.equal(await page.locator('a[href="login.html"]:visible').count() > 0, true, 'on peut aller à la connexion');
+    assert.deepEqual(missing, []);
+    assert.deepEqual(outside, [], 'polices et images sont servies par le site');
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await page.goto(page.url() + 'prototype.html');
+    await page.waitForURL(u => !u.pathname.includes('prototype'));
+    assert.equal(await page.title(), 'Renzvi — ton espace de widgets');
+    assert.deepEqual(errors, []);
     await context.close();
   }
 
