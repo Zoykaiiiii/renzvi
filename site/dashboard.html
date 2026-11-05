@@ -20,22 +20,31 @@
 <style>
 /* Tous les choix visuels passent par ces variables : changer de style = changer ce bloc. */
 :root{
-  --ink:#17191c; --slate:#55565c; --error:#b3261e; --accent:#1b6e66;
+  --ink:#17191c; --slate:#55565c; --error:#b3261e;
+  /* Accents au choix : tous à 4,5:1 minimum avec --on-accent, vérifié par tests/personnalisation.check.cjs. */
+  --accent-encre:#17191c; --accent-vert:#1b6e66; --accent-bleu:#1c5699; --accent-prune:#6e2a55; --accent-terre:#96401f;
+  --accent:var(--accent-vert); --on-accent:#fff;
   --tint:rgba(23,25,28,.06); --rule:rgba(23,25,28,.08); --edge:rgba(23,25,28,.2);
   --ground:#fff; --wall-glass:rgba(255,255,255,.82);
-  --glass:rgba(255,255,255,.56); --glass-edge:rgba(255,255,255,.88); --glass-blur:blur(26px) saturate(1.5);
-  --glass-shine:inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 0 rgba(255,255,255,.4),0 0 0 1px rgba(23,25,28,.05),0 2px 6px rgba(23,25,28,.05);
+  --glass:rgba(255,255,255,.56); --glass-wall:rgba(250,250,251,.74); --glass-solid:rgba(250,250,251,.95); --slate-wall:#43454b;
+  --glass-edge:rgba(255,255,255,.6); --glass-blur:blur(16px) saturate(1.25);
+  --glass-shine:inset 0 1px 0 rgba(255,255,255,.65),0 0 0 1px rgba(23,25,28,.05),0 1px 2px rgba(23,25,28,.05);
   --sans:-apple-system,BlinkMacSystemFont,"Hanken Grotesk",ui-sans-serif,system-ui,sans-serif;
   --r-panel:28px; --r-panel-morph:36px 26px 34px 30px; --pill:9999px;
   --spring:cubic-bezier(.34,1.56,.64,1); --gap:16px; --control:40px;
+  --move:.18s cubic-bezier(.2,.7,.2,1); --lift:0 18px 40px rgba(23,25,28,.24);
 }
+:root[data-accent=encre]{--accent:var(--accent-encre)}
+:root[data-accent=bleu]{--accent:var(--accent-bleu)}
+:root[data-accent=prune]{--accent:var(--accent-prune)}
+:root[data-accent=terre]{--accent:var(--accent-terre)}
 *{box-sizing:border-box;margin:0}
 [hidden]{display:none!important}
 body{font:400 16px/1.5 var(--sans);letter-spacing:-.008em;color:var(--ink);background:var(--ground);min-height:100dvh;-webkit-font-smoothing:antialiased}
 body::before{content:"";position:fixed;inset:0;z-index:-1;background:var(--wall,none) center/cover}
-/* Sur une photo (même sombre), tout ce qui porte du texte reçoit un fond de verre assez opaque pour rester lisible. */
-body.has-wall{--glass:var(--wall-glass)}
-body.has-wall :is(.mark,#hello,.credit,#saved:not(:empty),#board-empty,#load-error){padding:4px 14px;border-radius:18px;background:var(--wall-glass);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
+/* Sur une photo (même noire), le verre garde 4,5:1 avec le gris secondaire et 3:1 avec l'accent, vérifié par tests/personnalisation.check.cjs. */
+body.has-wall{--glass:var(--glass-wall);--slate:var(--slate-wall)}
+body.has-wall :is(.mark,#hello,.credit,#saved:not(:empty),#board-empty,#load-error,.custom-hint){padding:4px 14px;border-radius:18px;background:var(--wall-glass);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
 body.has-wall .credit{width:fit-content;margin-block:32px 24px}
 body.has-wall .ghost{background:var(--wall-glass)}
 button,textarea,input{font:inherit;letter-spacing:inherit;color:inherit}
@@ -50,6 +59,9 @@ a{color:inherit}
 .mark svg{width:24px;height:24px}
 
 .glass{background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shine)}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  :root{--glass:var(--glass-solid);--glass-wall:var(--glass-solid)}
+}
 
 .me{width:44px;height:44px;border-radius:var(--pill);font-weight:600;transition:transform .45s var(--spring)}
 .me:active{transform:scale(.92)}
@@ -72,8 +84,9 @@ h1{font-size:32px;line-height:1.15;font-weight:500;letter-spacing:-.024em}
 .blocked{padding-top:40px}
 #retry{display:block;margin-top:8px;padding:10px 0;border:0;background:none;font-weight:500;text-decoration:underline;text-underline-offset:3px}
 
-/* Autant de colonnes de 340 px que la largeur permet : marche avec n'importe quelle sélection de widgets. */
-.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr));gap:var(--gap)}
+/* 12 colonnes, placement sans « dense » : l'ordre affiché reste toujours l'ordre de lecture.
+   Téléphone 12 ; tablette P 4, M 6, G 12 ; ordinateur P 3, M 4, G 8. 4 + 8 = 3 + 3 + 6… = 12 : les rangées pleines tombent sur les bords. */
+.board{position:relative;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:var(--gap)}
 .tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 #board-empty{width:fit-content;font-size:14px;color:var(--slate)}
 
@@ -107,8 +120,46 @@ dialog .actions{justify-content:flex-end}
 .ref{display:flex;gap:6px;margin-top:6px}
 .ref input{flex:1;min-width:0;height:36px;padding:0 10px;border:1px solid var(--edge);border-radius:10px;background:#fff;font-size:12px}
 .ref .ghost{height:36px;padding:0 12px;font-size:13px}
-.widget{display:flex;flex-direction:column;min-width:0;padding:24px;border-radius:var(--r-panel);transition:border-radius .6s var(--spring)}
+.widget{container:widget/inline-size;grid-column:span 12;display:flex;flex-direction:column;min-width:0;padding:24px;border-radius:var(--r-panel);transition:border-radius .6s var(--spring)}
+.widget[data-size=s]{padding:16px}
+@media (min-width:728px){
+  .widget{grid-column:span 6}
+  .widget[data-size=s]{grid-column:span 4}
+  .widget[data-size=l]{grid-column:span 12}
+}
+@media (min-width:1040px){
+  .widget{grid-column:span 4}
+  .widget[data-size=s]{grid-column:span 3}
+  .widget[data-size=l]{grid-column:span 8}
+}
 @media (hover:hover){.widget:hover{border-radius:var(--r-panel-morph)}}
+
+/* Mode Personnaliser. */
+.custom{position:sticky;top:8px;z-index:5;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin-bottom:var(--gap);padding:8px 8px 8px 20px;border-radius:var(--r-panel);--glass:var(--glass-solid)}
+.custom-accent{display:flex;flex-wrap:wrap;align-items:center;gap:0 12px;min-width:0}
+.custom-accent p{font-size:14px}
+.custom-accent b{font-weight:600}
+.swatches{display:flex}
+.swatch{display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:var(--pill);background:none}
+.swatch i{display:block;width:24px;height:24px;border-radius:var(--pill);background:var(--c);transition:transform .15s}
+.swatch:active i{transform:scale(.9)}
+.swatch[aria-pressed=true] i{outline:2px solid var(--ink);outline-offset:3px}
+.custom-side{display:flex;align-items:center;gap:12px;margin-left:auto}
+.custom-hint{display:none;margin-bottom:var(--gap);font-size:13px}
+.edit{display:none;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.customizing .edit{display:flex}
+.edit .ghost{padding:0 12px;font-size:13px}
+.edit .ghost:disabled{color:var(--slate);opacity:.55;cursor:default}
+.edit .choices{flex:1 1 auto;align-self:auto}
+.edit .choices button{flex:1;min-width:0;padding:0 6px}
+.grip{display:grid;place-items:center;flex:none;width:var(--control);height:var(--control);padding:0;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7);color:var(--ink);cursor:grab;touch-action:none}
+.grip svg{width:14px;height:14px;fill:currentColor}
+.dragging{user-select:none;-webkit-user-select:none}
+.dragging .grip{cursor:grabbing}
+.customizing .widget:hover{border-radius:var(--r-panel)}
+.widget.lifted{z-index:10;box-shadow:var(--lift),0 0 0 2px var(--accent);transition:none} /* taste-skill-ignore : le widget tenu flotte vraiment */
+.drop-slot{position:absolute;border:2px dashed var(--accent);border-radius:var(--r-panel);background:rgba(255,255,255,.28);transition:left var(--move),top var(--move),width var(--move),height var(--move);pointer-events:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 .meta{font-size:12px;line-height:20px;color:var(--slate);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -123,6 +174,7 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 .ghost:active{transform:scale(.97)}
 .primary{flex:none;height:var(--control);padding:0 20px;border:0;border-radius:var(--pill);background:var(--ink);color:#fff;font-size:14px;font-weight:500;transition:transform .15s}
 .primary:active{transform:scale(.97)}
+#screen .primary{background:var(--accent);color:var(--on-accent)}
 .x{flex:none;width:32px;height:32px;border:0;border-radius:var(--pill);background:none;color:var(--slate);font-size:18px;line-height:1}
 .x:hover{background:var(--tint);color:var(--ink)}
 .link{align-self:flex-start;margin-top:8px;padding:6px 0;border:0;background:none;font-size:14px;font-weight:500;text-decoration:underline;text-underline-offset:3px}
@@ -145,8 +197,8 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 
 .choices{display:flex;gap:4px;align-self:flex-start;padding:3px;border-radius:var(--pill);background:var(--tint)}
 .choices button{height:32px;min-width:56px;padding:0 10px;border:0;border-radius:var(--pill);background:none;font-size:13px;font-variant-numeric:tabular-nums}
-.choices button[aria-pressed=true]{background:#fff;font-weight:600}
 .choices button:disabled{color:var(--slate);cursor:default}
+.choices button[aria-pressed=true]{background:var(--accent);color:var(--on-accent);font-weight:600}
 .focus-time{margin-top:12px}
 .bar{height:6px;margin-top:12px;border-radius:var(--pill);background:var(--tint);overflow:hidden}
 .bar i{display:block;height:100%;border-radius:inherit;background:var(--accent);transform-origin:left;transform:scaleX(0)}
@@ -159,7 +211,7 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 .days{display:flex;gap:4px;margin-top:4px}
 .days button{flex:1;min-width:0;height:32px;padding:0;border:0;border-radius:10px;background:var(--tint);color:var(--slate);font-size:12px}
 .days button.today{color:var(--ink);font-weight:700}
-.days button[aria-pressed=true]{background:var(--accent);color:#fff}
+.days button[aria-pressed=true]{background:var(--accent);color:var(--on-accent)}
 
 .breath-stage{display:grid;place-items:center;height:168px;margin-top:4px}
 .breath{width:132px;height:132px;border-radius:50%;background:var(--tint);box-shadow:inset 0 0 0 1.5px var(--edge);transform:scale(.6);transition:transform var(--dur,4s) ease-in-out,background-color var(--dur,4s) ease-in-out}
@@ -207,6 +259,56 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 .insp input{width:100%;margin-top:4px;padding:6px 2px;border:0;border-bottom:1px solid transparent;border-radius:0;background:none;font-size:12px}
 .insp input:focus-visible{outline:none;border-bottom-color:var(--ink)}
 .credit{padding:32px 0 24px;font-size:12px;color:var(--slate)}
+
+/* Étroit : tout tient sur plusieurs lignes, rien n'est coupé ni retiré. */
+@container widget (max-width:300px){
+  .add:not(.stack){flex-wrap:wrap}
+  .add:not(.stack) input{flex:1 1 100%}
+  .choices{align-self:stretch}
+  .choices button{flex:1;min-width:0;padding:0 4px}
+  .ctrl,.pages,.pl-actions{flex-wrap:wrap}
+  .time{font-size:32px}
+  .sound span{width:76px;font-size:13px}
+  .pl-cover{width:56px;height:56px}
+  .head{flex-wrap:wrap}
+  .broute{font-size:clamp(1.6em,11cqi,2.2em)}
+  .add.stack input[type=date]{flex:1 1 100%}
+  .row:has(.host){display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px}
+  .row:has(.host) .grow{padding-bottom:0}
+  .row .host{grid-area:2/1;max-width:none;padding-bottom:10px}
+  .row:has(.host) .x{grid-area:1/2/3/3}
+}
+/* Large : le contenu se répartit dans la place gagnée, le texte garde sa taille. */
+@container widget (min-width:560px){
+  .rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;column-gap:32px;max-height:420px}
+  .row:last-child{border-bottom:1px solid var(--rule)}
+  .add.stack input[type=text],.add.stack input[type=url],.add.stack input[type=date]{flex:1 1 180px}
+  .notes{min-height:280px}
+  .time{font-size:clamp(40px,10cqi,72px)}
+  [data-widget=heure] .body{flex-direction:row;align-items:baseline;flex-wrap:wrap;gap:4px 24px}
+  .insp-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .pl-cover{width:120px;height:120px}
+  .pl-head{gap:20px}
+  [data-widget=vol] .body{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);align-items:center;column-gap:32px}
+  [data-widget=vol] .body>:first-child{grid-row:span 2}
+  [data-widget=vol] .vol-go{justify-self:start}
+  [data-widget=minuteur] .body{display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:24px}
+  [data-widget=minuteur] .choices{grid-area:1/1;justify-self:start}
+  [data-widget=minuteur] .ctrl{grid-area:1/2;margin:0}
+  [data-widget=minuteur] .focus-time,[data-widget=minuteur] .bar{grid-column:1/-1}
+  [data-widget=respiration] .body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;column-gap:32px}
+  [data-widget=respiration] .breath-stage{grid-area:1/1/7/2;height:240px;margin:0}
+  [data-widget=respiration] .breath{width:200px;height:200px}
+  [data-widget=respiration] .body>:not(.breath-stage){grid-column:2;justify-self:start}
+  [data-widget=respiration] .breath-word{text-align:left;margin-top:12px}
+  .edit .choices{flex:0 1 280px;margin-left:auto}
+  [data-widget=ambiance] .body>div:first-child{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:32px}
+  [data-widget=ambiance] .sound.master{grid-column:1/-1}
+  [data-widget=lecture] .body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;column-gap:32px}
+  [data-widget=lecture] .body>:first-child{grid-row:1/span 4}
+  [data-widget=lecture] .body>:not(:first-child){grid-column:2}
+  [data-widget=lecture] .rows{grid-template-columns:minmax(0,1fr)}
+}
 
 /* Carte d'embarquement : la même dans le widget et dans la scène 3D, sa taille suit font-size. */
 .boarding{display:grid;grid-template-columns:72fr 28fr;border-radius:1em;background:#fff;color:var(--ink);box-shadow:0 0 0 1px var(--rule);font-size:var(--boarding-size,14px);line-height:1.3;overflow:hidden}
@@ -288,19 +390,27 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 .flight-alert h2{font-size:32px;line-height:1.15;font-weight:500}
 .flight-alert p,.flight-end p{color:var(--flight-muted)}
 
+/* Le flou se recalcule à chaque image de défilement : plus léger et plus opaque sur téléphone. */
 @media (max-width:760px){
+  :root{--glass-blur:blur(10px) saturate(1.2);--glass-wall:rgba(250,250,251,.78)}
   .hello{padding:12px 0 20px}
+  .grip{width:44px;height:44px}
+  .custom{padding:8px 8px 8px 16px}
   .setup{margin-top:8px;padding:20px}
   .ref input,.ref .ghost{height:44px}
   h1{font-size:28px}
   .widget{padding:20px}
+  .widget[data-size=s]{padding:16px}
   .rows{max-height:none}
   .x{width:44px;height:44px}
   .days button{height:44px}
   .ghost,.primary,.add input{height:44px}
   .choices button{height:38px}
 }
+@media (max-width:727px){.custom-hint{display:block}}
+@media (max-height:600px){.custom{position:static}}
 @media (prefers-reduced-motion:reduce){
+  .drop-slot,.swatch i{transition:none}
   .cockpit,.flight-end,.hublot,.hublot-wing{animation:none}
   .breath{transition:none;transform:none}
   .ring .fill{transition:none}
@@ -347,8 +457,20 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
         <p id="saved" role="status"></p>
         <button class="ghost" id="open-wall" type="button">Fond d'écran</button>
         <button class="ghost" id="open-add" type="button">Ajouter un widget</button>
+        <button class="ghost" id="open-custom" type="button">Personnaliser</button>
       </div>
     </div>
+    <section class="custom glass" id="custom" aria-label="Personnaliser ton écran" hidden>
+      <div class="custom-accent">
+        <p id="accent-label">Couleur d'accent : <b id="accent-name"></b></p>
+        <div class="swatches" id="swatches" role="group" aria-labelledby="accent-label"></div>
+      </div>
+      <div class="custom-side" id="custom-side">
+        <button class="primary" id="custom-done" type="button">Terminer</button>
+      </div>
+    </section>
+    <p class="custom-hint desc" id="custom-hint" hidden>Sur téléphone, les widgets prennent toute la largeur. La taille choisie s'applique sur un écran plus large.</p>
+    <p class="sr" id="custom-live" role="status"></p>
     <div class="board" id="board"></div>
     <p id="board-empty" hidden>Ton écran est vide. Ajoute un widget quand tu veux.</p>
   </div>
@@ -436,6 +558,12 @@ const SOUNDS = [
   { id: 'cabine', name: "Cabine d'avion" }, { id: 'blanc', name: 'Bruit blanc' },
 ];
 const BASE_WIDGETS = ['vol', 'taches', 'notes'];
+const ACCENTS = [
+  { id: 'encre', name: 'Encre' }, { id: 'vert', name: 'Vert' }, { id: 'bleu', name: 'Bleu' },
+  { id: 'prune', name: 'Prune' }, { id: 'terre', name: 'Terre cuite' },
+];
+const DEFAULT_ACCENT = 'vert', DEFAULT_SIZE = 'm';
+const SIZES = [{ id: 's', name: 'Petit' }, { id: 'm', name: 'Moyen' }, { id: 'l', name: 'Grand' }];
 const MIN_FLIGHT = 5, MAX_FLIGHT = 180, FLIGHT_GRACE = 10000, CANCEL_CONFIRM = 3000;
 // Une durée donne une destination : plus le vol est long, plus on va loin. Ce sont des repères, pas de vrais horaires.
 const ROUTES = [
@@ -1804,7 +1932,7 @@ if (!sb) {
   const mounted = new Map();
   let userId, saveTimer, saving = null, loaded = false, stored = {}, photoUrl = null, referral = null;
   // done reste faux tant que le premier lancement n'est pas terminé : on le reprend au retour.
-  const screen = { wallpaper: 'blanc', widgets: [], done: false };
+  const screen = { wallpaper: 'blanc', widgets: [], done: false, accent: DEFAULT_ACCENT, sizes: {} };
   const saveScreen = () => queueSave('ecran', { ...screen });
   const photoPath = () => `${userId}/fond.jpg`;
 
@@ -1848,6 +1976,8 @@ if (!sb) {
 
   function mount(w, user) {
     const box = el('section', 'widget glass');
+    box.dataset.widget = w.id;
+    box.dataset.size = screen.sizes[w.id] ?? DEFAULT_SIZE;
     const title = el('h2', '', w.title);
     title.id = `title-${w.id}`;
     box.setAttribute('aria-labelledby', title.id);
@@ -1855,13 +1985,14 @@ if (!sb) {
     const head = el('div', 'head');
     head.append(title, meta);
     const body = el('div', 'body');
-    box.append(head, body);
+    const edit = editBar(w, box);
+    box.append(edit.bar, head, body);
     let cleanup;
     // Un widget qui plante ne doit pas emporter tout l'écran.
     try { cleanup = w.render({ body, meta, user, sb, data: stored[w.id], save: data => queueSave(w.id, data) }); }
     catch (e) { console.error(w.id, e); body.replaceChildren(el('p', 'msg', "Ce widget n'a pas pu se charger.")); }
     $('board').append(box);
-    mounted.set(w.id, { box, cleanup });
+    mounted.set(w.id, { box, cleanup, edit });
   }
   function unmount(id) {
     const m = mounted.get(id);
@@ -1871,6 +2002,193 @@ if (!sb) {
   }
   function refreshBoard() {
     $('board-empty').hidden = mounted.size > 0;
+    screen.widgets.forEach((id, i) => {
+      const { before, after } = mounted.get(id).edit;
+      before.disabled = i === 0;
+      after.disabled = i === screen.widgets.length - 1;
+    });
+  }
+
+  function editBar(w, box) {
+    const bar = el('div', 'edit');
+    const grip = button('grip', '', null);
+    grip.innerHTML = '<svg viewBox="0 0 14 14" aria-hidden="true"><circle cx="4.500" cy="2.500" r="1.500"/><circle cx="9.500" cy="2.500" r="1.500"/><circle cx="4.500" cy="7" r="1.500"/><circle cx="9.500" cy="7" r="1.500"/><circle cx="4.500" cy="11.500" r="1.500"/><circle cx="9.500" cy="11.500" r="1.500"/></svg>';
+    grip.ariaLabel = `Déplacer ${w.title}, avec les flèches au clavier`;
+    grip.onpointerdown = e => startDrag(e, w, box, grip);
+    grip.onkeydown = e => {
+      const step = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[e.key];
+      if (step) { e.preventDefault(); nudge(w, step); }
+    };
+    const before = button('ghost', 'Avant', () => nudge(w, -1));
+    before.ariaLabel = `Déplacer ${w.title} avant le widget précédent`;
+    const after = button('ghost', 'Après', () => nudge(w, 1));
+    after.ariaLabel = `Déplacer ${w.title} après le widget suivant`;
+    const sizes = el('div', 'choices');
+    sizes.setAttribute('role', 'group');
+    sizes.ariaLabel = `Taille de ${w.title}`;
+    const mark = () => { for (const b of sizes.children) b.setAttribute('aria-pressed', b.dataset.size === box.dataset.size); };
+    for (const s of SIZES) {
+      const b = button('', s.name, () => {
+        flip(() => { box.dataset.size = s.id; }, box);
+        screen.sizes = { ...screen.sizes, [w.id]: s.id };
+        mark();
+        saveScreen();
+      });
+      b.dataset.size = s.id;
+      sizes.append(b);
+    }
+    mark();
+    bar.append(grip, before, after, sizes);
+    return { bar, before, after };
+  }
+
+  // Les autres widgets glissent de leur ancienne place à la nouvelle.
+  const flips = new WeakMap();
+  function flip(change, skip) {
+    const boxes = [...mounted.values()].map(m => m.box);
+    const from = new Map(boxes.map(b => [b, b.getBoundingClientRect()]));
+    change();
+    if (REDUCED_MOTION()) return;
+    for (const b of boxes) {
+      if (b === skip) continue;
+      flips.get(b)?.cancel();
+      const to = b.getBoundingClientRect(), dx = from.get(b).left - to.left, dy = from.get(b).top - to.top;
+      if (dx || dy) flips.set(b, b.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: 'none' }], { duration: 180, easing: 'cubic-bezier(.2,.7,.2,1)' }));
+    }
+  }
+  // Déplacer un iframe dans la page le recharge et coupe la musique : le lecteur reste en place, les autres se rangent autour.
+  function placeBoxes(moved) {
+    const focused = document.activeElement;
+    const boxes = screen.widgets.map(id => mounted.get(id).box);
+    const anchor = boxes.indexOf(mounted.get('playlist')?.box ?? boxes.find(b => b !== moved));
+    for (let i = anchor - 1; i >= 0; i--) if (boxes[i].nextElementSibling !== boxes[i + 1]) boxes[i + 1].before(boxes[i]);
+    for (let i = anchor + 1; i < boxes.length; i++) if (boxes[i].previousElementSibling !== boxes[i - 1]) boxes[i - 1].after(boxes[i]);
+    if (focused !== document.activeElement) focused?.focus();
+  }
+  function orderChanged(w) {
+    const { before, after } = mounted.get(w.id).edit;
+    const focused = document.activeElement;
+    refreshBoard();
+    // Un bouton qui devient inactif perd le focus clavier : on le passe à son voisin.
+    if (focused.disabled) (focused === before ? after : before).focus();
+    $('custom-live').textContent = `${w.title} : position ${screen.widgets.indexOf(w.id) + 1} sur ${screen.widgets.length}`;
+    saveScreen();
+  }
+  function nudge(w, step) {
+    const from = screen.widgets.indexOf(w.id), to = from + step;
+    if (to < 0 || to >= screen.widgets.length) return;
+    flip(() => {
+      const list = [...screen.widgets];
+      list.splice(to, 0, list.splice(from, 1)[0]);
+      screen.widgets = list;
+      placeBoxes(mounted.get(w.id).box);
+    });
+    orderChanged(w);
+  }
+
+  // Pendant le glisser, seul « order » change : retirer la poignée de la page couperait le geste.
+  function startDrag(e, w, box, grip) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    grip.setPointerCapture(e.pointerId);
+    const board = $('board');
+    const rect = box.getBoundingClientRect();
+    const grabX = e.clientX - rect.left, grabY = e.clientY - rect.top;
+    const pageBottom = document.documentElement.scrollHeight;
+    const startX = e.clientX, startY = e.clientY;
+    let x = startX, y = startY, slot = null, frame = 0, lastUnder = null;
+    let draft = [...screen.widgets];
+    const follow = () => {
+      const area = board.getBoundingClientRect();
+      // Rester dans l'écran : un widget qui dépasse ferait apparaître une barre de défilement, et le défilement automatique s'emballerait.
+      const left = Math.max(0, Math.min(document.documentElement.clientWidth - box.offsetWidth, x - grabX));
+      const top = Math.min(pageBottom - scrollY - box.offsetHeight, y - grabY);
+      box.style.transform = `translate(${left - area.left - box.offsetLeft}px,${top - area.top - box.offsetTop}px)`;
+      Object.assign(slot.style, { left: `${box.offsetLeft}px`, top: `${box.offsetTop}px`, width: `${box.offsetWidth}px`, height: `${box.offsetHeight}px` });
+    };
+    const update = () => {
+      const under = document.elementsFromPoint(x, y).map(n => n.closest('.widget')).find(b => b && b !== box);
+      // Un voisin plus grand peut rester sous le doigt après l'échange : on attend d'en sortir, sinon ils s'échangeraient sans fin.
+      if (under && under !== lastUnder) {
+        flip(() => {
+          const to = draft.indexOf(under.dataset.widget);
+          draft = draft.filter(id => id !== w.id);
+          draft.splice(to, 0, w.id);
+          draft.forEach((id, i) => { mounted.get(id).box.style.order = i; });
+        }, box);
+      }
+      lastUnder = under;
+      follow();
+    };
+    const scrollNearEdge = () => {
+      const edge = 72;
+      const speed = y < edge ? y - edge : y > innerHeight - edge ? y - innerHeight + edge : 0;
+      if (speed) { scrollBy(0, speed / 6); update(); }
+      frame = requestAnimationFrame(scrollNearEdge);
+    };
+    const lift = () => {
+      slot = el('div', 'drop-slot');
+      slot.setAttribute('aria-hidden', 'true');
+      slot.style.transition = 'none';
+      board.append(slot);
+      document.body.classList.add('dragging');
+      box.classList.add('lifted');
+      screen.widgets.forEach((id, i) => { mounted.get(id).box.style.order = i; });
+      update();
+      slot.getBoundingClientRect();
+      slot.style.transition = '';
+      frame = requestAnimationFrame(scrollNearEdge);
+    };
+    const finish = keep => {
+      grip.onpointermove = grip.onpointerup = grip.onpointercancel = null;
+      if (!slot) return;
+      cancelAnimationFrame(frame);
+      slot.remove();
+      document.body.classList.remove('dragging');
+      const changed = keep && draft.join() !== screen.widgets.join();
+      flip(() => {
+        box.classList.remove('lifted');
+        box.style.transform = '';
+        if (changed) { screen.widgets = draft; placeBoxes(box); }
+        for (const m of mounted.values()) m.box.style.order = '';
+      });
+      if (changed) orderChanged(w);
+    };
+    grip.onpointermove = m => {
+      x = m.clientX; y = m.clientY;
+      if (slot) update();
+      else if (Math.hypot(x - startX, y - startY) > 4) lift();
+    };
+    grip.onpointerup = () => finish(true);
+    grip.onpointercancel = () => finish(false);
+  }
+
+  function applyAccent() {
+    document.documentElement.dataset.accent = screen.accent;
+    $('accent-name').textContent = ACCENTS.find(a => a.id === screen.accent).name;
+    for (const b of $('swatches').children) b.setAttribute('aria-pressed', b.dataset.accent === screen.accent);
+  }
+  function drawSwatches() {
+    $('swatches').replaceChildren(...ACCENTS.map(a => {
+      const b = button('swatch', '', () => { screen.accent = a.id; applyAccent(); saveScreen(); });
+      b.dataset.accent = a.id;
+      b.ariaLabel = a.name;
+      b.title = a.name;
+      const dot = el('i');
+      dot.style.setProperty('--c', `var(--accent-${a.id})`);
+      b.append(dot);
+      return b;
+    }));
+    applyAccent();
+  }
+  // L'état d'enregistrement suit la barre : il reste visible même en bas d'un long écran.
+  function setCustomizing(on) {
+    document.body.classList.toggle('customizing', on);
+    $('custom').hidden = !on;
+    $('custom-hint').hidden = !on;
+    $('open-custom').hidden = on;
+    if (on) $('custom-side').prepend($('saved')); else $('open-wall').before($('saved'));
+    (on ? $('custom-done') : $('open-custom')).focus();
   }
 
   function showScreen(user) {
@@ -1879,6 +2197,8 @@ if (!sb) {
     for (const id of screen.widgets) if (!mounted.has(id)) mount(WIDGETS.find(w => w.id === id), user);
     refreshBoard();
     $('open-add').onclick = () => { drawCatalog(user); $('add-dialog').showModal(); };
+    $('open-custom').onclick = () => setCustomizing(true);
+    $('custom-done').onclick = () => setCustomizing(false);
     $('open-wall').onclick = () => {
       $('wall-slot').replaceChildren(wallpaperPicker());
       $('wall-dialog').showModal();
@@ -2038,6 +2358,9 @@ if (!sb) {
     const known = id => WIDGETS.some(w => w.id === id);
     screen.widgets = [...new Set(listOf(saved.widgets))].filter(known);
     screen.done = saved.done === true;
+    if (ACCENTS.some(a => a.id === saved.accent)) screen.accent = saved.accent;
+    screen.sizes = Object.fromEntries(Object.entries(saved.sizes ?? {}).filter(([id, size]) => known(id) && SIZES.some(s => s.id === size)));
+    drawSwatches();
     if (saved.wallpaper === 'perso' || saved.wallpaper === 'blanc' || WALLPAPERS.some(w => w.id === saved.wallpaper)) screen.wallpaper = saved.wallpaper;
     applyWallpaper();
     if (screen.wallpaper === 'perso') loadPhoto();
