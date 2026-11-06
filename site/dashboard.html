@@ -24,7 +24,7 @@
   /* Accents au choix : tous à 4,5:1 minimum avec --on-accent, vérifié par tests/personnalisation.check.cjs. */
   --accent-encre:#17191c; --accent-vert:#1b6e66; --accent-bleu:#1c5699; --accent-prune:#6e2a55; --accent-terre:#96401f;
   --accent:var(--accent-vert); --on-accent:#fff;
-  --tint:rgba(23,25,28,.06); --rule:rgba(23,25,28,.08); --edge:rgba(23,25,28,.2);
+  --tint:rgba(23,25,28,.06); --rule:rgba(23,25,28,.08); --edge:rgba(23,25,28,.2); --week-bar:rgba(23,25,28,.24);
   --ground:#fff; --wall-glass:rgba(255,255,255,.82);
   --glass:rgba(255,255,255,.56); --glass-wall:rgba(250,250,251,.74); --glass-solid:rgba(250,250,251,.95); --slate-wall:#43454b;
   --glass-edge:rgba(255,255,255,.6); --glass-blur:blur(16px) saturate(1.25);
@@ -217,6 +217,13 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 .focus-time{margin-top:12px}
 .bar{height:6px;margin-top:12px;border-radius:var(--pill);background:var(--tint);overflow:hidden}
 .bar i{display:block;height:100%;border-radius:inherit;background:var(--accent);transform-origin:left;transform:scaleX(0)}
+.week-total{font-size:32px;line-height:1.1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:16px;padding:0;list-style:none;font-size:12px;color:var(--slate);font-variant-numeric:tabular-nums;text-align:center}
+.week-bar{display:flex;flex-direction:column;justify-content:flex-end;gap:4px;height:96px;border-bottom:1px solid var(--edge)}
+.week-bar i{display:block;background:var(--week-bar);border-radius:4px 4px 0 0}
+.week-day{display:block;margin-top:4px}
+.week .today{color:var(--ink);font-weight:600}
+.week .today i{background:var(--accent)}
 .ctrl{display:flex;gap:8px;margin-top:16px}
 
 .habit{padding:8px 0;border-bottom:1px solid var(--rule)}
@@ -586,7 +593,11 @@ const SOUNDS = [
   { id: 'pluie', name: 'Pluie' }, { id: 'vent', name: 'Vent' }, { id: 'feu', name: 'Feu de bois' },
   { id: 'cabine', name: "Cabine d'avion" }, { id: 'blanc', name: 'Bruit blanc' },
 ];
-const BASE_WIDGETS = ['vol', 'taches', 'notes'];
+// Un mode est une page déjà remplie. Study garde le fond choisi au départ, Chill a le sien.
+const MODES = [
+  { id: 'study', name: 'Study', desc: 'Pour travailler', widgets: ['vol', 'minuteur', 'taches', 'semaine', 'notes', 'compte'] },
+  { id: 'chill', name: 'Chill', desc: 'Pour décompresser', wall: 'lac', widgets: ['respiration', 'ambiance', 'lecture', 'playlist', 'pause', 'inspiration'] },
+];
 const ACCENTS = [
   { id: 'encre', name: 'Encre' }, { id: 'vert', name: 'Vert' }, { id: 'bleu', name: 'Bleu' },
   { id: 'prune', name: 'Prune' }, { id: 'terre', name: 'Terre cuite' },
@@ -619,6 +630,13 @@ const listOf = value => Array.isArray(value) ? value : [];
 // Date locale au format AAAA-MM-JJ ('sv' est la locale qui donne ce format).
 const dayKey = date => date.toLocaleDateString('sv');
 const plural = (n, word) => `${n} ${word}${n > 1 ? 's' : ''}`;
+// Minutes de focus par jour d'un widget, gardées 14 jours. Reprend aussi le dernier jour noté avant l'existence de cet historique.
+function focusLog(data) {
+  const oldest = dayKey(new Date(Date.now() - 14 * 864e5));
+  const log = Object.fromEntries(Object.entries(data?.log ?? {}).filter(([day, minutes]) => /^\d{4}-\d{2}-\d{2}$/.test(day) && day >= oldest && Number.isFinite(minutes) && minutes > 0));
+  if (typeof data?.day === 'string' && data.day >= oldest && Number.isFinite(data.minutes) && data.minutes > (log[data.day] ?? 0)) log[data.day] = data.minutes;
+  return log;
+}
 
 function addForm(placeholder, maxLength, onAdd) {
   const form = el('form', 'add');
@@ -960,12 +978,13 @@ const WIDGETS = [
       const sameDay = data?.day === day;
       let minutes = sameDay && Number.isFinite(data?.minutes) ? data.minutes : 0;
       let flights = sameDay && Number.isFinite(data?.flights) ? data.flights : 0;
+      let log = focusLog(data);
       const slot = el('div');
       const label = el('label', 'vol-time', 'Durée du vol');
       const output = el('output');
       const range = Object.assign(el('input'), { type: 'range', min: MIN_FLIGHT, max: MAX_FLIGHT, step: 5, value: length });
       label.append(output, range);
-      const persist = () => save({ length, day, minutes, flights });
+      const persist = () => save({ length, day, minutes, flights, log });
       const ticket = () => ({
         minutes: length,
         route: ROUTES.find(r => length <= r.upTo),
@@ -986,6 +1005,7 @@ const WIDGETS = [
           if (today !== day) { day = today; minutes = 0; flights = 0; }
           minutes += flightMinutes;
           flights += 1;
+          log = { ...log, [today]: (log[today] ?? 0) + flightMinutes };
           persist();
           draw();
         }, go);
@@ -1083,6 +1103,7 @@ const WIDGETS = [
       let day = dayKey(new Date());
       let minutes = data?.day === day && Number.isFinite(data?.minutes) ? data.minutes : 0;
       let remaining = length * 60000, endAt = null, ticker = null;
+      let log = focusLog(data);
 
       const choices = el('div', 'choices');
       choices.setAttribute('role', 'group');
@@ -1097,7 +1118,7 @@ const WIDGETS = [
       const reset = button('ghost', 'Remettre', () => { stop(); remaining = length * 60000; draw(); });
       const ctrl = el('div', 'ctrl');
       ctrl.append(go, reset);
-      const persist = () => save({ length, day, minutes });
+      const persist = () => save({ length, day, minutes, log });
 
       function draw() {
         const total = Math.ceil(remaining / 1000);
@@ -1119,6 +1140,7 @@ const WIDGETS = [
         const today = dayKey(new Date());
         if (today !== day) { day = today; minutes = 0; }
         minutes += length;
+        log = { ...log, [today]: (log[today] ?? 0) + length };
         remaining = length * 60000;
         persist();
         document.title = 'Session terminée — Renzvi';
@@ -1152,6 +1174,52 @@ const WIDGETS = [
       draw();
       body.append(choices, time, bar, ctrl);
       return stop;
+    },
+  },
+  {
+    id: 'semaine', title: 'Temps de focus', desc: 'Tes minutes de la semaine, vols et minuteur réunis.',
+    render({ body, meta, focusLogs }) {
+      const total = el('div', 'week-total');
+      const hint = el('p', 'desc', 'Termine un vol ou une session de minuteur pour remplir ta semaine.');
+      const week = el('ol', 'week');
+      week.ariaLabel = 'Minutes de focus par jour';
+      function draw() {
+        const now = new Date(), today = dayKey(now), logs = focusLogs();
+        const days = Array.from({ length: 7 }, (_, i) => {
+          const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (now.getDay() + 6) % 7 + i);
+          const key = dayKey(date);
+          return { date, key, minutes: logs.reduce((sum, log) => sum + (log[key] ?? 0), 0) };
+        });
+        const sum = days.reduce((all, d) => all + d.minutes, 0);
+        const top = Math.max(60, ...days.map(d => d.minutes));
+        meta.textContent = 'Cette semaine';
+        total.textContent = durationLabel(sum);
+        hint.hidden = sum > 0;
+        week.replaceChildren(...days.map(d => {
+          const li = el('li', d.key === today ? 'today' : '');
+          const name = d.date.toLocaleDateString('fr-FR', { weekday: 'long' });
+          const future = d.key > today;
+          li.ariaLabel = future ? `${name} : à venir` : `${name} : ${d.minutes} min`;
+          const column = el('div', 'week-bar');
+          column.setAttribute('aria-hidden', 'true');
+          const bar = el('i');
+          bar.style.height = `${d.minutes / top * 72}px`;
+          column.append(el('span', '', future ? '–' : String(d.minutes)), bar);
+          const letter = el('span', 'week-day', name[0].toUpperCase());
+          letter.setAttribute('aria-hidden', 'true');
+          li.append(column, letter);
+          return li;
+        }));
+      }
+      draw();
+      body.append(total, hint, week);
+      // Le jour peut changer pendant que l'écran reste ouvert.
+      document.addEventListener('renzvi:focus', draw);
+      document.addEventListener('visibilitychange', draw);
+      return () => {
+        document.removeEventListener('renzvi:focus', draw);
+        document.removeEventListener('visibilitychange', draw);
+      };
     },
   },
   {
@@ -1978,6 +2046,7 @@ if (!sb) {
     // Tenu à jour : un widget remis sur l'écran doit retrouver son dernier contenu, pas celui du chargement.
     stored[widget] = data;
     pending.set(widget, data);
+    if (widget === 'vol' || widget === 'minuteur') document.dispatchEvent(new Event('renzvi:focus'));
     showSaved('Enregistrement…');
     clearTimeout(saveTimer);
     saveTimer = setTimeout(flush, SAVE_DELAY);
@@ -2023,7 +2092,7 @@ if (!sb) {
     box.append(edit.bar, head, body);
     let cleanup;
     // Un widget qui plante ne doit pas emporter tout l'écran.
-    try { cleanup = w.render({ body, meta, user, sb, data: stored[w.id], save: data => queueSave(w.id, data) }); }
+    try { cleanup = w.render({ body, meta, user, sb, data: stored[w.id], save: data => queueSave(w.id, data), focusLogs: () => [focusLog(stored.vol), focusLog(stored.minuteur)] }); }
     catch (e) { console.error(w.id, e); body.replaceChildren(el('p', 'msg', "Ce widget n'a pas pu se charger.")); }
     $('board').append(box);
     mounted.set(w.id, { box, cleanup, edit });
@@ -2069,6 +2138,7 @@ if (!sb) {
     currentPage = id;
     $('page-note').textContent = '';
     try { localStorage.setItem('renzvi:page', id); } catch {}
+    applyWallpaper();
     drawPages();
   }
   function askPageName(title, value, done) {
@@ -2100,7 +2170,7 @@ if (!sb) {
       const where = { ...screen.where };
       for (const id of Object.keys(where)) if (where[id] === page.id) where[id] = target.id;
       screen.where = where;
-      screen.pages = screen.pages.filter(p => p !== page);
+      changeWalls(() => { screen.pages = screen.pages.filter(p => p !== page); });
       $('page-dialog').close();
       showPage(target.id);
       saveScreen();
@@ -2332,8 +2402,41 @@ if (!sb) {
     };
   }
 
+  const missingModes = () => MODES.filter(m => !screen.pages.some(p => p.id === m.id));
+  // Les widgets du mode y sont rangés, même s'ils étaient sur une autre page : rien n'est supprimé.
+  function installModes() {
+    for (const mode of missingModes()) {
+      screen.pages = [...screen.pages, { id: mode.id, name: mode.name, ...(mode.wall && { wall: mode.wall }) }];
+      screen.widgets = [...new Set([...screen.widgets, ...mode.widgets])];
+      screen.where = { ...screen.where, ...Object.fromEntries(mode.widgets.map(id => [id, mode.id])) };
+    }
+    // La page de départ, si l'installation l'a vidée, ne reste pas comme un onglet vide.
+    screen.pages = screen.pages.filter(p => p.id !== FIRST_PAGE.id || screen.widgets.some(id => pageOf(id) === p.id));
+  }
+  function modesRow(user) {
+    const missing = missingModes();
+    if (!missing.length) return [];
+    const names = missing.map(m => m.name).join(' et ');
+    const full = screen.pages.length + missing.length > MAX_SCREEN_PAGES;
+    const li = el('li');
+    const text = el('div');
+    text.append(el('b', '', `Mode${missing.length > 1 ? 's' : ''} ${names}`), el('p', 'desc', full ? `Tu as trop de pages pour l'installer : supprimes-en ${plural(screen.pages.length + missing.length - MAX_SCREEN_PAGES, 'page')}.` : "Des pages déjà remplies, pour travailler et décompresser. Les widgets concernés y sont rangés, rien n'est perdu."));
+    const action = button('ghost', 'Installer', () => {
+      const target = missing[0].id;
+      installModes();
+      for (const id of screen.widgets) if (!mounted.has(id)) mount(WIDGETS.find(w => w.id === id), user);
+      $('add-dialog').close();
+      showPage(target);
+      saveScreen();
+      focusTab();
+    });
+    action.ariaLabel = `Installer : ${names}`;
+    action.disabled = full;
+    li.append(text, action);
+    return [li];
+  }
   function drawCatalog(user) {
-    $('catalog').replaceChildren(...WIDGETS.map(w => {
+    $('catalog').replaceChildren(...modesRow(user), ...WIDGETS.map(w => {
       const li = el('li');
       const text = el('div');
       const on = screen.widgets.includes(w.id);
@@ -2360,9 +2463,13 @@ if (!sb) {
     }));
   }
 
+  const pageNow = () => screen.pages.find(p => p.id === currentPage);
+  const wallNow = () => pageNow()?.wall ?? screen.wallpaper;
+  const photoInUse = () => [screen.wallpaper, ...screen.pages.map(p => p.wall)].includes('perso');
   function applyWallpaper() {
-    const library = WALLPAPERS.find(w => w.id === screen.wallpaper);
-    const url = library ? `url(assets/${library.file})` : screen.wallpaper === 'perso' && photoUrl ? `url(${photoUrl})` : null;
+    const wall = wallNow();
+    const library = WALLPAPERS.find(w => w.id === wall);
+    const url = library ? `url(assets/${library.file})` : wall === 'perso' && photoUrl ? `url(${photoUrl})` : null;
     if (url) document.documentElement.style.setProperty('--wall', url);
     else document.documentElement.style.removeProperty('--wall');
     document.body.classList.toggle('has-wall', !!url);
@@ -2376,16 +2483,25 @@ if (!sb) {
     const { data, error } = await sb.storage.from('fonds').download(photoPath());
     if (error) return showSaved("Ta photo de fond n'a pas pu se charger.", true);
     photoUrl = URL.createObjectURL(data);
-    if (screen.wallpaper === 'perso') applyWallpaper();
+    applyWallpaper();
   }
-  function chooseWallpaper(id) {
-    // On ne garde pas une photo personnelle dont l'utilisateur ne se sert plus.
-    if (screen.wallpaper === 'perso' && id !== 'perso') {
+  // On ne garde pas une photo personnelle dont plus aucune page ne se sert.
+  function changeWalls(change) {
+    const had = photoInUse();
+    change();
+    if (had && !photoInUse()) {
       sb.storage.from('fonds').remove([photoPath()]);
       photoUrl = null;
     }
-    screen.wallpaper = id;
     applyWallpaper();
+  }
+  function chooseWallpaper(id) {
+    // shortcut: une seule photo personnelle par compte, la remplacer la change sur toutes les pages qui l'utilisent ; à revoir si on demande une photo par page.
+    changeWalls(() => {
+      // Avec plusieurs pages, le fond appartient à la page affichée.
+      if (screen.pages.length > 1 || pageNow()?.wall) screen.pages = screen.pages.map(p => p.id === currentPage ? { ...p, wall: id } : p);
+      else screen.wallpaper = id;
+    });
     saveScreen();
   }
   async function shrinkPhoto(file) {
@@ -2419,7 +2535,7 @@ if (!sb) {
     });
     const photoTile = entries.at(-1);
     function mark() {
-      for (const t of entries) t.setAttribute('aria-pressed', t.dataset.wall === screen.wallpaper);
+      for (const t of entries) t.setAttribute('aria-pressed', t.dataset.wall === wallNow());
       photoTile.style.backgroundImage = photoUrl ? `url(${photoUrl})` : '';
     }
     file.onchange = async () => {
@@ -2458,22 +2574,25 @@ if (!sb) {
     setup.hidden = false;
   }
   function setupWidgets(user) {
-    const finish = widgets => {
-      screen.widgets = widgets;
+    const finish = install => {
+      screen.widgets = [];
+      if (install) {
+        installModes();
+        currentPage = MODES[0].id;
+      }
       screen.done = true;
       saveScreen();
       showScreen(user);
     };
     const base = el('ul', 'base');
-    for (const id of BASE_WIDGETS) {
-      const w = WIDGETS.find(x => x.id === id);
+    for (const mode of MODES) {
       const li = el('li');
-      li.append(el('b', '', w.title), el('p', 'desc', w.desc));
+      li.append(el('b', '', mode.name), el('p', 'desc', `${mode.desc} : ${mode.widgets.map(id => WIDGETS.find(w => w.id === id).title).join(', ')}.`));
       base.append(li);
     }
     const actions = el('div', 'actions');
-    actions.append(button('primary', 'Mettre ces widgets', () => finish(BASE_WIDGETS)), button('ghost', 'Commencer sans widget', () => finish([])));
-    $('setup').replaceChildren(el('h1', '', 'Tes premiers widgets'), el('p', 'lead', 'Trois pour commencer. Ensuite, le bouton « Ajouter un widget » te permet d\'en ajouter ou d\'en retirer.'), base, actions);
+    actions.append(button('primary', 'Installer Study et Chill', () => finish(true)), button('ghost', 'Commencer sans widget', () => finish(false)));
+    $('setup').replaceChildren(el('h1', '', 'Tes deux modes'), el('p', 'lead', "Tu passes de l'un à l'autre en un clic, et tu peux tout changer ensuite."), base, actions);
   }
 
   async function loadBoard(user) {
@@ -2491,7 +2610,8 @@ if (!sb) {
     screen.sizes = Object.fromEntries(Object.entries(saved.sizes ?? {}).filter(([id, size]) => known(id) && SIZES.some(s => s.id === size)));
     // Une configuration abîmée ne doit pas empêcher d'ouvrir l'écran : on ne garde que ce qui est valide.
     const pages = listOf(saved.pages).filter(p => typeof p?.id === 'string' && p.id && p.id.length <= 64 && typeof p.name === 'string' && p.name.trim());
-    if (pages.length) screen.pages = [...new Map(pages.map(p => [p.id, { id: p.id, name: p.name.trim().slice(0, MAX_PAGE_NAME) }])).values()].slice(0, MAX_SCREEN_PAGES);
+    const validWall = id => id === 'perso' || id === 'blanc' || WALLPAPERS.some(w => w.id === id);
+    if (pages.length) screen.pages = [...new Map(pages.map(p => [p.id, { id: p.id, name: p.name.trim().slice(0, MAX_PAGE_NAME), ...(validWall(p.wall) && { wall: p.wall }) }])).values()].slice(0, MAX_SCREEN_PAGES);
     screen.where = Object.fromEntries(Object.entries(saved.where ?? {}).filter(([id, page]) => known(id) && screen.pages.some(p => p.id === page)));
     currentPage = screen.pages[0].id;
     try {
@@ -2499,9 +2619,9 @@ if (!sb) {
       if (screen.pages.some(p => p.id === last)) currentPage = last;
     } catch {}
     drawSwatches();
-    if (saved.wallpaper === 'perso' || saved.wallpaper === 'blanc' || WALLPAPERS.some(w => w.id === saved.wallpaper)) screen.wallpaper = saved.wallpaper;
+    if (validWall(saved.wallpaper)) screen.wallpaper = saved.wallpaper;
     applyWallpaper();
-    if (screen.wallpaper === 'perso') loadPhoto();
+    if (photoInUse()) loadPhoto();
     if (screen.done) showScreen(user); else setupWallpaper(user);
   }
 

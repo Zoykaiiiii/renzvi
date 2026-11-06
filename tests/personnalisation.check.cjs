@@ -23,11 +23,12 @@ const server = http.createServer((req, res) => {
 const json = (route, status, body) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) });
 const preflight = route => route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } });
 
-const ALL_IDS = ['vol', 'taches', 'heure', 'minuteur', 'notes', 'habitudes', 'respiration', 'ambiance', 'compte', 'raccourcis', 'playlist', 'pause', 'lecture', 'inspiration'];
+const ALL_IDS = ['vol', 'taches', 'heure', 'minuteur', 'semaine', 'notes', 'habitudes', 'respiration', 'ambiance', 'compte', 'raccourcis', 'playlist', 'pause', 'lecture', 'inspiration'];
 const today = new Date().toLocaleDateString('sv');
 const inDays = n => new Date(Date.now() + n * 864e5).toLocaleDateString('sv');
 // Des contenus réalistes et parfois longs : c'est là que les débordements se voient.
 const CONTENT = {
+  minuteur: { length: 25, day: today, minutes: 180, log: { [today]: 180, [inDays(-1)]: 240, [inDays(-2)]: 95 } },
   taches: { items: [{ id: 'a', text: 'Relire le chapitre 4 de droit des contrats avant vendredi', done: false }, { id: 'b', text: 'Envoyer le dossier', done: true }, { id: 'c', text: 'Préparer les fiches', done: false }, { id: 'd', text: 'Appeler la scolarité', done: false }] },
   notes: { text: 'Idées pour le week-end\n— finir le plan du mémoire\n— rappeler Sam' },
   habitudes: { items: [{ id: 'h', name: 'Lire vingt minutes', days: [today] }, { id: 'i', name: 'Marcher', days: [] }, { id: 'j', name: 'Une habitude au nom vraiment très long pour voir', days: [today] }] },

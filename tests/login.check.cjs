@@ -207,11 +207,15 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.waitForFunction(() => document.documentElement.style.getPropertyValue('--wall').includes('foggy-fanal'));
     await page.getByRole('button', { name: 'Continuer' }).click();
     await shot(page, 'setup-widgets');
-    await page.getByRole('button', { name: 'Mettre ces widgets' }).click();
-    assert.equal(await page.locator('.widget').count(), 3);
+    await page.getByRole('button', { name: 'Installer Study et Chill' }).click();
+    assert.equal(await page.locator('.widget:visible').count(), 6);
+    assert.deepEqual(await page.locator('#page-tabs button').allTextContents(), ['Study', 'Chill']);
+    assert.equal(await page.locator('#page-tabs [aria-pressed=true]').textContent(), 'Study');
     assert.equal(await page.isVisible('#setup'), false);
     await saved(page);
-    assert.deepEqual(db.rows.ecran, { wallpaper: 'foret', widgets: ['vol', 'taches', 'notes'], done: true, accent: 'vert', sizes: {}, pages: [{ id: 'p1', name: 'Mon écran' }], where: {} });
+    assert.deepEqual(db.rows.ecran.pages, [{ id: 'study', name: 'Study' }, { id: 'chill', name: 'Chill', wall: 'lac' }]);
+    assert.equal(db.rows.ecran.wallpaper, 'foret');
+    assert.equal(db.rows.ecran.widgets.length, 12);
     await shot(page, 'ecran-photo');
     await page.reload();
     await page.waitForSelector('.widget');
@@ -219,6 +223,121 @@ async function openDashboard(browser, base, options, rows, prepare) {
     assert.ok(await page.evaluate(() => document.body.classList.contains('has-wall')));
     assert.deepEqual(errors, []);
     await context.close();
+  }
+
+  // Modes sur un écran existant : rien n'est perdu, chaque mode garde son fond, et l'installation ne se propose plus.
+  {
+    const rows = { ecran: { wallpaper: 'brume', widgets: ['taches', 'heure', 'minuteur'], done: true }, taches: { items: [{ id: 'a', text: 'Déjà là', done: false }] } };
+    const { context, page, errors, db } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, rows);
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('.widget');
+    const wall = () => page.evaluate(() => document.documentElement.style.getPropertyValue('--wall'));
+    await page.click('#open-add');
+    await page.getByRole('button', { name: 'Installer : Study et Chill' }).click();
+    assert.deepEqual(await page.locator('#page-tabs button').allTextContents(), ['Mon écran', 'Study', 'Chill']);
+    assert.equal(await page.locator('.widget:visible').count(), 6);
+    assert.ok(await page.locator('[data-widget=taches]', { hasText: 'Déjà là' }).isVisible());
+    assert.match(await wall(), /bohinj/);
+    await page.getByRole('button', { name: 'Mon écran' }).click();
+    assert.deepEqual(await page.locator('.widget:visible').evaluateAll(b => b.map(x => x.dataset.widget)), ['heure']);
+    await page.getByRole('button', { name: 'Chill' }).click();
+    assert.equal(await page.locator('.widget:visible').count(), 6);
+    assert.match(await wall(), /mapourika/);
+    assert.match(await page.textContent('#credit'), /Richard Palmer/);
+    // Changer le fond de Chill ne touche pas à Study.
+    await page.click('#open-wall');
+    await page.locator('#wall-slot [data-wall=dune]').click();
+    assert.equal(await page.locator('#wall-slot [data-wall=dune]').getAttribute('aria-pressed'), 'true');
+    await page.locator('#wall-dialog .primary').click();
+    await page.getByRole('button', { name: 'Study' }).click();
+    assert.match(await wall(), /bohinj/);
+    await page.getByRole('button', { name: 'Chill' }).click();
+    assert.match(await wall(), /sossusvlei/);
+    await saved(page);
+    assert.equal(db.rows.ecran.wallpaper, 'brume');
+    await page.reload();
+    await page.waitForSelector('.widget:visible');
+    assert.equal(await page.locator('#page-tabs [aria-pressed=true]').textContent(), 'Chill');
+    assert.match(await wall(), /sossusvlei/);
+    await page.click('#open-add');
+    assert.equal(await page.getByRole('button', { name: /^Installer/ }).count(), 0);
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+  // Tout part dans les modes : pas d'onglet vide. Trop de pages : l'installation le dit et ne fait rien.
+  {
+    const { context, page } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ecran: { wallpaper: 'blanc', widgets: ['taches'], done: true } });
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('.widget');
+    await page.click('#open-add');
+    await page.getByRole('button', { name: 'Installer : Study et Chill' }).click();
+    assert.deepEqual(await page.locator('#page-tabs button').allTextContents(), ['Study', 'Chill']);
+    await context.close();
+    const pages = ['a', 'b', 'c', 'd', 'e'].map(id => ({ id, name: id }));
+    const crowded = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ecran: { wallpaper: 'blanc', widgets: ['taches'], done: true, pages } });
+    await crowded.page.goto(`${base}/dashboard.html`);
+    await crowded.page.waitForSelector('.widget');
+    await crowded.page.click('#open-add');
+    assert.ok(await crowded.page.getByRole('button', { name: 'Installer : Study et Chill' }).isDisabled());
+    assert.match(await crowded.page.locator('#catalog li').first().textContent(), /supprimes-en 1 page/);
+    await crowded.context.close();
+  }
+  // Une photo personnelle reste tant qu'une page s'en sert, et part avec la dernière page qui l'utilise.
+  {
+    const pages = [{ id: 'a', name: 'Une', wall: 'perso' }, { id: 'b', name: 'Deux', wall: 'perso' }, { id: 'c', name: 'Trois', wall: 'lac' }];
+    const { context, page, db } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ecran: { wallpaper: 'blanc', widgets: ['taches'], done: true, pages, where: { taches: 'c' } } }, d => { d.photo = Buffer.from('x'); });
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForFunction(() => document.getElementById('page-tabs').children.length === 3);
+    await page.click('#open-wall');
+    await page.locator('#wall-slot [data-wall=dune]').click();
+    await page.locator('#wall-dialog .primary').click();
+    assert.equal(db.removed, 0, 'la page Deux utilise encore la photo');
+    await page.getByRole('button', { name: 'Deux' }).click();
+    await page.click('#open-custom');
+    await page.click('#page-delete');
+    await page.getByRole('button', { name: 'Supprimer la page' }).last().click();
+    await page.waitForFunction(() => document.getElementById('page-tabs').children.length === 2);
+    await page.waitForTimeout(100);
+    assert.equal(db.removed, 1, 'plus aucune page ne l\'utilise');
+    await context.close();
+  }
+  // Temps de focus : vol et minuteur réunis sur la semaine de lundi à dimanche, avec les anciennes données, et à jour en direct.
+  {
+    const rows = {
+      ecran: { wallpaper: 'blanc', widgets: ['semaine', 'minuteur'], done: true },
+      vol: { length: 25, day: '2026-11-04', minutes: 25, flights: 1 },
+      minuteur: { length: 15, day: '2026-11-03', minutes: 50, log: { '2026-11-02': 30, '2026-11-01': 99, '2026-11-03': 50, '2026-10-01': 40, nimporte: 3, '2026-11-05': 'x' } },
+    };
+    const { context, page, errors, db } = await openDashboard(browser, base, { viewport: { width: 390, height: 844 } }, rows);
+    await page.clock.install({ time: new Date('2026-11-04T10:00:00') }); // un mercredi
+    await page.goto(`${base}/dashboard.html`);
+    await page.waitForSelector('[data-widget=semaine]');
+    const box = page.locator('[data-widget=semaine]');
+    const labels = () => box.locator('.week li').evaluateAll(l => l.map(x => x.ariaLabel));
+    assert.equal(await box.locator('.week-total').textContent(), '1 h 45');
+    assert.deepEqual(await labels(), ['lundi : 30 min', 'mardi : 50 min', 'mercredi : 25 min', 'jeudi : à venir', 'vendredi : à venir', 'samedi : à venir', 'dimanche : à venir']);
+    assert.equal(await box.locator('.week li.today').getAttribute('aria-label'), 'mercredi : 25 min');
+    assert.equal(await box.locator('.week li').nth(0).locator('i').evaluate(i => i.style.height), '36px');
+    assert.equal(await box.locator('.desc').isVisible(), false);
+    await page.getByRole('button', { name: 'Démarrer' }).click();
+    await page.clock.runFor(15 * 60000 + 1000);
+    assert.equal(await box.locator('.week-total').textContent(), '2 h');
+    assert.equal(await box.locator('.week li').nth(2).getAttribute('aria-label'), 'mercredi : 40 min');
+    await page.clock.runFor(2000);
+    await saved(page);
+    assert.deepEqual(db.rows.minuteur.log, { '2026-11-01': 99, '2026-11-02': 30, '2026-11-03': 50, '2026-11-04': 15 });
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    assert.deepEqual(errors, []);
+    await context.close();
+    // Compte neuf : les zéros s'impriment, et une phrase dit quoi faire.
+    const fresh = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ecran: { wallpaper: 'blanc', widgets: ['semaine'], done: true } });
+    await fresh.page.clock.install({ time: new Date('2026-11-04T10:00:00') });
+    await fresh.page.goto(`${base}/dashboard.html`);
+    await fresh.page.waitForSelector('[data-widget=semaine]');
+    assert.equal(await fresh.page.locator('.week-total').textContent(), '0 min');
+    assert.ok(await fresh.page.locator('[data-widget=semaine] .desc').isVisible());
+    assert.equal(await fresh.page.locator('.week li').nth(0).getAttribute('aria-label'), 'lundi : 0 min');
+    await fresh.context.close();
   }
 
   // Premier lancement interrompu : on le reprend, avec le fond déjà choisi. Sans widget : l'écran le dit.
