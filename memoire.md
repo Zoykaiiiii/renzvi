@@ -48,8 +48,9 @@ Les règles complètes sont dans `CLAUDE.md`. Voici l'essentiel, avec ce que l'e
 | 3 nov. | Fond blanc et design premium type Apple « pour l'instant », appliqué au login (inspiration, jamais copie) |
 | 4 nov. | **Fonctionnalités d'abord, design ensuite.** Ne pas polir ni proposer de refonte, sauf si c'est illisible ou cassé. Tout le design sera refait après. Garder les styles en variables CSS |
 | 4 nov. | **Vol : une seule ambiance, le hublot, compteur en bas.** « on fait pas la map 3D juste l'ambiance hublot ». Pas de carte, pas d'avion qui avance, pas de choix d'ambiance. FocusFlight est une inspiration, jamais une copie |
-| 5 nov. | « fait en sorte que le /prototype sois le site de base » : fait (commit `c2b7e64`). Le nouvel argumentaire n'y est pas encore (section 5) |
+| 5 nov. | « fait en sorte que le /prototype sois le site de base » : fait (commit `c2b7e64`), complété le 6 nov. avec le nouvel argumentaire |
 | 6 nov. | Priorité au dashboard, les images de la landing attendent. Modes et temps de focus construits et poussés |
+| 6 nov. | « le bon site c'est prototype.html » : son contenu est devenu `site/index.html`, l'ancien accueil est supprimé. `/prototype.html` renvoie vers l'accueil. Le `noindex` et le bandeau « Prototype » restent en attendant le lancement |
 
 ### Vol de focus : le piège à éviter
 Un site ne peut pas bloquer un téléphone. **N'écris jamais que ça verrouille le téléphone.** La règle retenue : le vol est annulé si on quitte l'onglet ou l'appli avant l'arrivée. Un vrai blocage demanderait une app native (App Store 99 $/an, autorisation spéciale d'Apple), donc plus tard, si ça prend.
@@ -86,9 +87,9 @@ SVG viewBox 24×24, 4 carrés 9×9 à coins arrondis `rx=3` en grille 2×2 (x/y 
 |---|---|
 | `site/dashboard.html` | Tout le dashboard (environ 2 700 lignes). Catalogue `WIDGETS` et `MODES` dedans |
 | `site/login.html` | Connexion Google et code email, via Supabase |
-| `site/index.html` | Accueil en ligne : ancien texte « ton espace de widgets » |
-| `site/prototype.html` | Nouveau texte « Tes outils, au même endroit » (`data-landing="next"`, `noindex`) |
-| `site/landing.js`, `landing.css` | Partagés par les deux landings, avec le marqueur `NEXT` |
+| `site/index.html` | Accueil : « Tes outils, au même endroit » (`noindex`) |
+| `site/prototype.html` | Redirige vers l'accueil, pour les liens déjà partagés |
+| `site/landing.js`, `landing.css` | Scripts et styles de l'accueil |
 | `site/lockin.js` | Scène du vol (hublot, WebGL) |
 | `site/install.js`, `install.css`, `manifest.webmanifest`, `sw.js` | Installation de l'app. `sw.js` ne met volontairement rien en cache |
 | `supabase/migrations/` | 7 migrations |
@@ -121,13 +122,13 @@ Ajoute une entrée dans `WIDGETS` (`site/dashboard.html`). **S'il enregistre des
 Le 6 nov., au commit `b4c256b`, **les 4 suites passent** : `install`, `login`, `personnalisation`, `landing`.
 
 ```bash
-# Dans ce Codespace
-export NODE_PATH=$(dirname "$(ls -d ~/.npm/_npx/*/node_modules/playwright | tail -1)")
-for t in install login personnalisation landing; do node tests/$t.check.cjs; done
-
-# Sur une nouvelle machine
+# Sur une nouvelle machine, une seule fois
 npm i --prefix ~/pw playwright@1.56.1 && npx --prefix ~/pw playwright install chromium
+sudo npx --prefix ~/pw playwright install-deps chromium
+
+# Pour lancer les tests
 export NODE_PATH=~/pw/node_modules
+for t in install login personnalisation landing; do node tests/$t.check.cjs; done
 ```
 
 **Limite importante :** ces tests utilisent une base Supabase simulée. Ils ne prouvent pas que tout marche sur un vrai compte.
@@ -151,7 +152,6 @@ Dernier résultat sur `prototype.html` : 1 erreur et 6 alertes (dégradé, verre
 **Manque ou imparfait :**
 - **Paiement :** aucune trace de Whop dans `site/`. Aucune limite gratuit/Pro. Le menu du compte dit « Renzvi est gratuit pour l'instant ».
 - **Légal :** mentions légales et confidentialité sont « en préparation ». **Indispensables avant le premier euro.**
-- **Accueil :** il affiche encore l'ancien texte. Le nouveau est sur `prototype.html`, et il a été commité (`e0a59e9`).
 - **Images de la landing :** trop petites (736 px au mieux, `chat.webp` à 597 px) et **droits non vérifiés**, c'est un risque juridique une fois le site en vente. 736 px évoque Pinterest, mais ce n'est qu'une supposition. Reco faite à Damien : photos libres de droits (gratuit, environ 30 min), ou ses originaux en 1920 px, si les droits le permettent. Pas encore choisi. Les fonds du dashboard ont leurs sources dans `site/assets/credits.json`, et certaines licences exigent de citer l'auteur.
 - **Modes incomplets par rapport à la décision du 3 nov. :** cliquer sur un mode ne lance ni son ni playlist. Un widget ne peut être que sur une page, donc Study n'a ni musique ni ambiance. Reco déjà donnée : pas de lancement automatique du son.
 - **Pas de retour arrière** après « Installer Study et Chill ». Supprimer une page déplace ses widgets sur une page voisine.
@@ -168,7 +168,7 @@ Ordre recommandé à Damien le 6 nov. **Pas encore validé par Damien.**
 2. **Lui faire trancher gratuit/Pro et le prix TTC.** Tout le reste en dépend. Reco : photos perso, tous les sons et statistiques détaillées en Pro, à 3 €/mois TTC. Sois clair que ce prix n'est pas testé.
 3. **Brancher Whop,** avec les prix réglés **TVA incluse** (sinon la TVA s'ajoute au paiement), et les limites du gratuit. Vois l'expérience Whop dans `HISTORIQUE_PROJETS.md`.
 4. **Écrire mentions légales et confidentialité.** Fais-les relire : un modèle ne remplace pas un avis juridique.
-5. **Passer « Tes outils, au même endroit » en accueil,** puis retirer le marqueur `NEXT` de `landing.js` et le `noindex`. Reco : oui, mais il faut l'accord de Damien.
+5. **Au lancement,** retirer le `noindex` et le bandeau « Prototype » de l'accueil.
 6. **Remplacer les images de la landing** et mettre les prix affichés en cohérence avec sa décision.
 7. **Après les premières ventes :** son et playlist par mode, carnet de voyages et choix de destination, hydratation, sport, fiches de révision, vol de groupe.
 8. **Refonte du design :** prévue par Damien une fois les fonctionnalités finies. Reco : après le paiement, pas avant.
@@ -188,7 +188,7 @@ Ordre recommandé à Damien le 6 nov. **Pas encore validé par Damien.**
 
 | Outil | Pourquoi | Comment l'avoir |
 |---|---|---|
-| **`design-taste-frontend`** | **Obligatoire pour tout écran** (`CLAUDE.md` §3) | Déjà dans le repo (`.claude/skills/`). Source : `Leonxlnx/taste-skill`. Node 22+ et Chrome/Chromium requis |
+| **`design-taste-frontend`** | **Obligatoire pour tout écran** (`CLAUDE.md` §3) | Déjà dans le repo (`.claude/skills/`), en v2. Source : `Leonxlnx/taste-skill`. Node 22+ et Chrome/Chromium requis. **Ne pas passer en 2.5 sans l'accord de Damien :** cette version retire la partie écrans d'app et dashboards et pèse 40 Mo |
 | `security-and-hardening` | Connexion, données, paiement | Déjà dans le repo |
 | `shipping-and-launch` | Avant le lancement | Déjà dans le repo |
 | **Connecteur Supabase** | Lire la base et appliquer les migrations | À connecter sur claude.ai, avec le compte de Damien |
@@ -199,12 +199,14 @@ Ordre recommandé à Damien le 6 nov. **Pas encore validé par Damien.**
 
 | Plugin | Version | Rôle | Installation |
 |---|---|---|---|
-| **claude-mem** | 15.10.1 | Mémoire entre les sessions | `claude plugin marketplace add thedotmack/claude-mem` puis `claude plugin install claude-mem@thedotmack` |
+| **claude-mem** | 15.10.1 | Mémoire entre les sessions | `npm i -g bun` (requis), puis `claude plugin marketplace add thedotmack/claude-mem` et `claude plugin install claude-mem@thedotmack` |
 | **ponytail** | 5.3.3 | Faire la solution la plus simple, audits et revues | `claude plugin marketplace add DietrichGebert/ponytail` puis `claude plugin install ponytail@ponytail` |
-| design | 1.2.0 | Critique, accessibilité, textes d'interface | Synchronisé depuis claude.ai, avec le même compte |
-| engineering | 1.2.0 | Revue, débogage, tests, déploiement | Synchronisé depuis claude.ai |
-| marketing | 1.2.0 | Contenu, SEO, campagnes | Synchronisé depuis claude.ai |
-| postiz | 2.0.25 | Programmer des posts sur les réseaux | Synchronisé depuis claude.ai |
+| **caveman** | 4.0.1 | Réponses très courtes pour économiser des tokens. S'active seul à chaque session, se coupe avec « stop caveman » | `claude plugin marketplace add JuliusBrussee/caveman` puis `claude plugin install caveman@caveman` |
+| **agent-skills** (Addy Osmani) | 0.6.15 | 25 skills d'ingénierie : specs, tests, débogage, revue, mise en ligne | `claude plugin marketplace add addyosmani/agent-skills` puis `claude plugin install agent-skills@addy-agent-skills` |
+| design | 1.2.0 | Critique, accessibilité, textes d'interface | `claude plugin install design@anthropic-plugin-directory` |
+| engineering | 1.2.0 | Revue, débogage, tests, déploiement | `claude plugin install engineering@anthropic-plugin-directory` |
+| marketing | 1.2.0 | Contenu, SEO, campagnes | `claude plugin install marketing@anthropic-plugin-directory` |
+| postiz | 2.0.25 | Programmer des posts sur les réseaux | `claude plugin install postiz@claude-plugins-official` |
 
 **Optionnel :** skill `agent-reach` (lire des plateformes comme Reddit ou YouTube, installé dans `~/.agents/skills`, source non retrouvée).
 
