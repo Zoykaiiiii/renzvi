@@ -1,5 +1,7 @@
 # CLAUDE.md — Renzvi
 
+**Prochain Claude : lis `memoire.md` en entier avant de commencer.** Il contient l'état du projet, les décisions, les prochaines étapes et les plugins à installer.
+
 ## 1. Comment bosser avec moi
 - Damien, fondateur **non technique** : je pilote tout en langage naturel. Je ne code pas.
 - Réponds en **français simple**. Pour un choix technique : la conséquence concrète (coût, délai, risque), pas un cours.
