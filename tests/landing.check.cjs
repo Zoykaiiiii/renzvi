@@ -1,4 +1,4 @@
-// Vérifie la landing du prototype (site/prototype.html) dans un vrai Chromium : argumentaire, séquence « éparpillés → réunis »,
+// Vérifie la landing du prototype (site/index.html) dans un vrai Chromium : argumentaire, séquence « éparpillés → réunis »,
 // démonstrations existantes, scène du vol, clavier, tactile simulé, sans JavaScript et à mouvement réduit.
 // Lancement : NODE_PATH=<dossier node_modules contenant playwright> node tests/landing.check.cjs [dossier-captures]
 const assert = require('node:assert');
@@ -26,7 +26,7 @@ const into = (page, sel) => page.evaluate(s => document.querySelector(s).scrollI
   await new Promise(r => server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${server.address().port}`;
   const browser = await chromium.launch({ args: ['--no-sandbox'] });
-  const open = async (options, url = 'prototype.html') => {
+  const open = async (options, url = '') => {
     const context = await browser.newContext(options);
     const page = await context.newPage();
     const errors = [];
@@ -173,7 +173,7 @@ const into = (page, sel) => page.evaluate(s => document.querySelector(s).scrollI
   for (const [width, height] of [[1440, 900], [390, 844]]) {
     const context = await browser.newContext({ viewport: { width, height }, javaScriptEnabled: false });
     const page = await context.newPage();
-    await page.goto(`${base}/prototype.html`);
+    await page.goto(`${base}/`);
     assert.equal(await page.isVisible('h1'), true);
     assert.equal(await page.isVisible('.proto-note'), true);
     for (const sel of ['.sc-desk', '.sc-board', '.win[data-k=playlist]', '.sc-board .w[data-k=playlist]', '#t-offres', '#t-faq']) assert.equal(await page.isVisible(sel), true, sel);
@@ -189,7 +189,7 @@ const into = (page, sel) => page.evaluate(s => document.querySelector(s).scrollI
     const page = await context.newPage();
     const loaded = [];
     page.on('request', r => { if (r.url().includes('/landing/')) loaded.push(r.url().split('/landing/')[1]); });
-    await page.goto(`${base}/prototype.html`);
+    await page.goto(`${base}/`);
     await page.waitForLoadState('networkidle');
     await page.locator('#modeSeg button', { hasText: 'Chill' }).click();
     await page.locator('.pick', { hasText: "Tableau d'inspiration" }).click();
@@ -283,19 +283,6 @@ const into = (page, sel) => page.evaluate(s => document.querySelector(s).scrollI
     await context.close();
   }
 
-  // L'accueil actuel ne bouge pas, tant que la nouvelle version n'est pas validée.
-  {
-    const { context, page, errors } = await open({ viewport: { width: 1440, height: 900 } }, '');
-    assert.equal(clean(await page.textContent('h1')), 'Ton espace.Pour chaque moment.');
-    assert.equal(await page.locator('.proto-note').count(), 0);
-    assert.equal(await page.locator('#modeSeg button').count(), 3);
-    assert.ok(await page.locator('#modeGrid .w').first().getAttribute('data-key') === 'vol');
-    assert.equal(await page.locator('.lib-group').count(), 3);
-    assert.equal(await page.locator('.soon-list li').count(), 6);
-    assert.deepEqual(errors, []);
-    await context.close();
-  }
-
   // Captures et vidéo pour valider le rendu à l'œil.
   if (SHOTS) {
     for (const [width, height] of WIDTHS) {
@@ -320,7 +307,7 @@ const into = (page, sel) => page.evaluate(s => document.querySelector(s).scrollI
     for (const [name, viewport] of [['sequence-ordinateur', { width: 1280, height: 800 }], ['sequence-telephone', { width: 390, height: 844 }]]) {
       const context = await browser.newContext({ viewport, recordVideo: { dir: SHOTS, size: viewport } });
       const page = await context.newPage();
-      await page.goto(`${base}/prototype.html`);
+      await page.goto(`${base}/`);
       await page.waitForTimeout(500);
       await page.evaluate(() => { const s = document.querySelector('#scatterSeg'); scrollTo({ top: s.getBoundingClientRect().top + scrollY - 90, behavior: 'smooth' }); });
       await page.waitForTimeout(6500);
@@ -335,7 +322,7 @@ const into = (page, sel) => page.evaluate(s => document.querySelector(s).scrollI
     for (const [name, options] of [['mouvement-reduit-1440', { viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }], ['sans-javascript-390', { viewport: { width: 390, height: 844 }, javaScriptEnabled: false }]]) {
       const context = await browser.newContext(options);
       const page = await context.newPage();
-      await page.goto(`${base}/prototype.html`);
+      await page.goto(`${base}/`);
       await page.waitForTimeout(800);
       await page.locator('#reunir').screenshot({ path: path.join(SHOTS, `${name}.png`) });
       await context.close();

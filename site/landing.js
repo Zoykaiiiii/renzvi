@@ -7,10 +7,8 @@
   const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const two = n => String(n).padStart(2, '0');
-  // shortcut: prototype.html porte le nouvel argumentaire et index.html garde l'ancien ; à retirer quand prototype.html devient l'accueil.
-  const NEXT = document.documentElement.dataset.landing === 'next';
   // Fonds fournis par Damien (sources et licences à confirmer avant mise en ligne). Une seule taille : les originaux font environ 736 px de large.
-  const IMG = { prairie: 'landing/prairie', nuages: 'landing/nuages', nuit: 'landing/nuit', chat: 'landing/chat', trou: 'landing/trou', santorin: 'landing/santorin' };
+  const IMG = { nuages: 'landing/nuages', nuit: 'landing/nuit', chat: 'landing/chat', santorin: 'landing/santorin' };
 
   // ---------- Les widgets, dessinés comme dans le dashboard ----------
   const days = on => `<span class="days">${[...on].map(c => `<i class="${c === '1' ? 'on' : ''}"></i>`).join('')}</span>`;
@@ -55,14 +53,14 @@ Acheter du café.</p>` },
       <div class="book"><span class="book-c">L'Étranger</span><span><b>L'Étranger</b><span class="w-sub">Albert Camus · page 84 sur 159</span></span></div>
       <div class="w-bar"><i style="--p:.53"></i></div>` },
     inspiration: { name: "Tableau d'inspiration", html: () => `<div class="w-t">Tableau d'inspiration<small>3 / 6</small></div>
-      <div class="pins"><figure><span style="background-image:url(${NEXT ? IMG.santorin : IMG.prairie}-160.webp)"></span><figcaption>${NEXT ? "L'été" : 'Le calme'}</figcaption></figure>
+      <div class="pins"><figure><span style="background-image:url(${IMG.santorin}-160.webp)"></span><figcaption>L'été</figcaption></figure>
       <figure><span style="background-image:url(${IMG.chat}-160.webp)"></span><figcaption>Mon chat</figcaption></figure>
       <figure><span style="background-image:url(${IMG.nuages}-160.webp)"></span><figcaption>Le ciel</figcaption></figure></div>` },
     // Aperçus du futur : jamais proposés comme disponibles.
-    cahier: { name: 'Cahier de cours', cls: 'w-cahier', html: () => `<div class="w-t">Cahier de cours${NEXT ? '' : '<span class="tag tag-soon">Aperçu du concept</span>'}</div>
+    cahier: { name: 'Cahier de cours', cls: 'w-cahier', html: () => `<div class="w-t">Cahier de cours</div>
       <div class="cahier"><div class="cahier-toc"><span>1. Formation</span><span class="on">2. Consentement</span><span>3. Exécution</span><span>4. Responsabilité</span></div>
       <div class="cahier-page"><h4>Le consentement</h4><p>Le contrat suppose l'accord des volontés. Le consentement doit exister et être <mark>libre et éclairé</mark>&nbsp;: l'erreur, le dol et la violence le vicient.</p></div></div>` },
-    flash: { name: 'Flashcards', html: () => `<div class="w-t">Flashcards${NEXT ? '' : '<span class="tag tag-soon">Bientôt</span>'}</div>
+    flash: { name: 'Flashcards', html: () => `<div class="w-t">Flashcards</div>
       <p class="note-text" style="font-weight:500">Quels sont les vices du consentement&nbsp;?</p><div class="w-row"><span class="w-btn light">Retourner</span></div>` },
   };
   const make = id => {
@@ -154,7 +152,7 @@ Acheter du café.</p>` },
       const id = ++run;
       const alive = () => id === run;
       replay.hidden = true;
-      setWall(hero, NEXT ? 'santorin' : 'prairie', big());
+      setWall(hero, 'santorin', big());
       sheet.classList.remove('open');
       grid.replaceChildren();
       compose(grid, START, { stagger: 95 });
@@ -176,7 +174,7 @@ Acheter du café.</p>` },
       await sleep(1700); if (!alive()) return;
       move(at(fond, .5, .6)); await sleep(950); if (!alive()) return;
       fond.classList.add('press'); await tap(); fond.classList.remove('press');
-      setWall(hero, NEXT ? 'nuages' : 'nuit', big());
+      setWall(hero, 'nuages', big());
       await sleep(700); ptr.style.opacity = '0';
       replay.hidden = false;
     }
@@ -248,11 +246,11 @@ Acheter du café.</p>` },
   if (cGrid) {
     const stage = $('#composeStage');
     const CHOICES = ['vol', 'taches', 'minuteur', 'notes', 'heure', 'habitudes', 'playlist', 'ambiance'];
-    const FONDS = NEXT ? [['santorin', 'Santorin'], ['nuages', 'Nuages'], ['chat', 'Chat'], ['blanc', 'Blanc']] : [['prairie', 'Prairie'], ['nuages', 'Nuages'], ['nuit', 'Nuit étoilée'], ['chat', 'Chat'], ['trou', 'Trou noir'], ['blanc', 'Blanc']];
+    const FONDS = [['santorin', 'Santorin'], ['nuages', 'Nuages'], ['chat', 'Chat'], ['blanc', 'Blanc']];
     // Les mêmes quatre outils que dans « Quatre fenêtres, un seul écran » : la démonstration continue.
-    let picked = NEXT ? ['taches', 'minuteur', 'notes', 'playlist'] : ['taches', 'minuteur', 'heure', 'notes'];
+    let picked = ['taches', 'minuteur', 'notes', 'playlist'];
     let big = null;
-    let fond = NEXT ? 'santorin' : 'prairie';
+    let fond = 'santorin';
     const chips = $('#chips'), sw = $('#swatches');
     const draw = () => {
       $('#composeEmpty')?.remove();
@@ -295,19 +293,11 @@ Acheter du café.</p>` },
   if (mGrid) {
     const stage = $('#modeStage');
     const MODES = {
-      study: { wall: 'chat', ids: ['vol', 'minuteur', 'taches', 'compte', 'notes', 'raccourcis', 'heure', 'habitudes'], cap: 'Study : tes outils de travail et de révision.',
-        label: 'Composition Study : Vol de focus, Minuteur focus, Tâches, Compte à rebours, Notes, Mes raccourcis, Heure et Habitudes, sur un fond de chat derrière un mur blanc.' },
-      chill: { wall: 'nuages', ids: ['heure', 'ambiance', 'playlist', 'respiration', 'lecture', 'inspiration', 'notes', 'pause'], cap: 'Chill : ambiance, lecture, inspiration.',
-        label: "Composition Chill : Heure, Ambiance sonore, Playlist, Respiration guidée, Suivi de lecture, Tableau d'inspiration, Notes et Pause détente, sur un fond de nuages peints." },
-      cahier: { wall: 'prairie', ids: ['cahier', 'minuteur', 'flash', 'taches', 'notes'], cap: 'Study avec cahier : un aperçu du concept, pas encore développé.',
-        label: 'Aperçu du concept : un grand cahier de cours au centre, entouré des widgets Minuteur focus, Flashcards, Tâches et Notes.' },
+      study: { wall: 'chat', ids: ['cahier', 'minuteur', 'flash', 'taches', 'notes', 'vol'], cap: 'Study : tu révises ton cours, le minuteur tourne, tes tâches restent à côté.',
+        label: 'Composition Study : un cahier de cours au centre, entouré du Minuteur focus, des Flashcards, des Tâches, des Notes et du Vol de focus.' },
+      chill: { wall: 'nuages', ids: ['playlist', 'ambiance', 'lecture', 'respiration', 'heure', 'inspiration', 'notes', 'pause'], cap: 'Chill : ta musique tourne, tu règles la pluie, tu reprends ton livre.',
+        label: "Composition Chill : Playlist, Ambiance sonore, Suivi de lecture, Respiration guidée, Heure, Tableau d'inspiration, Notes et Pause détente, sur un fond de nuages peints." },
     };
-    if (NEXT) {
-      MODES.study = { wall: 'chat', ids: ['cahier', 'minuteur', 'flash', 'taches', 'notes', 'vol'], cap: 'Study : tu révises ton cours, le minuteur tourne, tes tâches restent à côté.',
-        label: 'Composition Study : un cahier de cours au centre, entouré du Minuteur focus, des Flashcards, des Tâches, des Notes et du Vol de focus.' };
-      MODES.chill = { wall: 'nuages', ids: ['playlist', 'ambiance', 'lecture', 'respiration', 'heure', 'inspiration', 'notes', 'pause'], cap: 'Chill : ta musique tourne, tu règles la pluie, tu reprends ton livre.',
-        label: "Composition Chill : Playlist, Ambiance sonore, Suivi de lecture, Respiration guidée, Heure, Tableau d'inspiration, Notes et Pause détente, sur un fond de nuages peints." };
-    }
     const set = key => {
       const m = MODES[key];
       $$('#modeSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === key));
@@ -324,15 +314,11 @@ Acheter du café.</p>` },
   // ---------- E. Le catalogue des widgets disponibles ----------
   const list = $('#libList');
   if (list) {
-    const GROUPS = NEXT ? [
+    const GROUPS = [
       ['Garder tes notes près de tes tâches', ['taches', 'notes', 'raccourcis', 'compte']],
       ['Lancer une séance sans quitter ton espace', ['vol', 'minuteur', 'pause']],
       ['Régler ton ambiance et ta musique', ['ambiance', 'playlist', 'respiration']],
       ['Retrouver tes repères', ['heure', 'habitudes', 'lecture', 'inspiration']],
-    ] : [
-      ['Pour travailler', ['vol', 'minuteur', 'taches', 'compte', 'notes', 'raccourcis']],
-      ['Pour souffler', ['ambiance', 'playlist', 'respiration', 'pause', 'lecture', 'inspiration']],
-      ['Au quotidien', ['heure', 'habitudes']],
     ];
     const DESC = {
       vol: "Une séance de concentration présentée comme un vol : tu choisis la durée, tu déchires ton ticket et le compte à rebours passe en plein écran. Si tu quittes l'écran, le vol est annulé.",

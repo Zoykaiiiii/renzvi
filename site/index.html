@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-landing="next">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Renzvi — ton espace de widgets</title>
-<meta name="description" content="Renzvi est un espace personnel composé de widgets, organisé comme un moodboard : tâches, minuteur, notes, musique, ambiance. Pour travailler, apprendre, organiser ta journée et souffler.">
+<title>Renzvi — tes outils, au même endroit</title>
+<meta name="description" content="Réunis tâches, notes, minuteur et musique dans un espace que tu composes pour travailler, réviser et décompresser.">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#f6f5f4">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,7 +14,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="landing/prairie.webp" as="image">
+<link rel="preload" href="landing/santorin.webp" as="image">
 <link rel="stylesheet" href="install.css">
 <link rel="stylesheet" href="landing.css">
 <script src="install.js" defer></script>
@@ -24,6 +24,7 @@
 </head>
 <body>
 <a class="skip" href="#contenu">Aller au contenu</a>
+<p class="proto-note">Prototype de présentation&nbsp;: certaines fonctions illustrent l'expérience prévue et ne sont pas encore utilisables.</p>
 
 <header class="nav" id="nav">
   <div class="wrap nav-in">
@@ -34,7 +35,7 @@
     </nav>
     <div class="nav-end">
       <a class="signin" href="login.html">Connexion</a>
-      <a class="btn btn-primary" href="login.html">Essayer Renzvi</a>
+      <a class="btn btn-primary" href="login.html">Créer mon espace</a>
       <button class="menu-btn" type="button" popovertarget="menu" aria-label="Ouvrir le menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg></button>
     </div>
   </div>
@@ -45,7 +46,7 @@
     <a href="#widgets">Les widgets</a>
     <a href="#offres">Offres envisagées</a>
     <a href="#questions">Questions</a>
-    <a href="login.html">Essayer Renzvi</a>
+    <a href="login.html">Créer mon espace</a>
   </div>
 </header>
 
@@ -53,19 +54,19 @@
   <!-- A. Premier écran -->
   <section class="hero" id="top" aria-labelledby="titre">
     <div class="wrap">
-      <h1 class="display enter" id="titre">Ton espace.<br>Pour chaque moment.</h1>
-      <p class="intro enter enter-2">Renzvi est un espace personnel que tu composes comme un moodboard&nbsp;: tâches, minuteur, notes, musique, ambiance, sur la photo de ton choix. Pour bosser, réviser ou souffler.</p>
+      <h1 class="display enter" id="titre">Tes outils, au&nbsp;même&nbsp;endroit</h1>
+      <p class="intro enter enter-2">Réunis tâches, notes, minuteur et musique dans un espace que tu composes pour travailler et décompresser.</p>
       <div class="hero-actions enter enter-3">
         <a class="btn btn-primary btn-lg" href="login.html">Créer mon espace</a>
-        <a class="btn btn-soft btn-lg" href="#composer">Voir comment ça marche</a>
+        <a class="btn btn-soft btn-lg" href="#reunir">Voir la démo</a>
         <span class="ins-row" data-install-row><button class="ins-open" type="button" data-install><span>Installer l'app</span></button></span>
       </div>
 
       <figure class="enter enter-4" style="margin:0">
-        <div class="stage" id="heroStage" data-ui role="img" aria-label="Aperçu du dashboard Renzvi : une prairie peinte en fond et des widgets posés dessus (Vol de focus, Tâches, Minuteur focus, Heure, Notes, Habitudes). Un widget Ambiance sonore vient s'ajouter et les autres lui font de la place, puis le fond passe à La Nuit étoilée.">
+        <div class="stage" id="heroStage" data-ui role="img" aria-label="Aperçu du dashboard Renzvi : une voiture rouge peinte devant Santorin en fond et des widgets posés dessus (Vol de focus, Tâches, Minuteur focus, Heure, Notes, Habitudes). Un widget Ambiance sonore vient s'ajouter et les autres lui font de la place, puis le fond passe à un ciel de nuages.">
           <div class="app" aria-hidden="true">
-            <div class="wall" data-w="prairie" style="background-image:url(landing/prairie.webp)"></div>
-            <div class="wall" data-w="nuit" style="opacity:0"></div>
+            <div class="wall" data-w="santorin" style="background-image:url(landing/santorin.webp)"></div>
+            <div class="wall" data-w="nuages" style="opacity:0"></div>
             <div class="app-bar">
               <span class="app-pill"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="9" height="9" rx="3" fill="#17191c"/><rect x="13" y="2" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="2" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="13" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/></svg>Renzvi</span>
               <span class="app-avatar">L</span>
@@ -84,18 +85,73 @@
     </div>
   </section>
 
+  <!-- B. Le problème : les mêmes contenus, éparpillés puis réunis. Sans script ou à mouvement réduit, les deux états restent côte à côte. -->
+  <section id="reunir" aria-labelledby="t-reunir">
+    <div class="wrap">
+      <div class="modes-head">
+        <div class="sec-head">
+          <h2 class="h2 reveal" id="t-reunir">Quatre fenêtres, un seul écran</h2>
+          <p class="intro reveal">Ta liste dans une fenêtre, tes notes dans une autre, le minuteur à retrouver, la musique ailleurs. Renzvi les pose côte à côte. Tes autres applis restent là quand tu en as besoin.</p>
+        </div>
+        <div class="seg reveal sc-seg" id="scatterSeg" role="group" aria-label="Voir les outils éparpillés ou réunis">
+          <button type="button" data-state="apart" aria-pressed="true">Éparpillés</button>
+          <button type="button" data-state="together" aria-pressed="false">Réunis</button>
+        </div>
+      </div>
+      <div class="panel panel-stone reveal">
+        <div class="scatter" id="scatter" data-state="apart">
+          <figure class="sc-frame sc-before">
+            <div class="mini sc-desk" data-ui role="img" aria-label="Quatre fenêtres séparées et qui se chevauchent : une liste de tâches, des notes, un minuteur à moitié caché et une playlist.">
+              <div aria-hidden="true"><div class="win" data-k="taches"><div class="win-bar"><i></i><i></i><i></i><span>Mes tâches</span></div><div class="w"><div class="w-t">Tâches<small>1 sur 3</small></div>
+<ul class="tasks"><li><label><input type="checkbox" checked tabindex="-1"><span>Relire le chapitre 4</span></label></li><li><label><input type="checkbox" tabindex="-1"><span>Fiche : contrats</span></label></li><li><label><input type="checkbox" tabindex="-1"><span>Appeler mamie</span></label></li></ul></div></div><div class="win" data-k="notes"><div class="win-bar"><i></i><i></i><i></i><span>Bloc-notes</span></div><div class="w"><div class="w-t">Notes</div>
+<p class="note-text">Exposé jeudi : relire l'intro.
+Rendre le livre à la BU.
+Acheter du café.</p></div></div><div class="win" data-k="minuteur"><div class="win-bar"><i></i><i></i><i></i><span>Minuteur</span></div><div class="w"><div class="w-t">Minuteur focus</div>
+<div class="w-big" data-timer>18:42</div><div class="w-bar"><i data-timer-bar style="--p:.25"></i></div></div></div><div class="win" data-k="playlist"><div class="win-bar"><i></i><i></i><i></i><span>Musique</span></div><div class="w"><div class="w-t">Playlist</div>
+<div class="track play"><span class="cover" style="background-image:url(landing/nuit-160.webp)"></span><span><b>Pluie douce et piano</b><span class="w-sub">Playlist · Spotify</span><span class="eq"><i></i><i></i><i></i><i></i></span></span></div></div></div></div>
+            </div>
+            <figcaption class="sc-cap">Éparpillés&nbsp;: quatre fenêtres à retrouver.</figcaption>
+          </figure>
+          <figure class="sc-frame sc-after">
+            <div class="mini sc-board" data-ui role="img" aria-label="Les mêmes tâches, notes, minuteur et playlist, réunis en widgets sur une voiture rouge peinte devant Santorin.">
+              <div class="app" aria-hidden="true">
+                <div class="wall" style="background-image:url(landing/santorin.webp)"></div>
+                <div class="grid"><div class="w" data-k="taches"><div class="w-t">Tâches<small>1 sur 3</small></div>
+<ul class="tasks"><li><label><input type="checkbox" checked tabindex="-1"><span>Relire le chapitre 4</span></label></li><li><label><input type="checkbox" tabindex="-1"><span>Fiche : contrats</span></label></li><li><label><input type="checkbox" tabindex="-1"><span>Appeler mamie</span></label></li></ul></div><div class="w" data-k="minuteur"><div class="w-t">Minuteur focus</div>
+<div class="w-big" data-timer>18:42</div><div class="w-bar"><i data-timer-bar style="--p:.25"></i></div></div><div class="w" data-k="notes"><div class="w-t">Notes</div>
+<p class="note-text">Exposé jeudi : relire l'intro.
+Rendre le livre à la BU.
+Acheter du café.</p></div><div class="w" data-k="playlist"><div class="w-t">Playlist</div>
+<div class="track play"><span class="cover" style="background-image:url(landing/nuit-160.webp)"></span><span><b>Pluie douce et piano</b><span class="w-sub">Playlist · Spotify</span><span class="eq"><i></i><i></i><i></i><i></i></span></span></div></div></div>
+              </div>
+            </div>
+            <figcaption class="sc-cap">Réunis&nbsp;: les mêmes contenus, visibles ensemble.</figcaption>
+          </figure>
+        </div>
+        <p class="panel-foot sc-foot"><span id="scatterCap" aria-live="polite">Éparpillés&nbsp;: quatre fenêtres à retrouver.</span><a class="btn btn-soft sc-next" href="#composer">Composer le mien</a></p>
+      </div>
+    </div>
+  </section>
+
   <!-- C. Composer son espace -->
   <section id="composer" aria-labelledby="t-composer">
     <div class="wrap compose">
       <div class="compose-text">
-        <h2 class="h2 reveal" id="t-composer">Compose ton espace.</h2>
-        <p class="intro reveal">Ajoute ce qui te sert, retire le reste, choisis ton fond. Les widgets se rangent tout seuls, et ton espace est enregistré dans ton compte&nbsp;: tu le retrouves à chaque visite.</p>
+        <h2 class="h2 reveal" id="t-composer">Garde l'utile sous les yeux</h2>
+        <p class="intro reveal">Ajoute ce qui te sert, retire le reste, donne plus de place à ce qui compte. Tu retrouves ton espace tel que tu l'as laissé.</p>
         <div class="reveal">
-          <p class="ctrl-l" id="l-widgets">Widgets <span id="pickCount" class="num" aria-live="polite">4 sur l'écran</span></p>
+          <p class="ctrl-l" id="l-widgets">Tes outils <span id="pickCount" class="num" aria-live="polite">4 sur l'écran</span></p>
           <div class="chips" id="chips" role="group" aria-labelledby="l-widgets" style="margin-top:12px"></div>
         </div>
         <div class="reveal">
-          <p class="ctrl-l" id="l-fond">Fond</p>
+          <p class="ctrl-l" id="l-place">Ce qui compte aujourd'hui</p>
+          <div class="seg" id="placeSeg" role="group" aria-labelledby="l-place" style="margin-top:12px">
+            <button type="button" data-big="" aria-pressed="true">Même place</button>
+            <button type="button" data-big="taches" aria-pressed="false">Tâches en grand</button>
+          </div>
+        </div>
+        <div class="reveal">
+          <p class="ctrl-l" id="l-fond">Ton fond</p>
           <div class="swatches" id="swatches" role="group" aria-labelledby="l-fond" style="margin-top:12px"></div>
         </div>
       </div>
@@ -103,7 +159,7 @@
         <div class="panel panel-sand">
           <div class="mini" id="composeStage" data-ui role="img" aria-label="Aperçu de ton espace, mis à jour selon tes choix.">
             <div class="app" aria-hidden="true">
-              <div class="wall" data-w="prairie" style="background-image:url(landing/prairie.webp)"></div>
+              <div class="wall" data-w="santorin" style="background-image:url(landing/santorin.webp)"></div>
               <div class="wall" style="opacity:0"></div>
               <div class="grid" id="composeGrid"></div>
             </div>
@@ -120,26 +176,25 @@
       <div class="modes-head">
         <div class="sec-head">
           <h2 class="h2 reveal" id="t-modes">Study pour bosser. Chill pour souffler.</h2>
-          <p class="intro reveal">Un mode, c'est une composition&nbsp;: des widgets et un fond. Tu passes de l'un à l'autre et chacun garde ta disposition.</p>
+          <p class="intro reveal">Study met ton cours au centre et tes outils autour. Chill garde ta musique, ton ambiance et ta lecture. Tu passes de l'un à l'autre sans rien refaire.</p>
         </div>
         <div class="seg reveal" id="modeSeg" role="group" aria-label="Choisir une composition">
           <button type="button" data-mode="study" aria-pressed="true">Study</button>
           <button type="button" data-mode="chill" aria-pressed="false">Chill</button>
-          <button type="button" data-mode="cahier" aria-pressed="false">Study avec cahier <span class="tag tag-soon">Bientôt</span></button>
-        </div>
+                  </div>
       </div>
       <div class="panel panel-stone reveal">
-        <div class="mini mode-stage" id="modeStage" data-ui role="img" aria-label="Composition Study : Vol de focus, Minuteur focus, Tâches, Compte à rebours, Notes, Mes raccourcis, Heure et Habitudes, sur un fond de chat derrière un mur blanc.">
+        <div class="mini mode-stage" id="modeStage" data-ui role="img" aria-label="Composition Study : un cahier de cours au centre, entouré du Minuteur focus, des Flashcards, des Tâches, des Notes et du Vol de focus.">
           <div class="app" aria-hidden="true">
             <div class="wall" data-w="chat" style="background-image:url(landing/chat.webp)"></div>
             <div class="wall" style="opacity:0"></div>
             <div class="grid" id="modeGrid"></div>
           </div>
         </div>
-        <p class="panel-foot"><span id="modeCaption">Study&nbsp;: tes outils de travail et de révision.</span><span>Aperçu du concept&nbsp;: le passage d'un mode à l'autre arrive bientôt.</span></p>
+        <p class="panel-foot"><span id="modeCaption">Study&nbsp;: tu révises ton cours, le minuteur tourne, tes tâches restent à côté.</span></p>
       </div>
       <div class="mode-note reveal">
-        <p>Aujourd'hui, tu composes un espace et tu le modifies à la main. Les modes enregistrés, puis le cahier de cours au centre de Study, viendront ensuite. Deux autres modes sont envisagés pour plus tard&nbsp;: Sport et Bien-être.</p>
+        <p>D'autres moments pourront suivre, comme le sport ou le bien-être.</p>
       </div>
     </div>
   </section>
@@ -175,8 +230,8 @@
       </div>
       <div class="pl-scene" id="lkScene" aria-hidden="true"></div>
       <div class="wrap pl-copy" id="plCopy">
-        <h2 class="h2" id="t-vol">C'est le moment de te concentrer.</h2>
-        <p class="intro">Le Vol de focus transforme une séance de travail en vol. Tu choisis la durée, tu déchires ton ticket et le compte à rebours s'affiche dans le hublot.</p>
+        <h2 class="h2" id="t-vol">Concentre-toi sans quitter ton espace</h2>
+        <p class="intro">Le Vol de focus est l'un de tes widgets. Tu choisis la durée, tu déchires ton ticket, et tes tâches t'attendent à l'arrivée.</p>
         <div class="pl-ticket" id="lkTicket" data-ui>
           <div class="boarding">
             <div class="bmain"><p class="blabel">Carte d'embarquement</p><p class="broute">PAR → LYS</p><p class="bcity">Paris → Lyon</p>
@@ -209,43 +264,19 @@
   <section id="widgets" aria-labelledby="t-widgets">
     <div class="wrap">
       <div class="sec-head">
-        <h2 class="h2 reveal" id="t-widgets">Quatorze widgets, déjà dans l'app.</h2>
-        <p class="intro reveal">Touche un nom pour voir le widget. Chacun s'ajoute, se retire et se range sur ton espace.</p>
+        <h2 class="h2 reveal" id="t-widgets">Ce que tu fais depuis ton espace</h2>
+        <p class="intro reveal">Quatorze widgets, utilisables dès maintenant dans ton compte. Touche un nom pour voir à quoi il ressemble.</p>
       </div>
       <div class="lib">
         <div class="lib-list reveal" id="libList"></div>
         <div class="panel panel-sand reveal">
           <div class="lib-show">
             <div class="mini" id="libStage" data-ui>
-              <div class="wall" data-w="nuit" style="background-image:url(landing/nuit.webp)"></div>
+              <div class="wall" data-w="santorin" style="background-image:url(landing/santorin.webp)"></div>
               <div id="libWidget" aria-hidden="true"></div>
             </div>
             <div class="lib-desc" id="libDesc" aria-live="polite"></div>
           </div>
-        </div>
-      </div>
-
-      <div class="soon" aria-labelledby="t-soon">
-        <div class="reveal">
-          <h3 class="h3" id="t-soon">Bientôt dans Renzvi</h3>
-          <p class="body" style="margin-top:12px;max-width:44ch">Des idées en préparation, pas encore disponibles. La plus attendue&nbsp;: un cahier de cours en grand, entouré de tes petits widgets.</p>
-          <div class="soon-vision" style="margin-top:24px" data-ui role="img" aria-label="Aperçu du concept : un grand widget cahier de cours au centre, entouré des widgets Minuteur focus, Notes et Tâches.">
-            <div class="app" aria-hidden="true">
-              <div class="wall" data-w="trou" style="background-image:url(landing/trou.webp)"></div>
-              <div class="grid" id="visionGrid"></div>
-            </div>
-          </div>
-          <p class="concept-cap"><span class="tag tag-soon">Aperçu du concept</span>Pas encore développé.</p>
-        </div>
-        <div class="soon-card reveal">
-          <ul class="soon-list">
-            <li><b>Cahier de cours <span class="tag tag-soon">Bientôt</span></b><p>Tes cours en grand widget, au milieu de ton espace Study.</p></li>
-            <li><b>Flashcards <span class="tag tag-soon">Bientôt</span></b><p>Des cartes à retourner pour réviser entre deux séances.</p></li>
-            <li><b>Modes enregistrés <span class="tag tag-soon">Bientôt</span></b><p>Study, Chill&nbsp;: passer d'une composition à l'autre en un geste.</p></li>
-            <li><b>Révision avec l'IA <span class="tag tag-soon">Idée</span></b><p>Des outils pour réviser à partir de tes cours, prévus dans l'offre Pro IA.</p></li>
-            <li><b>Sport <span class="tag tag-soon">Plus tard</span></b><p>Un mode pour tes séances et ton suivi.</p></li>
-            <li><b>Bien-être <span class="tag tag-soon">Plus tard</span></b><p>Un mode pour ralentir et prendre soin de toi.</p></li>
-          </ul>
         </div>
       </div>
     </div>
@@ -256,8 +287,9 @@
     <div class="wrap">
       <div class="price-top">
         <div class="sec-head">
-          <h2 class="h2 reveal" id="t-offres">Des offres claires, en TTC.</h2>
-          <p class="notice reveal">Offres envisagées — lancement à venir</p>
+          <h2 class="h2 reveal" id="t-offres">Gratuit pour commencer</h2>
+          <p class="intro reveal">Pro ajoute un espace par moment de ta journée. Pro IA ajoute la révision à partir de tes cours.</p>
+          <p class="notice reveal">Offres envisagées&nbsp;: aucun paiement n'est disponible dans ce prototype.</p>
         </div>
         <div class="seg reveal" id="billing" role="group" aria-label="Période de facturation">
           <button type="button" data-bill="mois" aria-pressed="true">Mensuel</button>
@@ -268,34 +300,33 @@
         <article class="plan reveal" aria-labelledby="p-free">
           <div class="plan-name"><h3 class="h3" id="p-free">Gratuit</h3></div>
           <p class="price"><b>0&nbsp;€</b></p>
-          <p class="price-sub">Pour découvrir Renzvi.</p>
+          <p class="price-sub">Pour réunir tes outils et t'en servir chaque jour.</p>
           <ul class="plan-list">
-            <li>Un moodboard avec une sélection de widgets</li>
+            <li>Un espace avec une sélection de widgets</li>
             <li>Fonds d'écran au choix</li>
             <li>Limites exactes encore à confirmer</li>
           </ul>
-          <a class="btn btn-soft" href="login.html">Essayer le prototype</a>
+          <a class="btn btn-soft" href="login.html">Créer mon espace</a>
         </article>
         <article class="plan feature reveal" aria-labelledby="p-pro">
           <div class="plan-name"><h3 class="h3" id="p-pro">Pro</h3></div>
           <p class="price" data-price="pro" aria-live="polite"><b class="num">7,90&nbsp;€</b><span>TTC par mois</span></p>
           <p class="price-sub" data-sub="pro">ou 76&nbsp;€ TTC par an</p>
           <ul class="plan-list">
-            <li>Plusieurs espaces enregistrés</li>
+            <li>Plusieurs espaces enregistrés&nbsp;: Study, Chill, et les tiens</li>
             <li>Tous les widgets classiques</li>
             <li>Personnalisation complète&nbsp;: fonds, photo perso, disposition</li>
-            <li>Offre cible, enrichie à mesure que ces fonctions arrivent</li>
-          </ul>
+                      </ul>
           <p class="plan-state">Pas encore en vente.</p>
         </article>
         <article class="plan reveal" aria-labelledby="p-ia">
-          <div class="plan-name"><h3 class="h3" id="p-ia">Pro IA</h3><span class="tag tag-soon">À venir</span></div>
+          <div class="plan-name"><h3 class="h3" id="p-ia">Pro IA</h3></div>
           <p class="price" data-price="ia" aria-live="polite"><b class="num">15,90&nbsp;€</b><span>TTC par mois</span></p>
           <p class="price-sub" data-sub="ia">ou 153&nbsp;€ TTC par an</p>
           <ul class="plan-list">
             <li>Tout le Pro</li>
-            <li>Outils de révision avec l'IA, pas encore développés</li>
-            <li>Avec un quota d'utilisation, précisé avant le lancement</li>
+            <li>Des outils pour réviser à partir de tes cours, avec l'IA</li>
+            <li>Un quota d'utilisation, précisé avant le lancement</li>
           </ul>
           <p class="plan-state">Pas encore en vente.</p>
         </article>
@@ -309,8 +340,9 @@
     <div class="wrap faq-in">
       <h2 class="h2 reveal" id="t-faq">Questions fréquentes</h2>
       <div class="faq-list reveal">
-        <details open><summary>C'est quoi, Renzvi&nbsp;?</summary><p>Un espace personnel fait de widgets, que tu organises comme un moodboard. Tu choisis tes outils (tâches, minuteur, notes, musique, ambiance…), tu les ranges, tu choisis ton fond. Le même espace sert à travailler, apprendre, organiser ta journée et décompresser.</p></details>
-        <details><summary>Qu'est-ce qui marche déjà&nbsp;?</summary><p>Le dashboard&nbsp;: les quatorze widgets présentés plus haut, les fonds d'écran, ta propre photo, et la sauvegarde dans ton compte. Les modes Study et Chill, le cahier de cours, les flashcards et l'IA sont des aperçus&nbsp;: ils ne sont pas encore développés.</p></details>
+        <details open><summary>C'est quoi, Renzvi&nbsp;?</summary><p>Un espace personnel qui réunit tes outils du quotidien&nbsp;: tâches, notes, minuteur, musique, ambiance. Tu les ranges comme un moodboard, sur le fond de ton choix, pour travailler, apprendre et décompresser.</p></details>
+        <details><summary>Est-ce que ça remplace mes applis&nbsp;?</summary><p>Non. Renzvi garde sous tes yeux ce que tu utilises tout le temps. Tes applis plus complètes restent là quand tu en as besoin, et le widget Playlist lit tes liens Spotify ou YouTube.</p></details>
+        <details><summary>Qu'est-ce qui marche déjà&nbsp;?</summary><p>Le dashboard&nbsp;: les quatorze widgets présentés plus haut, les fonds d'écran, ta propre photo, le déplacement et la taille des widgets, plusieurs pages, et la sauvegarde dans ton compte. Les modes Study et Chill enregistrés, le cahier de cours, les flashcards et l'IA illustrent l'expérience prévue&nbsp;: ils ne sont pas encore développés.</p></details>
         <details><summary>Sur quels appareils&nbsp;?</summary><p>Dans ton navigateur, sur ordinateur, tablette et téléphone. Tu peux aussi l'installer sur ton écran d'accueil avec le bouton «&nbsp;Installer l'app&nbsp;». Depuis TikTok ou Instagram, ouvre d'abord le lien dans Safari ou Chrome.</p></details>
         <details><summary>Comment je me connecte&nbsp;?</summary><p>Avec ton compte Google, ou avec un code à usage unique envoyé par email. Pas de mot de passe à retenir.</p></details>
         <details><summary>Qui voit mes données&nbsp;?</summary><p>Toi seul. Ton espace est privé par défaut et on ne garde que le nécessaire pour le faire fonctionner&nbsp;: ton email et le contenu de tes widgets.</p></details>
@@ -324,8 +356,8 @@
   <section class="close" data-dark aria-labelledby="t-close">
     <div class="wrap close-in">
       <div>
-        <h2 class="h2 reveal" id="t-close">Ton espace t'attend.</h2>
-        <p class="reveal">Connecte-toi avec Google ou un code reçu par email, puis pose tes premiers widgets.</p>
+        <h2 class="h2 reveal" id="t-close">Réunis tes outils aujourd'hui</h2>
+        <p class="reveal">Tâches, notes, minuteur et musique, au même endroit, à chaque fois que tu reviens. Il te suffit de Google ou d'un code reçu par email.</p>
         <div class="close-actions reveal">
           <a class="btn btn-primary btn-lg" href="login.html">Créer mon espace</a>
           <a class="btn btn-soft btn-lg" href="#top" data-replay>Revoir la démo</a>
@@ -349,7 +381,8 @@
         <div><b>Légal</b><p>Mentions légales et confidentialité&nbsp;: en préparation.</p></div>
       </div>
     </div>
-    <p class="credits">Fonds d'écran des démonstrations&nbsp;: images fournies pour le prototype, sources et licences à confirmer avant toute mise en ligne. «&nbsp;La Nuit étoilée&nbsp;», Vincent van Gogh (1889), domaine public. Polices Inter et Source Serif 4, licence SIL OFL. Contenus des widgets&nbsp;: exemples. © 2026 Renzvi.</p>
+    <p class="credits proto-foot">Prototype de présentation&nbsp;: certaines fonctions illustrent l'expérience prévue et ne sont pas encore utilisables.</p>
+    <p class="credits">Fonds d'écran des démonstrations&nbsp;: images fournies pour le prototype, sources et licences à confirmer avant toute mise en ligne. Pochette d'exemple&nbsp;: «&nbsp;La Nuit étoilée&nbsp;», Vincent van Gogh (1889), domaine public. Polices Inter et Source Serif 4, licence SIL OFL. Contenus des widgets&nbsp;: exemples. © 2026 Renzvi.</p>
   </div>
 </footer>
 </body>

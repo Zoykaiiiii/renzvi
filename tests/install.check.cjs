@@ -124,7 +124,7 @@ async function walk(page, name, expectedSteps, { finalLast = true } = {}) {
     await context.close();
   }
 
-  // L'accueil est bien la landing, sans fichier manquant ni appel à un autre site ; le prototype s'ouvre à côté.
+  // L'accueil est bien la landing, sans fichier manquant ni appel à un autre site ; l'ancienne adresse du prototype y renvoie.
   for (const options of [DESKTOP, { ...PHONE, userAgent: UA.iosSafari }]) {
     const { page, context, errors } = await visit(browser, options, { page: '' });
     const missing = [], outside = [];
@@ -132,15 +132,16 @@ async function walk(page, name, expectedSteps, { finalLast = true } = {}) {
     page.on('request', r => { if (!r.url().startsWith('http://127.0.0.1') && !r.url().startsWith('data:')) outside.push(r.url()); });
     await page.reload();
     await page.waitForLoadState('networkidle');
-    assert.equal(await page.title(), 'Renzvi — ton espace de widgets');
+    assert.equal(await page.title(), 'Renzvi — tes outils, au même endroit');
     assert.ok(await page.isVisible('h1'));
     assert.equal(await page.locator('a[href="login.html"]:visible').count() > 0, true, 'on peut aller à la connexion');
     assert.deepEqual(missing, []);
     assert.deepEqual(outside, [], 'polices et images sont servies par le site');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-    await page.goto(page.url() + 'prototype.html');
-    assert.equal(await page.title(), 'Renzvi — tes outils, au même endroit');
-    assert.ok(await page.isVisible('[data-install]'), "le bouton d'installation reste sur le prototype");
+    assert.ok(await page.isVisible('[data-install]'), "le bouton d'installation est sur l'accueil");
+    const home = page.url();
+    await page.goto(home + 'prototype.html');
+    await page.waitForURL(home);
     assert.deepEqual(errors, []);
     await context.close();
   }

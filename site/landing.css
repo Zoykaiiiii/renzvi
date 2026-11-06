@@ -653,10 +653,8 @@ footer{padding-block:48px 32px}
 .pl-window .hublot-view::after{background:linear-gradient(118deg,rgba(255,255,255,.1),rgba(255,255,255,0) 26%,rgba(255,255,255,0) 72%,rgba(255,255,255,.05))} /* taste-skill-ignore : reflet du verre ; le voile central est remplacé par le halo derrière l'heure */
 
 /* Point d'intérêt de chaque fond : le recadrage garde le sujet, sur un écran large comme en portrait (jamais de déformation). */
-.wall[data-w=prairie]{background-position:70% 50%}
-.wall[data-w=trou]{background-position:72% 50%}
 
-/* ---------- Nouvel argumentaire (prototype.html seulement) ---------- */
+/* ---------- Nouvel argumentaire ---------- */
 .proto-note{padding:8px var(--m);background:var(--accent-pale);color:var(--ink);font-size:14px;line-height:1.43;text-align:center;text-wrap:balance}
 .proto-foot{color:var(--ink)}
 [data-landing=next] .hero .intro{max-width:52ch}
