@@ -36,7 +36,7 @@ Les règles complètes sont dans `CLAUDE.md`. Voici l'essentiel, avec ce que l'e
 - Le ticket et le vol vont dans la vitrine des widgets, jamais en titre.
 - Rester honnête : ce qui n'existe pas encore reste marqué « bientôt ».
 
-### Décisions de Damien, à ne pas remettre en cause sans qu'il le demande
+### Décisions de Damien, à ne pas remettre en cause sans sa demande
 
 | Date | Décision |
 |---|---|
