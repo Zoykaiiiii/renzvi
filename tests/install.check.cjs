@@ -124,7 +124,7 @@ async function walk(page, name, expectedSteps, { finalLast = true } = {}) {
     await context.close();
   }
 
-  // L'accueil est bien la landing, sans fichier manquant ni appel à un autre site ; l'ancienne adresse y mène.
+  // L'accueil est bien la landing, sans fichier manquant ni appel à un autre site ; le prototype s'ouvre à côté.
   for (const options of [DESKTOP, { ...PHONE, userAgent: UA.iosSafari }]) {
     const { page, context, errors } = await visit(browser, options, { page: '' });
     const missing = [], outside = [];
@@ -139,8 +139,8 @@ async function walk(page, name, expectedSteps, { finalLast = true } = {}) {
     assert.deepEqual(outside, [], 'polices et images sont servies par le site');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.goto(page.url() + 'prototype.html');
-    await page.waitForURL(u => !u.pathname.includes('prototype'));
-    assert.equal(await page.title(), 'Renzvi — ton espace de widgets');
+    assert.equal(await page.title(), 'Renzvi — tes outils, au même endroit');
+    assert.ok(await page.isVisible('[data-install]'), "le bouton d'installation reste sur le prototype");
     assert.deepEqual(errors, []);
     await context.close();
   }

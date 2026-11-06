@@ -7,8 +7,10 @@
   const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const two = n => String(n).padStart(2, '0');
+  // shortcut: prototype.html porte le nouvel argumentaire et index.html garde l'ancien ; à retirer quand prototype.html devient l'accueil.
+  const NEXT = document.documentElement.dataset.landing === 'next';
   // Fonds fournis par Damien (sources et licences à confirmer avant mise en ligne). Une seule taille : les originaux font environ 736 px de large.
-  const IMG = { prairie: 'landing/prairie', nuages: 'landing/nuages', nuit: 'landing/nuit', chat: 'landing/chat', trou: 'landing/trou' };
+  const IMG = { prairie: 'landing/prairie', nuages: 'landing/nuages', nuit: 'landing/nuit', chat: 'landing/chat', trou: 'landing/trou', santorin: 'landing/santorin' };
 
   // ---------- Les widgets, dessinés comme dans le dashboard ----------
   const days = on => `<span class="days">${[...on].map(c => `<i class="${c === '1' ? 'on' : ''}"></i>`).join('')}</span>`;
@@ -53,14 +55,14 @@ Acheter du café.</p>` },
       <div class="book"><span class="book-c">L'Étranger</span><span><b>L'Étranger</b><span class="w-sub">Albert Camus · page 84 sur 159</span></span></div>
       <div class="w-bar"><i style="--p:.53"></i></div>` },
     inspiration: { name: "Tableau d'inspiration", html: () => `<div class="w-t">Tableau d'inspiration<small>3 / 6</small></div>
-      <div class="pins"><figure><span style="background-image:url(${IMG.prairie}-160.webp)"></span><figcaption>Le calme</figcaption></figure>
+      <div class="pins"><figure><span style="background-image:url(${NEXT ? IMG.santorin : IMG.prairie}-160.webp)"></span><figcaption>${NEXT ? "L'été" : 'Le calme'}</figcaption></figure>
       <figure><span style="background-image:url(${IMG.chat}-160.webp)"></span><figcaption>Mon chat</figcaption></figure>
       <figure><span style="background-image:url(${IMG.nuages}-160.webp)"></span><figcaption>Le ciel</figcaption></figure></div>` },
     // Aperçus du futur : jamais proposés comme disponibles.
-    cahier: { name: 'Cahier de cours', cls: 'w-cahier', html: () => `<div class="w-t">Cahier de cours<span class="tag tag-soon">Aperçu du concept</span></div>
+    cahier: { name: 'Cahier de cours', cls: 'w-cahier', html: () => `<div class="w-t">Cahier de cours${NEXT ? '' : '<span class="tag tag-soon">Aperçu du concept</span>'}</div>
       <div class="cahier"><div class="cahier-toc"><span>1. Formation</span><span class="on">2. Consentement</span><span>3. Exécution</span><span>4. Responsabilité</span></div>
       <div class="cahier-page"><h4>Le consentement</h4><p>Le contrat suppose l'accord des volontés. Le consentement doit exister et être <mark>libre et éclairé</mark>&nbsp;: l'erreur, le dol et la violence le vicient.</p></div></div>` },
-    flash: { name: 'Flashcards', html: () => `<div class="w-t">Flashcards<span class="tag tag-soon">Bientôt</span></div>
+    flash: { name: 'Flashcards', html: () => `<div class="w-t">Flashcards${NEXT ? '' : '<span class="tag tag-soon">Bientôt</span>'}</div>
       <p class="note-text" style="font-weight:500">Quels sont les vices du consentement&nbsp;?</p><div class="w-row"><span class="w-btn light">Retourner</span></div>` },
   };
   const make = id => {
@@ -72,7 +74,7 @@ Acheter du café.</p>` },
   };
 
   // ---------- Placer des widgets en animant la place que les autres leur font (technique FLIP) ----------
-  function compose(grid, ids, { stagger = 0 } = {}) {
+  function compose(grid, ids, { stagger = 0, big = null } = {}) {
     const still = reduced();
     const current = new Map($$(':scope > .w:not(.is-leaving)', grid).map(el => [el.dataset.key, el]));
     const first = new Map([...current].map(([k, el]) => [k, el.getBoundingClientRect()]));
@@ -96,6 +98,7 @@ Acheter du café.</p>` },
     });
     const leaving = $$(':scope > .is-leaving', grid);
     grid.replaceChildren(...els, ...leaving);
+    els.forEach(el => el.classList.toggle('w-wide', el.dataset.key === big));
     fill(grid);
     if (still) return;
     for (const [k, el] of current) {
@@ -151,7 +154,7 @@ Acheter du café.</p>` },
       const id = ++run;
       const alive = () => id === run;
       replay.hidden = true;
-      setWall(hero, 'prairie', big());
+      setWall(hero, NEXT ? 'santorin' : 'prairie', big());
       sheet.classList.remove('open');
       grid.replaceChildren();
       compose(grid, START, { stagger: 95 });
@@ -173,7 +176,7 @@ Acheter du café.</p>` },
       await sleep(1700); if (!alive()) return;
       move(at(fond, .5, .6)); await sleep(950); if (!alive()) return;
       fond.classList.add('press'); await tap(); fond.classList.remove('press');
-      setWall(hero, 'nuit', big());
+      setWall(hero, NEXT ? 'nuages' : 'nuit', big());
       await sleep(700); ptr.style.opacity = '0';
       replay.hidden = false;
     }
@@ -187,18 +190,74 @@ Acheter du café.</p>` },
     live.observe(hero);
   }
 
+  // ---------- B. Outils éparpillés, puis réunis : les fenêtres rejoignent leur place de widget ----------
+  const scatter = $('#scatter');
+  if (scatter && !reduced()) {
+    const seg = $('#scatterSeg'), cap = $('#scatterCap');
+    const CAPTIONS = { apart: 'Éparpillés : quatre fenêtres à retrouver.', together: 'Réunis : les mêmes contenus, visibles ensemble.' };
+    const windows = $$('.win', scatter), widgets = $$('.sc-board .w', scatter), wall = $('.sc-board .wall', scatter);
+    let run = 0;
+    const mark = state => {
+      scatter.dataset.state = state;
+      $$('button', seg).forEach(b => b.setAttribute('aria-pressed', b.dataset.state === state));
+      cap.textContent = CAPTIONS[state];
+    };
+    const stopAll = () => $$('*', scatter).forEach(n => n.getAnimations().forEach(a => a.cancel()));
+    // Les fenêtres arrivent l'une après l'autre, en désordre : le même geste que les widgets du premier écran.
+    const apart = () => {
+      run++;
+      stopAll();
+      mark('apart');
+      windows.forEach((w, i) => w.animate([{ opacity: 0, transform: 'translateY(22px) scale(.93)' }, { opacity: 1, transform: 'none' }], { duration: 700, delay: i * 120, easing: 'cubic-bezier(.34,1.4,.5,1)', fill: 'backwards' }));
+    };
+    // Chaque widget part de la fenêtre qui porte le même contenu, puis le fond apparaît : la composition se stabilise.
+    const together = () => {
+      run++;
+      stopAll();
+      const from = new Map(windows.map(w => [w.dataset.k, w.getBoundingClientRect()]));
+      mark('together');
+      widgets.forEach((w, i) => {
+        const a = from.get(w.dataset.k), b = w.getBoundingClientRect();
+        w.style.transformOrigin = '0 0';
+        w.animate([
+          { opacity: .35, transform: `translate(${a.left - b.left}px,${a.top - b.top}px) scale(${a.width / b.width},${a.height / b.height})` },
+          { opacity: 1, transform: 'none' },
+        ], { duration: 760, delay: i * 80, easing: 'cubic-bezier(.2,.75,.25,1)', fill: 'backwards' });
+      });
+      wall.animate([{ opacity: 0, transform: 'scale(1.06)' }, { opacity: 1, transform: 'none' }], { duration: 1100, delay: 240, easing: 'ease', fill: 'backwards' });
+    };
+    scatter.classList.add('is-stage');
+    mark('apart');
+    // Dès que le visiteur choisit, le lancement automatique n'a plus à passer après lui.
+    $$('button', seg).forEach(b => b.addEventListener('click', () => { auto.disconnect(); (b.dataset.state === 'together' ? together : apart)(); }));
+    live.observe(scatter);
+    // Une seule fois, quand la scène est bien visible ; ensuite le visiteur garde la main avec les deux boutons.
+    const auto = new IntersectionObserver(async es => {
+      if (!es.some(e => e.isIntersecting)) return;
+      auto.disconnect();
+      apart();
+      const id = run;
+      await sleep(2300);
+      if (id === run) together();
+    }, { threshold: .55 });
+    auto.observe(scatter);
+  }
+
   // ---------- C. Composer son espace ----------
   const cGrid = $('#composeGrid');
   if (cGrid) {
     const stage = $('#composeStage');
     const CHOICES = ['vol', 'taches', 'minuteur', 'notes', 'heure', 'habitudes', 'playlist', 'ambiance'];
-    const FONDS = [['prairie', 'Prairie'], ['nuages', 'Nuages'], ['nuit', 'Nuit étoilée'], ['chat', 'Chat'], ['trou', 'Trou noir'], ['blanc', 'Blanc']];
-    let picked = ['taches', 'minuteur', 'heure', 'notes'];
-    let fond = 'prairie';
+    const FONDS = NEXT ? [['santorin', 'Santorin'], ['nuages', 'Nuages'], ['chat', 'Chat'], ['blanc', 'Blanc']] : [['prairie', 'Prairie'], ['nuages', 'Nuages'], ['nuit', 'Nuit étoilée'], ['chat', 'Chat'], ['trou', 'Trou noir'], ['blanc', 'Blanc']];
+    // Les mêmes quatre outils que dans « Quatre fenêtres, un seul écran » : la démonstration continue.
+    let picked = NEXT ? ['taches', 'minuteur', 'notes', 'playlist'] : ['taches', 'minuteur', 'heure', 'notes'];
+    let big = null;
+    let fond = NEXT ? 'santorin' : 'prairie';
     const chips = $('#chips'), sw = $('#swatches');
     const draw = () => {
       $('#composeEmpty')?.remove();
-      compose(cGrid, picked);
+      compose(cGrid, picked, { big });
+      $$('#placeSeg [data-big=taches]').forEach(b => { b.disabled = !picked.includes('taches'); });
       if (!picked.length) cGrid.insertAdjacentHTML('beforeend', '<p id="composeEmpty" class="w-empty">Ton espace est vide. Ajoute un widget.</p>');
       const n = picked.length;
       $('#pickCount').textContent = `${n} sur l'écran`;
@@ -222,6 +281,11 @@ Acheter du café.</p>` },
       b.addEventListener('click', () => { fond = key; setWall(stage, key, 720); $$('button', sw).forEach(x => x.setAttribute('aria-pressed', x === b)); draw(); });
       sw.append(b);
     }
+    $$('#placeSeg button').forEach(b => b.addEventListener('click', () => {
+      big = b.dataset.big || null;
+      $$('#placeSeg button').forEach(x => x.setAttribute('aria-pressed', x === b));
+      draw();
+    }));
     draw();
     live.observe(stage);
   }
@@ -238,6 +302,12 @@ Acheter du café.</p>` },
       cahier: { wall: 'prairie', ids: ['cahier', 'minuteur', 'flash', 'taches', 'notes'], cap: 'Study avec cahier : un aperçu du concept, pas encore développé.',
         label: 'Aperçu du concept : un grand cahier de cours au centre, entouré des widgets Minuteur focus, Flashcards, Tâches et Notes.' },
     };
+    if (NEXT) {
+      MODES.study = { wall: 'chat', ids: ['cahier', 'minuteur', 'flash', 'taches', 'notes', 'vol'], cap: 'Study : tu révises ton cours, le minuteur tourne, tes tâches restent à côté.',
+        label: 'Composition Study : un cahier de cours au centre, entouré du Minuteur focus, des Flashcards, des Tâches, des Notes et du Vol de focus.' };
+      MODES.chill = { wall: 'nuages', ids: ['playlist', 'ambiance', 'lecture', 'respiration', 'heure', 'inspiration', 'notes', 'pause'], cap: 'Chill : ta musique tourne, tu règles la pluie, tu reprends ton livre.',
+        label: "Composition Chill : Playlist, Ambiance sonore, Suivi de lecture, Respiration guidée, Heure, Tableau d'inspiration, Notes et Pause détente, sur un fond de nuages peints." };
+    }
     const set = key => {
       const m = MODES[key];
       $$('#modeSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === key));
@@ -254,7 +324,12 @@ Acheter du café.</p>` },
   // ---------- E. Le catalogue des widgets disponibles ----------
   const list = $('#libList');
   if (list) {
-    const GROUPS = [
+    const GROUPS = NEXT ? [
+      ['Garder tes notes près de tes tâches', ['taches', 'notes', 'raccourcis', 'compte']],
+      ['Lancer une séance sans quitter ton espace', ['vol', 'minuteur', 'pause']],
+      ['Régler ton ambiance et ta musique', ['ambiance', 'playlist', 'respiration']],
+      ['Retrouver tes repères', ['heure', 'habitudes', 'lecture', 'inspiration']],
+    ] : [
       ['Pour travailler', ['vol', 'minuteur', 'taches', 'compte', 'notes', 'raccourcis']],
       ['Pour souffler', ['ambiance', 'playlist', 'respiration', 'pause', 'lecture', 'inspiration']],
       ['Au quotidien', ['heure', 'habitudes']],
@@ -328,7 +403,7 @@ Acheter du café.</p>` },
   }
 
   // ---------- Sélecteurs : un repère glisse sous l'option choisie (durée, Study / Chill, mensuel / annuel) ----------
-  for (const group of $$('#modeSeg, #billing, #lkDurations')) {
+  for (const group of $$('#modeSeg, #billing, #lkDurations, #scatterSeg, #placeSeg')) {
     let ink = $('.seg-ink', group);
     if (!ink) { ink = document.createElement('span'); ink.className = 'seg-ink'; ink.setAttribute('aria-hidden', 'true'); group.prepend(ink); }
     group.classList.add('has-ink');
