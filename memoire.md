@@ -2,6 +2,8 @@
 
 **Passation pour le prochain Claude. État vérifié le 6 novembre 2026, au commit `b4c256b`.**
 
+> **Complément de passation — Codex, 7 novembre 2026.** Les sections 1 à 11 conservent la mémoire du premier Claude Code/Codespace. Lire aussi la **section 12, signée Codex**, avant de choisir la prochaine tâche : elle consigne les échanges plus récents avec Damien, la priorité Study, le rôle de chacun et les sujets encore ouverts. Les vérifications du 6 novembre ci-dessous restent datées ; elles ne sont pas des tests réexécutés aujourd'hui.
+
 Lis ce fichier en entier avant de travailler, puis `CLAUDE.md` (règles) et `IDEES.md` (idées). Si ce fichier contredit le code ou GitHub, le code et GitHub ont raison : corrige alors ce fichier.
 
 > ⚠️ **Ce repo est public.** N'écris jamais ici de clé, de mot de passe, d'adresse email ni de donnée d'utilisateur.
@@ -12,7 +14,7 @@ Lis ce fichier en entier avant de travailler, puis `CLAUDE.md` (règles) et `IDE
 - **Le fondateur :** Damien, non technique, pilote tout en français, en langage naturel.
 - **Où on en est :** le dashboard fonctionne (15 widgets, modes Study et Chill, pages personnelles, connexion). Il est en ligne et **gratuit**.
 - **Ce qui bloque les premiers euros :** Damien n'a pas encore décidé ce qui est payant ni le prix. Le paiement Whop n'est pas branché et les pages légales n'existent pas.
-- **Ta prochaine action :** voir la section 6. Commence par `git fetch origin`.
+- **Ta prochaine action :** lire la section 12 et le backlog Study d'`IDEES.md`. La section 6 est l'ancien ordre recommandé, pas la priorité actuelle. Commence par `git fetch origin` et protège les modifications locales.
 
 ## 2. Comment travailler avec Damien
 
@@ -67,9 +69,9 @@ SVG viewBox 24×24, 4 carrés 9×9 à coins arrondis `rx=3` en grille 2×2 (x/y 
   - dernière reco de Claude à Damien : 3 €/mois TTC ;
   - landing : Pro 7,90 € TTC/mois ou 76 €/an, Pro IA 15,90 € TTC/mois ou 153 €/an, affichés comme des hypothèses.
 - **Le « Pro IA » de la landing ne correspond à rien dans le produit :** il n'y a aucune IA aujourd'hui. À signaler quand les prix seront tranchés.
-- **Essai :** envisagé, gratuit permanent limité + Pro avec 14 jours sans carte.
+- **Essai :** ancienne piste, gratuit permanent limité + Pro avec 14 jours sans carte. Les échanges avec Codex ont rouvert ce choix : gratuit avec crédits de découverte ou essai court, sans durée définitivement choisie ; voir section 12.
 - **Grille du dashboard :** faut-il laisser un trou en fin de ligne quand on mélange des widgets Petit et Moyen ? La question n'a pas été tranchée à ma connaissance.
-- **Style de la landing :** à trancher (`CLAUDE.md` §3).
+- **Style de la landing :** l'ancienne mention « à trancher » de `CLAUDE.md` est dépassée par le brief de Damien à Codex : palette Encre pour la landing, décrite en section 12. Ce choix ne remplace pas la personnalisation d'accent du dashboard.
 
 ## 4. État technique réel
 
@@ -162,7 +164,7 @@ Dernier résultat sur `prototype.html` : 1 erreur et 6 alertes (dégradé, verre
 
 ## 6. Prochaines étapes
 
-Ordre recommandé à Damien le 6 nov. **Pas encore validé par Damien.**
+Ordre historique recommandé à Damien le 6 nov. **Pas encore validé par Damien à cette date.** Conservé pour la passation du premier Claude ; la nouvelle priorité exprimée ensuite est Study, voir section 12. Ne pas lancer Whop ou une nouvelle refonte à la place du lot demandé par Damien.
 
 1. **Récupérer son retour** sur les modes testés sur son vrai compte, et corriger ce qui cloche.
 2. **Lui faire trancher gratuit/Pro et le prix TTC.** Tout le reste en dépend. Reco : photos perso, tous les sons et statistiques détaillées en Pro, à 3 €/mois TTC. Sois clair que ce prix n'est pas testé.
@@ -173,7 +175,7 @@ Ordre recommandé à Damien le 6 nov. **Pas encore validé par Damien.**
 7. **Après les premières ventes :** son et playlist par mode, carnet de voyages et choix de destination, hydratation, sport, fiches de révision, vol de groupe.
 8. **Refonte du design :** prévue par Damien une fois les fonctionnalités finies. Reco : après le paiement, pas avant.
 
-**Déconseillé pour l'instant :** ajouter d'autres widgets (il y en a déjà 15 et ça ne rapproche pas de la vente), calories et poids (chacun est une app entière), fiches par IA (coût par utilisateur à calculer avant de construire).
+**Ancienne recommandation de Claude :** déconseiller les nouveaux widgets, calories/poids et fiches IA. **Actualisation Codex :** Damien veut maintenant préparer le parcours Study. Calories/poids restent reportés et les coûts IA doivent toujours être mesurés ; ne pas utiliser cette ancienne recommandation pour ignorer son nouveau brief.
 
 ## 7. Règles légales à ne jamais oublier
 
@@ -245,3 +247,118 @@ Détails dans `HISTORIQUE_PROJETS.md`. Ne les mélange pas avec Renzvi.
 - **NoBR :** son projet en lancement au 2 nov., avec une règle de décision au 30 novembre.
 - **Dating Photo AI :** en ligne.
 - **SaaS « histoire → vidéo verticale » :** un autre projet, pour plus tard.
+
+## 12. Passation Codex — échanges avec Damien jusqu'au 7 novembre 2026
+
+**Auteur de cette section : Codex, assistant connecté au dépôt, chargé par Damien de compléter la mémoire du premier Claude.** Les faits de code s'appuient sur `main` au commit produit/documentation `3cb4997` et la mise à jour d'`IDEES.md` publiée dans `c0bd315`. Cette section est une transmission de contexte, pas le compte rendu d'une nouvelle implémentation Study.
+
+### 12.1. Mon rôle et la répartition du travail
+
+- **Damien** pilote le produit et tranche surtout le design et les usages. Il est non technique. Il souhaite des avis francs, y compris lorsqu'une idée est coûteuse ou prématurée ; pas de validation flatteuse ni de choix d'architecture à lui faire arbitrer sans raison.
+- **Codex** lit le dépôt, vérifie `git status`/l'historique, analyse les propositions et les livraisons de Claude, structure les idées et rédige les prompts de réalisation. Il distingue faits vérifiés, hypothèses commerciales, recommandations et idées futures.
+- **Claude Code** réalise les fonctionnalités, vérifie le code courant, teste et montre le résultat à Damien. Il garde son jugement technique ; un prompt n'est pas une invitation à appliquer aveuglément une hypothèse périmée.
+- **Limite du rôle Codex :** ne pas modifier spontanément l'application en parallèle de Claude. Damien a explicitement demandé des exceptions : mise à jour de la documentation et intégration d'un ZIP livré par Claude. Cela ne donne pas une autorisation générale de développer tous les widgets du backlog.
+- **Publication :** Damien a demandé les commits/pushs précédents. Cette autorisation n'est pas permanente : attendre un nouveau « commit push » pour publier une nouvelle tâche. Pousser directement sur `main`, sans PR, avec `git push origin main`, après les vérifications adaptées.
+- Plusieurs assistants et comptes/environnements peuvent travailler sur ce repo. Toujours vérifier les changements distants ; ne pas écraser les fichiers, réinitialiser la branche ou importer aveuglément les copies d'un ZIP.
+
+### 12.2. Ce que Codex a effectivement fait
+
+- Lu et discuté le code avec Damien, préparé des prompts pour Claude Code local puis Claude Code cloud ; le Claude cloud ne possède pas automatiquement notre historique ou les fichiers locaux.
+- Analysé les exports Refero/Notion fournis par Damien, puis les ZIP successifs du prototype. La palette bleue puis la palette prune ont été abandonnées au profit d'Encre.
+- Ajouté les premières idées Codex à `IDEES.md`, publiées sur demande dans `7e65756`.
+- Intégré le prototype Encre fourni en ZIP, avec ses fontes/images/scripts, sans écraser l'application déjà présente. Publication demandée par Damien : `e481af7`. À cette étape, le prototype était séparé de l'accueil.
+- À cette intégration, vérifié localement les interactions à 320/390/768/1440 px, les ressources, les offres, le guide d'installation et le vol, avec animation complète/rejeu/fermeture à 390 et 1440 px. La suite d'installation passait. Ce résultat concernait cette version et un navigateur de test, pas tous les commits ultérieurs ni tous les vrais téléphones.
+- Récupéré ensuite les réalisations de Claude : personnalisation, pages, modes, temps de focus et nouvel accueil. **Aujourd'hui `site/index.html` est l'accueil ; `site/prototype.html` redirige vers lui.** Ne pas revenir à l'ancien conseil consistant à ouvrir une landing séparée à `/prototype.html`.
+- Actualisé `IDEES.md` au commit `c0bd315` : inventaire des 15 widgets et fonctions construites, statuts partiels, **35 prompts modifiables**, dont 10 lots Study. Vérifications documentaires faites ; aucune fonction Study construite et aucune suite applicative relancée pour ce changement documentaire.
+
+### 12.3. Direction produit issue de notre conversation
+
+- **Le moodboard reste l'écran principal.** Un grand cahier de cours peut cohabiter avec notes, minuteur, musique, ambiance et flashcards. La vision n'est pas une succession d'apps indépendantes à configurer.
+- **Promesse : tous ses outils réunis.** La landing doit faire reconnaître la dispersion des notes, tâches, musique et outils de révision, puis montrer leur rassemblement. Une longue liste de widgets et une animation d'avion ne suffisent pas à expliquer la valeur de Renzvi.
+- **Priorité actuelle : Study.** On ne cherche plus à multiplier des widgets qui demandent de tout retaper. Les données importées et les résultats des séances doivent alimenter les autres vues.
+- Vision des grands usages : Études, Chill, Sport et Bien-être. Sport/Bien-être et les autres compositions possibles (Création, Projets, Quotidien, Voyage, Langues) sont des pistes futures, pas des modes déjà construits. Création a particulièrement plu à Damien. Il n'a pas demandé de les développer maintenant.
+- La personnalisation demandée par Damien (verre plus lisible, accent, déplacement, Petit/Moyen/Grand) et les modes Study/Chill ont déjà une implémentation. Ne pas les remettre au début du backlog comme fonctions absentes.
+
+### 12.4. Study : source unique, plusieurs outils
+
+**Formulation retenue dans l'échange : « J'importe mon cours une fois, puis mes outils de révision se remplissent autour. »**
+
+Le cahier conserve le document et ses chapitres. Depuis un chapitre ou un passage, on crée des cartes, textes à trous, résumés ou quiz. Une carte garde sa source pour revenir au cours. Les réponses alimentent les prochaines révisions et les difficultés, sans demander de recopier un cahier d'erreurs.
+
+**Ordre proposé par Codex, documenté pour validation lot par lot dans `IDEES.md` :**
+
+| Lot | Contenu | État actuel |
+|---|---|---|
+| S1 | Grand cahier, matières/chapitres, import texte et PDF textuel, lecture et sources privées | Non construit |
+| S2 | Flashcards et textes à trous liés aux passages, création/import simples sans API | Non construit |
+| S3 | Révisions du jour et répétition espacée | Non construit |
+| S4 | Crédits et protection des appels IA, d'abord avec fournisseur simulé | Non construit |
+| S5 | Génération depuis le cours et explication d'un passage, résultats réutilisables | Non construit |
+| S6 | Quiz et retour automatique sur les erreurs | Non construit |
+| S7 | Schémas masqués avec tirage aléatoire | Non construit |
+| S8 | Guide Study court, contextuel, facultatif ; à enrichir au fil des lots | Non construit |
+| S9 | Photos/PDF scannés et gros imports, éventuellement 200 photos de plusieurs cahiers | Reporté |
+| S10 | Écouter une synthèse audio | **Explicitement reporté par Damien** |
+
+- **Schémas :** Damien veut une « roulette ». Tirer parmi des légendes/zones pertinentes déjà identifiées, révéler puis répondre Trouvé/À revoir. Première version sans IA : l'étudiant encadre les zones une fois. La détection automatique des légendes est une extension, pas une capacité acquise.
+- **Guide :** simplifier le parcours avant d'ajouter des explications. Importer, choisir un chapitre et commencer une séance ; proposer les widgets nécessaires sans écraser le moodboard existant. Le guide d'installation PWA et le premier lancement déjà présents ne remplacent pas ce guide Study.
+- **Cours numériques :** un PDF peut être du texte ou un scan. Commencer par texte/PDF textuel ; ne pas promettre que tous les PDF s'extraient parfaitement. Conserver l'original et signaler les passages illisibles ou incertains.
+- **200 photos :** classement par cahier, contrôle qualité, essai sur quelques pages, estimation du coût, travaux par lots reprenables et bornés. Pas une seule requête géante ; ne pas lancer ce traitement payant dans S1.
+
+### 12.5. Choix techniques proposés par Codex, à vérifier au moment du build
+
+Damien a confié à Codex la préparation technique des prompts pour pouvoir se concentrer sur le design. Les choix suivants sont des recommandations de départ, **pas une architecture déjà installée** :
+
+- Conserver le site HTML/CSS/JS et Supabase ; organiser Study en modules dédiés, sans migration globale vers Next.js.
+- Tables Study et stockage privé pour cours, chapitres, documents versionnés, cartes, questions et tentatives. Ne pas charger un cours entier dans `widget_state`, limité à 64 Ko par ligne ; y conserver la petite configuration du widget.
+- Identifiants et références stables vers les passages/pages sources. Contrôles d'accès par compte, pas de documents publics par défaut.
+- Évaluer un lecteur/extracteur PDF maintenu tel que PDF.js pour le texte et la lecture, et une bibliothèque de répétition espacée maintenue telle que `ts-fsrs`. Vérifier versions, licences et intégration avant de les installer ; ce ne sont pas des dépendances présentes.
+- Un moteur de cartes/questions partagé, plutôt qu'un backend différent pour chaque widget. Réutiliser les résultats au lieu de les régénérer à chaque ouverture.
+- Pour les fonctions payantes : appels serveur authentifiés, par exemple avec les fonctions Supabase ; solde et réservations atomiques côté serveur, idempotence, dépenses et retries bornés. Ne jamais mettre une clé fournisseur dans le navigateur.
+- Vérifier le code et les migrations réellement appliquées. Le code à écrire, les migrations créées, les migrations appliquées et un essai sur un vrai compte sont quatre états distincts.
+
+### 12.6. IA, crédits et prix : propositions, pas décisions commerciales finales
+
+- Damien souhaite que les plans puissent accéder aux mêmes widgets, avec des volumes d'IA différents. Un modèle de crédits l'intéresse. **Ni cette segmentation ni les limites ne sont implémentées.**
+- Repères les plus récents discutés : Pro **7,90 € TTC/mois**, Pro IA **15,90 € TTC/mois**, palier supérieur à 30 € envisagé. Les propositions précédentes à 3 €, 4,90 €, 8,80 € ou 12,90 € ne sont pas les références les plus récentes.
+- La landing affiche 76 € / 153 € TTC à l'année comme hypothèses. Damien a évoqué une remise annuelle de 50 % ; **ce n'est pas une remise validée par des coûts mesurés**. Codex recommande davantage de prudence et une comparaison de rentabilité, pas de maximiser seulement l'encaissement immédiat.
+- Gratuit permanent avec crédits de découverte ou essai court : **toujours ouvert**. Codex a d'abord proposé sept jours, puis a explicitement corrigé cette recommandation trop catégorique. Aucun papier psychologique ne prouve que sept jours est optimal pour Renzvi.
+- Recommandation actuelle de Codex : widgets classiques gratuits et découverte IA plafonnée, puis abonnement pour un usage régulier. C'est une hypothèse à tester, pas une décision de Damien à appliquer silencieusement.
+- Mesurer la marge par visiteur et la rétention, pas seulement la conversion parmi les inscrits. L'effet du gratuit ou de la personnalisation ne prouve pas une conversion payante.
+- L'objectif de Damien de « plus de 90 % de bénéfice » doit être clarifié : marge après coûts directs, bénéfice net et trésorerie annuelle ne sont pas équivalents. Inclure TVA applicable, paiement, IA et infrastructure avant de promettre une marge.
+- Pour limiter les abus : email vérifié, petit crédit de découverte, limites serveur de fréquence/concurrence/taille et plafond global. Une IP partagée ne prouve pas un double compte. Aucun dispositif anti-abus ni paiement n'a été construit dans cet échange.
+
+### 12.7. Ce qu'il ne faut pas supposer à propos des modèles IA
+
+- Aucun fournisseur ni clé n'a été configuré pour Study.
+- Damien a cité fal et « Haiku 5.5 ». **Ce nom et sa disponibilité n'ont pas été confirmés.** Une clé fal donne accès à son catalogue pris en charge, pas automatiquement à tous les modèles Anthropic.
+- Gemini Flash-Lite a été proposé comme candidat économique à tester pour du texte. Codex n'a pas pu vérifier les tarifs actuels : les pages externes étaient bloquées par le réseau. Le repère historique cité pour Gemini 2.5 Flash-Lite n'est pas un devis actuel ni une preuve qu'il est le moins cher du marché.
+- Vérifier le modèle exact, son tarif, les postes réellement facturés, la qualité sur des cours français et les conditions d'utilisation avant de choisir. Faire les coûts sur des générations représentatives, y compris échecs et nouvelles tentatives.
+- Importer/extraire une fois peut éviter de relire les photos à chaque demande, mais une nouvelle génération continue à coûter. Lire un résultat déjà stocké, retourner les cartes et planifier les révisions n'exigent pas un nouvel appel IA.
+- Une grosse génération rapide n'est pas forcément chère ; un document long, une entrée image ou des appels répétés avec tout l'historique peuvent l'être. Ne pas fixer les crédits sur le seul nombre de fichiers ou de cartes.
+- Recherche produit : les documentations officielles d'Anki (répétition espacée, textes à trous, images masquées, imports, séances ciblées) et d'Obsidian Canvas ont pu être consultées. Les autres apps évoquées sont des repères à revérifier ; ne pas présenter notre échange comme un audit à jour de toutes leurs offres.
+
+### 12.8. Design et limites de présentation à transmettre
+
+- **Landing Encre validée par Damien :** papier `#f6f5f4`, blanc `#ffffff`, encre `#242424`, texte `#615d59`, lin `#eeeae4`, sable `#d9cdbd`, scène sombre `#151515`. Ne pas réintroduire la palette bleue ou prune précédente sans sa demande.
+- Conserver les animations existantes lorsqu'il demande d'améliorer l'argumentaire. La séquence de vol montre une vue depuis le siège avec hublot/aile/ciel et mouvement au défilement ; elle ne remplace pas la promesse de réunir les outils.
+- Damien a autorisé des visuels générés (images, illustrations, 3D, mockups) si les outils le permettent, sans dépense supplémentaire non autorisée et sans altérer le logo.
+- Pour le prototype, il veut montrer l'expérience cible au présent plutôt qu'une accumulation de « bientôt ». Le compromis préparé par Codex est une mention globale lisible de prototype et des fonctions démontrées. Ne pas en déduire que ces fonctions existent dans le dashboard ni simuler un achat ou une génération réussie.
+- Les avertissements sur les images de la section 5 restent à vérifier à partir des fichiers actuels : certaines images ont déjà été remplacées. Ne pas répéter aveuglément l'ancien inventaire de fonds. La publication du prototype ne vaut pas validation de leurs droits.
+
+### 12.9. Prochaine reprise conseillée
+
+1. Récupérer l'état courant de `main`, vérifier les changements locaux et le lot réellement demandé par Damien.
+2. Lire le statut actuel et le prompt correspondant dans `IDEES.md`. Les cases cochées signifient « trouvé dans le code », pas « revérifié en production ».
+3. Si Damien lance Study sans autre précision, recommander **S1 : cahier et import unique** comme première tâche isolée. Ne pas exécuter les 35 prompts d'un coup ni anticiper les photos/audio.
+4. Prendre les décisions techniques courantes, expliquer leurs conséquences, et réserver à Damien les choix produit/design, les accès manquants et les coûts nécessitant son accord.
+5. Tester le lot, rendre captures et limites ; attendre son retour et une nouvelle demande de publication. Mettre ensuite à jour le statut de l'idée réellement construite.
+
+### 12.10. Environnements et accès : ne pas confondre les comptes
+
+- Damien a alterné entre Claude Code dans Codespaces et Claude Code cloud, notamment à cause de quotas et d'une offre promotionnelle. Leurs outils, fichiers temporaires, historiques, crédits et accès ne sont pas automatiquement identiques. Ne pas promettre qu'un crédit réservé au Web finance l'utilisation de Claude dans un terminal.
+- Une limite GitHub Codespaces, une limite hebdomadaire Claude et un budget d'API du futur produit sont trois sujets distincts. Un nouveau compte GitHub doit avoir les droits d'accès au dépôt ; la facturation applicable à son Codespace doit être vérifiée, notamment si une organisation paie.
+- Garder le même dépôt évite de perdre la continuité de l'historique et de Vercel. Les changements non commités d'un ancien Codespace ne sont pas récupérés simplement en ouvrant le même dépôt ailleurs.
+- Un nouvel assistant doit repartir des fichiers versionnés et des accès réellement disponibles. Ne pas lui demander de refaire toute la configuration ni d'installer tous les plugins historiques si sa tâche n'en a pas besoin.
+
+**Signature : Codex — rôle de prompteur, analyste du dépôt et soutien produit de Damien.** Cette section est identifiable comme mon complément ; elle ne réattribue pas le travail ni les vérifications historiques du premier Claude.
