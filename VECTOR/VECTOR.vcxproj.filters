@@ -1,0 +1,127 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <ItemGroup>
+    <Filter Include="source">
+      <UniqueIdentifier>{5A726D13-7321-5C81-B072-984617507F21}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\framework">
+      <UniqueIdentifier>{AC9A2E01-D932-5B95-87D6-247303D36894}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\framework\features">
+      <UniqueIdentifier>{B8928E36-C86E-52A4-9C6B-9AECB627ED75}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\framework\features\cache">
+      <UniqueIdentifier>{E04FEA7B-5CDB-5F06-A2AE-40028540D8FD}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\framework\features\cache\wallcheck">
+      <UniqueIdentifier>{DA6DCBB5-3B77-5B96-AC85-EA8887BBBCAE}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\framework\features\entry">
+      <UniqueIdentifier>{EA392B04-77A7-5D11-B3EA-A3937A36A5C5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\framework\features\functions">
+      <UniqueIdentifier>{BD9BD1C8-7BA4-5115-881B-3D2C12A85A0F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\framework\features\functions\aimbot">
+      <UniqueIdentifier>{19A941F2-BBCC-5C72-A698-118F52D00A04}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\framework\features\functions\exploits">
+      <UniqueIdentifier>{C4515D09-1DDB-536A-B085-28C016E99934}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\framework\features\functions\silent_aim">
+      <UniqueIdentifier>{EBD2ADF9-4313-5494-9A5D-79F3D2803AA8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\framework\features\functions\triggerbot">
+      <UniqueIdentifier>{9440AEB0-08DF-5C67-B57C-95C1DA898CA0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\framework\features\functions\visuals">
+      <UniqueIdentifier>{0CFFCC25-F074-5D15-BD80-3856A89C0982}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\framework\overlay">
+      <UniqueIdentifier>{D5C23D87-8556-5E4E-84CA-F444C2894BEF}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\framework\overlay\config">
+      <UniqueIdentifier>{4E079E96-0356-5799-A594-27F403BF798A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\framework\overlay\misc">
+      <UniqueIdentifier>{B80F11BA-2753-5FDC-B1E7-32EEF898F70B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\utils">
+      <UniqueIdentifier>{B9871818-C219-583F-B389-A180AE6EA0D3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\utils\clipper">
+      <UniqueIdentifier>{4D5E4C91-E3F0-5E1B-92BC-724F085D5005}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\utils\imgui">
+      <UniqueIdentifier>{010D3899-B6B9-5BA4-90F1-0465E1E45F92}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\utils\imgui\backends">
+      <UniqueIdentifier>{D925FBCF-10D9-56F4-A3CB-119809B01FA8}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="source\source.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\framework\features\cache\cache.cpp">
+      <Filter>source\framework\features\cache</Filter>
+    </ClCompile>
+    <ClCompile Include="source\framework\features\cache\wallcheck\wallcheck.cpp">
+      <Filter>source\framework\features\cache\wallcheck</Filter>
+    </ClCompile>
+    <ClCompile Include="source\framework\features\entry\entry.cpp">
+      <Filter>source\framework\features\entry</Filter>
+    </ClCompile>
+    <ClCompile Include="source\framework\features\functions\aimbot\aimbot.cpp">
+      <Filter>source\framework\features\functions\aimbot</Filter>
+    </ClCompile>
+    <ClCompile Include="source\framework\features\functions\exploits\exploits.cpp">
+      <Filter>source\framework\features\functions\exploits</Filter>
+    </ClCompile>
+    <ClCompile Include="source\framework\features\functions\silent_aim\silent_aim.cpp">
+      <Filter>source\framework\features\functions\silent_aim</Filter>
+    </ClCompile>
+    <ClCompile Include="source\framework\features\functions\triggerbot\triggerbot.cpp">
+      <Filter>source\framework\features\functions\triggerbot</Filter>
+    </ClCompile>
+    <ClCompile Include="source\framework\features\functions\visuals\visuals.cpp">
+      <Filter>source\framework\features\functions\visuals</Filter>
+    </ClCompile>
+    <ClCompile Include="source\framework\overlay\config\config.cpp">
+      <Filter>source\framework\overlay\config</Filter>
+    </ClCompile>
+    <ClCompile Include="source\framework\overlay\menu.cpp">
+      <Filter>source\framework\overlay</Filter>
+    </ClCompile>
+    <ClCompile Include="source\framework\overlay\misc\widgets.cpp">
+      <Filter>source\framework\overlay\misc</Filter>
+    </ClCompile>
+    <ClCompile Include="source\utils\clipper\clipper.engine.cpp">
+      <Filter>source\utils\clipper</Filter>
+    </ClCompile>
+    <ClCompile Include="source\utils\clipper\clipper.offset.cpp">
+      <Filter>source\utils\clipper</Filter>
+    </ClCompile>
+    <ClCompile Include="source\utils\clipper\clipper.rectclip.cpp">
+      <Filter>source\utils\clipper</Filter>
+    </ClCompile>
+    <ClCompile Include="source\utils\imgui\imgui.cpp">
+      <Filter>source\utils\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="source\utils\imgui\imgui_draw.cpp">
+      <Filter>source\utils\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="source\utils\imgui\imgui_tables.cpp">
+      <Filter>source\utils\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="source\utils\imgui\imgui_widgets.cpp">
+      <Filter>source\utils\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="source\utils\imgui\backends\imgui_impl_win32.cpp">
+      <Filter>source\utils\imgui\backends</Filter>
+    </ClCompile>
+    <ClCompile Include="source\utils\imgui\backends\imgui_impl_dx11.cpp">
+      <Filter>source\utils\imgui\backends</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

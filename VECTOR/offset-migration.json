@@ -1,0 +1,252 @@
+{
+  "instance::name": {
+    "value": 104,
+    "source": "Instance.NameContainer",
+    "derived_plus4": false
+  },
+  "instance::class_descriptor": {
+    "value": 24,
+    "source": "Instance.ClassDescriptor",
+    "derived_plus4": false
+  },
+  "instance::class_name": {
+    "value": 8,
+    "source": "Instance.ClassName",
+    "derived_plus4": false
+  },
+  "instance::children": {
+    "value": 112,
+    "source": "Instance.ChildrenStart",
+    "derived_plus4": false
+  },
+  "instance::parent": {
+    "value": 96,
+    "source": "Instance.Parent",
+    "derived_plus4": false
+  },
+  "datamodel::pointer": {
+    "value": 149645664,
+    "source": "FakeDataModel.Pointer",
+    "derived_plus4": false
+  },
+  "datamodel::realdatamodel": {
+    "value": 504,
+    "source": "FakeDataModel.RealDataModel",
+    "derived_plus4": false
+  },
+  "datamodel::gameid": {
+    "value": 376,
+    "source": "DataModel.GameId",
+    "derived_plus4": false
+  },
+  "datamodel::is_loaded": {
+    "value": 1416,
+    "source": "DataModel.GameLoaded",
+    "derived_plus4": false
+  },
+  "primitives::primitive": {
+    "value": 376,
+    "source": "BasePart.Primitive",
+    "derived_plus4": false
+  },
+  "primitives::rotation": {
+    "value": 176,
+    "source": "Primitive.Rotation",
+    "derived_plus4": false
+  },
+  "primitives::translation": {
+    "value": 212,
+    "source": "Primitive.Position",
+    "derived_plus4": false
+  },
+  "primitives::velocity": {
+    "value": 224,
+    "source": "Primitive.AssemblyLinearVelocity",
+    "derived_plus4": false
+  },
+  "primitives::size": {
+    "value": 452,
+    "source": "Primitive.Size",
+    "derived_plus4": false
+  },
+  "primitives::cframe": {
+    "value": 176,
+    "source": "Primitive.Rotation",
+    "derived_plus4": false
+  },
+  "guiobject::position": {
+    "value": 1240,
+    "source": "GuiObject.Position",
+    "derived_plus4": false
+  },
+  "lighting::ambient": {
+    "value": 184,
+    "source": "Lighting.Ambient",
+    "derived_plus4": false
+  },
+  "lighting::brightness": {
+    "value": 256,
+    "source": "Lighting.Brightness",
+    "derived_plus4": false
+  },
+  "lighting::color_shift_bottom": {
+    "value": 208,
+    "source": "Lighting.ColorShift_Bottom",
+    "derived_plus4": false
+  },
+  "lighting::color_shift_top": {
+    "value": 196,
+    "source": "Lighting.ColorShift_Top",
+    "derived_plus4": false
+  },
+  "lighting::fog_color": {
+    "value": 220,
+    "source": "Lighting.FogColor",
+    "derived_plus4": false
+  },
+  "lighting::fog_end": {
+    "value": 276,
+    "source": "Lighting.FogEnd",
+    "derived_plus4": false
+  },
+  "lighting::fog_start": {
+    "value": 280,
+    "source": "Lighting.FogStart",
+    "derived_plus4": false
+  },
+  "lighting::outdoor_ambient": {
+    "value": 232,
+    "source": "Lighting.OutdoorAmbient",
+    "derived_plus4": false
+  },
+  "camera::rotation": {
+    "value": 192,
+    "source": "Camera.Rotation",
+    "derived_plus4": false
+  },
+  "camera::translation": {
+    "value": 228,
+    "source": "Camera.Position",
+    "derived_plus4": false
+  },
+  "camera::field_of_view": {
+    "value": 296,
+    "source": "Camera.FieldOfView",
+    "derived_plus4": false
+  },
+  "workspace::camera": {
+    "value": 1184,
+    "source": "Workspace.CurrentCamera",
+    "derived_plus4": false
+  },
+  "players::local_player": {
+    "value": 280,
+    "source": "Player.LocalPlayer",
+    "derived_plus4": false
+  },
+  "player::display": {
+    "value": 288,
+    "source": "Player.DisplayName",
+    "derived_plus4": false
+  },
+  "player::team": {
+    "value": 736,
+    "source": "Player.Team",
+    "derived_plus4": false
+  },
+  "player::user_id": {
+    "value": 184,
+    "source": "Player.UserId",
+    "derived_plus4": false
+  },
+  "player::character": {
+    "value": 672,
+    "source": "Player.ModelInstance",
+    "derived_plus4": false
+  },
+  "player::animation_id": {
+    "value": 168,
+    "source": "Misc.AnimationId",
+    "derived_plus4": false
+  },
+  "humanoid::health": {
+    "value": 388,
+    "source": "Humanoid.Health",
+    "derived_plus4": false
+  },
+  "humanoid::max_health": {
+    "value": 412,
+    "source": "Humanoid.MaxHealth",
+    "derived_plus4": false
+  },
+  "humanoid::hip_height": {
+    "value": 392,
+    "source": "Humanoid.HipHeight",
+    "derived_plus4": false
+  },
+  "humanoid::jump_power": {
+    "value": 408,
+    "source": "Humanoid.JumpPower",
+    "derived_plus4": false
+  },
+  "humanoid::walk_speed": {
+    "value": 452,
+    "source": "Humanoid.Walkspeed",
+    "derived_plus4": false
+  },
+  "humanoid::walk_speed_check": {
+    "value": 924,
+    "source": "Humanoid.WalkspeedCheck",
+    "derived_plus4": false
+  },
+  "humanoid::move_direction": {
+    "value": 308,
+    "source": "Humanoid.MoveDirection",
+    "derived_plus4": false
+  },
+  "humanoid::auto_rotate": {
+    "value": 457,
+    "source": "Humanoid.AutoRotate",
+    "derived_plus4": false
+  },
+  "visualengine::pointer": {
+    "value": 143928888,
+    "source": "VisualEngine.Pointer",
+    "derived_plus4": false
+  },
+  "visualengine::view_matrix": {
+    "value": 432,
+    "source": "VisualEngine.ViewMatrix",
+    "derived_plus4": false
+  },
+  "visualengine::view_port": {
+    "value": 2832,
+    "source": "VisualEngine.Dimensions",
+    "derived_plus4": false
+  },
+  "mouseservice::input_object": {
+    "value": 232,
+    "source": "MouseService.InputObject",
+    "derived_plus4": false
+  },
+  "mouseservice::mouse_position_x": {
+    "value": 188,
+    "source": "MouseService.MousePosition",
+    "derived_plus4": false
+  },
+  "mouseservice::mouse_position_y": {
+    "value": 192,
+    "source": "MouseService.MousePosition",
+    "derived_plus4": true
+  },
+  "basepart::transparency": {
+    "value": 280,
+    "source": "BasePart.Transparency",
+    "derived_plus4": false
+  },
+  "humanoid::camera_offset": {
+    "value": 272,
+    "source": "Humanoid.CameraOffset",
+    "derived_plus4": false
+  }
+}

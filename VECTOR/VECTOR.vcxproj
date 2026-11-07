@@ -1,0 +1,97 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build" ToolsVersion="Current">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{CF21D7DC-B4DC-4F2B-9D28-DDA4EF704CBD}</ProjectGuid>
+    <RootNamespace>VECTOR</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <TargetName>VECTOR</TargetName>
+    <OutDir>$(ProjectDir)dist\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)build\obj\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <PreprocessorDefinitions>NOMINMAX;WIN32_LEAN_AND_MEAN;_WIN32_WINNT=0x0A00;_CRT_SECURE_NO_WARNINGS;_USE_MATH_DEFINES;IMGUI_IMPL_WIN32_DISABLE_GAMEPAD;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)source\utils\clipper;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalOptions>/utf-8 /Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>d3d11.lib;d3dcompiler.lib;dxgi.lib;dwmapi.lib;user32.lib;gdi32.lib;shell32.lib;ole32.lib;windowscodecs.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <PreprocessorDefinitions>NOMINMAX;WIN32_LEAN_AND_MEAN;_WIN32_WINNT=0x0A00;_CRT_SECURE_NO_WARNINGS;_USE_MATH_DEFINES;IMGUI_IMPL_WIN32_DISABLE_GAMEPAD;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)source\utils\clipper;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalOptions>/utf-8 /Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>d3d11.lib;d3dcompiler.lib;dxgi.lib;dwmapi.lib;user32.lib;gdi32.lib;shell32.lib;ole32.lib;windowscodecs.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="source\source.cpp" />
+    <ClCompile Include="source\framework\features\cache\cache.cpp" />
+    <ClCompile Include="source\framework\features\cache\wallcheck\wallcheck.cpp" />
+    <ClCompile Include="source\framework\features\entry\entry.cpp" />
+    <ClCompile Include="source\framework\features\functions\aimbot\aimbot.cpp" />
+    <ClCompile Include="source\framework\features\functions\exploits\exploits.cpp" />
+    <ClCompile Include="source\framework\features\functions\silent_aim\silent_aim.cpp" />
+    <ClCompile Include="source\framework\features\functions\triggerbot\triggerbot.cpp" />
+    <ClCompile Include="source\framework\features\functions\visuals\visuals.cpp" />
+    <ClCompile Include="source\framework\overlay\config\config.cpp" />
+    <ClCompile Include="source\framework\overlay\menu.cpp" />
+    <ClCompile Include="source\framework\overlay\misc\widgets.cpp" />
+    <ClCompile Include="source\utils\clipper\clipper.engine.cpp" />
+    <ClCompile Include="source\utils\clipper\clipper.offset.cpp" />
+    <ClCompile Include="source\utils\clipper\clipper.rectclip.cpp" />
+    <ClCompile Include="source\utils\imgui\imgui.cpp" />
+    <ClCompile Include="source\utils\imgui\imgui_draw.cpp" />
+    <ClCompile Include="source\utils\imgui\imgui_tables.cpp" />
+    <ClCompile Include="source\utils\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="source\utils\imgui\backends\imgui_impl_win32.cpp" />
+    <ClCompile Include="source\utils\imgui\backends\imgui_impl_dx11.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>
