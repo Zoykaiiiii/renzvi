@@ -39,6 +39,8 @@ async function mockDb(context, rows = { ecran: ALL_WIDGETS }) {
     for (const row of req.postDataJSON()) db.rows[row.widget] = row.data;
     return route.fulfill({ status: 201, headers: { 'access-control-allow-origin': '*' } });
   });
+  // Le cahier demande la liste des cours : aucun ici.
+  await context.route(`${SUPABASE}/rest/v1/study_courses*`, route => route.request().method() === 'OPTIONS' ? preflight(route) : json(route, 200, []));
   await context.route(`${SUPABASE}/rest/v1/rpc/*`, route => {
     const req = route.request();
     if (req.method() === 'OPTIONS') return preflight(route);
@@ -208,14 +210,14 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.getByRole('button', { name: 'Continuer' }).click();
     await shot(page, 'setup-widgets');
     await page.getByRole('button', { name: 'Installer Study et Chill' }).click();
-    assert.equal(await page.locator('.widget:visible').count(), 6);
+    assert.equal(await page.locator('.widget:visible').count(), 7, 'Study : le cahier et les 6 widgets de travail');
     assert.deepEqual(await page.locator('#page-tabs button').allTextContents(), ['Study', 'Chill']);
     assert.equal(await page.locator('#page-tabs [aria-pressed=true]').textContent(), 'Study');
     assert.equal(await page.isVisible('#setup'), false);
     await saved(page);
     assert.deepEqual(db.rows.ecran.pages, [{ id: 'study', name: 'Study' }, { id: 'chill', name: 'Chill', wall: 'lac' }]);
     assert.equal(db.rows.ecran.wallpaper, 'foret');
-    assert.equal(db.rows.ecran.widgets.length, 12);
+    assert.equal(db.rows.ecran.widgets.length, 13);
     await shot(page, 'ecran-photo');
     await page.reload();
     await page.waitForSelector('.widget');
@@ -235,7 +237,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.click('#open-add');
     await page.getByRole('button', { name: 'Installer : Study et Chill' }).click();
     assert.deepEqual(await page.locator('#page-tabs button').allTextContents(), ['Mon écran', 'Study', 'Chill']);
-    assert.equal(await page.locator('.widget:visible').count(), 6);
+    assert.equal(await page.locator('.widget:visible').count(), 7);
     assert.ok(await page.locator('[data-widget=taches]', { hasText: 'Déjà là' }).isVisible());
     assert.match(await wall(), /bohinj/);
     await page.getByRole('button', { name: 'Mon écran' }).click();

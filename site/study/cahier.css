@@ -1,0 +1,58 @@
+/* Widget Cahier (Study S1). Reprend les variables du dashboard pour suivre ses changements de style. */
+.cahier-bar,.cahier-nav{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.cahier-nav{margin-top:8px}
+.cahier-pick,.cahier-search,.cahier-field input,.cahier-rename{min-width:0;height:var(--control);padding:0 14px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7);font:inherit;font-size:14px;color:var(--ink)}
+.cahier-pick{flex:1 1 180px;max-width:100%;text-overflow:ellipsis}
+.cahier-search{flex:1 1 200px}
+.cahier-search::placeholder,.cahier-field input::placeholder,.cahier-paste::placeholder{color:var(--slate);opacity:1}
+.cahier-step{width:var(--control);padding:0;font-size:18px}
+.cahier-step:disabled,.ghost:disabled,.primary:disabled{opacity:.45;cursor:default}
+.cahier-view{flex:1;display:flex;flex-direction:column;min-height:0;margin-top:12px}
+.cahier-text{flex:1;max-height:460px;overflow-y:auto;overscroll-behavior:contain;padding:0 8px 24px 0;font-size:16px;line-height:1.6;border-radius:12px}
+.cahier-text:focus-visible{outline:1.5px solid rgba(23,25,28,.55);outline-offset:4px}
+.cahier-title{margin-bottom:12px;font-size:22px;line-height:1.25;font-weight:600;letter-spacing:-.01em;overflow-wrap:anywhere}
+.cahier-page{margin:20px 0 4px;font-size:13px;color:var(--slate);font-variant-numeric:tabular-nums}
+.cahier-title+.cahier-page{margin-top:0}
+.cahier-block{max-width:70ch;white-space:pre-wrap;overflow-wrap:anywhere}
+::highlight(cahier){background-color:color-mix(in srgb,var(--accent) 30%,transparent);color:inherit}
+.cahier-results mark{background:color-mix(in srgb,var(--accent) 30%,transparent);color:inherit;border-radius:3px}
+.cahier-results{max-height:460px}
+.cahier-hit{display:grid;gap:2px;width:100%;border:0;background:none;text-align:left;font:inherit;cursor:pointer}
+.cahier-hit:hover .cahier-snippet{text-decoration:underline;text-decoration-color:var(--edge);text-underline-offset:3px}
+.cahier-where{font-size:13px;font-weight:600}
+.cahier-snippet{font-size:14px;color:var(--slate)}
+.cahier-edit{display:grid;gap:8px;margin-bottom:12px;padding:12px;border-radius:18px;background:var(--tint)}
+.cahier-edit .ghost{justify-self:start}
+.cahier-chapters{display:block;max-height:220px;margin-top:0}
+.cahier-chapters .row{gap:4px}
+.row .cahier-rename{flex:1;width:auto;height:36px;margin:4px 0;background:rgba(255,255,255,.85)}
+.cahier-tools{display:flex;flex-wrap:wrap;gap:0 20px}
+.cahier-tools[hidden],.cahier-nav[hidden],.cahier-bar[hidden]{display:none}
+.cahier-danger{color:var(--error)}
+.cahier-note:empty{display:none}
+.cahier-alert{padding:16px;border-radius:18px;background:var(--tint);font-size:15px;line-height:1.5}
+.cahier-start{padding:24px 0}
+.cahier-start p{max-width:36ch}
+.cahier-import{display:grid;gap:12px}
+.cahier-field{display:grid;gap:6px;font-size:13px;font-weight:600}
+.cahier-field input{font-weight:400}
+.cahier-filerow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.cahier-chosen{min-width:0;font-size:14px;overflow-wrap:anywhere}
+.cahier-import .zone{margin-top:0}
+.cahier-paste{min-height:120px;padding:12px 14px;border:1px solid var(--edge);border-radius:18px;background:rgba(255,255,255,.7);font:inherit;font-size:14px;line-height:1.5;resize:vertical}
+.cahier-progress{width:100%;height:6px;accent-color:var(--accent)}
+.cahier-actions{display:flex;flex-wrap:wrap;gap:8px}
+
+/* Agrandi : le cahier prend tout l'écran, le texte reste sur une colonne lisible. */
+.widget.cahier-open{position:fixed;inset:16px;z-index:60;background:var(--ground);overflow:hidden}
+.widget.cahier-open .edit{display:none}
+.widget.cahier-open .cahier-text,.widget.cahier-open .cahier-results{max-height:none}
+.widget.cahier-open .cahier-text>*{max-width:70ch;margin-inline:auto}
+.widget.cahier-open .cahier-text{font-size:17px}
+body.cahier-lock{overflow:hidden}
+@media (max-width:640px){
+  .widget.cahier-open{inset:0;border-radius:0;padding:16px}
+  .cahier-pick,.cahier-search,.cahier-field input{height:44px}
+  .cahier-step{width:44px}
+}
+@media (prefers-reduced-transparency:reduce){.cahier-pick,.cahier-search,.cahier-field input,.cahier-paste{background:#fff}}
