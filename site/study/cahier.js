@@ -166,7 +166,7 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
   const pathOf = (course, name) => `${user.id}/${course.id}/${name}`;
   const originalName = course => course.kind === 'pdf' ? 'original.pdf' : 'original.txt';
   let courses = [], state = 'loading', mode = 'read', chapterIndex = 0, query = '';
-  let gone = false, job = null, saveTimer, searchTimer, lastPick = null, armed = null, lastSel = null, cardDraft = null;
+  let gone = false, job = null, saveTimer, searchTimer, lastPick = null, armed = null, lastSel = null, cardDraft = null, explainSel = null;
   const texts = new Map();
   let current = typeof data?.course === 'string' ? data.course : null;
   const at = Object.fromEntries(Object.entries(data?.at ?? {})
@@ -191,7 +191,13 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
   const search = Object.assign(el('input', 'cahier-search'), { type: 'search', placeholder: 'Chercher dans le cours', ariaLabel: 'Chercher dans le cours', autocomplete: 'off', maxLength: 80 });
   nav.append(chapterPick, prev, next, search);
   const cardBar = el('div', 'cahier-cardbar');
-  cardBar.append(el('span', 'zone', 'Avec la sélection :'), button('link', 'Créer une carte', () => makeCard('qa')), button('link', 'Masquer ces mots', () => makeCard('trou')));
+  cardBar.append(el('span', 'zone', 'Avec la sélection :'), button('link', 'Créer une carte', () => makeCard('qa')), button('link', 'Masquer ces mots', () => makeCard('trou')), button('link', 'Expliquer (IA)', () => {
+    if (!lastSel) return;
+    explainSel = lastSel;
+    mode = 'explain';
+    cardBar.hidden = true;
+    draw();
+  }));
   cardBar.hidden = true;
   const view = el('div', 'cahier-view');
   const note = el('p', 'zone cahier-note');
@@ -200,7 +206,8 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
   const editBtn = button('link', 'Modifier les chapitres', () => { mode = mode === 'edit' ? 'read' : 'edit'; draw(); });
   const originalBtn = button('link', "Télécharger l'original", downloadOriginal);
   const removeBtn = button('link cahier-danger', 'Supprimer ce cours', removeCourse);
-  tools.append(editBtn, originalBtn, removeBtn);
+  const iaBtn = button('link', 'IA : cartes et résumé du chapitre', () => { mode = mode === 'ia' ? 'read' : 'ia'; say(''); draw(); });
+  tools.append(iaBtn, editBtn, originalBtn, removeBtn);
   body.append(bar, nav, cardBar, view, note, tools);
 
   const say = (text, bad = false) => { note.textContent = text; note.classList.toggle('msg', bad); };
@@ -298,7 +305,7 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     prev.disabled = chapterIndex === 0;
     next.disabled = chapterIndex === c.chapters.length - 1;
     editBtn.textContent = mode === 'edit' ? 'Terminer les chapitres' : 'Modifier les chapitres';
-    editBtn.hidden = nav.hidden = !c.text_chars;
+    editBtn.hidden = iaBtn.hidden = nav.hidden = !c.text_chars;
     prev.hidden = next.hidden = !c.text_chars || c.chapters.length < 2;
     meta.textContent = c.text_chars ? `Chapitre ${chapterIndex + 1} / ${c.chapters.length}` : '';
     if (!c.text_chars) {
@@ -317,7 +324,7 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
 
   function drawReader(c, text, reveal) {
     const ch = c.chapters[chapterIndex];
-    if (mode !== 'card') { lastSel = null; cardBar.hidden = true; }
+    if (mode !== 'card' && mode !== 'explain') { lastSel = null; cardBar.hidden = true; }
     const reader = el('div', 'cahier-text');
     reader.tabIndex = 0;
     reader.ariaLabel = `Texte du chapitre ${ch.title}`;
@@ -336,6 +343,9 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     const items = [reader];
     if (mode === 'edit') items.unshift(chapterEditor(c, text));
     if (mode === 'card' && cardDraft) items.unshift(cardPanel());
+    const back = () => { mode = 'read'; explainSel = null; draw(); };
+    if (mode === 'ia') items.unshift(iaPanneau({ sb, course: c, chapter: ch, pages: text.pages, parts, show: pos => show(reader, pos), close: back, say }));
+    if (mode === 'explain' && explainSel) items.unshift(iaExplication({ sb, page: text.pages[explainSel.page], sel: explainSel, close: back }));
     view.replaceChildren(...items);
     reader.onscroll = () => {
       clearTimeout(saveTimer);

@@ -32,3 +32,13 @@
 .revisions-rate small{font-size:12px;font-weight:400;opacity:.75}
 .revisions-rate:disabled{opacity:.5}
 .cartes-rate .revisions-rate{min-width:0;flex:1 1 90px;height:auto}
+/* IA dans le Cahier (S5). */
+.ia-panel .cahier-actions{align-items:center}
+.ia-panel .ia-list{max-height:320px;display:block}
+.ia-list .row{align-items:flex-start;padding:4px 0}
+.ia-list .link{margin:6px 0;white-space:nowrap}
+.ia-absent{font-size:13px;color:var(--slate)}
+.ia-tag{font-size:13px;font-weight:600}
+.ia-quote{font-size:15px;color:var(--slate)}
+.ia-out:empty{display:none}
+.ia-out{display:grid;gap:8px}

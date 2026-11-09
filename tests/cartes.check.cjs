@@ -102,6 +102,31 @@ async function openBoard(browser, base, db, options = { viewport: { width: 1440,
     if (card) Object.assign(card, { last_rating: r.rating, last_reviewed_at: r.reviewed_at });
     return route.fulfill({ status: 201, headers: CORS });
   });
+  // L'IA (S5) : la fonction serveur et ses tables en lecture, simulées. La vraie logique est testée par tests/ia.check.sh.
+  await context.route(`${SUPABASE}/functions/v1/ia`, route => {
+    const req = route.request();
+    if (req.method() === 'OPTIONS') return preflight(route);
+    const b = req.postDataJSON();
+    db.iaCalls = (db.iaCalls ?? 0) + 1;
+    if (db.iaRefus) return json(route, 409, db.iaRefus);
+    const phrases = b.texte.split(/(?<=[.!?])\s+|\n+/).map(x => x.trim()).filter(x => x.length >= 20);
+    const src = x => ({ citation: x, debut: b.texte.indexOf(x), longueur: x.length });
+    const resultat = b.type === 'cartes' ? { cartes: [...phrases.map((x, i) => ({ question: `Question ${i + 1} ?`, reponse: x, source: src(x) })), { question: 'Sans source ?', reponse: 'Inventée', source: null }] }
+      : b.type === 'resume' ? { points: phrases.map(x => ({ texte: x, source: src(x) })) }
+      : { explication: `En clair : ${b.consigne}`, dans_le_cours: true, exemple_exterieur: 'Comme une centrale électrique.', source: null };
+    db.ia = (db.ia ?? 10) - 1;
+    (db.iaJobs ??= []).push({ id: b.travail, type: b.type, cle: b.cle ?? null, etat: 'reussi', resultat, created_at: new Date().toISOString() });
+    return json(route, 200, { ok: true, travail: b.travail, credits: 1, solde: db.ia, resultat });
+  });
+  await context.route(`${SUPABASE}/rest/v1/ia_prix*`, route => route.request().method() === 'OPTIONS' ? preflight(route) : json(route, 200, [
+    { type: 'cartes', caracteres_par_credit: 4000, credits_min: 1, credits_max: 10, caracteres_max: db.iaMax ?? 40000 }, { type: 'resume', caracteres_par_credit: 4000, credits_min: 1, credits_max: 10, caracteres_max: db.iaMax ?? 40000 }, { type: 'expliquer', caracteres_par_credit: 2000, credits_min: 1, credits_max: 1, caracteres_max: 2000 }]));
+  await context.route(`${SUPABASE}/rest/v1/ia_portefeuilles*`, route => route.request().method() === 'OPTIONS' ? preflight(route) : db.ia == null ? route.fulfill({ status: 406, headers: CORS, contentType: 'application/json', body: '{}' }) : json(route, 200, { solde: db.ia }));
+  await context.route(`${SUPABASE}/rest/v1/ia_travaux*`, route => {
+    if (route.request().method() === 'OPTIONS') return preflight(route);
+    const q = new URL(route.request().url()).searchParams;
+    const eq = k => q.get(k)?.replace(/^eq\./, '');
+    return json(route, 200, (db.iaJobs ?? []).filter(j => j.type === eq('type') && j.cle === eq('cle')).slice(-1));
+  });
   await context.route(`${SUPABASE}/storage/v1/object/**`, route => {
     const req = route.request();
     if (req.method() === 'OPTIONS') return preflight(route);
@@ -548,6 +573,70 @@ const select = (page, word) => page.evaluate(w => {
       const ai = [...dbr.hosts].filter(h => /openai|anthropic|fal\.|gemini|generativelanguage|mistral|cohere|huggingface/i.test(h));
       assert.deepStrictEqual(ai, [], 'aucune requête vers un fournisseur d’IA');
       console.log('ok révisions : jours simulés, limite, double clic, deux onglets, panne, suppression, fuseaux, sans IA');
+    }
+
+    // 8. IA depuis le Cahier (S5) : coût annoncé, aperçu des cartes, sources, résultat gardé, résumé, explication, refus.
+    {
+      const dbi = fresh(['cahier', 'cartes']);
+      const { page, context, errors } = await openBoard(browser, base, dbi);
+      const c = cahier(page);
+      await page.waitForFunction(() => document.querySelector('[data-widget=cahier] .cahier-title')?.textContent === 'La membrane');
+      await c.getByRole('button', { name: 'IA : cartes et résumé du chapitre' }).click();
+      await c.getByRole('button', { name: 'Générer des cartes · 1 crédit' }).waitFor();
+      assert.match(await c.locator('.ia-panel').innerText(), /crédits de découverte à la première utilisation/);
+      await shot(page, 'ia-panneau');
+      await c.getByRole('button', { name: 'Générer des cartes · 1 crédit' }).dblclick();
+      await c.getByRole('button', { name: 'Ajouter les cartes cochées' }).waitFor();
+      assert.strictEqual(dbi.iaCalls, 1, 'double clic : une seule génération');
+      assert.match(await c.locator('.ia-panel').innerText(), /1 crédit utilisé, il t'en reste 9/);
+      const boxes = c.locator('.ia-list input[type=checkbox]');
+      const checked = await boxes.evaluateAll(b => b.map(x => x.checked));
+      assert.deepStrictEqual([checked.at(-1), checked.slice(0, -1).every(Boolean)], [false, true], 'la carte sans source est décochée');
+      const proposed = checked.length - 1;
+      await shot(page, 'ia-cartes');
+      await c.getByRole('button', { name: 'Ajouter les cartes cochées' }).click();
+      await page.waitForFunction(n => new RegExp(`${n} cartes ajoutées au paquet « La cellule »`).test(document.querySelector('.ia-panel').innerText), proposed);
+      assert.strictEqual(dbi.cards.length, proposed);
+      const made = dbi.cards.find(x => x.back.startsWith('Elle entoure'));
+      assert.deepStrictEqual([made.course_id, made.src_page, PAGE.slice(made.src_offset, made.src_offset + made.src_length)], [COURSE.id, 0, made.back], 'la carte garde son passage source');
+      await page.waitForFunction(() => /Question 1 \?/.test(document.querySelector('[data-widget=cartes] .cartes-view').innerText));
+      // Le résultat est gardé : le revoir est gratuit, régénérer est un choix.
+      await c.getByRole('button', { name: 'Fermer' }).click();
+      await c.getByRole('button', { name: 'IA : cartes et résumé du chapitre' }).click();
+      await c.getByRole('button', { name: 'Générer des cartes : revoir le résultat (gratuit)' }).click();
+      assert.match(await c.locator('.ia-out').innerText(), /Cartes déjà générées/);
+      assert.ok(await c.getByRole('button', { name: 'Régénérer · 1 crédit' }).isVisible());
+      assert.strictEqual(dbi.iaCalls, 1, 'revoir ne rappelle pas l’IA');
+      // Résumé et « Voir dans le cours ».
+      await c.getByRole('button', { name: 'Résumer · 1 crédit' }).click();
+      await c.locator('.ia-list .link').first().waitFor();
+      await c.locator('.ia-list .link').first().click();
+      assert.strictEqual(await page.evaluate(() => [...CSS.highlights.get('cahier')][0].toString()), 'Elle entoure la cellule.');
+      // Refus du serveur : message clair, rien d'ajouté.
+      dbi.iaRefus = { ok: false, raison: 'solde_insuffisant', credits: 3, solde: 0 };
+      await c.getByRole('button', { name: 'Régénérer · 1 crédit' }).first().click();
+      await page.waitForFunction(() => /Il te faut 3 crédits, tu en as 0/.test(document.querySelector('.ia-panel').innerText));
+      dbi.iaRefus = null;
+      await c.getByRole('button', { name: 'Fermer' }).click();
+      // Expliquer une sélection.
+      await select(page, 'mitochondrie');
+      await c.getByRole('button', { name: 'Expliquer (IA)' }).click();
+      assert.match(await c.locator('.ia-panel').innerText(), /« mitochondrie »/);
+      await c.getByRole('button', { name: 'Expliquer · 1 crédit' }).click();
+      await page.waitForFunction(() => /D'après ton cours[\s\S]*En clair : mitochondrie[\s\S]*Exemple qui ne vient pas de ton cours/.test(document.querySelector('.ia-panel').innerText));
+      await shot(page, 'ia-expliquer');
+      // Chapitre trop long : bouton désactivé, pas de troncature silencieuse.
+      assert.deepStrictEqual(errors, []);
+      await context.close();
+      dbi.iaMax = 50;
+      const long = await openBoard(browser, base, dbi);
+      await long.page.waitForFunction(() => document.querySelector('[data-widget=cahier] .cahier-title')?.textContent === 'La membrane');
+      await cahier(long.page).getByRole('button', { name: 'IA : cartes et résumé du chapitre' }).click();
+      await long.page.waitForFunction(() => /trop long pour l'IA/.test(document.querySelector('.ia-panel').innerText));
+      assert.ok(await cahier(long.page).getByRole('button', { name: /^Régénérer · / }).first().isDisabled(), 'pas de troncature silencieuse');
+      assert.deepStrictEqual(long.errors, []);
+      await long.context.close();
+      console.log('ok IA dans le Cahier : coût, aperçu, sources, résultat gardé, résumé, explication, refus, trop long');
     }
 
     // 6. Trois tailles et quatre largeurs : rien ne déborde.

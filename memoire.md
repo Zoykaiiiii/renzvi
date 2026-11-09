@@ -293,8 +293,8 @@ Le cahier conserve le document et ses chapitres. Depuis un chapitre ou un passag
 | S1 | Grand cahier, matières/chapitres, import texte et PDF textuel, lecture et sources privées | **En ligne le 9 nov.** (`10257b1`), migration appliquée. Test RLS entre deux comptes sur la vraie base pas encore fait |
 | S2 | Flashcards et textes à trous liés aux passages, création/import simples sans API | **En ligne le 9 nov.** (`1469574`), migration passée par Damien. Test RLS entre deux comptes pas encore fait |
 | S3 | Révisions du jour et répétition espacée | **Codé le 9 nov.** (`site/study/revisions.js`, FSRS via `site/vendor/ts-fsrs-5.4.2`, licence MIT ; migration `20261109000200_study_revisions.sql`, fonction `study_answer`). **En ligne le 9 nov.**, migration passée par Damien |
-| S4 | Crédits et protection des appels IA, d'abord avec fournisseur simulé | Non construit |
-| S5 | Génération depuis le cours et explication d'un passage, résultats réutilisables | Non construit |
+| S4 | Crédits et protection des appels IA, d'abord avec fournisseur simulé | **Codé le 9 nov.** Migration `20261109000300_ia_credits.sql` (portefeuilles, journal, travaux, grille de prix, budget global) et fonction serveur `supabase/functions/ia` avec fournisseur simulé. Tests : `tests/ia.check.sh` (Postgres et Deno dans Docker). **En ligne le 9 nov.** : SQL passé par Damien, fonction `ia` déployée (verify_jwt, version 1). Aucun fournisseur réel |
+| S5 | Génération depuis le cours et explication d'un passage, résultats réutilisables | **Codé le 9 nov.** avec fournisseur simulé : `site/study/ia.js` (panneau IA du Cahier, Expliquer), `supabase/functions/ia/valider.ts` (format, citations vérifiées). Aucun modèle réel choisi ni testé |
 | S6 | Quiz et retour automatique sur les erreurs | Non construit |
 | S7 | Schémas masqués avec tirage aléatoire | Non construit |
 | S8 | Guide Study court, contextuel, facultatif ; à enrichir au fil des lots | Non construit |

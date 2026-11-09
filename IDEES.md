@@ -569,8 +569,8 @@ Recommandation Codex : garder un espace simple pour travailler puis décompresse
 | S1 | [x] En ligne le 9 nov. | Cahier central, matières/chapitres, import texte et PDF textuel, sources privées | Authentification existante |
 | S2 | [x] En ligne le 9 nov. | Flashcards et textes à trous reliés au cours, sans API | S1 |
 | S3 | [x] En ligne le 9 nov. | Révisions du jour et répétition espacée | S2 |
-| S4 | [ ] | Crédits et garde-fous du moteur IA, testé avec un fournisseur simulé | S1 ; avant toute activation IA |
-| S5 | [ ] | Génération de résumés/cartes depuis les chapitres et explication d'un passage | S1, S2, S4 |
+| S4 | [x] En ligne le 9 nov., fournisseur simulé | Crédits et garde-fous du moteur IA, testé avec un fournisseur simulé | S1 ; avant toute activation IA |
+| S5 | [x] En ligne le 9 nov., fournisseur simulé | Génération de résumés/cartes depuis les chapitres et explication d'un passage | S1, S2, S4 |
 | S6 | [ ] | Quiz et retour automatique sur les erreurs | S2 ; S4/S5 pour les questions générées |
 | S7 | [ ] | Schémas masqués et tirage aléatoire | S1, S3 pour la planification |
 | S8 | [ ] | Guide Study contextuel et première séance accompagnée | Commencer avec S1 ; compléter au fil des lots |
@@ -684,7 +684,7 @@ Règles retenues, démonstration sur plusieurs jours simulés, captures et tests
 Pas de commit ni de push sans mon nouveau « commit push ».
 ```
 
-### S4 — [ ] Crédits et protection du moteur IA
+### S4 — [x] Crédits et protection du moteur IA
 
 **Direction discutée avec Damien, encore à calibrer.** Tous les plans pourraient accéder aux mêmes outils, avec des volumes d'IA différents. Consulter les résultats et réviser ne consommerait pas de nouveaux crédits. Essai limité ou gratuit permanent : pas encore tranché. 7,90 € / 15,90 € et un palier supérieur à 30 € restent des hypothèses ; aucune remise annuelle de 50 % n'est validée par un calcul de coûts.
 
@@ -714,7 +714,7 @@ Règles compréhensibles, migrations et configuration nécessaires, journal d'ex
 Pas de commit ni de push sans mon nouveau « commit push ».
 ```
 
-### S5 — [ ] Génération réutilisable depuis le cours et aide sur un passage
+### S5 — [x] Génération réutilisable depuis le cours et aide sur un passage
 
 **Idée de Damien.** Le cahier est la source ; résumés, cartes, quiz et explications réutilisent le texte déjà extrait. Une nouvelle génération reste un appel payant, même si l'extraction n'est pas refaite. Le résumé est une action du cahier, pas nécessairement un nouveau widget.
 
