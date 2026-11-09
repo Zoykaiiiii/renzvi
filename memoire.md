@@ -291,7 +291,7 @@ Le cahier conserve le document et ses chapitres. Depuis un chapitre ou un passag
 | Lot | Contenu | État actuel |
 |---|---|---|
 | S1 | Grand cahier, matières/chapitres, import texte et PDF textuel, lecture et sources privées | **En ligne le 9 nov.** (`10257b1`), migration appliquée. Test RLS entre deux comptes sur la vraie base pas encore fait |
-| S2 | Flashcards et textes à trous liés aux passages, création/import simples sans API | **Codé et poussé le 9 nov.** (`site/study/cartes.js`, migration `20261109000100_study_cartes.sql`). Migration à appliquer sur la vraie base avec l'accord de Damien, sinon le widget ne charge pas |
+| S2 | Flashcards et textes à trous liés aux passages, création/import simples sans API | **En ligne le 9 nov.** (`1469574`), migration passée par Damien. Test RLS entre deux comptes pas encore fait |
 | S3 | Révisions du jour et répétition espacée | Non construit |
 | S4 | Crédits et protection des appels IA, d'abord avec fournisseur simulé | Non construit |
 | S5 | Génération depuis le cours et explication d'un passage, résultats réutilisables | Non construit |

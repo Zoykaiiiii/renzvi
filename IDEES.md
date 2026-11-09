@@ -567,7 +567,7 @@ Recommandation Codex : garder un espace simple pour travailler puis décompresse
 | Lot | État | Résultat | Prérequis |
 |---|---|---|---|
 | S1 | [x] En ligne le 9 nov. | Cahier central, matières/chapitres, import texte et PDF textuel, sources privées | Authentification existante |
-| S2 | [x] Codé le 9 nov., migration à appliquer | Flashcards et textes à trous reliés au cours, sans API | S1 |
+| S2 | [x] En ligne le 9 nov. | Flashcards et textes à trous reliés au cours, sans API | S1 |
 | S3 | [ ] | Révisions du jour et répétition espacée | S2 |
 | S4 | [ ] | Crédits et garde-fous du moteur IA, testé avec un fournisseur simulé | S1 ; avant toute activation IA |
 | S5 | [ ] | Génération de résumés/cartes depuis les chapitres et explication d'un passage | S1, S2, S4 |
