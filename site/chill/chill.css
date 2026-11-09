@@ -1,0 +1,118 @@
+/* Chill (labo) : styles provisoires et fonctionnels. Le design définitif sera fait en session dédiée :
+   couleurs, textures et tailles passent par ces variables. */
+:root{
+  --jardin-ground:#e9e3d6; --jardin-soil:#8a6a4a; --jardin-mound:#7a5a3c; --jardin-seed:#3d2a1a; --jardin-leaf:#4f8a52;
+  --jardin-pot:#b8673f; --jardin-pot-rim:#9b5231;
+  --tangram-target:#dcd8cf; --tangram-edge:#1f201d;
+  --chill-paper:#fff; --chill-radius:14px;
+}
+.small{font-size:12px}
+.chill-lab-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px;padding-top:8px;border-top:1px dashed var(--edge)}
+.chill-lab-tools .ghost{height:32px;padding:0 10px;font-size:13px}
+
+/* Vue agrandie */
+dialog.chill-big{width:min(1100px,100vw - 16px);max-height:96dvh;padding:16px}
+.chill-big-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.chill-big-head h2{font-size:16px}
+
+/* Jardin */
+.jardin-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:10px;border-radius:var(--chill-radius);background:var(--jardin-ground)}
+.jardin-plot,.jardin-spot{display:grid;place-items:center;min-height:64px;padding:2px;border:2px solid transparent;border-radius:12px;background:rgba(255,255,255,.35)}
+.jardin-plot svg,.jardin-spot svg{width:100%;max-width:90px;height:auto}
+.jardin-plot[aria-pressed=true],.jardin-spot[aria-pressed=true]{border-color:var(--accent);background:rgba(255,255,255,.7)}
+.jardin-decor{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:6px}
+.jardin-spot{min-height:48px;background:var(--tint);color:var(--slate);font-size:20px}
+.jardin-spot svg{max-width:56px}
+.jardin-panel{margin-top:12px}
+.jardin-choices{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.jardin-mini-row{display:flex;gap:4px}
+.jardin-mini-row svg{width:44px;height:58px}
+.jardin-mini .ghost{margin-top:8px}
+.widget:not([data-size=s]) .jardin-mini{display:none}
+.widget[data-size=s] .jardin-full{display:none}
+.chill-big .jardin-grid{gap:12px;padding:16px}
+.chill-big .jardin-plot{min-height:120px}
+.chill-big .jardin-plot svg{max-width:150px}
+.chill-big .jardin-big-btn{display:none}
+
+/* Atelier et coloriage */
+.atelier-tools{display:flex;flex-direction:column;gap:8px}
+.atelier-colors{display:flex;flex-wrap:wrap;gap:4px}
+.atelier-swatch{width:30px;height:30px;padding:0;border:1px solid var(--edge);border-radius:var(--pill);background:var(--c)}
+.atelier-swatch[aria-pressed=true]{outline:2px solid var(--ink);outline-offset:2px}
+.atelier-free{width:36px;height:30px;padding:0;border:0;background:none}
+.atelier-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
+.atelier-row .ghost,.atelier-row .primary{height:36px;padding:0 12px;font-size:13px}
+.atelier-row .ghost[aria-pressed=true]{background:var(--accent);color:var(--on-accent);border-color:transparent}
+.atelier-pick{height:36px;max-width:100%;padding:0 10px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7)}
+.atelier-stage{position:relative;margin-top:8px}
+.atelier-paper{display:block;width:100%;height:auto;aspect-ratio:4/3;border:1px solid var(--edge);border-radius:var(--chill-radius);background:var(--chill-paper);touch-action:none;cursor:crosshair}
+.atelier-paper.locked{pointer-events:none;opacity:.5}
+.atelier-veil{position:absolute;inset:0;display:grid;place-content:center;gap:8px;padding:16px;text-align:center;border-radius:var(--chill-radius);background:rgba(255,255,255,.75)}
+.atelier-open{margin-top:8px;align-self:flex-start}
+.chill-big .atelier-open{display:none}
+.chill-big .atelier-paper{width:min(100%,calc((96dvh - 330px) * 4 / 3));margin-inline:auto}
+.coloriage-stage svg{display:block;width:100%;height:auto;margin-top:8px;border-radius:var(--chill-radius);touch-action:manipulation}
+.chill-big .coloriage-stage svg{width:min(100%,calc((96dvh - 280px) * 4 / 3));margin-inline:auto}
+.coloriage-stage [data-z]{cursor:pointer}
+.coloriage-stage [data-z]:focus{outline:none}
+.coloriage-stage [data-z]:focus-visible{stroke:var(--accent);stroke-width:6}
+.widget[data-size=s] :is(.atelier-tools,.atelier > .atelier-row,.atelier > .zone,.jeu > .choices,.jeu > .atelier-row){display:none}
+.widget[data-size=s] :is(.atelier-paper,.coloriage-stage svg,.tangram-board){pointer-events:none}
+
+/* Jeux */
+.jeu > .choices{margin-top:8px}
+.taquin{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:3px;width:100%;max-width:420px;margin:10px auto 0;padding:3px;border-radius:12px;background:var(--tint);aspect-ratio:1}
+.taquin:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.taquin-tile{min-width:0;padding:0;border:0;border-radius:8px;background:#fff center/cover no-repeat;font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+.taquin-tile.photo{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7);font-size:13px;display:flex;align-items:flex-start;justify-content:flex-start;padding:4px 6px}
+.taquin.done .taquin-tile{border-radius:0}
+.taquin-preview{width:100%;max-width:420px;margin:8px auto 0;aspect-ratio:1;border-radius:12px;background:center/cover no-repeat}
+.chill-big .taquin,.chill-big .taquin-preview{max-width:min(560px,70dvh)}
+.tangram-board{display:block;width:100%;height:auto;margin-top:8px;border-radius:var(--chill-radius);background:var(--chill-paper);touch-action:none}
+.tangram-target{fill:var(--tangram-target);stroke:var(--tangram-target);stroke-width:.03}
+.tangram-piece{stroke:var(--tangram-edge);stroke-width:.04;stroke-linejoin:round;cursor:grab;opacity:.92}
+.tangram-piece:focus{outline:none}
+.tangram-piece.sel{stroke:var(--accent);stroke-width:.1}
+.t-g1{fill:#de5f57}.t-g2{fill:#3b6fb6}.t-m{fill:#e8b62c}.t-p1{fill:#4f9a52}.t-c{fill:#7a55a8}.t-p2{fill:#2f8f87}.t-q{fill:#e8892c}
+.tangram-hint{fill:none;stroke:var(--ink);stroke-width:.08;stroke-dasharray:.2 .15;pointer-events:none}
+
+/* Fenêtre d'ambiance */
+.fenetre-stage{overflow:hidden;border-radius:var(--chill-radius);background:#2b3442}
+.fenetre-canvas{display:block;width:100%;height:auto}
+.fenetre .choices{margin-top:8px}
+.chill-big .fenetre-stage{width:min(100%,calc((96dvh - 90px) / .62))}
+
+/* Mes ambiances */
+.ambiances-form{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.ambiances-form input[type=text]{height:var(--control);padding:0 16px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7)}
+.ambiances-form .primary{align-self:flex-start;height:36px;font-size:13px}
+.ambiances-check{display:flex;align-items:center;gap:8px;font-size:13px}
+.ambiances-check input{flex:none;width:18px;height:18px;accent-color:var(--accent)}
+.ambiances-check:has(input:disabled){color:var(--slate)}
+.ambiances-row{flex-wrap:wrap}
+.ambiances-row .grow{flex:1 1 160px}
+.ambiances-row .ghost{height:32px;padding:0 10px;font-size:13px}
+.ambiances-sleep{margin-top:16px;padding-top:12px;border-top:1px solid var(--rule)}
+.ambiances-sleep .choices{margin-top:8px;flex-wrap:wrap}
+.widget[data-size=s] .ambiances-form{display:none}
+
+/* J'ai cinq minutes */
+.cinq{display:flex;flex-direction:column;gap:8px}
+.cinq-list{display:flex;flex-wrap:wrap;gap:6px}
+.cinq-stage .atelier-paper{margin-top:8px}
+.cinq .primary{align-self:flex-start}
+
+/* Labo */
+dialog.chill-labo{width:min(1040px,100vw - 16px);max-height:94dvh;padding:20px}
+.labo-list{list-style:none;padding:0;margin-top:12px}
+.labo-item{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--rule)}
+.labo-item .grow{flex:1 1 220px}
+.labo-item .ghost{height:34px;padding:0 12px;font-size:13px}
+.labo-sandbox{margin-top:20px;padding-top:16px;border-top:2px solid var(--rule)}
+.labo-sandbox h3{font-size:16px}
+.labo-controls{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px 12px;margin:12px 0}
+.labo-controls .choices{flex-wrap:wrap;align-self:auto}
+.labo-box{margin-top:12px;max-width:100%}
+.labo-json pre{max-height:240px;overflow:auto;padding:8px;border-radius:8px;background:var(--tint);font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere}
+@media (max-width:560px){.labo-controls{grid-template-columns:1fr}}

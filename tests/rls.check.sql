@@ -28,11 +28,11 @@ begin
   -- Les écritures de l'app, colonnes exactes (sans user_id quand l'app ne l'envoie pas).
   -- dashboard.html:2108 : upsert de chaque widget qui enregistre, dont le Guide.
   insert into widget_state(user_id,widget,data,updated_at)
-    select a, w, '{"v":1}', now() from unnest(array['ecran','notes','taches','minuteur','habitudes','vol','ambiance','compte','raccourcis','playlist','lecture','inspiration','cahier','cartes','revisions','quiz','schemas','guide']) w
+    select a, w, '{"v":1}', now() from unnest(array['ecran','notes','taches','minuteur','habitudes','vol','ambiance','compte','raccourcis','playlist','lecture','inspiration','cahier','cartes','revisions','quiz','schemas','guide','jardin','dessin','coloriage','puzzle','tangram','fenetre','ambiances']) w
     on conflict (user_id,widget) do update set data = excluded.data, updated_at = excluded.updated_at;
   insert into widget_state(user_id,widget,data,updated_at) values (a,'guide','{"masque":true}',now())
     on conflict (user_id,widget) do update set data = excluded.data, updated_at = excluded.updated_at;
-  select count(*) into n from widget_state where user_id=a; r := array_append(r, ('A enregistre ses 18 widgets: '||(n=18)::int)::text);
+  select count(*) into n from widget_state where user_id=a; r := array_append(r, ('A enregistre ses 25 widgets (dont Chill): '||(n=25)::int)::text);
   select count(*) into n from widget_state where widget='guide' and data->>'masque'='true'; r := array_append(r, ('A met à jour son guide: '||n)::text);
   begin insert into widget_state(user_id,widget,data) values (a,'pirate','{}'); r := array_append(r, 'interdit: widget inconnu ACCEPTE'); exception when others then r := array_append(r, 'interdit: widget inconnu refusé'); end;
   -- cahier.js:606 et :483
@@ -43,7 +43,11 @@ begin
   perform id,subject,title,kind,file_name,file_size,page_count,text_chars,chapters from study_courses order by created_at;
   begin insert into storage.objects(bucket_id,name,owner) values ('cours', a||'/'||cb||'/original.pdf', a), ('cours', a||'/'||cb||'/texte.json', a); r := array_append(r, 'A dépose les fichiers du cours: 1'); exception when others then r := array_append(r, 'A dépose les fichiers du cours: refusé '||sqlerrm); end;
   begin insert into storage.objects(bucket_id,name,owner) values ('schemas', a||'/'||sb||'.jpg', a), ('inspiration', a||'/1.jpg', a), ('fonds', a||'/fond.jpg', a); r := array_append(r, 'A dépose schéma, inspiration, fond: 1'); exception when others then r := array_append(r, 'A dépose schéma, inspiration, fond: refusé '||sqlerrm); end;
-  select count(*) into n from storage.objects where owner=a; r := array_append(r, ('A relit ses 6 fichiers: '||(n=6)::int)::text);
+  -- Chill : atelier de dessin, 12 dessins PNG au plus par compte, noms imposés.
+  begin insert into storage.objects(bucket_id,name,owner) values ('dessins', a||'/1.png', a), ('dessins', a||'/12.png', a); r := array_append(r, 'A dépose ses dessins: 1'); exception when others then r := array_append(r, 'A dépose ses dessins: refusé '||sqlerrm); end;
+  begin insert into storage.objects(bucket_id,name,owner) values ('dessins', a||'/13.png', a); r := array_append(r, 'limite: 13e dessin ACCEPTE'); exception when others then r := array_append(r, 'limite: 13e dessin refusé'); end;
+  begin insert into storage.objects(bucket_id,name,owner) values ('dessins', a||'/1.jpg', a); r := array_append(r, 'limite: dessin hors format ACCEPTE'); exception when others then r := array_append(r, 'limite: dessin hors format refusé'); end;
+  select count(*) into n from storage.objects where owner=a; r := array_append(r, ('A relit ses 8 fichiers: '||(n=8)::int)::text);
   -- cartes.js:238 (qa et trou), :474 (import CSV), ia.js:153 (depuis le cours)
   insert into study_cards(deck,kind,front,back,holes,course_id,src_page,src_offset,src_length) values ('D','qa','Q app','R app','[]',cb,0,0,10) returning id into cdb;
   insert into study_cards(deck,kind,front,holes,back) values ('D','trou','Le ciel est bleu','[[12,16]]','') returning id into cdt;
@@ -151,6 +155,9 @@ begin
   begin insert into study_schema_answers(schema_id,zone_id,reussie) values (sb,'z1',true); r := array_append(r, ('B répond schéma A: ACCEPTE')::text); exception when others then r := array_append(r, ('B répond schéma A: refusé ('||left(sqlerrm,40)||')')::text); end;
   begin insert into storage.objects(bucket_id,name,owner) values ('cours', a||'/'||ca||'/texte.json', b); r := array_append(r, ('B écrit fichier chez A: ACCEPTE')::text); exception when others then r := array_append(r, ('B écrit fichier chez A: refusé')::text); end;
   begin insert into storage.objects(bucket_id,name,owner) values ('schemas', a||'/'||gen_random_uuid()||'.jpg', b); r := array_append(r, ('B écrit schéma chez A: ACCEPTE')::text); exception when others then r := array_append(r, ('B écrit schéma chez A: refusé')::text); end;
+  begin insert into storage.objects(bucket_id,name,owner) values ('dessins', a||'/5.png', b); r := array_append(r, ('B écrit dessin chez A: ACCEPTE')::text); exception when others then r := array_append(r, ('B écrit dessin chez A: refusé')::text); end;
+  delete from storage.objects where bucket_id='dessins' and name like a||'/%'; get diagnostics n = row_count; r := array_append(r, (('B supprime dessins A: '||n))::text);
+  select count(*) into n from widget_state where user_id=a and widget in ('jardin','dessin','ambiances'); r := array_append(r, (('B lit jardin/dessin/ambiances A: '||n))::text);
   begin perform 1 from referral_codes; r := array_append(r, 'B lit les codes de parrainage: ACCEPTE'); exception when insufficient_privilege then r := array_append(r, 'B lit les codes de parrainage: refusé'); end;
   -- B est un compte neuf : le code de A marche une fois, pas deux.
   insert into study_cards(deck,kind,front,back) values ('B','qa','à moi','oui');
@@ -189,6 +196,7 @@ begin
   delete from study_schemas where id=sb; get diagnostics n = row_count; r := array_append(r, ('A supprime son schéma: '||n)::text);
   delete from storage.objects where name = a||'/'||sb||'.jpg'; get diagnostics n = row_count; r := array_append(r, ('A supprime son image: '||n)::text);
   delete from study_courses where id=cb; get diagnostics n = row_count; r := array_append(r, ('A supprime son cours: '||n)::text);
+  delete from storage.objects where bucket_id='dessins' and name = a||'/12.png'; get diagnostics n = row_count; r := array_append(r, ('A supprime son dessin: '||n)::text);
   reset role;
 
   raise exception 'RAPPORT % (tout annulé) | %',

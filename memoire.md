@@ -363,3 +363,19 @@ Damien a confié à Codex la préparation technique des prompts pour pouvoir se 
 - Un nouvel assistant doit repartir des fichiers versionnés et des accès réellement disponibles. Ne pas lui demander de refaire toute la configuration ni d'installer tous les plugins historiques si sa tâche n'en a pas besoin.
 
 **Signature : Codex — rôle de prompteur, analyste du dépôt et soutien produit de Damien.** Cette section est identifiable comme mon complément ; elle ne réattribue pas le travail ni les vérifications historiques du premier Claude.
+
+## 13. Chantier Chill (labo) — Claude, 9 novembre 2026
+
+**Caché du public.** Accès : `dashboard.html?chill=1` (gardé sur l'appareil, `?chill=0` pour sortir). Drapeau séparé de `?labo=1` (Study). Les 8 widgets Chill ont `labo: 'chill'` : absents du catalogue public, des modes, du premier lancement et de la landing. Bouton « Labo Chill » : liste des 15 fonctions, « Ajouter à la page » (vraie sauvegarde) et bac à sable (tailles Petit/Moyen/Grand, données vides/exemple/copie, chargement lent, erreurs de chargement/enregistrement/stockage ; rien n'est écrit sur le compte).
+
+**Fichiers :** `site/chill/chill.js` (chargé partout : moteur audio unique `ChillSon` extrait du widget Ambiance, arrêt progressif, séances `chillRespiration`/`chillPause` réutilisées par les widgets publics, chargeur `chillLazy`, vue agrandie, envoi au tableau d'inspiration), puis chargés à la demande : `jardin.js`, `atelier.js` (dessin + coloriage), `jeux.js` (puzzle + tangram), `fenetre.js`, `ambiances.js` (préréglages + arrêt progressif), `cinq.js`, `labo.js`, `chill.css` (styles provisoires en variables).
+
+**Les 15 :** 1-6 existantes (ambiance, playlist, respiration, pause, lecture, inspiration), comportement public inchangé (ambiance/respiration/pause passent par chill.js). 7 jardin, 8 dessin, 9 coloriage, 10 puzzle, 11 tangram (3 silhouettes vérifiées : carré, grand triangle, parallélogramme), 12 fenêtre, 13 mes ambiances, 14 arrêt progressif (capacité, dans « Mes ambiances »), 15 j'ai cinq minutes : développées en labo et testées automatiquement. Design à faire, intégration publique à faire pour 7-15.
+
+**Sauvegarde :** petit état dans `widget_state` (`jardin`, `dessin`, `coloriage`, `puzzle`, `tangram`, `fenetre`, `ambiances`). Dessins en PNG dans le bucket privé `dessins` (12 max, 1,5 Mo, noms imposés). Local seulement : photo du puzzle (jamais envoyée), minuterie d'arrêt (`renzvi:sommeil`), dernière activité « cinq minutes ».
+
+**⚠️ Migration `20261109000800_chill_labo.sql` PAS appliquée en ligne.** Tant qu'elle ne l'est pas, les widgets Chill du labo ne s'enregistrent pas sur un vrai compte (« Pas encore enregistré »). Damien doit la passer dans l'éditeur SQL.
+
+**Tests réellement lancés le 9 nov. :** `node tests/chill.test.cjs` (25 OK), `tests/chill.check.cjs` (Chromium, Supabase simulé, 2 passages OK), `tests/rls.check.sh` avec les cas Chill (RAPPORT OK, base jetable), `login` et `personnalisation` OK après le refactor. `install`, `landing`, `cahier`, `cartes` passaient au début de la session, pas relancés après.
+
+**Limites connues :** croissance et arrosage du jardin vérifiés côté navigateur seulement (sans enjeu : pas de monnaie). Le bac à sable Ambiance partage le vrai moteur audio. Rien n'a été essayé sur un vrai téléphone ni un vrai compte. Prochaines étapes : passer la migration, essai réel, session design (illustrations, couleurs, présentation), puis intégration publique widget par widget.

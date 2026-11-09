@@ -477,6 +477,19 @@ Idées ajoutées par Codex à la demande de Damien, à partir de leur échange. 
 - [x] **Pause détente** : choisir une courte pause (regarder au loin, s'étirer, marcher), accompagnée d'un petit compte à rebours.
 - **Piste de priorité proposée par Codex** : respiration guidée et ambiance sonore pour donner une utilité immédiate au mode Chill. Le compte à rebours et le tableau d'inspiration restent des pistes pour le prototype. Ordre de développement à confirmer avec Damien.
 
+### Chantier Chill en labo (9 nov. 2026) — caché, `?chill=1`
+Détail dans `memoire.md` section 13. Aucune de ces fonctions n'est disponible sur le site public.
+- [x] 1-6 Ambiance, Playlist, Respiration, Pause, Lecture, Inspiration : existantes, vérifiées, moteur et séances partagés.
+- [ ] 7 Mon petit jardin — développé en labo, testé ; design et intégration publique à faire.
+- [ ] 8 Atelier de dessin — développé en labo, testé ; migration à passer ; design et intégration à faire.
+- [ ] 9 Coloriage — idem (4 dessins créés pour le prototype).
+- [ ] 10 Puzzle photo — idem.
+- [ ] 11 Tangram — idem (3 silhouettes vérifiées).
+- [ ] 12 Fenêtre d'ambiance — idem.
+- [ ] 13 Mes ambiances — idem.
+- [ ] 14 Arrêt audio progressif — capacité du moteur, interface dans « Mes ambiances ».
+- [ ] 15 J'ai cinq minutes — idem.
+
 ### Plus tard — idées de Damien précisées avec Codex
 - [ ] **Hydratation** : ajouter un verre en un geste, suivre sa progression et choisir son propre objectif quotidien, sans imposer une quantité universelle.
 

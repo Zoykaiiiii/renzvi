@@ -579,6 +579,7 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 <script src="study/quiz.js"></script>
 <script src="study/schemas.js"></script>
 <script src="study/guide.js"></script>
+<script src="chill/chill.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>
 <script>
 // Clé publique par conception : ce sont les règles de sécurité de la base qui protègent les données.
@@ -1347,185 +1348,63 @@ const WIDGETS = [
   },
   {
     id: 'respiration', title: 'Respiration guidée', desc: 'Un cercle qui t\'accompagne pour respirer doucement.',
+    // La séance est dans chill/chill.js : « J'ai cinq minutes » la réutilise.
     render({ body, meta }) {
-      let length = 3, endAt = null, ticker = null, phase = '';
-      const choices = el('div', 'choices');
-      choices.setAttribute('role', 'group');
-      choices.ariaLabel = 'Durée de la respiration';
-      const circle = el('div', 'breath');
-      circle.setAttribute('aria-hidden', 'true');
-      const stage = el('div', 'breath-stage');
-      stage.append(circle);
-      const word = el('p', 'breath-word', 'Prêt ?');
-      word.setAttribute('aria-hidden', 'true'); // change toutes les quelques secondes : on n'inonde pas un lecteur d'écran
-      const status = el('p', 'zone');
-      status.setAttribute('role', 'status');
-      const hint = el('p', 'zone', `Inspire ${BREATH_IN / 1000} s, expire ${BREATH_OUT / 1000} s. Arrête quand tu veux. Ce n'est pas un soin médical.`);
-      const go = button('primary', 'Commencer', () => (endAt ? finish(false) : start()));
-      const ctrl = el('div', 'ctrl');
-      ctrl.append(go);
-      function setPhase(next) {
-        phase = next;
-        circle.style.setProperty('--dur', `${(next === 'in' ? BREATH_IN : BREATH_OUT) / 1000}s`);
-        circle.classList.toggle('in', next === 'in');
-        word.textContent = next === 'in' ? 'Inspire' : 'Expire';
-      }
-      function tick() {
-        const left = endAt - Date.now();
-        if (left <= 0) return finish(true);
-        const into = (length * 60000 - left) % (BREATH_IN + BREATH_OUT);
-        const next = into < BREATH_IN ? 'in' : 'out';
-        if (next !== phase) setPhase(next);
-        meta.textContent = clockLabel(left);
-      }
-      function start() {
-        endAt = Date.now() + length * 60000;
-        status.textContent = '';
-        for (const b of choices.children) b.disabled = true;
-        go.textContent = 'Arrêter';
-        setPhase('in');
-        // L'heure de fin fait foi : un onglet en arrière-plan ralentit les minuteries du navigateur.
-        ticker = setInterval(tick, 250);
-        tick();
-      }
-      function finish(done) {
-        clearInterval(ticker);
-        endAt = null;
-        phase = '';
-        circle.classList.remove('in');
-        word.textContent = 'Prêt ?';
-        meta.textContent = '';
-        go.textContent = 'Commencer';
-        for (const b of choices.children) b.disabled = false;
-        status.textContent = done ? 'Séance terminée. Prends un instant avant de reprendre.' : '';
-      }
-      for (const n of BREATH_CHOICES) {
-        const b = button('', `${n} min`, () => {
-          length = n;
-          for (const c of choices.children) c.setAttribute('aria-pressed', c === b);
-        });
-        b.setAttribute('aria-pressed', n === length);
-        choices.append(b);
-      }
-      body.append(choices, stage, word, status, hint, ctrl);
-      return () => clearInterval(ticker);
+      const session = chillRespiration({ meta });
+      body.append(...session.nodes);
+      return session.cleanup;
     },
   },
   {
     id: 'ambiance', title: 'Ambiance sonore', desc: "Pluie, vent, feu de bois, cabine d'avion et bruit blanc, à mélanger.",
+    // Le moteur audio est partagé (chill/chill.js) : les préréglages et l'arrêt progressif le pilotent sans en créer un second.
     render({ body, meta, data, save }) {
-      const clamp = v => (Number.isFinite(v) ? Math.min(100, Math.max(0, Math.round(v))) : 0);
-      const volumes = Object.fromEntries(SOUNDS.map(snd => [snd.id, snd.id === 'pluie' && !data?.vol ? 35 : clamp(data?.vol?.[snd.id])]));
+      ChillSon.load(data);
       const note = el('p', 'note');
       note.hidden = true;
-      // Volume général : baisse tout d'un coup. Il vit dans le widget, donc il marche pareil sur ordinateur et sur téléphone
-      // (sur un téléphone, les boutons de volume de l'appareil restent le réglage maître).
-      let level = Number.isFinite(data?.master) ? clamp(data.master) : 100;
-      const masterGain = () => (level / 100) ** 2 * .5;
-      let ctx = null, nodes = null, playing = false;
-
-      const noiseBuffer = (kind) => {
-        const rate = ctx.sampleRate, N = rate * 6, fade = Math.floor(rate * .05), raw = new Float32Array(N + fade);
-        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, brown = 0;
-        for (let i = 0; i < raw.length; i++) {
-          const w = Math.random() * 2 - 1;
-          if (kind === 'white') raw[i] = w;
-          else if (kind === 'pink') {
-            b0 = .99886 * b0 + w * .0555179; b1 = .99332 * b1 + w * .0750759; b2 = .969 * b2 + w * .153852;
-            b3 = .8665 * b3 + w * .3104856; b4 = .55 * b4 + w * .5329522; b5 = -.7616 * b5 - w * .016898;
-            raw[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * .5362) * .11; b6 = w * .115926;
-          } else { brown = (brown + .02 * w) / 1.02; raw[i] = brown * 3.5; }
-        }
-        const buffer = ctx.createBuffer(1, N, rate), out = buffer.getChannelData(0);
-        out.set(raw.subarray(0, N));
-        // Fondu enchaîné entre la fin et le début : la boucle ne fait pas de « clic ».
-        for (let i = 0; i < fade; i++) { const a = (i / fade) * Math.PI / 2; out[i] = raw[i] * Math.sin(a) + raw[N + i] * Math.cos(a); }
-        return buffer;
-      };
-      const build = () => {
-        ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const master = ctx.createGain();
-        master.gain.value = masterGain();
-        const limiter = ctx.createDynamicsCompressor();
-        master.connect(limiter);
-        limiter.connect(ctx.destination);
-        const noise = { white: noiseBuffer('white'), pink: noiseBuffer('pink'), brown: noiseBuffer('brown') };
-        const source = kind => { const n = ctx.createBufferSource(); n.buffer = noise[kind]; n.loop = true; n.start(0, Math.random() * 5); return n; };
-        const filter = (type, frequency, q = 1) => { const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = frequency; f.Q.value = q; return f; };
-        const chain = (...list) => list.reduce((a, b) => { a.connect(b); return b; });
-        const timers = [], gains = {}, scale = { pluie: .55, vent: .9, feu: .8, cabine: 1.1, blanc: .3 };
-        for (const { id } of SOUNDS) { const g = ctx.createGain(); g.gain.value = 0; g.connect(master); gains[id] = g; }
-        chain(source('white'), filter('highpass', 700), filter('lowpass', 9000), gains.pluie);
-        // Le vent : un bruit rose dont la bande de fréquence monte et descend très lentement.
-        const wind = filter('bandpass', 450, .6), sway = ctx.createOscillator(), depth = ctx.createGain();
-        sway.frequency.value = .09; depth.gain.value = 260; sway.connect(depth); depth.connect(wind.frequency); sway.start();
-        chain(source('pink'), wind, gains.vent);
-        chain(source('brown'), filter('lowpass', 650), gains.cabine);
-        chain(source('white'), filter('lowpass', 12000), gains.blanc);
-        // Le feu : un grondement grave, et de petits craquements espacés au hasard.
-        chain(source('brown'), filter('lowpass', 240), gains.feu);
-        const crackle = () => {
-          if (ctx.state === 'running' && volumes.feu > 0) {
-            const burst = ctx.createBufferSource(), band = filter('bandpass', 1800 + Math.random() * 2600, 1.4), env = ctx.createGain(), t = ctx.currentTime;
-            burst.buffer = noise.white;
-            env.gain.setValueAtTime(0, t);
-            env.gain.linearRampToValueAtTime(.25 + Math.random() * .5, t + .004);
-            env.gain.exponentialRampToValueAtTime(.001, t + .03 + Math.random() * .07);
-            chain(burst, band, env, gains.feu);
-            burst.start(t, Math.random() * 5, .12);
-          }
-          timers[0] = setTimeout(crackle, 90 + Math.random() * 650);
-        };
-        crackle();
-        nodes = { master, gains, scale, timers };
-      };
-      const apply = id => nodes?.gains[id].gain.setTargetAtTime((volumes[id] / 100) ** 2 * nodes.scale[id], ctx.currentTime, .05);
-
+      const persist = () => save(ChillSon.settings());
       const toggle = button('primary', "Lancer l'ambiance", async () => {
         note.hidden = true;
         try {
-          if (!playing) {
-            if (level === 0) { note.textContent = "Monte le volume général pour entendre l'ambiance."; note.hidden = false; return; }
-            if (!SOUNDS.some(snd => volumes[snd.id] > 0)) { note.textContent = "Monte le volume d'un son pour l'entendre."; note.hidden = false; return; }
-            if (!ctx) { build(); for (const snd of SOUNDS) apply(snd.id); }
-            await ctx.resume();
-          } else await ctx.suspend();
-          playing = !playing;
-          toggle.textContent = playing ? 'Pause' : "Lancer l'ambiance";
-          meta.textContent = playing ? 'En cours' : '';
+          if (ChillSon.playing()) return await ChillSon.pause();
+          const why = await ChillSon.play();
+          // Volume général : baisse tout d'un coup. Il vit dans le widget, donc il marche pareil sur ordinateur et sur téléphone
+          // (sur un téléphone, les boutons de volume de l'appareil restent le réglage maître).
+          if (why) { note.textContent = why === 'master' ? "Monte le volume général pour entendre l'ambiance." : "Monte le volume d'un son pour l'entendre."; note.hidden = false; }
         } catch (e) {
           console.error(e);
           note.textContent = "Ton navigateur n'a pas pu lancer le son.";
           note.hidden = false;
         }
       });
-      const persist = () => save({ vol: { ...volumes }, master: level });
       const list = el('div');
-      const main = el('label', 'sound master');
-      const mainRange = Object.assign(el('input'), { type: 'range', min: 0, max: 100, step: 5, value: level });
-      const sayMain = () => mainRange.setAttribute('aria-valuetext', `${level} %`);
-      sayMain();
-      mainRange.oninput = () => { level = Number(mainRange.value); sayMain(); nodes?.master.gain.setTargetAtTime(masterGain(), ctx.currentTime, .05); };
-      mainRange.onchange = persist;
-      main.append(el('span', '', 'Volume général'), mainRange);
-      list.append(main);
-      for (const snd of SOUNDS) {
-        const row = el('label', 'sound');
-        const range = Object.assign(el('input'), { type: 'range', min: 0, max: 100, step: 5, value: volumes[snd.id] });
-        const say = () => range.setAttribute('aria-valuetext', `${volumes[snd.id]} %`);
+      const ranges = [];
+      const slider = (cls, name, get, set) => {
+        const row = el('label', cls);
+        const range = Object.assign(el('input'), { type: 'range', min: 0, max: 100, step: 5, value: get() });
+        const say = () => range.setAttribute('aria-valuetext', `${get()} %`);
         say();
-        range.oninput = () => { volumes[snd.id] = Number(range.value); say(); apply(snd.id); };
+        range.oninput = () => { set(Number(range.value)); say(); };
         range.onchange = persist;
-        row.append(el('span', '', snd.name), range);
+        row.append(el('span', '', name), range);
         list.append(row);
-      }
+        ranges.push(() => { range.value = get(); say(); });
+      };
+      slider('sound master', 'Volume général', ChillSon.master, ChillSon.setMaster);
+      for (const snd of SOUNDS) slider('sound', snd.name, () => ChillSon.volume(snd.id), v => ChillSon.setVolume(snd.id, v));
+      // Un préréglage ou l'arrêt progressif changent le moteur : le widget suit, et garde le nouveau mélange.
+      const sync = why => {
+        const on = ChillSon.playing();
+        toggle.textContent = on ? 'Pause' : "Lancer l'ambiance";
+        meta.textContent = on ? 'En cours' : '';
+        if (why === 'mix' || why === 'load') ranges.forEach(f => f());
+        if (why === 'mix') persist();
+      };
+      const off = ChillSon.subscribe(sync);
       const ctrl = el('div', 'ctrl');
       ctrl.append(toggle);
       body.append(list, note, ctrl);
-      return () => {
-        nodes?.timers.forEach(clearTimeout);
-        ctx?.close().catch(() => {});
-      };
+      return () => { off(); ChillSon.stop(); };
     },
   },
   {
@@ -1785,64 +1664,11 @@ const WIDGETS = [
   },
   {
     id: 'pause', title: 'Pause détente', desc: "Une courte pause guidée : regarder au loin, s'étirer, marcher.",
+    // Les pauses sont dans chill/chill.js : « J'ai cinq minutes » les lance sans dupliquer leur contenu.
     render({ body, meta }) {
-      let ticker = null, endAt = null, chosen = null;
-      const status = el('p', 'zone');
-      status.setAttribute('role', 'status');
-      const list = el('ul', 'rows');
-      const view = el('div');
-      view.hidden = true;
-      const name = el('p', 'book-title');
-      const how = el('p', 'zone');
-      const NS = 'http://www.w3.org/2000/svg';
-      const ring = document.createElementNS(NS, 'svg');
-      ring.setAttribute('class', 'ring');
-      ring.setAttribute('viewBox', '0 0 120 120');
-      ring.setAttribute('aria-hidden', 'true');
-      const track = document.createElementNS(NS, 'circle'), fill = document.createElementNS(NS, 'circle');
-      for (const [c, cls] of [[track, 'track'], [fill, 'fill']]) { c.setAttribute('class', cls); c.setAttribute('cx', 60); c.setAttribute('cy', 60); c.setAttribute('r', 52); ring.append(c); }
-      const time = el('div', 'ring-time');
-      time.setAttribute('role', 'timer');
-      const stop = button('ghost', 'Arrêter la pause', () => finish(false));
-      view.append(name, how, ring, time, stop);
-
-      function tick() {
-        const left = endAt - Date.now();
-        if (left <= 0) return finish(true);
-        time.textContent = clockLabel(left);
-        fill.style.strokeDashoffset = String(327 * (1 - left / (chosen.seconds * 1000)));
-      }
-      function start(b) {
-        chosen = b;
-        endAt = Date.now() + b.seconds * 1000;
-        status.textContent = '';
-        name.textContent = b.name;
-        how.textContent = b.text;
-        list.hidden = true;
-        view.hidden = false;
-        meta.textContent = '';
-        // L'heure de fin fait foi : un onglet en arrière-plan ralentit les minuteries du navigateur.
-        ticker = setInterval(tick, 250);
-        tick();
-        stop.focus();
-      }
-      function finish(done) {
-        clearInterval(ticker);
-        endAt = null;
-        view.hidden = true;
-        list.hidden = false;
-        status.textContent = done ? `Pause terminée : ${chosen.name.toLowerCase()}. Tu peux reprendre.` : '';
-        list.querySelector('button').focus();
-      }
-      for (const b of BREAKS) {
-        const li = el('li');
-        const go = button('break', b.name, () => start(b));
-        go.append(el('span', '', b.seconds < 60 ? `${b.seconds} s` : `${b.seconds / 60} min`));
-        li.append(go);
-        list.append(li);
-      }
-      body.append(list, view, status);
-      return () => clearInterval(ticker);
+      const session = chillPause({ meta });
+      body.append(...session.nodes);
+      return session.cleanup;
     },
   },
   {
@@ -2056,7 +1882,26 @@ const LABO = (() => {
     return localStorage.getItem('renzvi:labo') === '1';
   } catch { return false; }
 })();
-if (!LABO) for (let i = WIDGETS.length - 1; i >= 0; i--) if (WIDGETS[i].labo) WIDGETS.splice(i, 1);
+// Labo Chill : un drapeau à part (?chill=1, ?chill=0 pour sortir), pour tester Chill sans montrer les widgets Study en préparation.
+// Ce n'est pas une sécurité : les données restent protégées par la base. Les widgets Chill du labo ne sont dans aucun mode ni premier lancement.
+const CHILL_LABO = (() => {
+  try {
+    const q = new URLSearchParams(location.search).get('chill');
+    if (q != null) localStorage.setItem('renzvi:chill', q === '1' ? '1' : '');
+    return localStorage.getItem('renzvi:chill') === '1';
+  } catch { return false; }
+})();
+WIDGETS.push(
+  { id: 'jardin', labo: 'chill', title: 'Mon petit jardin', desc: 'Plante, arrose et regarde pousser, sans pression.', render: chillLazy('chill/jardin.js', 'jardinWidget') },
+  { id: 'dessin', labo: 'chill', title: 'Atelier de dessin', desc: 'Dessine au doigt, à la souris ou au stylet.', render: chillLazy('chill/atelier.js', 'dessinWidget') },
+  { id: 'coloriage', labo: 'chill', title: 'Coloriage', desc: 'Des dessins à colorier, zone par zone.', render: chillLazy('chill/atelier.js', 'coloriageWidget') },
+  { id: 'puzzle', labo: 'chill', title: 'Puzzle photo', desc: 'Un taquin à remettre en ordre, avec ta photo si tu veux.', render: chillLazy('chill/jeux.js', 'puzzleWidget') },
+  { id: 'tangram', labo: 'chill', title: 'Tangram', desc: 'Sept pièces pour reformer une silhouette.', render: chillLazy('chill/jeux.js', 'tangramWidget') },
+  { id: 'fenetre', labo: 'chill', title: "Fenêtre d'ambiance", desc: 'Pluie, forêt ou feu de cheminée, en petite scène animée.', render: chillLazy('chill/fenetre.js', 'fenetreWidget') },
+  { id: 'ambiances', labo: 'chill', title: 'Mes ambiances', desc: 'Retrouve en un clic ton fond, ton mélange de sons et ta scène.', render: chillLazy('chill/ambiances.js', 'ambiancesWidget') },
+  { id: 'cinq', labo: 'chill', title: "J'ai cinq minutes", desc: 'Une petite activité calme, choisie ou tirée au hasard.', render: chillLazy('chill/cinq.js', 'cinqWidget') },
+);
+for (let i = WIDGETS.length - 1; i >= 0; i--) if (WIDGETS[i].labo === 'chill' ? !CHILL_LABO : WIDGETS[i].labo && !LABO) WIDGETS.splice(i, 1);
 for (const m of MODES) m.widgets = m.widgets.filter(id => WIDGETS.some(w => w.id === id));
 
 function block(text) {
@@ -2435,6 +2280,35 @@ if (!sb) {
     saveScreen();
     e.detail.added = ids;
   });
+  // Labo Chill : « Mes ambiances » lit et change le fond de la page affichée, comme le sélecteur de fond.
+  document.addEventListener('renzvi:fond', e => {
+    const want = e.detail?.set;
+    const known = id => id === 'blanc' || WALLPAPERS.some(w => w.id === id) || (id === 'perso' && !!photoUrl);
+    if (want != null) { e.detail.ok = known(want); if (e.detail.ok && want !== wallNow()) chooseWallpaper(want); }
+    e.detail.current = wallNow();
+    e.detail.choices = [{ id: 'blanc', name: 'Blanc' }, ...WALLPAPERS.map(w => ({ id: w.id, name: w.name })), ...(photoUrl ? [{ id: 'perso', name: 'Ta photo' }] : [])];
+  });
+  // Labo Chill : une création (dessin, coloriage) rejoint le tableau d'inspiration, dans le même stockage privé et la même limite de 6 images.
+  document.addEventListener('renzvi:inspiration', e => {
+    const { blob, caption } = e.detail ?? {};
+    e.detail.result = (async () => {
+      if (!(blob instanceof Blob) || blob.type !== 'image/jpeg' || blob.size > INSP_BYTES) return { ok: false, why: 'format' };
+      const items = listOf(stored.inspiration?.items).filter(i => Number.isInteger(i?.slot) && i.slot >= 1 && i.slot <= INSP_MAX);
+      const slot = [1, 2, 3, 4, 5, 6].find(n => !items.some(i => i.slot === n));
+      if (!slot) return { ok: false, why: 'plein' };
+      const { error } = await sb.storage.from('inspiration').upload(`${userId}/${slot}.jpg`, blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '0' });
+      if (error) return { ok: false, why: 'envoi' };
+      queueSave('inspiration', { items: [...items, { slot, caption: String(caption ?? '').trim().slice(0, INSP_CAPTION) }] });
+      // Le widget affiché se recharge avec la nouvelle image, à la même place.
+      if (mounted.has('inspiration') && screenUser) {
+        unmount('inspiration');
+        mount(WIDGETS.find(w => w.id === 'inspiration'), screenUser);
+        placeBoxes(mounted.get('inspiration').box);
+        drawPages();
+      }
+      return { ok: true, slot };
+    })();
+  });
   function showScreen(user) {
     screenUser = user;
     $('setup').hidden = true;
@@ -2457,6 +2331,20 @@ if (!sb) {
       });
     };
     $('page-delete').onclick = askDeletePage;
+    if (CHILL_LABO && !$('chill-labo')) {
+      // Accès de test au chantier Chill : visible seulement avec ?chill=1 sur cet appareil.
+      const open = button('ghost', 'Labo Chill', async () => {
+        open.disabled = true;
+        try {
+          await chillScript('chill/labo.js');
+          chillStyle();
+          chillLabo({ user, sb, stored: () => stored, addHere: ids => { const detail = { ids }; document.dispatchEvent(new CustomEvent('renzvi:ajouter', { detail })); return detail.added ?? []; } });
+        } catch (e) { console.error(e); showSaved("Le labo Chill n'a pas pu se charger.", true); }
+        open.disabled = false;
+      });
+      open.id = 'chill-labo';
+      $('open-wall').before(open);
+    }
     $('open-wall').onclick = () => {
       $('wall-slot').replaceChildren(wallpaperPicker());
       $('wall-dialog').showModal();
