@@ -52,7 +52,9 @@ export async function traiter(req: Request, o: Outils): Promise<Response> {
       await o.base.terminer(travail, 'reussi', propre, depense, null, essai);
       return reponse(200, { ok: true, travail, credits: reserve.credits, solde: reserve.solde, resultat: propre });
     } catch (e) {
-      const err = e instanceof ErreurFournisseur ? e : new ErreurFournisseur(String((e as Error)?.message ?? e), false);
+      // Une erreur imprévue reste dans les journaux du serveur : la personne ne voit qu'un code neutre.
+      if (!(e instanceof ErreurFournisseur)) console.error(e);
+      const err = e instanceof ErreurFournisseur ? e : new ErreurFournisseur('interne', false);
       depense += err.depenseCentimes;
       derniere = err.message;
       if (!err.reessayable) break;
