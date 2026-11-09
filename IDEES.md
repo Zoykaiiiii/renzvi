@@ -566,8 +566,8 @@ Recommandation Codex : garder un espace simple pour travailler puis décompresse
 
 | Lot | État | Résultat | Prérequis |
 |---|---|---|---|
-| S1 | [ ] | Cahier central, matières/chapitres, import texte et PDF textuel, sources privées | Authentification existante |
-| S2 | [ ] | Flashcards et textes à trous reliés au cours, sans API | S1 |
+| S1 | [x] En ligne le 9 nov. | Cahier central, matières/chapitres, import texte et PDF textuel, sources privées | Authentification existante |
+| S2 | [x] Codé le 9 nov., migration à appliquer | Flashcards et textes à trous reliés au cours, sans API | S1 |
 | S3 | [ ] | Révisions du jour et répétition espacée | S2 |
 | S4 | [ ] | Crédits et garde-fous du moteur IA, testé avec un fournisseur simulé | S1 ; avant toute activation IA |
 | S5 | [ ] | Génération de résumés/cartes depuis les chapitres et explication d'un passage | S1, S2, S4 |
@@ -597,7 +597,7 @@ Chaque bloc ci-dessous se colle seul à Claude Code. Lire aussi ce contrat et la
 - Prendre en charge les choix techniques courants et les expliquer simplement ; ne pas demander à Damien de choisir un schéma de données ou une bibliothèque. Lui réserver les décisions de produit/design et les autorisations ou accès réellement manquants.
 - Aucun commit, push, déploiement ou appel payant non autorisé. Attendre un nouveau « commit push » de Damien pour publier le lot.
 
-### S1 — [ ] Cahier numérique central et import unique
+### S1 — [x] Cahier numérique central et import unique
 
 **Idée de Damien.** Un grand cahier au milieu du moodboard. Les cours alimentent les outils autour. Première version : texte et PDF dont le texte peut être extrait ; les photos et PDF scannés sont traités en S9.
 
@@ -626,7 +626,7 @@ Une démonstration sur un chapitre, captures du cahier dans le moodboard, schém
 Pas de commit ni de push sans mon nouveau « commit push ».
 ```
 
-### S2 — [ ] Flashcards et textes à trous reliés au cahier
+### S2 — [x] Flashcards et textes à trous reliés au cahier
 
 **Idée de Damien, précisée avec Codex.** Création depuis un passage et import d'un paquet simple pour limiter la ressaisie. L'IA viendra alimenter ce même moteur, pas un deuxième widget concurrent.
 

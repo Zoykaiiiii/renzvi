@@ -94,8 +94,9 @@ SVG viewBox 24×24, 4 carrés 9×9 à coins arrondis `rx=3` en grille 2×2 (x/y 
 | `site/landing.js`, `landing.css` | Scripts et styles de l'accueil |
 | `site/lockin.js` | Scène du vol (hublot, WebGL) |
 | `site/install.js`, `install.css`, `manifest.webmanifest`, `sw.js` | Installation de l'app. `sw.js` ne met volontairement rien en cache |
-| `supabase/migrations/` | 7 migrations |
-| `tests/*.check.cjs` | 4 suites de tests dans un vrai Chromium |
+| `site/study/` | Study : `cahier.js` (S1, widget Cahier) et `cartes.js` (S2, widget Flashcards et formulaire de carte partagé avec le Cahier) |
+| `supabase/migrations/` | 9 migrations (2 pour Study) |
+| `tests/*.check.cjs` | 6 suites de tests dans un vrai Chromium (dont `cahier` et `cartes`) |
 | `maquette/` | Ancienne maquette |
 | `IDEES.md` | Toutes les idées. **Rien n'y est décidé tant que ce n'est pas dans `CLAUDE.md`** |
 | `HISTORIQUE_PROJETS.md` | Les autres projets de Damien (NoBR, Dating Photo AI) et ses leçons. Certaines références à `CLAUDE.md` sont périmées |
@@ -289,8 +290,8 @@ Le cahier conserve le document et ses chapitres. Depuis un chapitre ou un passag
 
 | Lot | Contenu | État actuel |
 |---|---|---|
-| S1 | Grand cahier, matières/chapitres, import texte et PDF textuel, lecture et sources privées | Non construit |
-| S2 | Flashcards et textes à trous liés aux passages, création/import simples sans API | Non construit |
+| S1 | Grand cahier, matières/chapitres, import texte et PDF textuel, lecture et sources privées | **En ligne le 9 nov.** (`10257b1`), migration appliquée. Test RLS entre deux comptes sur la vraie base pas encore fait |
+| S2 | Flashcards et textes à trous liés aux passages, création/import simples sans API | **Codé et poussé le 9 nov.** (`site/study/cartes.js`, migration `20261109000100_study_cartes.sql`). Migration à appliquer sur la vraie base avec l'accord de Damien, sinon le widget ne charge pas |
 | S3 | Révisions du jour et répétition espacée | Non construit |
 | S4 | Crédits et protection des appels IA, d'abord avec fournisseur simulé | Non construit |
 | S5 | Génération depuis le cours et explication d'un passage, résultats réutilisables | Non construit |

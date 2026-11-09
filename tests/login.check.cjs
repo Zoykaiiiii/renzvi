@@ -210,14 +210,14 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.getByRole('button', { name: 'Continuer' }).click();
     await shot(page, 'setup-widgets');
     await page.getByRole('button', { name: 'Installer Study et Chill' }).click();
-    assert.equal(await page.locator('.widget:visible').count(), 7, 'Study : le cahier et les 6 widgets de travail');
+    assert.equal(await page.locator('.widget:visible').count(), 8, 'Study : le cahier, les flashcards et les 6 widgets de travail');
     assert.deepEqual(await page.locator('#page-tabs button').allTextContents(), ['Study', 'Chill']);
     assert.equal(await page.locator('#page-tabs [aria-pressed=true]').textContent(), 'Study');
     assert.equal(await page.isVisible('#setup'), false);
     await saved(page);
     assert.deepEqual(db.rows.ecran.pages, [{ id: 'study', name: 'Study' }, { id: 'chill', name: 'Chill', wall: 'lac' }]);
     assert.equal(db.rows.ecran.wallpaper, 'foret');
-    assert.equal(db.rows.ecran.widgets.length, 13);
+    assert.equal(db.rows.ecran.widgets.length, 14);
     await shot(page, 'ecran-photo');
     await page.reload();
     await page.waitForSelector('.widget');
@@ -237,7 +237,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.click('#open-add');
     await page.getByRole('button', { name: 'Installer : Study et Chill' }).click();
     assert.deepEqual(await page.locator('#page-tabs button').allTextContents(), ['Mon écran', 'Study', 'Chill']);
-    assert.equal(await page.locator('.widget:visible').count(), 7);
+    assert.equal(await page.locator('.widget:visible').count(), 8);
     assert.ok(await page.locator('[data-widget=taches]', { hasText: 'Déjà là' }).isVisible());
     assert.match(await wall(), /bohinj/);
     await page.getByRole('button', { name: 'Mon écran' }).click();

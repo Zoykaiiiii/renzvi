@@ -1,0 +1,28 @@
+/* Widget Flashcards (Study S2). Reprend les classes du Cahier et les variables du dashboard ; le design sera refait. */
+.cartes-view{flex:1;display:flex;flex-direction:column;gap:12px;min-height:0;margin-top:12px}
+.cartes-card{display:grid;gap:12px;padding:20px;border-radius:18px;background:rgba(255,255,255,.55)}
+.cartes-deck{font-size:13px;color:var(--slate)}
+.cartes-face{font-size:18px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.cartes-back{padding-top:12px;border-top:1px solid var(--rule);font-size:16px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.cartes-hole{padding:0 4px;border-radius:6px;background:var(--tint);color:var(--slate);letter-spacing:.1em}
+.cartes-hole.open{background:color-mix(in srgb,var(--accent) 30%,transparent);color:inherit;letter-spacing:normal}
+.cartes-rate .primary,.cartes-rate .ghost{min-width:120px}
+.cartes-done{display:grid;gap:12px;justify-items:start;padding:12px 0}
+.cartes-start{padding:24px 0}
+.cartes-line{font-size:14px;min-width:0;overflow-wrap:anywhere;padding:10px 0}
+.cartes-list .link{margin:0;white-space:nowrap}
+.x.armed{width:auto;padding:0 10px;font-size:13px;color:var(--error)}
+.cartes-form{display:grid;gap:12px}
+.cartes-form [hidden]{display:none}
+.cartes-kinds{display:flex;flex-wrap:wrap;gap:8px}
+.cartes-kinds .ghost[aria-pressed=true]{border-color:transparent;background:var(--accent);color:var(--on-accent)}
+.cartes-area{min-height:80px}
+.cartes-sum{font-weight:600;font-size:15px}
+.cartes-preview{display:grid;gap:6px}
+.cartes-preview:empty{display:none}
+.cartes-sample{max-height:200px;margin-top:0}
+.cartes-sample .row{padding:8px 0;font-size:14px;overflow-wrap:anywhere}
+.cahier-cardbar{display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px;margin-top:8px}
+.cahier-cardbar[hidden]{display:none}
+.cahier-cardbar .link{margin:0}
+@media (max-width:640px){.cartes-rate .primary,.cartes-rate .ghost{flex:1;height:44px}}

@@ -14,6 +14,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="stylesheet" href="install.css">
 <link rel="stylesheet" href="study/cahier.css">
+<link rel="stylesheet" href="study/cartes.css">
 <script src="install.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -571,6 +572,7 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 <noscript><p class="col msg blocked">Active JavaScript pour ouvrir ton écran.</p></noscript>
 
 <script src="study/cahier.js"></script>
+<script src="study/cartes.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>
 <script>
 // Clé publique par conception : ce sont les règles de sécurité de la base qui protègent les données.
@@ -597,7 +599,7 @@ const SOUNDS = [
 ];
 // Un mode est une page déjà remplie. Study garde le fond choisi au départ, Chill a le sien.
 const MODES = [
-  { id: 'study', name: 'Study', desc: 'Pour travailler', widgets: ['cahier', 'vol', 'minuteur', 'taches', 'semaine', 'notes', 'compte'] },
+  { id: 'study', name: 'Study', desc: 'Pour travailler', widgets: ['cahier', 'cartes', 'vol', 'minuteur', 'taches', 'semaine', 'notes', 'compte'] },
   { id: 'chill', name: 'Chill', desc: 'Pour décompresser', wall: 'lac', widgets: ['respiration', 'ambiance', 'lecture', 'playlist', 'pause', 'inspiration'] },
 ];
 const ACCENTS = [
@@ -974,6 +976,10 @@ const WIDGETS = [
   {
     id: 'cahier', title: 'Cahier', size: 'l', desc: 'Ton cours importé une fois, rangé par chapitres, pour lire et chercher.',
     render: cahierWidget,
+  },
+  {
+    id: 'cartes', title: 'Flashcards', desc: 'Tes cartes de révision, créées depuis le cahier ou importées en CSV.',
+    render: cartesWidget,
   },
   {
     id: 'vol', title: 'Vol de focus', desc: 'Déchire ton ticket et décolle en plein écran.',
@@ -2147,6 +2153,8 @@ if (!sb) {
     applyWallpaper();
     drawPages();
   }
+  // « Revoir dans le cours » depuis une carte : si le Cahier est sur une autre page, on y va (il fait le reste).
+  document.addEventListener('renzvi:revoir', () => { if (mounted.has('cahier') && pageOf('cahier') !== currentPage) showPage(pageOf('cahier')); });
   function askPageName(title, value, done) {
     const { form, input } = addForm(value || `Page ${screen.pages.length + 1}`, MAX_PAGE_NAME, () => {});
     input.value = value;

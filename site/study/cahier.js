@@ -2,6 +2,7 @@
 // chapitres et on y cherche. La liste des cours et leurs chapitres sont dans la table study_courses ; l'original, jamais
 // modifié, et le texte extrait sont dans le stockage privé « cours ». Le texte d'un cours est toujours affiché avec
 // textContent : il n'est jamais interprété comme du HTML ni exécuté.
+// Une sélection du texte peut devenir une flashcard (cartes.js), qui garde la position du passage pour y revenir.
 // Utilise el, button, plural et listOf, définis par dashboard.html.
 const CAHIER = {
   pdfBytes: 20 * 1048576, textBytes: 2 * 1048576, pdfPages: 200, courses: 30, chapters: 80,
@@ -165,7 +166,7 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
   const pathOf = (course, name) => `${user.id}/${course.id}/${name}`;
   const originalName = course => course.kind === 'pdf' ? 'original.pdf' : 'original.txt';
   let courses = [], state = 'loading', mode = 'read', chapterIndex = 0, query = '';
-  let gone = false, job = null, saveTimer, searchTimer, lastPick = null, armed = null;
+  let gone = false, job = null, saveTimer, searchTimer, lastPick = null, armed = null, lastSel = null, cardDraft = null;
   const texts = new Map();
   let current = typeof data?.course === 'string' ? data.course : null;
   const at = Object.fromEntries(Object.entries(data?.at ?? {})
@@ -189,6 +190,9 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
   next.ariaLabel = 'Chapitre suivant';
   const search = Object.assign(el('input', 'cahier-search'), { type: 'search', placeholder: 'Chercher dans le cours', ariaLabel: 'Chercher dans le cours', autocomplete: 'off', maxLength: 80 });
   nav.append(chapterPick, prev, next, search);
+  const cardBar = el('div', 'cahier-cardbar');
+  cardBar.append(el('span', 'zone', 'Avec la sélection :'), button('link', 'Créer une carte', () => makeCard('qa')), button('link', 'Masquer ces mots', () => makeCard('trou')));
+  cardBar.hidden = true;
   const view = el('div', 'cahier-view');
   const note = el('p', 'zone cahier-note');
   note.setAttribute('role', 'status');
@@ -197,7 +201,7 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
   const originalBtn = button('link', "Télécharger l'original", downloadOriginal);
   const removeBtn = button('link cahier-danger', 'Supprimer ce cours', removeCourse);
   tools.append(editBtn, originalBtn, removeBtn);
-  body.append(bar, nav, view, note, tools);
+  body.append(bar, nav, cardBar, view, note, tools);
 
   const say = (text, bad = false) => { note.textContent = text; note.classList.toggle('msg', bad); };
 
@@ -210,7 +214,13 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
   const onKey = e => { if (e.key === 'Escape' && box.classList.contains('cahier-open')) { expand(false); grow.focus(); } };
   box.addEventListener('keydown', onKey);
   // Garde le dernier endroit choisi dans le texte : toucher un bouton sur téléphone peut effacer la sélection.
-  const onSelect = () => { const p = selectionPos(); if (p) lastPick = p; };
+  // Une sélection non vide propose d'en faire une carte ; elle reste proposée tant que le texte affiché ne change pas.
+  const onSelect = () => {
+    const p = selectionPos();
+    if (p) lastPick = p;
+    const r = selectionRange();
+    if (r) { lastSel = r; cardBar.hidden = mode !== 'read'; }
+  };
   document.addEventListener('selectionchange', onSelect);
 
   async function loadCourses() {
@@ -307,6 +317,7 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
 
   function drawReader(c, text, reveal) {
     const ch = c.chapters[chapterIndex];
+    if (mode !== 'card') { lastSel = null; cardBar.hidden = true; }
     const reader = el('div', 'cahier-text');
     reader.tabIndex = 0;
     reader.ariaLabel = `Texte du chapitre ${ch.title}`;
@@ -324,6 +335,7 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     if (!parts.some(s => text.pages[s.page].slice(s.start, s.end).trim())) reader.append(el('p', 'empty', 'Ce chapitre est vide.'));
     const items = [reader];
     if (mode === 'edit') items.unshift(chapterEditor(c, text));
+    if (mode === 'card' && cardDraft) items.unshift(cardPanel());
     view.replaceChildren(...items);
     reader.onscroll = () => {
       clearTimeout(saveTimer);
@@ -387,6 +399,61 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     pre.setStart(block, 0);
     pre.setEnd(r.startContainer, r.startOffset);
     return { page: +block.dataset.page, offset: +block.dataset.start + pre.toString().length };
+  }
+
+  // Le passage sélectionné, limité au morceau de page où il commence.
+  function selectionRange() {
+    const s = getSelection();
+    if (!s?.rangeCount || s.isCollapsed) return null;
+    const r = s.getRangeAt(0);
+    const blockOf = n => (n.nodeType === 1 ? n : n.parentElement)?.closest?.('.cahier-block');
+    const block = blockOf(r.startContainer);
+    if (!block || !view.contains(block)) return null;
+    const pre = document.createRange();
+    pre.setStart(block, 0);
+    pre.setEnd(r.startContainer, r.startOffset);
+    const start = pre.toString().length;
+    let end = block.textContent.length;
+    if (blockOf(r.endContainer) === block) { pre.setEnd(r.endContainer, r.endOffset); end = pre.toString().length; }
+    const text = block.textContent.slice(start, end);
+    if (!text.trim()) return null;
+    return { page: +block.dataset.page, offset: +block.dataset.start + start, length: end - start, text };
+  }
+
+  // Question/réponse : le passage devient la réponse. Texte à trous : sa phrase, avec la sélection entre crochets.
+  async function makeCard(kind) {
+    const c = course(), s = lastSel;
+    if (!c || !s) { say('Sélectionne un passage du cours, puis réessaie.', true); return; }
+    const page = (await loadText(c)).pages[s.page];
+    const card = { kind, deck: c.title.slice(0, CARTES.deck), course_id: c.id, src_page: s.page, src_offset: s.offset, src_length: s.length };
+    if (kind === 'qa') Object.assign(card, { front: '', back: s.text.trim().slice(0, CARTES.back) });
+    else {
+      const a = s.offset, b = s.offset + s.length;
+      let from = a, to = b;
+      while (from > 0 && !/[.!?\n]/.test(page[from - 1]) && a - from < 300) from--;
+      while (to < page.length && !/[.!?\n]/.test(page[to]) && to - b < 300) to++;
+      if (/[.!?]/.test(page[to] ?? '')) to++;
+      // Les crochets servent à masquer : ceux déjà dans le cours deviennent des parenthèses.
+      const plain = t => t.replace(/\[/g, '(').replace(/\]/g, ')').replace(/\s+/g, ' ');
+      const before = plain(page.slice(from, a)).trimStart().slice(-400), after = plain(page.slice(b, to)).trimEnd().slice(0, 400);
+      Object.assign(card, cartesHoles(`${before}[${plain(page.slice(a, b)).trim().slice(0, 190)}]${after}`));
+    }
+    cardDraft = card;
+    mode = 'card';
+    cardBar.hidden = true;
+    say('');
+    draw();
+  }
+
+  function cardPanel() {
+    const { form, focus } = cartesForm({
+      sb, card: cardDraft, decks: [cardDraft.deck],
+      close: saved => { cardDraft = null; mode = 'read'; draw(); if (saved) say('Carte créée. Tu la retrouves dans le widget Flashcards.'); },
+    });
+    const panel = el('div', 'cahier-edit');
+    panel.append(form);
+    requestAnimationFrame(focus);
+    return panel;
   }
 
   async function saveChapters(c, chapters) {
@@ -576,6 +643,38 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     openCourse(courses.at(-1)?.id ?? null);
   }
 
+  // « Revoir dans le cours » depuis une carte : ouvre le cours au chapitre du passage et le surligne.
+  const onRevoir = e => {
+    const d = e.detail;
+    if (state !== 'ready') return;
+    const c = courses.find(x => x.id === d.course);
+    if (!c) { d.found ||= 'absent'; return; }
+    d.found = true;
+    if (job) return;
+    mode = 'read';
+    cardDraft = null;
+    current = c.id;
+    query = search.value = '';
+    say('');
+    const place = () => {
+      chapterIndex = cahierChapterAt(c.chapters, d.page, d.offset);
+      at[c.id] = { chapter: c.chapters[chapterIndex].id, y: 0 };
+    };
+    place();
+    draw();
+    // Les chapitres sont remis en ordre au chargement du texte : on replace le chapitre, puis on surligne.
+    const live = () => !gone && course() === c && !query && mode === 'read';
+    loadText(c).then(() => {
+      if (!live()) return null;
+      place();
+      persist();
+      draw();
+      return loadText(c);
+    }).then(t => { if (t && live()) drawReader(c, t, d); }, () => {});
+    box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  };
+  document.addEventListener('renzvi:revoir', onRevoir);
+
   pick.onchange = () => { say(''); openCourse(pick.value); };
   chapterPick.onchange = () => openChapter(Number(chapterPick.value));
   search.oninput = () => {
@@ -597,5 +696,6 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     expand(false);
     box.removeEventListener('keydown', onKey);
     document.removeEventListener('selectionchange', onSelect);
+    document.removeEventListener('renzvi:revoir', onRevoir);
   };
 }
