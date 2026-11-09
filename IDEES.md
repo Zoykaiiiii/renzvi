@@ -571,9 +571,9 @@ Recommandation Codex : garder un espace simple pour travailler puis décompresse
 | S3 | [x] En ligne le 9 nov. | Révisions du jour et répétition espacée | S2 |
 | S4 | [x] En ligne le 9 nov., fournisseur simulé | Crédits et garde-fous du moteur IA, testé avec un fournisseur simulé | S1 ; avant toute activation IA |
 | S5 | [x] En ligne le 9 nov., fournisseur simulé | Génération de résumés/cartes depuis les chapitres et explication d'un passage | S1, S2, S4 |
-| S6 | [x] Codé le 9 nov., caché (?labo=1) | Quiz et retour automatique sur les erreurs | S2 ; S4/S5 pour les questions générées |
-| S7 | [x] Codé le 9 nov., caché (?labo=1) | Schémas masqués et tirage aléatoire | S1, S3 pour la planification |
-| S8 | [x] Codé le 9 nov., caché (?labo=1) | Guide Study contextuel et première séance accompagnée | Commencer avec S1 ; compléter au fil des lots |
+| S6 | [x] En ligne le 9 nov., caché (?labo=1) | Quiz et retour automatique sur les erreurs | S2 ; S4/S5 pour les questions générées |
+| S7 | [x] En ligne le 9 nov., caché (?labo=1) | Schémas masqués et tirage aléatoire | S1, S3 pour la planification |
+| S8 | [x] En ligne le 9 nov., caché (?labo=1) | Guide Study contextuel et première séance accompagnée | Commencer avec S1 ; compléter au fil des lots |
 | S9 | [ ] Reporté | Photos/PDF scannés et gros imports de plusieurs cahiers | S1, S4, S5 validés sur petits volumes |
 | S10 | [ ] Reporté par Damien | Synthèse audio | Cours et résumés fiables, coûts mesurés |
 
