@@ -370,6 +370,8 @@ const select = (page, word) => page.evaluate(w => {
       await page.waitForFunction(() => /4 cartes importées/.test(document.querySelector('[data-widget=cartes] .cahier-note').textContent));
       assert.strictEqual(db.cards.filter(c => c.deck === 'Vocabulaire').length, 4);
       assert.strictEqual(db.cards.find(c => c.front === 'Élève ; écolier').back, 'Personne qui suit\nun enseignement');
+      // Le message s'affiche avant le rechargement des paquets : attendre la liste à jour.
+      await page.waitForFunction(() => document.querySelector('[data-widget=cartes] .cahier-pick')?.value === 'Vocabulaire', null, { timeout: 5000 }).catch(() => {});
       assert.strictEqual(await w.locator('.cahier-pick').inputValue(), 'Vocabulaire', 'le paquet importé est ouvert');
       // Réimporter le même fichier : tout est en double.
       await w.getByRole('button', { name: 'Importer' }).click();
