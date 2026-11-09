@@ -33,8 +33,19 @@ const PAGE = '# La membrane\nElle entoure la cellule. La mitochondrie produit l�
 const COURSE = { id: '11111111-1111-4111-8111-111111111111', subject: 'Biologie', title: 'La cellule', kind: 'texte', file_name: 'cellule.txt', file_size: PAGE.length, page_count: 1, text_chars: PAGE.length,
   chapters: [{ id: 'a', title: 'La membrane', page: 0, offset: 0 }, { id: 'b', title: 'Le noyau', page: 0, offset: PAGE.indexOf('# Le noyau') }] };
 
+// Comme la fonction study_answer de la base : rien n'est écrit si la carte a changé ou si un autre onglet a répondu.
+function studyAnswer(db, a) {
+  const card = db.cards.find(c => c.id === a.p_card && c.version === a.p_version && (c.last_reviewed_at ?? null) === (a.p_prev ?? null));
+  if (!card) return null;
+  const stamp = new Date(Date.parse(a.p_fsrs.last_review) + db.reviews.length).toISOString();
+  Object.assign(card, { fsrs: a.p_fsrs, due: a.p_due, last_rating: a.p_rating, last_reviewed_at: stamp });
+  db.reviews.push({ card_id: card.id, card_version: card.version, rating: a.p_rating, reviewed_at: stamp });
+  return stamp;
+}
+
 async function openBoard(browser, base, db, options = { viewport: { width: 1440, height: 900 } }) {
-  const context = await browser.newContext(options);
+  const { time, ...settings } = options;
+  const context = await browser.newContext(settings);
   await context.addInitScript(session => localStorage.setItem('sb-xjkmztfsyyccveaeyzov-auth-token', session), JSON.stringify({ access_token: JWT, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: USER }));
   await context.route(`${SUPABASE}/rest/v1/widget_state*`, route => {
     const req = route.request();
@@ -43,7 +54,13 @@ async function openBoard(browser, base, db, options = { viewport: { width: 1440,
     for (const row of req.postDataJSON()) db.rows[row.widget] = row.data;
     return route.fulfill({ status: 201, headers: CORS });
   });
-  await context.route(`${SUPABASE}/rest/v1/rpc/*`, route => route.request().method() === 'OPTIONS' ? preflight(route) : json(route, 200, []));
+  await context.route(`${SUPABASE}/rest/v1/rpc/*`, route => {
+    const req = route.request();
+    if (req.method() === 'OPTIONS') return preflight(route);
+    if (!req.url().endsWith('/study_answer')) return json(route, 200, []);
+    if (db.failAnswer) return json(route, 500, { message: 'panne' });
+    return json(route, 200, studyAnswer(db, req.postDataJSON()));
+  });
   await context.route(`${SUPABASE}/rest/v1/study_courses*`, route => {
     const req = route.request();
     if (req.method() === 'OPTIONS') return preflight(route);
@@ -63,14 +80,14 @@ async function openBoard(browser, base, db, options = { viewport: { width: 1440,
     }
     if (req.method() === 'POST') {
       for (const row of [req.postDataJSON()].flat()) {
-        db.cards.push({ back: '', holes: [], course_id: null, src_page: null, src_offset: null, src_length: null, ...row, id: randomUUID(), version: 1, last_rating: null, last_reviewed_at: null, created_at: new Date(Date.now() + db.cards.length).toISOString() });
+        db.cards.push({ back: '', holes: [], course_id: null, fsrs: null, due: null, src_page: null, src_offset: null, src_length: null, ...row, id: randomUUID(), version: 1, last_rating: null, last_reviewed_at: null, created_at: new Date(Date.now() + db.cards.length).toISOString() });
       }
       return route.fulfill({ status: 201, headers: CORS });
     }
     const card = db.cards.find(c => c.id === idOf(req));
     if (req.method() === 'PATCH') {
       const next = { ...card, ...req.postDataJSON() };
-      if (['kind', 'front', 'back', 'holes'].some(k => JSON.stringify(next[k]) !== JSON.stringify(card[k]))) Object.assign(next, { version: card.version + 1, last_rating: null, last_reviewed_at: null });
+      if (['kind', 'front', 'back', 'holes'].some(k => JSON.stringify(next[k]) !== JSON.stringify(card[k]))) Object.assign(next, { version: card.version + 1, last_rating: null, last_reviewed_at: null, fsrs: null, due: null });
       Object.assign(card, next);
       return route.fulfill({ status: 204, headers: CORS });
     }
@@ -92,6 +109,10 @@ async function openBoard(browser, base, db, options = { viewport: { width: 1440,
     return db.files[key] ? route.fulfill({ status: 200, headers: CORS, body: db.files[key] }) : json(route, 404, { message: 'absent' });
   });
   const page = await context.newPage();
+  // Une date simulée : seule l'heure est figée, les minuteries continuent de tourner.
+  if (time) await page.clock.setFixedTime(time);
+  db.hosts ??= new Set();
+  page.on('request', r => db.hosts.add(new URL(r.url()).host));
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
@@ -219,7 +240,7 @@ const select = (page, word) => page.evaluate(w => {
       const edited = db.cards.find(c => c.front === 'Capitale n°2 ?');
       assert.deepStrictEqual([edited.back, edited.version, edited.last_rating], ['Ville deux', 2, null]);
       assert.strictEqual(db.reviews.filter(r => r.card_id === edited.id && r.card_version === 1).length, 1, 'ancienne réponse gardée, liée à la version 1');
-      await page.waitForFunction(() => /Ville deux/.test(document.querySelector('.cartes-list').innerText));
+      await page.waitForFunction(() => /Ville deux/.test(document.querySelector('.cartes-list')?.innerText));
 
       // Supprimer en deux appuis.
       await w.getByRole('button', { name: 'Supprimer la carte Capitale n°9 ?' }).click();
@@ -365,6 +386,170 @@ const select = (page, word) => page.evaluate(w => {
       console.log('ok pannes');
     }
 
+    // 7. Révisions du jour (S3) : plusieurs jours simulés, limite de nouvelles cartes, double clic, deux onglets,
+    // carte modifiée ou supprimée, panne, fuseaux horaires. Aucune requête vers un fournisseur d'IA.
+    {
+      const PARIS = { viewport: { width: 1440, height: 900 }, timezoneId: 'Europe/Paris', locale: 'fr-FR' };
+      const day1 = new Date('2026-11-10T09:00:00+01:00');
+      const dbr = fresh(['revisions', 'cartes']);
+      for (let i = 1; i <= 25; i++) dbr.cards.push({ id: randomUUID(), deck: i <= 22 ? 'Vocabulaire' : 'Dates', kind: 'qa', front: `Mot ${i}`, back: `Sens ${i}`, holes: [], course_id: null, src_page: null, src_offset: null, src_length: null, fsrs: null, due: null, version: 1, last_rating: null, last_reviewed_at: null, created_at: new Date(Date.UTC(2026, 10, 1, 0, i)).toISOString() });
+      const rev = page => page.locator('[data-widget=revisions]');
+      const revText = page => rev(page).locator('.cartes-view').innerText();
+      const reviewsOf = id => dbr.reviews.filter(r => r.card_id === id).length;
+
+      // Jour 1 : 25 nouvelles cartes, 20 au plus aujourd'hui.
+      let { page, context, errors } = await openBoard(browser, base, dbr, { ...PARIS, time: day1 });
+      let w = rev(page);
+      await page.waitForSelector('[data-widget=revisions] .cartes-card');
+      assert.strictEqual(await w.locator('.meta').innerText(), "20 aujourd'hui", '20 nouvelles cartes par jour au plus');
+      assert.match(await revText(page), /Nouvelle carte[\s\S]*Mot 1/);
+      await w.locator('.cartes-card').click();
+      await page.keyboard.press('Space');
+      const labels = await w.locator('.revisions-rate').allInnerTexts();
+      assert.deepStrictEqual(labels.map(l => l.split('\n')[0]), ['À revoir', 'Difficile', 'Bien', 'Facile']);
+      assert.deepStrictEqual(labels.slice(0, 3).map(l => l.split('\n')[1]), ['1 min', '6 min', '10 min'], 'les délais viennent de FSRS');
+      assert.match(labels[3], /\d+ j$/);
+      await shot(page, 'revisions-reponse');
+      await page.keyboard.press('1');
+      await page.waitForFunction(() => /Mot 2/.test(document.querySelector('[data-widget=revisions] .cartes-view').innerText));
+      await w.getByRole('button', { name: 'Voir la réponse' }).click();
+      await w.getByRole('button', { name: /^Difficile/ }).click();
+      await page.waitForFunction(() => /Mot 3/.test(document.querySelector('[data-widget=revisions] .cartes-view').innerText));
+      // Un double clic ne compte qu'une réponse.
+      await w.getByRole('button', { name: 'Voir la réponse' }).click();
+      const third = dbr.cards[2].id;
+      await w.getByRole('button', { name: /^Facile/ }).dblclick();
+      await page.waitForFunction(() => /Mot 4/.test(document.querySelector('[data-widget=revisions] .cartes-view').innerText));
+      await page.waitForTimeout(300);
+      assert.strictEqual(reviewsOf(third), 1, 'double clic : une seule réponse');
+      for (let i = 4; i <= 20; i++) {
+        await w.getByRole('button', { name: 'Voir la réponse' }).click();
+        await w.getByRole('button', { name: /^Facile/ }).click();
+        await page.waitForFunction(n => !document.querySelector('[data-widget=revisions] .cartes-view').innerText.includes(`Mot ${n}\n`) || false, i);
+      }
+      // Les deux cartes ratées reviennent en fin de séance.
+      await page.waitForFunction(() => /Mot 1\b/.test(document.querySelector('[data-widget=revisions] .cartes-view').innerText));
+      await w.getByRole('button', { name: 'Voir la réponse' }).click();
+      await w.getByRole('button', { name: /^Facile/ }).click();
+      await page.waitForFunction(() => /Mot 2\b/.test(document.querySelector('[data-widget=revisions] .cartes-view').innerText));
+      await w.getByRole('button', { name: 'Voir la réponse' }).click();
+      await w.getByRole('button', { name: /^Facile/ }).click();
+      await page.waitForFunction(() => /Séance terminée/.test(document.querySelector('[data-widget=revisions] .cartes-view').innerText));
+      const done = await revText(page);
+      assert.match(done, /22 réponses : 1 à revoir, 1 difficile, 0 bien, 20 facile/);
+      assert.match(done, /Rien de prévu demain|Demain : \d+ carte/);
+      assert.match(done, /Tes difficultés de la séance[\s\S]*Mot 1 — Sens 1[\s\S]*Mot 2 — Sens 2/);
+      assert.match(done, /Apprendre 5 nouvelles cartes/);
+      await shot(page, 'revisions-fin');
+      assert.strictEqual(dbr.reviews.length, 22);
+      assert.ok(dbr.cards.slice(0, 20).every(c => c.fsrs && new Date(c.due) > day1), 'chaque carte vue a une échéance');
+      assert.strictEqual(dbr.cards[0].fsrs.lapses, 0);
+      assert.deepStrictEqual(errors, []);
+      await context.close();
+
+      // Rechargement le même jour : la progression est gardée, rien n'est redemandé.
+      ({ page, context, errors } = await openBoard(browser, base, dbr, { ...PARIS, time: new Date(day1.getTime() + 3600e3) }));
+      w = rev(page);
+      await page.waitForFunction(() => /Rien à revoir aujourd'hui/.test(document.querySelector('[data-widget=revisions] .cartes-view').innerText));
+      await w.getByRole('button', { name: 'Apprendre 5 nouvelles cartes' }).click();
+      assert.strictEqual(await w.locator('.meta').innerText(), "5 aujourd'hui");
+      // Le choix du paquet : « Dates » n'a que ses 3 cartes.
+      await w.locator('.cahier-pick').selectOption('Dates');
+      assert.match(await w.locator('.cahier-pick').inputValue(), /Dates/);
+      await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré');
+      assert.strictEqual(dbr.rows.revisions.deck, 'Dates', 'le paquet choisi est gardé');
+      assert.deepStrictEqual(errors, []);
+      await context.close();
+
+      // Plusieurs jours plus tard, la veille au soir de la dernière échéance + 3 jours : tout est dû, en retard d'abord.
+      const last = Math.max(...dbr.cards.filter(c => c.due).map(c => Date.parse(c.due)));
+      const later = new Date(last + 3 * 864e5);
+      ({ page, context, errors } = await openBoard(browser, base, dbr, { ...PARIS, time: later }));
+      w = rev(page);
+      await page.waitForSelector('[data-widget=revisions] .cartes-card');
+      await page.waitForFunction(() => document.querySelector('[data-widget=revisions] .cahier-pick').value === 'Dates');
+      await w.locator('.cahier-pick').selectOption('');
+      assert.strictEqual(await w.locator('.meta').innerText(), "25 aujourd'hui", '20 cartes dues et les 5 nouvelles restantes');
+      assert.match(await revText(page), /En retard depuis le/);
+      await shot(page, 'revisions-retard');
+      const first = dbr.cards.slice(0, 20).sort((a, b) => Date.parse(a.due) - Date.parse(b.due))[0];
+      assert.match(await revText(page), new RegExp(`${first.front}\\b`), 'la plus en retard en premier');
+      const before = first.fsrs.stability;
+      await w.getByRole('button', { name: 'Voir la réponse' }).click();
+      await w.getByRole('button', { name: /^Bien/ }).click();
+      await page.waitForFunction(() => /24 aujourd'hui/.test(document.querySelector('[data-widget=revisions] .meta').textContent));
+      assert.ok(first.fsrs.stability > before, 'une carte sue à temps tient plus longtemps');
+      assert.ok(Date.parse(first.due) > later.getTime() + 864e5, 'et revient plus tard');
+
+      // Deux onglets : la même carte répondue dans le premier n'est pas comptée une deuxième fois dans le second.
+      const tab2 = await context.newPage();
+      await tab2.clock.setFixedTime(later);
+      await tab2.goto(`${base}/dashboard.html`);
+      await tab2.waitForSelector('[data-widget=revisions] .cartes-card');
+      await rev(tab2).locator('.cahier-pick').selectOption('');
+      const shown = await revText(page);
+      const target = dbr.cards.find(c => new RegExp(`${c.front}\\b`).test(shown) && c.front !== first.front);
+      await w.getByRole('button', { name: 'Voir la réponse' }).click();
+      await w.getByRole('button', { name: /^Bien/ }).click();
+      await page.waitForFunction(() => /23 aujourd'hui/.test(document.querySelector('[data-widget=revisions] .meta').textContent));
+      assert.match(await rev(tab2).locator('.cartes-view').innerText(), new RegExp(`${target.front}\\b`), 'le second onglet montre encore l’ancienne carte');
+      const counted = reviewsOf(target.id);
+      await rev(tab2).getByRole('button', { name: 'Voir la réponse' }).click();
+      await rev(tab2).getByRole('button', { name: /^Facile/ }).click();
+      await tab2.waitForFunction(() => /changé ailleurs/.test(document.querySelector('[data-widget=revisions] .cahier-note').textContent));
+      assert.strictEqual(reviewsOf(target.id), counted, 'la réponse du second onglet n’est pas comptée en plus');
+      await tab2.waitForFunction(() => /23 aujourd'hui/.test(document.querySelector('[data-widget=revisions] .meta').textContent));
+      await tab2.close();
+
+      // Panne : la carte reste, rien n'avance.
+      dbr.failAnswer = true;
+      const stuck = await revText(page);
+      await w.getByRole('button', { name: 'Voir la réponse' }).click();
+      await w.getByRole('button', { name: /^Bien/ }).click();
+      await page.waitForFunction(() => /n'a pas été enregistrée/.test(document.querySelector('[data-widget=revisions] .cahier-note').textContent));
+      assert.strictEqual(await w.locator('.meta').innerText(), "23 aujourd'hui");
+      assert.strictEqual(stuck.split('\n').find(l => /^Mot/.test(l)), (await revText(page)).split('\n').find(l => /^Mot/.test(l)));
+      dbr.failAnswer = false;
+
+      // Carte supprimée ailleurs pendant la séance : la réponse est refusée et la file rechargée.
+      const victim = dbr.cards.find(c => new RegExp(`${c.front}\\b`).test(stuck));
+      dbr.cards = dbr.cards.filter(c => c !== victim);
+      await w.getByRole('button', { name: /^Bien/ }).click();
+      await page.waitForFunction(() => /22 aujourd'hui/.test(document.querySelector('[data-widget=revisions] .meta').textContent));
+      assert.deepStrictEqual(errors, []);
+      await context.close();
+
+      // Carte modifiée : elle redevient nouvelle (sa planification valait pour l'ancienne version).
+      const edited = dbr.cards.find(c => c.fsrs && c !== victim);
+      Object.assign(edited, { deck: 'Modifiée', back: 'Nouveau sens', version: edited.version + 1, fsrs: null, due: null, last_rating: null, last_reviewed_at: null });
+      ({ page, context, errors } = await openBoard(browser, base, dbr, { ...PARIS, time: later }));
+      w = rev(page);
+      await page.waitForSelector('[data-widget=revisions] .cartes-card');
+      await w.locator('.cahier-pick').selectOption('Modifiée');
+      assert.match(await revText(page), /Nouvelle carte/, 'une carte modifiée repart de zéro');
+      await w.getByRole('button', { name: 'Voir la réponse' }).click();
+      assert.match(await revText(page), /Nouveau sens/);
+      assert.deepStrictEqual(errors, []);
+      await context.close();
+
+      // Fuseaux : une échéance à 00 h 30 à Paris n'est pas « aujourd'hui » à 23 h 30, mais l'est déjà à Auckland.
+      const instant = new Date('2026-11-10T22:30:00Z');
+      const card = [{ id: 'x', fsrs: { first: '2026-11-01' }, due: '2026-11-10T23:30:00Z', created_at: '2026-11-01' }];
+      const inZone = async zone => {
+        const b = await openBoard(browser, base, fresh(['revisions', 'cartes']), { timezoneId: zone, time: instant });
+        const n = await b.page.evaluate(c => revisionsQueue(c).ids.length, card);
+        assert.deepStrictEqual(b.errors, []);
+        await b.context.close();
+        return n;
+      };
+      assert.strictEqual(await inZone('Europe/Paris'), 0, 'Paris : due demain');
+      assert.strictEqual(await inZone('Pacific/Auckland'), 1, 'Auckland : due aujourd’hui');
+
+      const ai = [...dbr.hosts].filter(h => /openai|anthropic|fal\.|gemini|generativelanguage|mistral|cohere|huggingface/i.test(h));
+      assert.deepStrictEqual(ai, [], 'aucune requête vers un fournisseur d’IA');
+      console.log('ok révisions : jours simulés, limite, double clic, deux onglets, panne, suppression, fuseaux, sans IA');
+    }
+
     // 6. Trois tailles et quatre largeurs : rien ne déborde.
     for (const size of ['s', 'm', 'l']) {
       const dbs = structuredClone(db);
@@ -380,8 +565,17 @@ const select = (page, word) => page.evaluate(w => {
       assert.deepStrictEqual(errors, []);
       await context.close();
     }
+    const dbw = structuredClone(db);
+    dbw.rows.ecran.widgets = ['revisions', ...dbw.rows.ecran.widgets];
     for (const [width, height] of [[320, 568], [390, 844], [768, 1024], [1440, 900]]) {
-      const { page, context, errors } = await openBoard(browser, base, db, { viewport: { width, height }, isMobile: width < 700, hasTouch: width < 700 });
+      const { page, context, errors } = await openBoard(browser, base, dbw, { viewport: { width, height }, isMobile: width < 700, hasTouch: width < 700 });
+      const r = page.locator('[data-widget=revisions]');
+      await page.waitForSelector('[data-widget=revisions] .cartes-card');
+      await r.getByRole('button', { name: 'Voir la réponse' }).click();
+      const fits = await r.evaluate(b => [...b.querySelectorAll('button')].filter(x => x.offsetParent).every(x => { const q = x.getBoundingClientRect(), o = b.getBoundingClientRect(); return q.left >= o.left - 1 && q.right <= o.right + 1 && x.scrollWidth <= x.clientWidth + 1; }));
+      assert.ok(fits, `boutons de révision hors du widget à ${width}px`);
+      await r.scrollIntoViewIfNeeded();
+      await shot(page, `revisions-${width}`);
       const w = cartes(page);
       await page.waitForSelector('[data-widget=cartes] .cartes-card');
       await w.getByRole('button', { name: 'Voir la réponse' }).click();

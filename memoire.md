@@ -94,8 +94,8 @@ SVG viewBox 24×24, 4 carrés 9×9 à coins arrondis `rx=3` en grille 2×2 (x/y 
 | `site/landing.js`, `landing.css` | Scripts et styles de l'accueil |
 | `site/lockin.js` | Scène du vol (hublot, WebGL) |
 | `site/install.js`, `install.css`, `manifest.webmanifest`, `sw.js` | Installation de l'app. `sw.js` ne met volontairement rien en cache |
-| `site/study/` | Study : `cahier.js` (S1, widget Cahier) et `cartes.js` (S2, widget Flashcards et formulaire de carte partagé avec le Cahier) |
-| `supabase/migrations/` | 9 migrations (2 pour Study) |
+| `site/study/` | Study : `cahier.js` (S1, widget Cahier), `cartes.js` (S2, widget Flashcards, formulaire de carte partagé, moteur FSRS) et `revisions.js` (S3, widget Révisions du jour) |
+| `supabase/migrations/` | 10 migrations (3 pour Study) |
 | `tests/*.check.cjs` | 6 suites de tests dans un vrai Chromium (dont `cahier` et `cartes`) |
 | `maquette/` | Ancienne maquette |
 | `IDEES.md` | Toutes les idées. **Rien n'y est décidé tant que ce n'est pas dans `CLAUDE.md`** |
@@ -292,7 +292,7 @@ Le cahier conserve le document et ses chapitres. Depuis un chapitre ou un passag
 |---|---|---|
 | S1 | Grand cahier, matières/chapitres, import texte et PDF textuel, lecture et sources privées | **En ligne le 9 nov.** (`10257b1`), migration appliquée. Test RLS entre deux comptes sur la vraie base pas encore fait |
 | S2 | Flashcards et textes à trous liés aux passages, création/import simples sans API | **En ligne le 9 nov.** (`1469574`), migration passée par Damien. Test RLS entre deux comptes pas encore fait |
-| S3 | Révisions du jour et répétition espacée | Non construit |
+| S3 | Révisions du jour et répétition espacée | **Codé le 9 nov.** (`site/study/revisions.js`, FSRS via `site/vendor/ts-fsrs-5.4.2`, licence MIT ; migration `20261109000200_study_revisions.sql`, fonction `study_answer`). **En ligne le 9 nov.**, migration passée par Damien |
 | S4 | Crédits et protection des appels IA, d'abord avec fournisseur simulé | Non construit |
 | S5 | Génération depuis le cours et explication d'un passage, résultats réutilisables | Non construit |
 | S6 | Quiz et retour automatique sur les erreurs | Non construit |

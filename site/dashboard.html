@@ -572,7 +572,9 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 <noscript><p class="col msg blocked">Active JavaScript pour ouvrir ton écran.</p></noscript>
 
 <script src="study/cahier.js"></script>
+<script src="vendor/ts-fsrs-5.4.2/index.umd.js"></script>
 <script src="study/cartes.js"></script>
+<script src="study/revisions.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>
 <script>
 // Clé publique par conception : ce sont les règles de sécurité de la base qui protègent les données.
@@ -599,7 +601,7 @@ const SOUNDS = [
 ];
 // Un mode est une page déjà remplie. Study garde le fond choisi au départ, Chill a le sien.
 const MODES = [
-  { id: 'study', name: 'Study', desc: 'Pour travailler', widgets: ['cahier', 'cartes', 'vol', 'minuteur', 'taches', 'semaine', 'notes', 'compte'] },
+  { id: 'study', name: 'Study', desc: 'Pour travailler', widgets: ['cahier', 'revisions', 'cartes', 'vol', 'minuteur', 'taches', 'semaine', 'notes', 'compte'] },
   { id: 'chill', name: 'Chill', desc: 'Pour décompresser', wall: 'lac', widgets: ['respiration', 'ambiance', 'lecture', 'playlist', 'pause', 'inspiration'] },
 ];
 const ACCENTS = [
@@ -980,6 +982,10 @@ const WIDGETS = [
   {
     id: 'cartes', title: 'Flashcards', desc: 'Tes cartes de révision, créées depuis le cahier ou importées en CSV.',
     render: cartesWidget,
+  },
+  {
+    id: 'revisions', title: 'Révisions du jour', desc: 'Les cartes à revoir aujourd’hui, programmées selon tes réponses.',
+    render: revisionsWidget,
   },
   {
     id: 'vol', title: 'Vol de focus', desc: 'Déchire ton ticket et décolle en plein écran.',

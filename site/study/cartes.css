@@ -26,3 +26,9 @@
 .cahier-cardbar[hidden]{display:none}
 .cahier-cardbar .link{margin:0}
 @media (max-width:640px){.cartes-rate .primary,.cartes-rate .ghost{flex:1;height:44px}}
+/* Révisions du jour (S3) : quatre réponses, chacune avec le délai avant le retour de la carte. */
+.revisions-new{font-size:13px;font-weight:600;color:var(--accent)}
+.revisions-rate{display:inline-grid;gap:2px;justify-items:center;height:auto;min-height:var(--control);padding:6px 14px;line-height:1.2}
+.revisions-rate small{font-size:12px;font-weight:400;opacity:.75}
+.revisions-rate:disabled{opacity:.5}
+.cartes-rate .revisions-rate{min-width:0;flex:1 1 90px;height:auto}

@@ -3,10 +3,72 @@
 // (cours, page, position, longueur) pour « Revoir dans le cours », sans recopier le cours. Les cartes sont dans la table
 // study_cards, chaque réponse dans study_reviews (pour la répétition espacée de S3). Le texte d'une carte est toujours
 // affiché avec textContent : le HTML d'un CSV importé reste du texte.
-// Utilise el, button, plural et listOf, définis par dashboard.html ; cahierFold vient de cahier.js.
+// S3 : chaque réponse passe par la répétition espacée FSRS (ts-fsrs, vendor/ts-fsrs-5.4.2, global FSRS) et fixe la
+// prochaine échéance de la carte. Le calcul est local, sans IA ; study_answer l'enregistre avec la réponse.
+// Utilise el, button, plural, listOf et dayKey, définis par dashboard.html ; cahierFold vient de cahier.js.
 const CARTES = { front: 1000, back: 2000, deck: 60, cards: 3000, batch: 500, holes: 20, csvBytes: 1048576, page: 1000 };
-const CARTES_FIELDS = 'id,deck,kind,front,back,holes,course_id,src_page,src_offset,src_length,version,last_rating,last_reviewed_at,created_at';
-const RATING = { again: 1, good: 3 };
+const CARTES_FIELDS = 'id,deck,kind,front,back,holes,course_id,src_page,src_offset,src_length,version,last_rating,last_reviewed_at,created_at,fsrs,due';
+const RATING = { again: 1, hard: 2, good: 3, easy: 4 };
+let cartesScheduler = null;
+
+// L'état FSRS de la carte (ou une carte neuve), puis le résultat de chaque réponse possible.
+function cartesFsrsCard(card, now) {
+  const f = card.fsrs;
+  if (!f) return FSRS.createEmptyCard(now);
+  return { ...f, due: new Date(f.due), last_review: f.last_review ? new Date(f.last_review) : undefined };
+}
+function cartesPlan(card, rating, now = new Date()) {
+  cartesScheduler ??= FSRS.fsrs(FSRS.generatorParameters());
+  const next = cartesScheduler.next(cartesFsrsCard(card, now), now, rating).card;
+  const fsrs = {
+    due: next.due.toISOString(), stability: next.stability, difficulty: next.difficulty, elapsed_days: next.elapsed_days,
+    scheduled_days: next.scheduled_days, learning_steps: next.learning_steps, reps: next.reps, lapses: next.lapses, state: next.state,
+    last_review: (next.last_review ?? now).toISOString(),
+    // Le jour où la carte a été vue pour la première fois : sert à limiter les nouvelles cartes par jour.
+    first: card.fsrs?.first ?? dayKey(now),
+  };
+  return { fsrs, due: fsrs.due };
+}
+// Le délai avant la prochaine révision, en mots courts : « 10 min », « 3 j ».
+function cartesDelay(fromIso, now = new Date()) {
+  const m = Math.max(1, Math.round((new Date(fromIso) - now) / 60000));
+  if (m < 60) return `${m} min`;
+  if (m < 1440) return `${Math.round(m / 60)} h`;
+  const d = Math.round(m / 1440);
+  if (d < 31) return `${d} j`;
+  if (d < 365) return `${Math.round(d / 30)} mois`;
+  return `${Math.round(d / 365)} an${d >= 730 ? 's' : ''}`;
+}
+// Enregistre une réponse : 'ok', 'stale' (la carte a changé ou un autre onglet a déjà répondu) ou 'error'.
+async function cartesAnswer(sb, card, rating, now = new Date()) {
+  const plan = cartesPlan(card, rating, now);
+  const { data, error } = await sb.rpc('study_answer', { p_card: card.id, p_version: card.version, p_prev: card.last_reviewed_at ?? null, p_rating: rating, p_fsrs: plan.fsrs, p_due: plan.due });
+  if (error) return 'error';
+  if (!data) return 'stale';
+  const fields = { fsrs: plan.fsrs, due: plan.due, last_rating: rating, last_reviewed_at: data };
+  Object.assign(card, fields);
+  document.dispatchEvent(new CustomEvent('renzvi:reponse', { detail: { id: card.id, version: card.version, fields } }));
+  return 'ok';
+}
+// Lien « Revoir dans le cours » d'une carte créée depuis le Cahier.
+function cartesSourceLink(card, say) {
+  if (!card.course_id) return null;
+  return button('link', 'Revoir dans le cours', () => {
+    const detail = { course: card.course_id, page: card.src_page ?? 0, offset: card.src_offset ?? 0, length: card.src_length ?? 0, found: false };
+    document.dispatchEvent(new CustomEvent('renzvi:revoir', { detail }));
+    if (detail.found === 'absent') say("Le cours de cette carte n'existe plus.", true);
+    else if (!detail.found) say('Ajoute le widget Cahier à ton écran pour revoir ce passage.', true);
+  });
+}
+// La face d'une carte : question ou phrase à trous, puis la réponse une fois révélée.
+function cartesFace(card, revealed) {
+  const face = el('div', 'cartes-card');
+  face.tabIndex = -1; // un clic sur la carte donne le focus au widget : les raccourcis clavier marchent ensuite
+  face.append(el('p', 'cartes-deck', card.deck));
+  face.append(card.kind === 'trou' ? cartesSentence(card, revealed) : el('p', 'cartes-face', card.front));
+  if (revealed && card.kind === 'qa') face.append(el('p', 'cartes-back', card.back));
+  return face;
+}
 const cartesError = text => Object.assign(new Error(text), { user: true });
 const cartesKey = (front, back) => cahierFold(`${front}\u0000${back}`.replace(/\s+/g, ' ').trim());
 
@@ -252,17 +314,6 @@ function cartesWidget({ body, meta, data, save, sb }) {
     drawReview();
   }
 
-  function source(card) {
-    if (!card.course_id) return null;
-    const go = button('link', 'Revoir dans le cours', () => {
-      const detail = { course: card.course_id, page: card.src_page ?? 0, offset: card.src_offset ?? 0, length: card.src_length ?? 0, found: false };
-      document.dispatchEvent(new CustomEvent('renzvi:revoir', { detail }));
-      if (detail.found === 'absent') say("Le cours de cette carte n'existe plus.", true);
-      else if (!detail.found) say('Ajoute le widget Cahier à ton écran pour revoir ce passage.', true);
-    });
-    return go;
-  }
-
   function drawReview() {
     const id = queue[index], card = cards.find(c => c.id === id);
     if (!card) {
@@ -274,11 +325,7 @@ function cartesWidget({ body, meta, data, save, sb }) {
       return view.replaceChildren(done);
     }
     meta.textContent = `${index + 1} / ${queue.length}`;
-    const face = el('div', 'cartes-card');
-    face.tabIndex = -1; // un clic sur la carte donne le focus au widget : Espace, 1 et 2 marchent ensuite
-    face.append(el('p', 'cartes-deck', card.deck));
-    face.append(card.kind === 'trou' ? cartesSentence(card, revealed) : el('p', 'cartes-face', card.front));
-    if (revealed && card.kind === 'qa') face.append(el('p', 'cartes-back', card.back));
+    const face = cartesFace(card, revealed);
     const actions = el('div', 'cahier-actions cartes-rate');
     if (!revealed) {
       const show = button('primary', 'Voir la réponse', () => { revealed = true; draw(); view.querySelector('.cartes-rate button')?.focus(); });
@@ -292,20 +339,22 @@ function cartesWidget({ body, meta, data, save, sb }) {
       actions.append(again, good);
     }
     const items = [face, actions];
-    if (revealed) { const s = source(card); if (s) items.push(s); }
+    if (revealed) { const s = cartesSourceLink(card, say); if (s) items.push(s); }
     view.replaceChildren(...items);
   }
 
-  // La réponse est enregistrée sans attendre : la séance continue même si le réseau est lent.
+  // La réponse est enregistrée sans attendre : la séance continue même si le réseau est lent. Elle compte aussi pour
+  // la répétition espacée (FSRS accepte une révision en avance) ; le widget Révisions du jour propose les 4 réponses.
   async function rate(card, rating) {
     tally[rating === RATING.good ? 'good' : 'again']++;
-    Object.assign(card, { last_rating: rating, last_reviewed_at: new Date().toISOString() });
     index++;
     revealed = false;
     draw();
     view.querySelector('.cartes-rate button')?.focus();
-    const { error } = await sb.from('study_reviews').insert({ card_id: card.id, card_version: card.version, rating });
-    if (error && !gone) say("Une réponse n'a pas été enregistrée. Vérifie ta connexion.", true);
+    const result = await cartesAnswer(sb, card, rating);
+    if (gone) return;
+    if (result === 'error') say("Une réponse n'a pas été enregistrée. Vérifie ta connexion.", true);
+    if (result === 'stale') { say('Cette carte avait changé ailleurs (autre onglet ou modification) : elle est rechargée.', true); load(); }
   }
 
   function drawList() {
@@ -447,12 +496,16 @@ function cartesWidget({ body, meta, data, save, sb }) {
     if (!revealed && (e.key === ' ' || e.key === 'Enter') && !e.target.closest('button,a')) { e.preventDefault(); revealed = true; draw(); view.querySelector('.cartes-rate button')?.focus(); }
     else if (revealed && (e.key === '1' || e.key === '2')) { e.preventDefault(); rate(card, e.key === '1' ? RATING.again : RATING.good); }
   };
+  // Une réponse donnée dans un autre widget met à jour la carte d'ici, sans tout recharger.
+  const onAnswer = e => { const c = cards.find(x => x.id === e.detail.id && x.version === e.detail.version); if (c) Object.assign(c, e.detail.fields); };
   box.addEventListener('keydown', onKey);
   document.addEventListener('renzvi:cartes', load);
+  document.addEventListener('renzvi:reponse', onAnswer);
   load();
   return () => {
     gone = true;
     box.removeEventListener('keydown', onKey);
     document.removeEventListener('renzvi:cartes', load);
+    document.removeEventListener('renzvi:reponse', onAnswer);
   };
 }

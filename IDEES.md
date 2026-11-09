@@ -568,7 +568,7 @@ Recommandation Codex : garder un espace simple pour travailler puis décompresse
 |---|---|---|---|
 | S1 | [x] En ligne le 9 nov. | Cahier central, matières/chapitres, import texte et PDF textuel, sources privées | Authentification existante |
 | S2 | [x] En ligne le 9 nov. | Flashcards et textes à trous reliés au cours, sans API | S1 |
-| S3 | [ ] | Révisions du jour et répétition espacée | S2 |
+| S3 | [x] En ligne le 9 nov. | Révisions du jour et répétition espacée | S2 |
 | S4 | [ ] | Crédits et garde-fous du moteur IA, testé avec un fournisseur simulé | S1 ; avant toute activation IA |
 | S5 | [ ] | Génération de résumés/cartes depuis les chapitres et explication d'un passage | S1, S2, S4 |
 | S6 | [ ] | Quiz et retour automatique sur les erreurs | S2 ; S4/S5 pour les questions générées |
@@ -655,7 +655,7 @@ Parcours complet de création et révision, format CSV accepté, captures, tests
 Pas de commit ni de push sans mon nouveau « commit push ».
 ```
 
-### S3 — [ ] Révisions du jour et répétition espacée
+### S3 — [x] Révisions du jour et répétition espacée
 
 **Proposition Codex.** Remplir automatiquement la prochaine séance à partir des réponses, sans demander un planning manuel ni un appel IA à chaque carte.
 
