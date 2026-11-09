@@ -85,24 +85,40 @@ a{color:inherit}
 .btn svg{width:16px;height:16px;flex:none}
 
 /* ---------- Navigation ---------- */
-.nav{position:sticky;top:0;z-index:20;background:var(--paper);transition:box-shadow var(--fast) var(--ease)}
-.nav.scrolled{box-shadow:var(--shadow-nav)} /* taste-skill-ignore : ombre de barre de navigation fixée, prévue par la référence */
+/* Verre dépoli demandé par Damien (9 nov. 2026), qui prime sur l'interdiction du verre du skill design.
+   Le verre est un calque derrière la barre : seul le fond est flouté, textes et boutons restent nets. */
+:root{
+  --nav-glass:rgba(249,248,246,.7); --nav-glass-dark:rgba(21,21,21,.62);
+  --nav-blur:blur(24px) saturate(1.35);
+  --nav-line:rgba(36,36,36,.07); --nav-line-dark:rgba(255,255,255,.1);
+  --nav-hover:rgba(36,36,36,.06); --nav-hover-dark:rgba(255,255,255,.12);
+}
+.nav{position:sticky;top:0;z-index:20;isolation:isolate}
+.nav::before{content:"";position:absolute;inset:6px 8px 2px;z-index:-1;border-radius:16px;background:var(--nav-glass);-webkit-backdrop-filter:var(--nav-blur);backdrop-filter:var(--nav-blur);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 0 0 1px var(--nav-line);transition:box-shadow var(--fast) var(--ease)} /* taste-skill-ignore : verre de la barre, demandé */
+.nav.scrolled::before{box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 0 0 1px var(--nav-line),0 6px 20px rgba(0,0,0,.06)} /* taste-skill-ignore : ombre discrète qui détache le verre pendant le défilement */
+/* Sans flou possible, un fond presque plein garde les liens lisibles. */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  :root{--nav-glass:rgba(249,248,246,.96);--nav-glass-dark:rgba(21,21,21,.96)}
+}
+@media (prefers-reduced-transparency:reduce){:root{--nav-glass:rgba(249,248,246,.97);--nav-glass-dark:rgba(21,21,21,.97)}}
 .nav-in{display:flex;align-items:center;gap:24px;height:64px}
 .mark{display:inline-flex;align-items:center;gap:10px;font-size:18px;font-weight:600;letter-spacing:-.01em;text-decoration:none;flex:none;min-height:44px;border-radius:var(--r-btn)}
 .mark svg{width:24px;height:24px}
 .nav-links{display:flex;gap:4px;margin-left:12px}
 .nav-links a{display:inline-flex;align-items:center;height:36px;padding:0 10px;border-radius:var(--r-btn);font-size:16px;font-weight:500;text-decoration:none;color:var(--ink);transition:background-color var(--fast) var(--ease)}
-.nav-links a:hover{background:var(--tone)}
+.nav-links a:hover{background:var(--nav-hover)}
 .nav-end{margin-left:auto;display:flex;align-items:center;gap:8px}
 .signin{display:inline-flex;align-items:center;height:44px;padding:0 10px;font-size:16px;font-weight:500;text-decoration:none;border-radius:var(--r-btn);white-space:nowrap}
-.signin:hover{background:var(--tone)}
+.signin:hover{background:var(--nav-hover)}
 .nav .btn{min-height:40px;padding:0 14px;font-size:16px}
 .menu-btn{display:none;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:var(--r-btn);background:none}
-.menu-btn:hover{background:var(--tone)}
+.menu-btn:hover{background:var(--nav-hover)}
 .menu-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
-#menu{inset:auto;top:68px;right:var(--m);left:auto;margin:0;width:min(300px,calc(100vw - 2*var(--m)));padding:8px;border:0;border-radius:var(--r-card);background:var(--card);color:var(--ink);box-shadow:0 0 0 1px var(--edge),var(--shadow-stage)} /* taste-skill-ignore : menu déroulant, un vrai calque */
+#menu{inset:auto;top:68px;right:var(--m);left:auto;margin:0;width:min(300px,calc(100vw - 2*var(--m)));padding:8px;border:0;border-radius:16px;background:rgba(249,248,246,.86);-webkit-backdrop-filter:var(--nav-blur);backdrop-filter:var(--nav-blur);color:var(--ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 0 0 1px var(--nav-line),var(--shadow-stage)} /* taste-skill-ignore : menu déroulant en verre, un vrai calque */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){#menu{background:var(--card)}}
+@media (prefers-reduced-transparency:reduce){#menu{background:var(--card)}}
 #menu a{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:var(--r-btn);text-decoration:none;font-weight:500}
-#menu a:hover{background:var(--paper)}
+#menu a:hover{background:var(--nav-hover)}
 #menu .ins-open{width:100%;justify-content:flex-start;margin-top:4px}
 
 /* ---------- Sections ---------- */
@@ -503,12 +519,11 @@ footer{padding-block:48px 32px}
 
 /* La barre du haut prend la couleur du chapitre sombre qu'elle survole. */
 /* La barre change de couleur d'un coup, fond et textes ensemble : à aucun instant un texte n'est illisible. */
-.nav{transition:box-shadow var(--fast) var(--ease)}
-.nav.on-dark{background:var(--dark);color:#fff;box-shadow:none}
-.nav.on-dark.on-night{background:var(--night)}
+.nav.on-dark{color:#fff}
+.nav.on-dark::before,.nav.on-dark.on-night::before{background:var(--nav-glass-dark);box-shadow:0 0 0 1px var(--nav-line-dark)} /* taste-skill-ignore : contour du verre sombre de la barre */
 .nav.on-dark .mark rect{fill:#fff}
 .nav.on-dark .nav-links a,.nav.on-dark .signin{color:#fff}
-.nav.on-dark .nav-links a:hover,.nav.on-dark .signin:hover,.nav.on-dark .menu-btn:hover{background:rgba(255,255,255,.1)}
+.nav.on-dark .nav-links a:hover,.nav.on-dark .signin:hover,.nav.on-dark .menu-btn:hover{background:var(--nav-hover-dark)}
 .nav.on-dark .btn-primary{background:#fff;color:var(--ink)}
 .nav.on-dark .btn-primary:hover{background:var(--accent-pale)}
 .nav.on-dark :focus-visible{outline-color:#fff}
