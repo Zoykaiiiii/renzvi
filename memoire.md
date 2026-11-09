@@ -295,9 +295,9 @@ Le cahier conserve le document et ses chapitres. Depuis un chapitre ou un passag
 | S3 | Révisions du jour et répétition espacée | **Codé le 9 nov.** (`site/study/revisions.js`, FSRS via `site/vendor/ts-fsrs-5.4.2`, licence MIT ; migration `20261109000200_study_revisions.sql`, fonction `study_answer`). **En ligne le 9 nov.**, migration passée par Damien |
 | S4 | Crédits et protection des appels IA, d'abord avec fournisseur simulé | **Codé le 9 nov.** Migration `20261109000300_ia_credits.sql` (portefeuilles, journal, travaux, grille de prix, budget global) et fonction serveur `supabase/functions/ia` avec fournisseur simulé. Tests : `tests/ia.check.sh` (Postgres et Deno dans Docker). **En ligne le 9 nov.** : SQL passé par Damien, fonction `ia` déployée (verify_jwt, version 1). Aucun fournisseur réel |
 | S5 | Génération depuis le cours et explication d'un passage, résultats réutilisables | **Codé le 9 nov.** avec fournisseur simulé : `site/study/ia.js` (panneau IA du Cahier, Expliquer), `supabase/functions/ia/valider.ts` (format, citations vérifiées). Aucun modèle réel choisi ni testé |
-| S6 | Quiz et retour automatique sur les erreurs | Non construit |
-| S7 | Schémas masqués avec tirage aléatoire | Non construit |
-| S8 | Guide Study court, contextuel, facultatif ; à enrichir au fil des lots | Non construit |
+| S6 | Quiz et retour automatique sur les erreurs | **Codé le 9 nov.**, widget `quiz` caché (`labo: true`, visible avec `?labo=1`), migration `20261109000400_study_quiz.sql` |
+| S7 | Schémas masqués avec tirage aléatoire | **Codé le 9 nov.**, widget `schemas` caché, migration `20261109000500_study_schemas.sql` (bucket privé `schemas`) |
+| S8 | Guide Study court, contextuel, facultatif ; à enrichir au fil des lots | **Codé le 9 nov.**, widget `guide` caché, migration `20261109000600_study_guide.sql`. Design de tous les widgets à refaire en session dédiée |
 | S9 | Photos/PDF scannés et gros imports, éventuellement 200 photos de plusieurs cahiers | Reporté |
 | S10 | Écouter une synthèse audio | **Explicitement reporté par Damien** |
 

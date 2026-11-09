@@ -576,6 +576,9 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 <script src="study/cartes.js"></script>
 <script src="study/revisions.js"></script>
 <script src="study/ia.js"></script>
+<script src="study/quiz.js"></script>
+<script src="study/schemas.js"></script>
+<script src="study/guide.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>
 <script>
 // Clé publique par conception : ce sont les règles de sécurité de la base qui protègent les données.
@@ -602,7 +605,7 @@ const SOUNDS = [
 ];
 // Un mode est une page déjà remplie. Study garde le fond choisi au départ, Chill a le sien.
 const MODES = [
-  { id: 'study', name: 'Study', desc: 'Pour travailler', widgets: ['cahier', 'revisions', 'cartes', 'vol', 'minuteur', 'taches', 'semaine', 'notes', 'compte'] },
+  { id: 'study', name: 'Study', desc: 'Pour travailler', widgets: ['guide', 'cahier', 'revisions', 'cartes', 'quiz', 'schemas', 'vol', 'minuteur', 'taches', 'semaine', 'notes', 'compte'] },
   { id: 'chill', name: 'Chill', desc: 'Pour décompresser', wall: 'lac', widgets: ['respiration', 'ambiance', 'lecture', 'playlist', 'pause', 'inspiration'] },
 ];
 const ACCENTS = [
@@ -987,6 +990,18 @@ const WIDGETS = [
   {
     id: 'revisions', title: 'Révisions du jour', desc: 'Les cartes à revoir aujourd’hui, programmées selon tes réponses.',
     render: revisionsWidget,
+  },
+  {
+    id: 'quiz', title: 'Quiz', labo: true, desc: 'Des QCM sur tes cours, et tes erreurs à refaire sans rien recopier.',
+    render: quizWidget,
+  },
+  {
+    id: 'schemas', title: 'Schémas', labo: true, desc: 'Cache au hasard les légendes d’un schéma et retrouve-les.',
+    render: schemasWidget,
+  },
+  {
+    id: 'guide', title: 'Guide Study', labo: true, desc: 'Ta première révision pas à pas : un cours, des cartes, une séance.',
+    render: guideWidget,
   },
   {
     id: 'vol', title: 'Vol de focus', desc: 'Déchire ton ticket et décolle en plein écran.',
@@ -2032,6 +2047,17 @@ const WIDGETS = [
     },
   },
 ];
+// Widgets en préparation (labo: true) : codés et poussés, mais cachés des utilisateurs jusqu'à la session design.
+// Visibles avec ?labo=1 dans l'adresse, gardé sur cet appareil ; ?labo=0 pour revenir à la version publique.
+const LABO = (() => {
+  try {
+    const q = new URLSearchParams(location.search).get('labo');
+    if (q != null) localStorage.setItem('renzvi:labo', q === '1' ? '1' : '');
+    return localStorage.getItem('renzvi:labo') === '1';
+  } catch { return false; }
+})();
+if (!LABO) for (let i = WIDGETS.length - 1; i >= 0; i--) if (WIDGETS[i].labo) WIDGETS.splice(i, 1);
+for (const m of MODES) m.widgets = m.widgets.filter(id => WIDGETS.some(w => w.id === id));
 
 function block(text) {
   $('app').hidden = true;
@@ -2162,6 +2188,7 @@ if (!sb) {
   }
   // « Revoir dans le cours » depuis une carte : si le Cahier est sur une autre page, on y va (il fait le reste).
   document.addEventListener('renzvi:revoir', () => { if (mounted.has('cahier') && pageOf('cahier') !== currentPage) showPage(pageOf('cahier')); });
+  document.addEventListener('renzvi:schema', () => { if (mounted.has('schemas') && pageOf('schemas') !== currentPage) showPage(pageOf('schemas')); });
   function askPageName(title, value, done) {
     const { form, input } = addForm(value || `Page ${screen.pages.length + 1}`, MAX_PAGE_NAME, () => {});
     input.value = value;
@@ -2396,7 +2423,20 @@ if (!sb) {
     (on ? $('custom-done') : $('open-custom')).focus();
   }
 
+  // Le guide Study peut ajouter les widgets qui manquent sur la page courante, sans rien retirer ni déplacer.
+  let screenUser = null;
+  document.addEventListener('renzvi:ajouter', e => {
+    if (!screenUser) return;
+    const ids = listOf(e.detail?.ids).filter(id => WIDGETS.some(w => w.id === id) && !screen.widgets.includes(id));
+    if (!ids.length) return;
+    screen.widgets = [...screen.widgets, ...ids];
+    for (const id of ids) { screen.where = { ...screen.where, [id]: currentPage }; mount(WIDGETS.find(w => w.id === id), screenUser); }
+    drawPages();
+    saveScreen();
+    e.detail.added = ids;
+  });
   function showScreen(user) {
+    screenUser = user;
     $('setup').hidden = true;
     $('screen').hidden = false;
     for (const id of screen.widgets) if (!mounted.has(id)) mount(WIDGETS.find(w => w.id === id), user);

@@ -43,8 +43,20 @@ function studyAnswer(db, a) {
   return stamp;
 }
 
+// supabase-js envoie un Blob en formulaire multipart : on garde seulement le fichier, comme le ferait le stockage.
+function filePart(body, type) {
+  const boundary = /boundary=(.+)$/.exec(type ?? '')?.[1];
+  if (!boundary) return body;
+  for (const part of body.toString('latin1').split(`--${boundary}`)) {
+    const head = part.indexOf('\r\n\r\n');
+    if (head < 0 || /name="cacheControl"/.test(part.slice(0, head))) continue;
+    return Buffer.from(part.slice(head + 4, part.lastIndexOf('\r\n')), 'latin1');
+  }
+  return body;
+}
+
 async function openBoard(browser, base, db, options = { viewport: { width: 1440, height: 900 } }) {
-  const { time, ...settings } = options;
+  const { time, labo, waitFor = '[data-widget=cartes]', ...settings } = options;
   const context = await browser.newContext(settings);
   await context.addInitScript(session => localStorage.setItem('sb-xjkmztfsyyccveaeyzov-auth-token', session), JSON.stringify({ access_token: JWT, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: USER }));
   await context.route(`${SUPABASE}/rest/v1/widget_state*`, route => {
@@ -66,6 +78,8 @@ async function openBoard(browser, base, db, options = { viewport: { width: 1440,
     if (req.method() === 'OPTIONS') return preflight(route);
     if (req.method() === 'GET') return json(route, 200, db.courses);
     if (req.method() === 'DELETE') { db.courses = db.courses.filter(c => c.id !== idOf(req)); for (const c of db.cards) if (c.course_id === idOf(req)) c.course_id = null; return route.fulfill({ status: 204, headers: CORS }); }
+    if (db.failCourses) return json(route, 500, { message: 'panne' });
+    if (req.method() === 'POST') { db.courses.push(...[req.postDataJSON()].flat()); return route.fulfill({ status: 201, headers: CORS }); }
     return route.fulfill({ status: 204, headers: CORS });
   });
   await context.route(`${SUPABASE}/rest/v1/study_cards*`, route => {
@@ -96,6 +110,7 @@ async function openBoard(browser, base, db, options = { viewport: { width: 1440,
   await context.route(`${SUPABASE}/rest/v1/study_reviews*`, route => {
     const req = route.request();
     if (req.method() === 'OPTIONS') return preflight(route);
+    if (req.method() === 'GET') return json(route, 200, db.reviews.slice(0, 1));
     const r = { ...req.postDataJSON(), reviewed_at: new Date().toISOString() };
     db.reviews.push(r);
     const card = db.cards.find(c => c.id === r.card_id && c.version === r.card_version);
@@ -113,13 +128,14 @@ async function openBoard(browser, base, db, options = { viewport: { width: 1440,
     const src = x => ({ citation: x, debut: b.texte.indexOf(x), longueur: x.length });
     const resultat = b.type === 'cartes' ? { cartes: [...phrases.map((x, i) => ({ question: `Question ${i + 1} ?`, reponse: x, source: src(x) })), { question: 'Sans source ?', reponse: 'Inventée', source: null }] }
       : b.type === 'resume' ? { points: phrases.map(x => ({ texte: x, source: src(x) })) }
+      : b.type === 'quiz' ? { questions: phrases.map((x, i) => ({ question: `Vrai ou faux (${i + 1}) ?`, choix: [x, 'Autre chose', 'Rien', 'Je ne sais pas'], bonne: 0, explication: 'Cité dans le cours.', source: src(x) })) }
       : { explication: `En clair : ${b.consigne}`, dans_le_cours: true, exemple_exterieur: 'Comme une centrale électrique.', source: null };
     db.ia = (db.ia ?? 10) - 1;
     (db.iaJobs ??= []).push({ id: b.travail, type: b.type, cle: b.cle ?? null, etat: 'reussi', resultat, created_at: new Date().toISOString() });
     return json(route, 200, { ok: true, travail: b.travail, credits: 1, solde: db.ia, resultat });
   });
   await context.route(`${SUPABASE}/rest/v1/ia_prix*`, route => route.request().method() === 'OPTIONS' ? preflight(route) : json(route, 200, [
-    { type: 'cartes', caracteres_par_credit: 4000, credits_min: 1, credits_max: 10, caracteres_max: db.iaMax ?? 40000 }, { type: 'resume', caracteres_par_credit: 4000, credits_min: 1, credits_max: 10, caracteres_max: db.iaMax ?? 40000 }, { type: 'expliquer', caracteres_par_credit: 2000, credits_min: 1, credits_max: 1, caracteres_max: 2000 }]));
+    { type: 'cartes', caracteres_par_credit: 4000, credits_min: 1, credits_max: 10, caracteres_max: db.iaMax ?? 40000 }, { type: 'resume', caracteres_par_credit: 4000, credits_min: 1, credits_max: 10, caracteres_max: db.iaMax ?? 40000 }, { type: 'expliquer', caracteres_par_credit: 2000, credits_min: 1, credits_max: 1, caracteres_max: 2000 }, { type: 'quiz', caracteres_par_credit: 4000, credits_min: 1, credits_max: 10, caracteres_max: db.iaMax ?? 40000 }]));
   await context.route(`${SUPABASE}/rest/v1/ia_portefeuilles*`, route => route.request().method() === 'OPTIONS' ? preflight(route) : db.ia == null ? route.fulfill({ status: 406, headers: CORS, contentType: 'application/json', body: '{}' }) : json(route, 200, { solde: db.ia }));
   await context.route(`${SUPABASE}/rest/v1/ia_travaux*`, route => {
     if (route.request().method() === 'OPTIONS') return preflight(route);
@@ -127,10 +143,65 @@ async function openBoard(browser, base, db, options = { viewport: { width: 1440,
     const eq = k => q.get(k)?.replace(/^eq\./, '');
     return json(route, 200, (db.iaJobs ?? []).filter(j => j.type === eq('type') && j.cle === eq('cle')).slice(-1));
   });
+  // Quiz (S6) : questions et réponses, avec les déclencheurs de version et de dernière réponse.
+  await context.route(`${SUPABASE}/rest/v1/study_questions*`, route => {
+    const req = route.request();
+    if (req.method() === 'OPTIONS') return preflight(route);
+    db.questions ??= [];
+    if (req.method() === 'GET') {
+      const q = new URL(req.url()).searchParams;
+      const from = Number(q.get('offset') ?? 0);
+      return json(route, 200, db.questions.slice(from, from + 1000));
+    }
+    if (req.method() === 'POST') {
+      for (const row of [req.postDataJSON()].flat()) db.questions.push({ explication: '', course_id: null, src_page: null, src_offset: null, src_length: null, signalee: false, derniere_reussie: null, derniere_at: null, ...row, id: randomUUID(), version: 1, created_at: new Date(Date.now() + db.questions.length).toISOString() });
+      return route.fulfill({ status: 201, headers: CORS });
+    }
+    const item = db.questions.find(x => x.id === idOf(req));
+    if (req.method() === 'PATCH') {
+      const next = { ...item, ...req.postDataJSON() };
+      if (['question', 'choix', 'bonnes'].some(k => JSON.stringify(next[k]) !== JSON.stringify(item[k]))) Object.assign(next, { version: item.version + 1, derniere_reussie: null, derniere_at: null, signalee: false });
+      Object.assign(item, next);
+      return route.fulfill({ status: 204, headers: CORS });
+    }
+    db.questions = db.questions.filter(x => x !== item);
+    return route.fulfill({ status: 204, headers: CORS });
+  });
+  await context.route(`${SUPABASE}/rest/v1/study_quiz_answers*`, route => {
+    const req = route.request();
+    if (req.method() === 'OPTIONS') return preflight(route);
+    const a = req.postDataJSON();
+    (db.answers ??= []).push(a);
+    const item = (db.questions ?? []).find(x => x.id === a.question_id && x.version === a.question_version);
+    if (item) Object.assign(item, { derniere_reussie: a.reussie, derniere_at: new Date().toISOString() });
+    return route.fulfill({ status: 201, headers: CORS });
+  });
+  // Schémas (S7) : la table, les réponses, et les images dans le stockage.
+  await context.route(`${SUPABASE}/rest/v1/study_schemas*`, route => {
+    const req = route.request();
+    if (req.method() === 'OPTIONS') return preflight(route);
+    db.schemas ??= [];
+    if (req.method() === 'GET') return json(route, 200, db.schemas);
+    if (req.method() === 'POST') { db.schemas.push(...[req.postDataJSON()].flat().map(r => ({ course_id: null, src_page: null, ...r }))); return route.fulfill({ status: 201, headers: CORS }); }
+    const item = db.schemas.find(x => x.id === idOf(req));
+    if (req.method() === 'PATCH') { Object.assign(item, req.postDataJSON()); return route.fulfill({ status: 204, headers: CORS }); }
+    db.schemas = db.schemas.filter(x => x !== item);
+    return route.fulfill({ status: 204, headers: CORS });
+  });
+  await context.route(`${SUPABASE}/rest/v1/study_schema_answers*`, route => {
+    const req = route.request();
+    if (req.method() === 'OPTIONS') return preflight(route);
+    db.schemaAnswers ??= [];
+    if (req.method() === 'GET') return json(route, 200, [...db.schemaAnswers].reverse());
+    for (const a of [req.postDataJSON()].flat()) db.schemaAnswers.push({ ...a, created_at: new Date().toISOString() });
+    return route.fulfill({ status: 201, headers: CORS });
+  });
   await context.route(`${SUPABASE}/storage/v1/object/**`, route => {
     const req = route.request();
     if (req.method() === 'OPTIONS') return preflight(route);
     const key = decodeURIComponent(new URL(req.url()).pathname.replace(/^\/storage\/v1\/object\/(authenticated\/)?/, ''));
+    if (req.method() === 'POST' || req.method() === 'PUT') { db.files[key] = filePart(req.postDataBuffer(), req.headers()['content-type']); db.uploads = (db.uploads ?? 0) + 1; return json(route, 200, { Key: key }); }
+    if (req.method() === 'DELETE') { for (const name of req.postDataJSON().prefixes) { delete db.files[`schemas/${name}`]; delete db.files[`cours/${name}`]; } return json(route, 200, []); }
     return db.files[key] ? route.fulfill({ status: 200, headers: CORS, body: db.files[key] }) : json(route, 404, { message: 'absent' });
   });
   const page = await context.newPage();
@@ -141,8 +212,8 @@ async function openBoard(browser, base, db, options = { viewport: { width: 1440,
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
-  await page.goto(`${base}/dashboard.html`);
-  await page.waitForSelector('[data-widget=cartes]');
+  await page.goto(`${base}/dashboard.html${labo ? '?labo=1' : ''}`);
+  await page.waitForSelector(waitFor);
   return { context, page, errors };
 }
 
@@ -637,6 +708,313 @@ const select = (page, word) => page.evaluate(w => {
       assert.deepStrictEqual(long.errors, []);
       await long.context.close();
       console.log('ok IA dans le Cahier : coût, aperçu, sources, résultat gardé, résumé, explication, refus, trop long');
+    }
+
+    // 9. Quiz (S6), widget caché sauf ?labo=1 : création, import, séance mélangée, erreurs, signalement, correction, IA.
+    {
+      const dbq = fresh(['cahier', 'cartes', 'quiz']);
+      // Sans ?labo=1, le quiz n'apparaît nulle part, même s'il est dans la configuration enregistrée.
+      const pub = await openBoard(browser, base, dbq);
+      await pub.page.waitForSelector('[data-widget=cahier]');
+      assert.strictEqual(await pub.page.locator('[data-widget=quiz]').count(), 0, 'caché sur le site public');
+      await pub.page.click('#open-add');
+      assert.ok(!(await pub.page.locator('#catalog').innerText()).includes('Quiz'), 'absent du catalogue public');
+      assert.deepStrictEqual(pub.errors, []);
+      await pub.context.close();
+      assert.deepStrictEqual(dbq.rows.ecran.widgets, ['cahier', 'cartes', 'quiz'], 'la configuration enregistrée n’est pas abîmée');
+
+      const { page, context, errors } = await openBoard(browser, base, dbq, { viewport: { width: 1440, height: 900 }, labo: true });
+      const w = page.locator('[data-widget=quiz]');
+      const qText = () => w.locator('.cartes-view').innerText();
+      await page.waitForFunction(() => /Écris une question/.test(document.querySelector('[data-widget=quiz] .cartes-view')?.innerText ?? ''));
+      await w.getByRole('button', { name: 'Nouvelle question' }).click();
+      await w.getByLabel('Paquet', { exact: true }).fill('Biologie');
+      await w.getByLabel('Question', { exact: true }).fill('Quels organites ont deux membranes ?');
+      for (const [i, v] of ['Mitochondrie', 'Noyau', 'Ribosome', 'Mitochondrie'].entries()) await w.getByLabel(`Choix ${i + 1}`, { exact: true }).fill(v);
+      await w.getByRole('button', { name: 'Créer la question' }).click();
+      assert.match(await qText(), /Deux choix sont identiques/);
+      await w.getByLabel('Choix 4', { exact: true }).fill('Chloroplaste');
+      await w.getByRole('button', { name: 'Créer la question' }).click();
+      assert.match(await qText(), /Coche au moins une bonne réponse/);
+      for (const n of [1, 2, 4]) await w.getByLabel(`Choix ${n} : bonne réponse`).check();
+      await w.getByLabel('Explication (facultative)').fill('Mitochondrie, noyau et chloroplaste ont une double membrane.');
+      await w.getByRole('button', { name: 'Créer la question' }).click();
+      await page.waitForFunction(() => /Question créée/.test(document.querySelector('[data-widget=quiz] .cahier-note').textContent));
+      assert.deepStrictEqual(dbq.questions[0].bonnes, [0, 1, 3]);
+
+      // Import CSV : 3 bonnes lignes, 1 sans mauvaise réponse, 1 doublon.
+      await w.getByRole('button', { name: 'Importer' }).click();
+      await w.getByLabel('Paquet', { exact: true }).fill('Biologie');
+      await w.getByLabel('Lignes à importer').fill('question;bonne;mauvaise;mauvaise\nOù est l’ADN ?;Le noyau;La membrane;Le ribosome\n"Énergie ; qui la produit ?";La mitochondrie;Le noyau\nUne seule réponse ?;Oui\nQui a des chloroplastes ?;Les plantes;Les animaux\nOù est l’ADN ?;Le noyau;Ailleurs');
+      await w.getByRole('button', { name: 'Vérifier' }).click();
+      assert.match(await w.locator('.cartes-preview').innerText(), /3 questions prêtes[\s\S]*1 doublon[\s\S]*ligne 4, il faut au moins deux choix/);
+      await w.getByRole('button', { name: 'Importer 3 questions' }).click();
+      await page.waitForFunction(() => /3 questions importées/.test(document.querySelector('[data-widget=quiz] .cahier-note').textContent));
+      assert.strictEqual(dbq.questions.length, 4);
+
+      // Séance de 5 : les choix sont mélangés, la correction suit le libellé, pas la position.
+      await page.waitForFunction(() => /4 questions prêtes/.test(document.querySelector('[data-widget=quiz] .cartes-view').innerText));
+      await w.getByRole('button', { name: '5 questions' }).click();
+      await w.getByRole('button', { name: 'Commencer' }).click();
+      const seen = [];
+      let wrong = null;
+      for (let i = 0; i < 4; i++) {
+        const text = await qText();
+        const q = dbq.questions.find(x => text.includes(x.question));
+        seen.push(await w.locator('.quiz-choice').allInnerTexts().then(t => t.map(x => x.replace(/^\d\s*/, ''))));
+        const goodLabels = q.bonnes.map(b => q.choix[b]);
+        // On rate exprès la question « Où est l’ADN ? ».
+        const pickLabels = q.question === 'Où est l’ADN ?' ? ['La membrane'] : goodLabels;
+        for (const label of pickLabels) await w.locator('.quiz-choice', { hasText: label }).click();
+        await w.getByRole('button', { name: 'Valider' }).click();
+        if (q.question === 'Où est l’ADN ?') { wrong = q; assert.match(await qText(), /Pas tout à fait[\s\S]*Le noyau[\s\S]*Bonne réponse/); await shot(page, 'quiz-erreur'); }
+        else assert.match(await qText(), /^[\s\S]*Bonne réponse/);
+        if (q.question.startsWith('Quels organites')) assert.match(await qText(), /double membrane/, 'explication affichée après réponse');
+        await w.getByRole('button', { name: /Question suivante|Voir le bilan/ }).click();
+      }
+      assert.match(await qText(), /3 bonnes réponses sur 4[\s\S]*À revoir[\s\S]*Où est l’ADN \? — Le noyau/);
+      await shot(page, 'quiz-bilan');
+      await page.waitForTimeout(200);
+      assert.strictEqual(dbq.answers.length, 4);
+      assert.strictEqual(dbq.questions.find(x => x === wrong).derniere_reussie, false);
+      assert.ok(seen.every(list => list.length >= 2));
+
+      // Refaire mes erreurs, puis signaler la question et la corriger : nouvelle version, signalement levé.
+      await w.getByRole('button', { name: 'Refaire mes erreurs (1)' }).click();
+      assert.match(await qText(), /Où est l’ADN \?/);
+      await w.locator('.quiz-choice', { hasText: 'Le noyau' }).click();
+      await page.keyboard.press('Enter');
+      assert.match(await qText(), /Bonne réponse/);
+      await w.getByRole('button', { name: 'Signaler une erreur dans cette question' }).click();
+      await page.waitForFunction(() => /Signalée/.test(document.querySelector('[data-widget=quiz] .cartes-view').innerText));
+      assert.strictEqual(wrong.signalee, true);
+      await w.getByRole('button', { name: 'Gérer', exact: true }).click();
+      assert.match(await w.locator('.cartes-list li').first().innerText(), /⚠ Signalée · Où est l’ADN/, 'les questions signalées en tête');
+      await w.getByRole('button', { name: 'Modifier la question Où est l’ADN ?' }).click();
+      await w.getByLabel('Question', { exact: true }).fill('Où se trouve l’ADN chez les eucaryotes ?');
+      await w.getByRole('button', { name: 'Enregistrer' }).click();
+      await page.waitForFunction(() => /Question enregistrée/.test(document.querySelector('[data-widget=quiz] .cahier-note').textContent));
+      assert.deepStrictEqual([wrong.version, wrong.signalee, wrong.derniere_reussie], [2, false, null]);
+      assert.ok(dbq.answers.some(a => a.question_id === wrong.id && a.question_version === 1), 'les anciennes réponses restent, liées à la version 1');
+
+      // Générer un quiz depuis le Cahier (IA simulée) : les questions rejoignent le widget Quiz.
+      const c = cahier(page);
+      await c.getByRole('button', { name: 'IA : cartes et résumé du chapitre' }).click();
+      await c.getByRole('button', { name: 'Générer un quiz · 1 crédit' }).click();
+      await c.getByRole('button', { name: 'Ajouter les questions cochées' }).click();
+      await page.waitForFunction(() => /ajoutées? au quiz « La cellule »/.test(document.querySelector('.ia-panel').innerText));
+      const fromIa = dbq.questions.filter(q => q.deck === 'La cellule');
+      assert.ok(fromIa.length >= 2 && fromIa.every(q => q.course_id === COURSE.id && PAGE.slice(q.src_offset, q.src_offset + q.src_length) === q.choix[0]), 'questions reliées à leur passage');
+      await page.waitForFunction(() => /La cellule/.test(document.querySelector('[data-widget=quiz] .cahier-pick').innerText));
+      assert.deepStrictEqual(errors, []);
+      await context.close();
+      console.log('ok quiz : caché sans labo, création, import, séance mélangée, erreurs, signalement, correction, IA');
+    }
+
+    // 10. Schémas (S7) : image, zones à la souris et au clavier, tirage, caches opaques, erreurs, image remplacée, page de PDF.
+    {
+      const shotPage = await browser.newPage({ viewport: { width: 800, height: 500 } });
+      await shotPage.setContent('<body style="margin:0;background:#fff"><svg width="800" height="500"><circle cx="400" cy="250" r="160" fill="#cde"/><text x="40" y="60" font-size="28">Noyau</text><text x="600" y="80" font-size="28">Membrane</text><text x="40" y="460" font-size="28">Mitochondrie</text><text x="600" y="460" font-size="28">Ribosome</text></svg>');
+      const png = await shotPage.screenshot();
+      await shotPage.setContent('<p style="font:20px serif">Schéma de la cellule, page 1.</p><svg width="400" height="300"><rect width="400" height="300" fill="#eee"/></svg>');
+      const pdf = await shotPage.pdf({ format: 'A4' });
+      await shotPage.close();
+      const dbs = fresh(['cahier', 'cartes', 'schemas']);
+      const PDF = { ...structuredClone(COURSE), id: '22222222-2222-4222-8222-222222222222', title: 'Cellule PDF', kind: 'pdf', chapters: [{ id: 'p', title: 'Tout', page: 0, offset: 0 }] };
+      dbs.courses.push(PDF);
+      dbs.files[`cours/u1/${PDF.id}/texte.json`] = Buffer.from(JSON.stringify({ v: 1, pages: ['Schéma de la cellule, page 1. La mitochondrie et le noyau.'] }));
+      dbs.files[`cours/u1/${PDF.id}/original.pdf`] = pdf;
+      const { page, context, errors } = await openBoard(browser, base, dbs, { viewport: { width: 1440, height: 900 }, labo: true });
+      const w = page.locator('[data-widget=schemas]');
+      const sText = () => w.locator('.cartes-view').innerText();
+      await page.waitForFunction(() => /Ajoute une image de schéma/.test(document.querySelector('[data-widget=schemas] .cartes-view')?.innerText ?? ''));
+      await w.getByRole('button', { name: 'Nouveau schéma' }).click();
+      await w.getByLabel('Titre').fill('La cellule animale');
+      await w.getByLabel('Paquet', { exact: true }).fill('Biologie');
+      await w.locator('input[type=file]').setInputFiles({ name: 'cellule.png', mimeType: 'image/png', buffer: png });
+      await w.getByRole('button', { name: 'Créer le schéma' }).click();
+      await page.waitForFunction(() => /encadre maintenant ses légendes/.test(document.querySelector('[data-widget=schemas] .cahier-note').textContent));
+      const s = dbs.schemas[0];
+      assert.deepStrictEqual([s.largeur, s.hauteur], [800, 500], 'proportions de l’image gardées');
+      const stored = dbs.files[`schemas/u1/${s.id}.jpg`];
+      assert.ok(stored && stored[0] === 0xff && stored[1] === 0xd8, 'image réenregistrée en JPEG');
+
+      // Trois zones à la souris, sur les légendes.
+      await w.locator('.schema-img').evaluate(i => i.complete || new Promise(r => { i.onload = r; }));
+      const layer = w.locator('.schema-layer');
+      const drag = async (x1, y1, x2, y2) => {
+        const b = await layer.boundingBox();
+        await page.mouse.move(b.x + x1 * b.width, b.y + y1 * b.height);
+        await page.mouse.down();
+        await page.mouse.move(b.x + x2 * b.width, b.y + y2 * b.height, { steps: 4 });
+        await page.mouse.up();
+      };
+      await drag(.04, .06, .2, .15);
+      await w.getByLabel('Réponse de la zone 1').fill('Noyau');
+      await drag(.74, .1, .95, .2);
+      await w.getByLabel('Réponse de la zone 2').fill('Membrane');
+      await drag(.04, .86, .3, .96);
+      await drag(.5, .5, .505, .505);
+      assert.strictEqual(await w.locator('.schema-zone').count(), 3, 'un clic sans glisser ne crée pas de zone');
+      // Une quatrième au clavier : ajoutée au centre, déplacée aux flèches, agrandie avec Maj.
+      await w.getByRole('button', { name: 'Ajouter une zone' }).click();
+      const z4 = w.locator('.schema-zone').nth(3);
+      for (let i = 0; i < 20; i++) await z4.press('ArrowRight');
+      for (let i = 0; i < 4; i++) await z4.press('Shift+ArrowDown');
+      await w.getByLabel('Réponse de la zone 4').fill('Ribosome');
+      await shot(page, 'schemas-zones');
+      await w.getByRole('button', { name: 'Enregistrer les zones' }).click();
+      await page.waitForFunction(() => /4 zones enregistrées/.test(document.querySelector('[data-widget=schemas] .cahier-note').textContent));
+      const zones = dbs.schemas[0].zones;
+      assert.strictEqual(zones.length, 4);
+      assert.ok(Math.abs(zones[0].x - .04) < .01 && Math.abs(zones[0].w - .16) < .01, 'coordonnées de 0 à 1');
+      assert.ok(Math.abs(zones[3].x - .6) < .001 && Math.abs(zones[3].h - .14) < .001, 'flèches : 1 % par appui');
+
+      // Interroge-moi : un cache opaque, rien de révélé avant l'action, et le tirage couvre toutes les zones.
+      await w.getByRole('button', { name: 'Interroge-moi' }).click();
+      assert.strictEqual(await w.locator('.schema-mask').count(), 1);
+      const bg = await w.locator('.schema-mask').evaluate(m => getComputedStyle(m).backgroundColor);
+      assert.ok(!/rgba\(.*, 0(\.\d+)?\)|transparent/.test(bg), `cache opaque (${bg})`);
+      assert.ok(!/Noyau|Membrane|Ribosome/.test(await sText()), 'aucune réponse avant « Révéler »');
+      await shot(page, 'schemas-roulette');
+      const masked = new Set();
+      let before = null;
+      for (let i = 0; i < 14; i++) {
+        const box = await w.locator('.schema-mask').first().evaluate(m => m.style.left + m.style.top);
+        assert.notStrictEqual(box, before, 'pas deux fois de suite la même zone');
+        before = box;
+        masked.add(box);
+        await w.getByRole('button', { name: 'Révéler' }).click();
+        await w.getByRole('button', { name: i === 0 ? 'À revoir' : 'Trouvé' }).click();
+      }
+      assert.strictEqual(masked.size, 4, 'le tirage passe par toutes les zones');
+      await w.getByRole('button', { name: '3 zones' }).click();
+      assert.strictEqual(await w.locator('.schema-mask').count(), 3);
+      const spots = await w.locator('.schema-mask').evaluateAll(ms => ms.map(m => m.style.left + m.style.top));
+      assert.strictEqual(new Set(spots).size, 3, 'trois zones différentes');
+      await w.getByRole('button', { name: 'Révéler' }).click();
+      assert.strictEqual(await w.locator('.schema-answers li').count(), 3);
+      await w.getByRole('button', { name: 'À revoir' }).click();
+      await page.waitForTimeout(200);
+      assert.strictEqual(dbs.schemaAnswers.length, 14 + 3);
+      assert.deepStrictEqual(errors, []);
+      await context.close();
+
+      // Rechargement : les zones et les erreurs restent ; on revoit seulement les erreurs.
+      const again = await openBoard(browser, base, dbs, { viewport: { width: 1440, height: 900 }, labo: true });
+      const w2 = again.page.locator('[data-widget=schemas]');
+      await again.page.waitForFunction(() => /Revoir mes erreurs \(\d\)/.test(document.querySelector('[data-widget=schemas] .cartes-view')?.innerText ?? ''));
+      const missed = Number((await w2.getByRole('button', { name: /Revoir mes erreurs/ }).innerText()).match(/\d+/)[0]);
+      assert.ok(missed >= 1 && missed <= 3);
+      await w2.getByRole('button', { name: /Revoir mes erreurs/ }).click();
+      for (let i = 0; i < missed; i++) {
+        await w2.getByRole('button', { name: 'Révéler' }).click();
+        await w2.getByRole('button', { name: 'Trouvé' }).click();
+      }
+      await again.page.waitForFunction(() => /Plus aucune erreur/.test(document.querySelector('[data-widget=schemas] .cartes-view').innerText));
+
+      // Remplacer l'image : il faut revérifier les zones avant de s'interroger.
+      await w2.getByRole('button', { name: 'Retour au schéma' }).click();
+      await w2.getByRole('button', { name: 'Modifier les zones' }).click();
+      await w2.locator('input[type=file][accept="image/*"]').setInputFiles({ name: 'v2.png', mimeType: 'image/png', buffer: png });
+      await again.page.waitForFunction(() => /vérifie tes zones/.test(document.querySelector('[data-widget=schemas] .cahier-note').textContent));
+      assert.deepStrictEqual([dbs.schemas[0].image_version, dbs.schemas[0].zones_a_verifier], [2, true]);
+      await w2.getByRole('button', { name: 'Terminer' }).click();
+      assert.match(await w2.locator('.cartes-view').innerText(), /L'image a changé/);
+      assert.ok(await w2.getByRole('button', { name: 'Interroge-moi' }).isDisabled());
+      await w2.getByRole('button', { name: 'Modifier les zones' }).click();
+      await w2.getByRole('button', { name: 'Enregistrer les zones' }).click();
+      await again.page.waitForFunction(() => /4 zones enregistrées/.test(document.querySelector('[data-widget=schemas] .cahier-note').textContent));
+      assert.ok(await w2.getByRole('button', { name: 'Interroge-moi' }).isEnabled());
+      assert.strictEqual(dbs.schemas[0].zones_a_verifier, false);
+
+      // Depuis le Cahier : une page du PDF devient un schéma.
+      const c = cahier(again.page);
+      await c.locator('.cahier-bar select').selectOption({ label: 'Cellule PDF' });
+      await c.getByRole('button', { name: 'Faire un schéma de cette page' }).click();
+      await again.page.waitForFunction(() => /Page 1 du cours/.test(document.querySelector('[data-widget=schemas] .cartes-view').innerText), null, { timeout: 20000 });
+      assert.strictEqual(await w2.getByLabel('Titre').inputValue(), 'Cellule PDF · page 1');
+      await w2.getByRole('button', { name: 'Créer le schéma' }).click();
+      await again.page.waitForFunction(() => /encadre maintenant/.test(document.querySelector('[data-widget=schemas] .cahier-note').textContent));
+      const fromPdf = dbs.schemas[1];
+      assert.deepStrictEqual([fromPdf.course_id, fromPdf.src_page], [PDF.id, 0]);
+      assert.ok(fromPdf.largeur > fromPdf.hauteur === false, 'page A4 en portrait');
+      assert.deepStrictEqual(again.errors, []);
+      await again.context.close();
+      // Téléphone : l'image et ses caches restent dans le widget, sans débordement.
+      const phone = await openBoard(browser, base, dbs, { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, labo: true });
+      const wp = phone.page.locator('[data-widget=schemas]');
+      await wp.locator('.cahier-pick').selectOption({ index: 0 });
+      await wp.getByRole('button', { name: 'Interroge-moi' }).click();
+      await wp.locator('.schema-mask').first().waitFor();
+      assert.strictEqual(await phone.page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'pas de débordement à 390 px');
+      const fits = await wp.evaluate(b => { const o = b.getBoundingClientRect(), st = b.querySelector('.schema-stage').getBoundingClientRect(); return st.left >= o.left - 1 && st.right <= o.right + 1 && [...b.querySelectorAll('.schema-mask')].every(m => { const r = m.getBoundingClientRect(); return r.left >= st.left - 1 && r.right <= st.right + 1 && r.bottom <= st.bottom + 1; }); });
+      assert.ok(fits, 'caches dans l’image sur téléphone');
+      await wp.scrollIntoViewIfNeeded();
+      await shot(phone.page, 'schemas-390');
+      assert.deepStrictEqual(phone.errors, []);
+      await phone.context.close();
+      console.log('ok schémas : zones souris et clavier, tirage complet sans répétition, caches opaques, erreurs, image remplacée, page de PDF');
+    }
+
+    // 11. Guide Study (S8) : sur une page déjà remplie, étapes cochées par de vraies actions, import raté non validé.
+    {
+      const dbg = { ...fresh(['guide', 'notes']), courses: [] };
+      dbg.rows.notes = { text: 'Mes notes à garder' };
+      const { page, context, errors } = await openBoard(browser, base, dbg, { viewport: { width: 1440, height: 900 }, labo: true, waitFor: '[data-widget=guide]' });
+      const g = page.locator('[data-widget=guide]');
+      const gText = () => g.locator('.guide').innerText();
+      await page.waitForFunction(() => /Étape 1 \/ 4/.test(document.querySelector('[data-widget=guide] .meta')?.textContent ?? ''));
+      await shot(page, 'guide-debut');
+      await g.getByRole('button', { name: 'Ajouter Cahier, Flashcards, Révisions du jour à cette page' }).click();
+      await page.waitForSelector('[data-widget=cahier]');
+      await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré');
+      assert.deepStrictEqual(dbg.rows.ecran.widgets, ['guide', 'notes', 'cahier', 'cartes', 'revisions'], 'ajoutés à la fin, rien de retiré');
+      assert.match(await page.locator('[data-widget=notes] textarea').inputValue(), /Mes notes à garder/);
+
+      // Un import qui échoue ne coche pas l'étape.
+      dbg.failCourses = true;
+      await g.getByRole('button', { name: "Essayer avec un cours d'exemple" }).click();
+      const c = cahier(page);
+      assert.strictEqual(await c.getByLabel('Matière').inputValue(), 'Exemple', 'cours d’exemple clairement nommé');
+      await c.getByRole('button', { name: 'Importer', exact: true }).click();
+      await page.waitForFunction(() => /enregistrement n'a pas abouti/.test(document.querySelector('.cahier-import').innerText));
+      assert.match(await g.locator('.meta').innerText(), /Étape 1 \/ 4/);
+      dbg.failCourses = false;
+      await c.getByRole('button', { name: 'Importer', exact: true }).click();
+      await page.waitForFunction(() => /Étape 2 \/ 4/.test(document.querySelector('[data-widget=guide] .meta').textContent));
+      assert.strictEqual(dbg.courses[0].title, "Cours d'exemple : la cellule");
+      await g.getByRole('button', { name: 'Mes chapitres sont bons' }).click();
+      assert.match(await g.locator('.meta').innerText(), /Étape 3 \/ 4/);
+      assert.match(await gText(), /Gratuit[\s\S]*Avec crédits[\s\S]*Le coût est affiché avant de lancer/, 'gratuit et payant distingués avant l’action');
+      // Une carte depuis une sélection du cours d'exemple.
+      await select(page, 'membrane plasmique');
+      await c.getByRole('button', { name: 'Créer une carte' }).click();
+      await c.getByLabel('Question').fill('Qu’entoure la membrane plasmique ?');
+      await c.getByRole('button', { name: 'Créer la carte' }).click();
+      await page.waitForFunction(() => /Étape 4 \/ 4/.test(document.querySelector('[data-widget=guide] .meta').textContent));
+      const r = page.locator('[data-widget=revisions]');
+      await r.getByRole('button', { name: 'Voir la réponse' }).click();
+      await r.getByRole('button', { name: /^Bien/ }).click();
+      await page.waitForFunction(() => /Terminé/.test(document.querySelector('[data-widget=guide] .meta').textContent));
+      assert.match(await gText(), /Tout est prêt/);
+      await shot(page, 'guide-fin');
+      await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré');
+      assert.strictEqual(dbg.rows.guide.chapitres, true);
+      assert.deepStrictEqual(errors, []);
+      await context.close();
+
+      // Rechargement : la progression vient des données ; masquer puis rejouer.
+      const again = await openBoard(browser, base, dbg, { viewport: { width: 1440, height: 900 }, labo: true });
+      const g2 = again.page.locator('[data-widget=guide]');
+      await again.page.waitForFunction(() => /Terminé/.test(document.querySelector('[data-widget=guide] .meta')?.textContent ?? ''));
+      await g2.getByRole('button', { name: 'Masquer le guide' }).click();
+      assert.match(await g2.innerText(), /Guide masqué/);
+      await g2.getByRole('button', { name: 'Rejouer le guide' }).click();
+      assert.match(await g2.locator('.meta').innerText(), /Étape 2 \/ 4/, 'rejouer repart des vraies données');
+      assert.deepStrictEqual(again.errors, []);
+      await again.context.close();
+      console.log('ok guide : widgets ajoutés sans rien retirer, étapes cochées par de vraies actions, import raté, rejouer');
     }
 
     // 6. Trois tailles et quatre largeurs : rien ne déborde.

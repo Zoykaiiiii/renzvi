@@ -86,8 +86,11 @@ function iaPanneau(ctx) {
     const soldeTexte = solde == null ? 'Tu as des crédits de découverte à la première utilisation (email vérifié).' : `Ton solde : ${plural(solde, 'crédit')}.`;
     infos.textContent = `${texte.length.toLocaleString('fr-FR')} caractères. ${soldeTexte} Revoir un résultat déjà fait ne coûte rien.`;
     actions.replaceChildren();
-    for (const [type, nom] of [['cartes', 'Générer des cartes'], ['resume', 'Résumer']]) {
+    // Le quiz n'est proposé que si son widget est disponible (widget en préparation, ?labo=1).
+    const types = [['cartes', 'Générer des cartes'], ['resume', 'Résumer'], ...(typeof quizWidget === 'function' && WIDGETS.some(w => w.id === 'quiz') ? [['quiz', 'Générer un quiz']] : [])];
+    for (const [type, nom] of types) {
       const cout = iaCout(grille, type, texte.length);
+      if (!cout) continue; // type absent de la grille : pas proposé
       const deja = await iaPrecedent(ctx.sb, type, cleDe(type));
       if (deja) actions.append(button('ghost', `${nom} : revoir le résultat (gratuit)`, () => afficher(type, deja.resultat, false)));
       const b = button(deja ? 'link' : 'primary', `${deja ? 'Régénérer' : nom} · ${plural(cout.credits, 'crédit')}`, () => lancer(type, cout));
@@ -123,6 +126,7 @@ function iaPanneau(ctx) {
       for (const p of res.points ?? []) { const li = el('li', 'row'); li.append(el('span', 'grow', p.texte), lien(p.source)); list.append(li); }
       return out.replaceChildren(el('p', 'cartes-sum', 'Résumé'), list);
     }
+    if (type === 'quiz') return afficherQuiz(res, neuf);
     // Cartes : aperçu, on coche celles à garder, puis on les ajoute au paquet du cours.
     const cartes = res.cartes ?? [];
     if (!cartes.length) return out.replaceChildren(el('p', 'zone', "Le cours ne contenait pas assez de matière pour des cartes."));
@@ -155,6 +159,40 @@ function iaPanneau(ctx) {
       ajouter.hidden = true;
     });
     out.replaceChildren(el('p', 'cartes-sum', neuf ? 'Cartes proposées : vérifie-les avant de les ajouter' : 'Cartes déjà générées'), el('p', 'zone', 'Les cartes sans source retrouvée sont décochées : vérifie-les dans ton cours.'), list, ajouter);
+  }
+
+  // Quiz : même principe que les cartes, les questions rejoignent le widget Quiz.
+  function afficherQuiz(res, neuf) {
+    const qs = res.questions ?? [];
+    if (!qs.length) return out.replaceChildren(el('p', 'zone', 'Le cours ne contenait pas assez de matière pour un quiz.'));
+    const list = el('ul', 'rows ia-list');
+    list.ariaLabel = 'Questions proposées';
+    const coches = qs.map(q => {
+      const li = el('li', 'row');
+      const label = el('label', 'grow');
+      const box = Object.assign(el('input'), { type: 'checkbox', checked: !!q.source });
+      label.append(box, el('span', '', `${q.question} — ${q.choix[q.bonne]}`));
+      li.append(label, lien(q.source));
+      list.append(li);
+      return { box, q };
+    });
+    const ajouter = button('primary', 'Ajouter les questions cochées', async () => {
+      const choix = coches.filter(x => x.box.checked);
+      if (!choix.length) { status.textContent = 'Coche au moins une question.'; return; }
+      ajouter.disabled = true;
+      const rows = choix.map(({ q }) => {
+        const p = q.source ? position(q.source.debut) : null;
+        return { deck: ctx.course.title.slice(0, 60), question: q.question, choix: q.choix, bonnes: [q.bonne], explication: q.explication ?? '', course_id: ctx.course.id, ...(p && { src_page: p.page, src_offset: p.offset, src_length: Math.min(5000, q.source.longueur) }) };
+      });
+      const { error } = await ctx.sb.from('study_questions').insert(rows);
+      ajouter.disabled = false;
+      if (error) { status.textContent = "Les questions n'ont pas été ajoutées. Vérifie ta connexion."; status.classList.add('msg'); return; }
+      document.dispatchEvent(new CustomEvent('renzvi:quiz'));
+      status.classList.remove('msg');
+      status.textContent = `${plural(rows.length, 'question')} ajoutée${rows.length > 1 ? 's' : ''} au quiz « ${rows[0].deck} ».`;
+      ajouter.hidden = true;
+    });
+    out.replaceChildren(el('p', 'cartes-sum', neuf ? 'Questions proposées : vérifie-les avant de les ajouter' : 'Quiz déjà généré'), list, ajouter);
   }
 
   preparer();

@@ -207,7 +207,17 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
   const originalBtn = button('link', "Télécharger l'original", downloadOriginal);
   const removeBtn = button('link cahier-danger', 'Supprimer ce cours', removeCourse);
   const iaBtn = button('link', 'IA : cartes et résumé du chapitre', () => { mode = mode === 'ia' ? 'read' : 'ia'; say(''); draw(); });
-  tools.append(iaBtn, editBtn, originalBtn, removeBtn);
+  // Une page d'un PDF devient un schéma à légendes cachées (widget Schémas, en préparation).
+  const schemaBtn = button('link', 'Faire un schéma de cette page', () => {
+    const c = course(), reader = view.querySelector('.cahier-text');
+    if (!c || !reader) return;
+    const top = reader.getBoundingClientRect().top;
+    const block = [...reader.querySelectorAll('.cahier-block')].find(b => b.getBoundingClientRect().bottom > top + 8);
+    const d = { course: c.id, page: block ? +block.dataset.page : c.chapters[chapterIndex].page, title: c.title, deck: c.subject, found: false };
+    document.dispatchEvent(new CustomEvent('renzvi:schema', { detail: d }));
+    say(d.found ? `Page ${d.page + 1} envoyée au widget Schémas.` : 'Ajoute le widget Schémas à ton écran pour faire un schéma de cette page.', !d.found);
+  });
+  tools.append(iaBtn, schemaBtn, editBtn, originalBtn, removeBtn);
   body.append(bar, nav, cardBar, view, note, tools);
 
   const say = (text, bad = false) => { note.textContent = text; note.classList.toggle('msg', bad); };
@@ -306,6 +316,7 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     next.disabled = chapterIndex === c.chapters.length - 1;
     editBtn.textContent = mode === 'edit' ? 'Terminer les chapitres' : 'Modifier les chapitres';
     editBtn.hidden = iaBtn.hidden = nav.hidden = !c.text_chars;
+    schemaBtn.hidden = c.kind !== 'pdf' || !c.text_chars || !WIDGETS.some(w => w.id === 'schemas');
     prev.hidden = next.hidden = !c.text_chars || c.chapters.length < 2;
     meta.textContent = c.text_chars ? `Chapitre ${chapterIndex + 1} / ${c.chapters.length}` : '';
     if (!c.text_chars) {
@@ -510,6 +521,11 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     return panel;
   }
 
+  // Le guide Study peut préremplir l'import (cours d'exemple clairement nommé) ; la personne lance l'import elle-même.
+  let prefill = null;
+  const onPrefill = e => { if (state !== 'ready') return; e.detail.found = true; prefill = e.detail; mode = 'import'; say(''); draw(); box.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
+  document.addEventListener('renzvi:importer', onPrefill);
+
   function drawImport() {
     const form = el('form', 'cahier-import');
     form.noValidate = true;
@@ -597,6 +613,7 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
         texts.set(c.id, Promise.resolve({ pages: read.pages, folded: null }));
         mode = 'read';
         openCourse(c.id);
+        document.dispatchEvent(new CustomEvent('renzvi:cours'));
         say(!usable ? '' : c.chapters.length > 1 ? `${c.chapters.length} chapitres trouvés. Vérifie-les avec « Modifier les chapitres ».` : 'Aucun titre de chapitre trouvé : crée tes chapitres avec « Modifier les chapitres ».');
       } catch (err) {
         if (gone) return;
@@ -611,6 +628,12 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
         }
       }
     };
+    if (prefill) {
+      subject.value = prefill.subject;
+      title.value = prefill.title;
+      paste.value = prefill.text;
+      prefill = null;
+    }
     view.replaceChildren(form);
     subject.focus({ preventScroll: true });
   }
@@ -707,5 +730,6 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     box.removeEventListener('keydown', onKey);
     document.removeEventListener('selectionchange', onSelect);
     document.removeEventListener('renzvi:revoir', onRevoir);
+    document.removeEventListener('renzvi:importer', onPrefill);
   };
 }

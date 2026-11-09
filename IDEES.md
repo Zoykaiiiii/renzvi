@@ -571,9 +571,9 @@ Recommandation Codex : garder un espace simple pour travailler puis décompresse
 | S3 | [x] En ligne le 9 nov. | Révisions du jour et répétition espacée | S2 |
 | S4 | [x] En ligne le 9 nov., fournisseur simulé | Crédits et garde-fous du moteur IA, testé avec un fournisseur simulé | S1 ; avant toute activation IA |
 | S5 | [x] En ligne le 9 nov., fournisseur simulé | Génération de résumés/cartes depuis les chapitres et explication d'un passage | S1, S2, S4 |
-| S6 | [ ] | Quiz et retour automatique sur les erreurs | S2 ; S4/S5 pour les questions générées |
-| S7 | [ ] | Schémas masqués et tirage aléatoire | S1, S3 pour la planification |
-| S8 | [ ] | Guide Study contextuel et première séance accompagnée | Commencer avec S1 ; compléter au fil des lots |
+| S6 | [x] Codé le 9 nov., caché (?labo=1) | Quiz et retour automatique sur les erreurs | S2 ; S4/S5 pour les questions générées |
+| S7 | [x] Codé le 9 nov., caché (?labo=1) | Schémas masqués et tirage aléatoire | S1, S3 pour la planification |
+| S8 | [x] Codé le 9 nov., caché (?labo=1) | Guide Study contextuel et première séance accompagnée | Commencer avec S1 ; compléter au fil des lots |
 | S9 | [ ] Reporté | Photos/PDF scannés et gros imports de plusieurs cahiers | S1, S4, S5 validés sur petits volumes |
 | S10 | [ ] Reporté par Damien | Synthèse audio | Cours et résumés fiables, coûts mesurés |
 
@@ -744,7 +744,7 @@ Démonstration, échantillons avec corrections nécessaires, coûts mesurés ou 
 Pas de commit ni de push sans mon nouveau « commit push ».
 ```
 
-### S6 — [ ] Quiz et retour automatique sur les erreurs
+### S6 — [x] Quiz et retour automatique sur les erreurs
 
 **Proposition Codex adoptée dans le périmètre Study.** Un seul fonds de questions ; plusieurs façons de s'entraîner. Éviter un cahier d'erreurs à remplir à la main.
 
@@ -773,7 +773,7 @@ Séance complète, retour sur les erreurs, captures, tests et limites de correct
 Pas de commit ni de push sans mon nouveau « commit push ».
 ```
 
-### S7 — [ ] Schémas masqués avec une « roulette » de questions
+### S7 — [x] Schémas masqués avec une « roulette » de questions
 
 **Idée de Damien, précisée avec Codex.** Tirer au hasard les légendes à cacher parmi des zones pertinentes déjà identifiées. Pas de rectangles quelconques sur l'image. La détection automatique viendra après la version manuelle.
 
@@ -802,7 +802,7 @@ Vidéo courte de la roulette, captures, tests et limites de l'éditeur.
 Pas de commit ni de push sans mon nouveau « commit push ».
 ```
 
-### S8 — [ ] Guide Study et première expérience complète
+### S8 — [x] Guide Study et première expérience complète
 
 **Demande de Damien.** Trop d'étapes manuelles empêcheraient d'exploiter les widgets. Le guide doit aussi supprimer des opérations et proposer des valeurs utiles, pas expliquer une interface compliquée.
 
