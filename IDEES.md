@@ -1024,3 +1024,64 @@ Pas de commit ni de push sans un nouveau « commit push ».
 - Gratuit permanent avec crédits de découverte ou essai de courte durée : décision non prise. Sept ou quatorze jours ne sont pas des durées scientifiquement validées pour Renzvi.
 - Recommandation Codex : ne fixer quotas, recharges et remise annuelle qu'après mesures des coûts et des usages. Une remise de 50 % a été envisagée par Damien, pas validée économiquement.
 - Objectif de marge à définir précisément : revenu hors TVA moins coûts directs n'est pas le bénéfice net. Ne pas promettre 90 % sans calcul intégrant fournisseur, paiement et infrastructure.
+
+## Nutrition — recettes, mon frigo et journal alimentaire
+
+**Ajout Codex, 10 novembre 2026, à la demande de Damien.** Concept proposé par Damien et validé pour le backlog ; pas encore développé ni disponible. Rattachement envisagé : Nutrition / Bien-être, accessible depuis Sport. Le nom du mode et le design restent à décider.
+
+### [ ] N1 — Catalogue de recettes et « Qu'est-ce qu'on mange ? »
+
+- Vision de Damien : un large choix, à terme **plus de 10 000 recettes**, avec spécialités culinaires et tirage animé. Ce volume est un objectif, pas un catalogue acquis ou licencié.
+- Recommandation Codex : démarrer avec quelques centaines de recettes fiables, puis élargir ; ne pas fabriquer 10 000 entrées pour afficher un chiffre.
+- Catalogue hébergé par Renzvi : recherche et sélection sans IA, sans clé d'API tierce ni appel payant par tirage. Stockage, maintenance et éventuelles licences ont néanmoins un coût.
+- Filtres : cuisine/spécialité, durée, portions, budget indicatif, préférences et exclusions alimentaires. Ne jamais garantir un budget précis sans prix et date de référence.
+- Recettes structurées : ingrédients normalisés, quantités/unités, portions, étapes, durée, catégories, informations sur les allergènes et provenance.
+- Vérifier les droits de chaque source : textes, photos et données ; conserver source, licence, attribution et version. Une page accessible publiquement n'autorise pas sa copie. Aucune source de 10 000 recettes réutilisables n'a encore été trouvée ou vérifiée.
+
+```text
+Objectif : construire un catalogue de recettes exploitable sans génération IA ni dépendance à une API payante à chaque utilisation.
+Vérifie d'abord l'architecture et le suivi actuels. Prépare un import validé et idempotent, des identifiants stables, la recherche, les filtres, favoris et fiches recettes. Sépare contenu partagé et données privées. Commence avec un petit jeu de recettes originales ou légalement réutilisables, avec provenance explicite ; ne récupère pas massivement des sites sans droits vérifiés. Prévois pagination et chargement à la demande pour viser plus de 10 000 recettes sans charger toute la base au navigateur. Signale les données nutritionnelles/allergènes inconnues au lieu de les inventer. Vérifie les doublons, unités, portions, champs manquants, droits et performances. Développement caché en labo, interface fonctionnelle ; design et intégration publique ensuite. Aucune dépense ni commit/push sans demande explicite.
+```
+
+### [ ] N2 — Roulette de recettes « Surprends-moi »
+
+- Tirage gratuit parmi les recettes compatibles avec les filtres, animation de défilement puis révélation ; relancer, ouvrir et enregistrer la recette.
+- Éviter les répétitions récentes tant que le choix le permet. Aucun résultat hors exclusions pour remplir artificiellement le tirage.
+- Inspiration ludique du « roll », **sans mise, crédits payants, rareté artificielle ou mécanique de casino**.
+
+```text
+Objectif : aider à choisir un repas par un tirage ludique depuis N1. Filtre avant le tirage, gère l'absence de résultat et les répétitions récentes. L'animation présente le résultat sans influencer les contraintes ; prévoir mouvement réduit, clavier et mobile. Pas de paiement, récompense aléatoire monétisée ou appel IA. Vérifie exclusions, petit catalogue, relances rapides et persistance des favoris. Labo uniquement, design définitif plus tard. Pas de commit/push sans demande.
+```
+
+### [ ] N3 — « Avec mon frigo »
+
+- Sélectionner les ingrédients disponibles, avec quantités facultatives ; favoris et mémorisation pour limiter la saisie.
+- Classement explicable : « Tu as tout », « Il manque un ingrédient », puis autres propositions avec liste précise des manquants.
+- Normaliser synonymes, pluriels et unités compatibles ; distinguer par exemple riz cru et riz cuit.
+- Si les quantités ne sont pas connues, parler de compatibilité des ingrédients, pas de garantie d'avoir assez pour le repas.
+- Substitutions facultatives préparées et vérifiées, sans inventer de remplacement ni ignorer une allergie. Les filtres ne garantissent pas l'absence de traces ou contamination croisée.
+
+```text
+Objectif : trouver les meilleures recettes N1 à partir des ingrédients du foyer, sans IA. Crée un référentiel d'ingrédients et alias, un score de compatibilité explicable et des contrôles d'unités/quantités. Distingue ingrédients requis, facultatifs et ingrédients de base : huile, sel ou épices ne sont jamais supposés disponibles sans réglage explicite. Applique les exclusions avant le classement. Affiche les manquants, conserve le frigo privé et propose de modifier les quantités ; ne décrémente pas le stock sans confirmation. Teste synonymes, cru/cuit, quantités absentes, conversions impossibles et exclusions. Labo uniquement, pas de dépense ou commit/push implicite.
+```
+
+### [ ] N4 — Journal alimentaire et liaison aux recettes
+
+- Recherche manuelle d'aliments, quantité consommée, repas et total quotidien : énergie, protéines, glucides et lipides.
+- Piste de données : **Ciqual / ANSES** pour les aliments génériques, après vérification de la version disponible, licence et conditions de réutilisation. **Open Food Facts** envisagé ensuite pour les produits et codes-barres : données contributives à contrôler, obligations de licence à vérifier. Aucun import réalisé.
+- Calcul par aliment : valeur pour 100 g × masse en grammes / 100. Les volumes nécessitent une conversion justifiée ; une valeur absente ne vaut pas zéro.
+- Depuis une recette : estimer les apports des ingrédients et portions puis ajouter la portion consommée au journal, après confirmation. Distinguer quantités crues/cuites, rendements et estimation par portion ; pas de fausse précision.
+- Favoris, repas habituels et recettes personnelles pour réduire les ressaisies. Pas de reconnaissance automatique d'une assiette, d'objectif amaigrissant imposé ou de promesse médicale.
+
+```text
+Objectif : un journal alimentaire relié aux recettes, alimenté par de vraies données documentées sans IA. Vérifie sources et licences avant import. Conserve provenance, version, unités et valeurs inconnues. Permets recherche, quantités, repas, favoris, modification et suppression ; garde les données privées par compte. Calcule les portions sans confondre cru/cuit, grammes et millilitres ou énergie en kJ/kcal. Ajoute une recette choisie au journal de manière confirmée et idempotente ; garde un instantané des valeurs pour ne pas réécrire l'historique si le catalogue change. Teste quantités, portions, données absentes, arrondis, doublons et isolation entre comptes. Développement en labo, design ensuite. Pas de dépenses ou commit/push sans demande explicite.
+```
+
+### Ordre et statut à transmettre
+
+1. Vérifier les sources et droits, puis construire N1 avec un catalogue initial limité.
+2. Développer N2 et N3 sur ce même catalogue.
+3. Ajouter N4 et le lien recette → portion consommée → journal.
+4. Vérifier les usages réels avant d'élargir vers plus de 10 000 recettes.
+
+**Aucun lot Nutrition n'est construit à la date de cet ajout.** L'accord de Damien porte ici sur la documentation de l'idée ; il ne vaut pas lancement automatique du développement ou publication sur le site. Les prompts sont des briefs réutilisables pour une prochaine demande.
