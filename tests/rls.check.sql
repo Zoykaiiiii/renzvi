@@ -28,11 +28,11 @@ begin
   -- Les écritures de l'app, colonnes exactes (sans user_id quand l'app ne l'envoie pas).
   -- dashboard.html:2108 : upsert de chaque widget qui enregistre, dont le Guide.
   insert into widget_state(user_id,widget,data,updated_at)
-    select a, w, '{"v":1}', now() from unnest(array['ecran','notes','taches','minuteur','habitudes','vol','ambiance','compte','raccourcis','playlist','lecture','inspiration','cahier','cartes','revisions','quiz','schemas','guide','jardin','dessin','coloriage','puzzle','tangram','fenetre','ambiances']) w
+    select a, w, '{"v":1}', now() from unnest(array['ecran','notes','taches','minuteur','habitudes','vol','ambiance','compte','raccourcis','playlist','lecture','inspiration','cahier','cartes','revisions','quiz','schemas','guide','jardin','dessin','coloriage','puzzle','tangram','fenetre','ambiances','repas']) w
     on conflict (user_id,widget) do update set data = excluded.data, updated_at = excluded.updated_at;
   insert into widget_state(user_id,widget,data,updated_at) values (a,'guide','{"masque":true}',now())
     on conflict (user_id,widget) do update set data = excluded.data, updated_at = excluded.updated_at;
-  select count(*) into n from widget_state where user_id=a; r := array_append(r, ('A enregistre ses 25 widgets (dont Chill): '||(n=25)::int)::text);
+  select count(*) into n from widget_state where user_id=a; r := array_append(r, ('A enregistre ses 26 widgets (dont Chill et repas): '||(n=26)::int)::text);
   select count(*) into n from widget_state where widget='guide' and data->>'masque'='true'; r := array_append(r, ('A met à jour son guide: '||n)::text);
   begin insert into widget_state(user_id,widget,data) values (a,'pirate','{}'); r := array_append(r, 'interdit: widget inconnu ACCEPTE'); exception when others then r := array_append(r, 'interdit: widget inconnu refusé'); end;
   -- cahier.js:606 et :483

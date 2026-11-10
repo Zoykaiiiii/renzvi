@@ -1043,7 +1043,7 @@ Objectif : construire un catalogue de recettes exploitable sans génération IA 
 Vérifie d'abord l'architecture et le suivi actuels. Prépare un import validé et idempotent, des identifiants stables, la recherche, les filtres, favoris et fiches recettes. Sépare contenu partagé et données privées. Commence avec un petit jeu de recettes originales ou légalement réutilisables, avec provenance explicite ; ne récupère pas massivement des sites sans droits vérifiés. Prévois pagination et chargement à la demande pour viser plus de 10 000 recettes sans charger toute la base au navigateur. Signale les données nutritionnelles/allergènes inconnues au lieu de les inventer. Vérifie les doublons, unités, portions, champs manquants, droits et performances. Développement caché en labo, interface fonctionnelle ; design et intégration publique ensuite. Aucune dépense ni commit/push sans demande explicite.
 ```
 
-### [ ] N2 — Roulette de recettes « Surprends-moi »
+### [x] N2 — Roulette de recettes « Surprends-moi »
 
 - Tirage gratuit parmi les recettes compatibles avec les filtres, animation de défilement puis révélation ; relancer, ouvrir et enregistrer la recette.
 - Éviter les répétitions récentes tant que le choix le permet. Aucun résultat hors exclusions pour remplir artificiellement le tirage.
@@ -1053,7 +1053,7 @@ Vérifie d'abord l'architecture et le suivi actuels. Prépare un import validé 
 Objectif : aider à choisir un repas par un tirage ludique depuis N1. Filtre avant le tirage, gère l'absence de résultat et les répétitions récentes. L'animation présente le résultat sans influencer les contraintes ; prévoir mouvement réduit, clavier et mobile. Pas de paiement, récompense aléatoire monétisée ou appel IA. Vérifie exclusions, petit catalogue, relances rapides et persistance des favoris. Labo uniquement, design définitif plus tard. Pas de commit/push sans demande.
 ```
 
-### [ ] N3 — « Avec mon frigo »
+### [x] N3 — « Avec mon frigo »
 
 - Sélectionner les ingrédients disponibles, avec quantités facultatives ; favoris et mémorisation pour limiter la saisie.
 - Classement explicable : « Tu as tout », « Il manque un ingrédient », puis autres propositions avec liste précise des manquants.
@@ -1084,4 +1084,6 @@ Objectif : un journal alimentaire relié aux recettes, alimenté par de vraies d
 3. Ajouter N4 et le lien recette → portion consommée → journal.
 4. Vérifier les usages réels avant d'élargir vers plus de 10 000 recettes.
 
-**Aucun lot Nutrition n'est construit à la date de cet ajout.** L'accord de Damien porte ici sur la documentation de l'idée ; il ne vaut pas lancement automatique du développement ou publication sur le site. Les prompts sont des briefs réutilisables pour une prochaine demande.
+**Mise à jour Claude Code, 10 novembre 2026 (soir) :** N2 et N3 sont construits en un seul widget caché « Qu'est-ce qu'on mange ? » (`repas`, visible avec `?labo=1`) : onglets Surprends-moi, Avec mon frigo et Gardées, filtres type / régime / cuisine, fiche recette avec source et licence. Catalogue : 1 018 recettes du Livre de cuisine de Wikibooks (fr), licence CC BY-SA 4.0, importées par `outils/recettes_wikibooks.py` vers `site/nutrition/recettes.json` (sans images ni boissons). Limites connues : durée et budget absents de la source, donc pas de filtre ; quelques noms d'ingrédients mal reconnus (par exemple « pomme » pour « pomme de terre ») ; filtre allergènes non fait. Migration `20261110000000_nutrition_repas.sql` à passer pour enregistrer l'état. N1 (catalogue complet, recherche) et N4 (journal) restent à faire.
+
+**À la date de l'ajout initial, aucun lot Nutrition n'était construit.** L'accord de Damien porte ici sur la documentation de l'idée ; il ne vaut pas lancement automatique du développement ou publication sur le site. Les prompts sont des briefs réutilisables pour une prochaine demande.

@@ -1,0 +1,31 @@
+/* Widget « Qu'est-ce qu'on mange ? » (labo). Reprend les variables du dashboard : le design définitif viendra avec la refonte. */
+.repas{display:flex;flex-direction:column;gap:12px;min-width:0}
+.repas-tabs{flex-wrap:wrap}
+.repas-tabs button[aria-pressed=true]{background:var(--ground);color:var(--ink);box-shadow:0 1px 2px rgba(23,25,28,.1)}
+.repas-filtres{display:flex;flex-wrap:wrap;gap:8px}
+.repas-field{display:flex;flex-direction:column;gap:2px;flex:1 1 120px;min-width:0;font-size:12px;color:var(--slate)}
+.repas-field select{height:36px;padding:0 10px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7);color:var(--ink);font-size:13px;min-width:0}
+.repas-roulette{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.repas-reel{min-height:64px;width:100%}
+.repas-defile{font-size:16px;font-weight:600;color:var(--slate);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.repas-chips{display:flex;flex-wrap:wrap;gap:6px;list-style:none;padding:0}
+.repas-chips li{display:flex;align-items:center;gap:2px;padding-left:12px;border-radius:var(--pill);background:var(--tint);font-size:13px}
+.repas-chips .x{width:28px;height:28px;font-size:16px}
+.repas-base{display:flex;align-items:center;gap:10px;min-height:36px;font-size:13px;cursor:pointer}
+.repas-base input{width:18px;height:18px;accent-color:var(--accent)}
+.repas-groupe{margin-top:4px;font-size:13px;font-weight:600}
+.repas-liste{margin-top:0;max-height:none}
+.repas-ouvrir{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:44px;padding:8px 0;border:0;background:none;text-align:left}
+.repas-ouvrir .zone{margin-top:0;font-size:12px}
+.repas-titre{font-size:14px;font-weight:500;overflow-wrap:anywhere}
+.repas-ouvrir:hover .repas-titre{text-decoration:underline;text-underline-offset:3px}
+.repas-avert,.repas-credit{font-size:12px;color:var(--slate)}
+.repas-credit a{color:inherit;text-underline-offset:2px}
+.repas-fiche{max-width:68ch;line-height:1.55}
+.repas-fiche h3{margin-top:20px;font-size:15px;font-weight:600}
+.repas-ing,.repas-etapes{margin-top:8px;padding-left:1.3em}
+.repas-ing li+li,.repas-etapes li+li{margin-top:6px}
+.repas-ok::marker{content:"✓  ";color:var(--accent)}
+.repas-sous{list-style:none;margin-left:-1.3em;font-weight:600}
+.repas-fiche .repas-credit{margin-top:24px}
+.widget[data-size=s] .repas-filtres{display:none}

@@ -1899,6 +1899,8 @@ WIDGETS.push(
   { id: 'ambiances', labo: 'chill', title: 'Mes ambiances', desc: 'Retrouve en un clic ton fond, ton mélange de sons et ta scène.', render: chillLazy('chill/ambiances.js', 'ambiancesWidget') },
   { id: 'cinq', labo: 'chill', title: "J'ai cinq minutes", desc: 'Une petite activité calme, choisie ou tirée au hasard.', render: chillLazy('chill/cinq.js', 'cinqWidget') },
 );
+// Nutrition (labo, ?labo=1) : recettes Wikibooks en CC BY-SA, chargées seulement quand le widget s'affiche.
+WIDGETS.push({ id: 'repas', labo: true, title: "Qu'est-ce qu'on mange ?", desc: 'Une recette tirée au sort, ou ce que tu peux cuisiner avec ton frigo.', render: chillLazy('nutrition/repas.js', 'repasWidget') });
 for (let i = WIDGETS.length - 1; i >= 0; i--) if (WIDGETS[i].labo === 'chill' ? !CHILL_LABO : WIDGETS[i].labo && !LABO) WIDGETS.splice(i, 1);
 for (const m of MODES) m.widgets = m.widgets.filter(id => WIDGETS.some(w => w.id === id));
 
