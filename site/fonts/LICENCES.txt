@@ -1,7 +1,8 @@
 Polices hébergées avec le site (sous-ensemble « latin », téléchargé depuis Google Fonts le 4 nov. 2026).
 - inter-latin.woff2 : Inter, graisses 400 à 700 (variable).
 - source-serif-4-latin.woff2 : Source Serif 4, graisse 400.
-Les deux sont sous licence SIL Open Font License 1.1 (usage commercial autorisé). Textes complets ci-dessous.
+- hanken-grotesk-latin.woff2 : Hanken Grotesk, graisses 100 à 900 (variable), ajoutée le 10 nov. 2026 depuis le paquet @fontsource-variable/hanken-grotesk 5.2.8. Copyright 2021 The Hanken Grotesk Project Authors (https://github.com/marcologous/hanken-grotesk).
+Les trois sont sous licence SIL Open Font License 1.1 (usage commercial autorisé). Textes complets ci-dessous.
 
 ===== Inter =====
 Copyright (c) 2016 The Inter Project Authors (https://github.com/rsms/inter)
