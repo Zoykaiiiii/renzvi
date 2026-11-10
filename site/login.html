@@ -12,9 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="Renzvi">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400..600&display=swap" rel="stylesheet">
+<style>@font-face{font-family:"Hanken Grotesk";src:url(fonts/hanken-grotesk-latin.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}</style>
 <style>
 /* Tous les choix visuels passent par ces variables : changer de style = changer ce bloc. */
 :root{
@@ -91,7 +89,7 @@ form .btn{margin-top:12px}
         <button class="btn fill" id="send" type="submit">Recevoir mon code</button>
         <p class="msg" id="email-msg" role="alert"></p>
       </form>
-      <p class="note">Ton adresse sert uniquement à te connecter.</p>
+      <p class="note">Ton adresse sert uniquement à te connecter. <a href="legal.html#confidentialite">Confidentialité</a></p>
     </section>
 
     <section id="step-code" hidden>
