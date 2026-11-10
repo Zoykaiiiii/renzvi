@@ -2,6 +2,33 @@
 
 Notées le 3 nov. 2026. Rien ici n'est décidé tant qu'il n'est pas dans CLAUDE.md.
 
+## Point au 10 novembre 2026 — résumé à reporter dans Notion
+
+Écrit par Claude Code à la demande de Damien. Vérifié sur `main` au commit `e83c671` et sur la base Supabase en ligne (lecture seule). Cette section prime sur les inventaires plus anciens plus bas.
+
+**Visible par tout le monde (gratuit) :**
+- Dashboard : 15 widgets d'origine, modes Study et Chill, pages personnelles, fonds, personnalisation, connexion Google / code email, parrainage, PWA.
+- Study S1 à S3 : Cahier (import texte et PDF textuel), Flashcards et textes à trous, Révisions du jour (répétition espacée FSRS).
+- Landing Encre sur `site/index.html`, encore en `noindex` avec le bandeau « Prototype ».
+
+**Construit mais caché (labo) :**
+- Study, avec `?labo=1` : Quiz (S6), Schémas masqués (S7), Guide Study (S8).
+- Study S4 et S5 : crédits IA plafonnés et génération depuis le cours, avec un **fournisseur simulé**. Aucun vrai modèle IA n'est branché ni payé.
+- Chill, avec `?chill=1` : Mon petit jardin, Atelier de dessin, Coloriage, Puzzle photo, Tangram, Fenêtre d'ambiance, Mes ambiances (avec arrêt audio progressif), J'ai cinq minutes.
+- Toutes les migrations SQL sont passées en ligne, Chill compris (vérifié le 10 nov.).
+
+**Vérifié :** isolation entre deux comptes et quotas testés sur la vraie base (9 nov.). Tests automatiques au vert le 9 nov., sauf `install`, `landing`, `cahier` et `cartes`, pas relancés après le chantier Chill.
+
+**Pas encore fait :**
+- Aucun essai complet à la main sur le site en ligne, ni sur un vrai téléphone. Damien prévoit une journée de test complète, puis une refonte du design.
+- Design des widgets labo, puis passage en public un par un.
+- Paiement Whop, choix gratuit / payant et prix TTC : rien n'est décidé ni branché.
+- Mentions légales et politique de confidentialité : obligatoires avant le premier euro.
+- Choix d'un vrai modèle IA et coût par utilisateur.
+- Reportés : S9 (photos et PDF scannés), S10 (écouter une synthèse), Sport.
+
+**Prochaines étapes recommandées par Claude :** relancer les 4 suites de tests, faire la journée de test, puis décider du payant et brancher Whop avec les pages légales. Ajouter d'autres widgets avant de pouvoir vendre ne rapporte rien.
+
 ## Mise à jour du 7 novembre 2026 — comment lire ce fichier
 
 Mise à jour par Codex à la demande de Damien. Le fichier reste modifiable : les choix techniques ci-dessous sont des recommandations de réalisation, le design et les usages restent à valider par Damien. Ne lancer aucun des prompts automatiquement en lisant ce fichier.
@@ -481,7 +508,7 @@ Idées ajoutées par Codex à la demande de Damien, à partir de leur échange. 
 Détail dans `memoire.md` section 13. Aucune de ces fonctions n'est disponible sur le site public.
 - [x] 1-6 Ambiance, Playlist, Respiration, Pause, Lecture, Inspiration : existantes, vérifiées, moteur et séances partagés.
 - [ ] 7 Mon petit jardin — développé en labo, testé ; design et intégration publique à faire.
-- [ ] 8 Atelier de dessin — développé en labo, testé ; migration à passer ; design et intégration à faire.
+- [ ] 8 Atelier de dessin — développé en labo, testé ; migration passée en ligne (vérifié le 10 nov.) ; design et intégration à faire.
 - [ ] 9 Coloriage — idem (4 dessins créés pour le prototype).
 - [ ] 10 Puzzle photo — idem.
 - [ ] 11 Tangram — idem (3 silhouettes vérifiées).

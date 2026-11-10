@@ -12,7 +12,7 @@ Lis ce fichier en entier avant de travailler, puis `CLAUDE.md` (règles) et `IDE
 
 - **Le produit :** Renzvi, une seule app qui réunit tous les widgets du quotidien (study, chill, plus tard sport) sur un dashboard personnel qu'on compose comme un moodboard.
 - **Le fondateur :** Damien, non technique, pilote tout en français, en langage naturel.
-- **Où on en est :** le dashboard fonctionne (15 widgets, modes Study et Chill, pages personnelles, connexion). Il est en ligne et **gratuit**.
+- **Où on en est (10 nov., commit `e83c671`) :** le dashboard fonctionne et il est en ligne et **gratuit**. Public : 15 widgets, modes, pages, connexion, et Study S1 à S3 (Cahier, Flashcards, Révisions). Caché : Study S6 à S8 (`?labo=1`), IA S4-S5 avec un fournisseur simulé, et 8 widgets Chill (`?chill=1`, section 13). Toutes les migrations sont passées en ligne. Le résumé complet, prêt pour Notion, est en haut d'`IDEES.md`.
 - **Ce qui bloque les premiers euros :** Damien n'a pas encore décidé ce qui est payant ni le prix. Le paiement Whop n'est pas branché et les pages légales n'existent pas.
 - **Ta prochaine action :** lire la section 12 et le backlog Study d'`IDEES.md`. La section 6 est l'ancien ordre recommandé, pas la priorité actuelle. Commence par `git fetch origin` et protège les modifications locales.
 
@@ -374,7 +374,7 @@ Damien a confié à Codex la préparation technique des prompts pour pouvoir se 
 
 **Sauvegarde :** petit état dans `widget_state` (`jardin`, `dessin`, `coloriage`, `puzzle`, `tangram`, `fenetre`, `ambiances`). Dessins en PNG dans le bucket privé `dessins` (12 max, 1,5 Mo, noms imposés). Local seulement : photo du puzzle (jamais envoyée), minuterie d'arrêt (`renzvi:sommeil`), dernière activité « cinq minutes ».
 
-**⚠️ Migration `20261109000800_chill_labo.sql` PAS appliquée en ligne.** Tant qu'elle ne l'est pas, les widgets Chill du labo ne s'enregistrent pas sur un vrai compte (« Pas encore enregistré »). Damien doit la passer dans l'éditeur SQL.
+**Migration `20261109000800_chill_labo.sql` passée en ligne.** Vérifié le 10 nov. en lecture seule : le bucket `dessins` existe et `widget_state_widget_check` contient les widgets Chill. Note : Damien colle le SQL dans l'éditeur, donc `list_migrations` ne montre pas ces migrations. Il faut vérifier les tables, buckets et contraintes.
 
 **Tests réellement lancés le 9 nov. :** `node tests/chill.test.cjs` (25 OK), `tests/chill.check.cjs` (Chromium, Supabase simulé, 2 passages OK), `tests/rls.check.sh` avec les cas Chill (RAPPORT OK, base jetable), `login` et `personnalisation` OK après le refactor. `install`, `landing`, `cahier`, `cartes` passaient au début de la session, pas relancés après.
 
