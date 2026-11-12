@@ -239,7 +239,7 @@ dialog.cat[open]{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr
 .customizing .edit{display:flex}
 .edit .ghost{padding:0 12px;font-size:13px}
 .edit .ghost:disabled{color:var(--slate);opacity:.55;cursor:default}
-.edit .choices{flex:1 1 auto;align-self:auto}
+.edit .choices{flex:1 1 auto;align-self:auto;width:auto}
 .edit .choices button{flex:1;min-width:0;padding:0 6px}
 .grip{display:grid;place-items:center;flex:none;width:var(--control);height:var(--control);padding:0;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7);color:var(--ink);cursor:grab;touch-action:none}
 .grip svg{width:14px;height:14px;fill:currentColor}
@@ -289,7 +289,7 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 .time{display:block;font-size:40px;line-height:1.1;font-weight:400;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .zone{margin-top:4px;font-size:14px;color:var(--slate)}
 
-.choices{display:flex;gap:4px;align-self:flex-start;padding:3px;border-radius:var(--pill);background:var(--tint)}
+.choices{display:flex;gap:4px;align-self:flex-start;width:fit-content;max-width:100%;padding:3px;border-radius:var(--pill);background:var(--tint)}
 .choices button{height:32px;min-width:56px;padding:0 10px;border:0;border-radius:var(--pill);background:none;font-size:13px;font-variant-numeric:tabular-nums}
 .choices button:disabled{color:var(--slate);cursor:default}
 .choices button[aria-pressed=true]{background:var(--accent);color:var(--on-accent);font-weight:600}
@@ -352,6 +352,7 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 .book-title{font-size:16px;font-weight:600;overflow-wrap:anywhere}
 .row.quote .grow{font-style:italic}
 .pages{display:flex;align-items:center;gap:8px;margin-top:12px}
+[data-widget=lecture] .pages{margin-bottom:12px}
 .pages input{width:88px;height:var(--control);padding:0 12px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7)}
 .insp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px;margin-top:8px}
 .insp{position:relative;margin:0;min-width:0}
@@ -365,7 +366,7 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 @container widget (max-width:300px){
   .add:not(.stack){flex-wrap:wrap}
   .add:not(.stack) input{flex:1 1 100%}
-  .choices{align-self:stretch}
+  .choices{align-self:stretch;width:auto}
   .choices button{flex:1;min-width:0;padding:0 4px}
   .ctrl,.pages,.pl-actions{flex-wrap:wrap}
   .time{font-size:32px}

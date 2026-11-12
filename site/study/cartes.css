@@ -69,6 +69,8 @@
 .schema-answers{display:grid;gap:4px;padding-left:20px;font-size:15px}
 /* Guide Study (S8). */
 .guide{display:grid;gap:12px}
+/* Un libellé long (plusieurs widgets à ajouter) passe sur deux lignes au lieu de sortir du bouton. */
+.guide > .primary{height:auto;min-height:var(--control);padding-block:8px;border-radius:18px;text-align:left}
 .guide-steps{display:grid;gap:8px;padding:0;list-style:none}
 .guide-step{display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:4px 10px;padding:10px 12px;border-radius:14px}
 .guide-step.now{background:var(--tint)}

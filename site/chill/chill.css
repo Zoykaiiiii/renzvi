@@ -94,7 +94,7 @@ dialog.chill-big{width:min(1100px,100vw - 16px);max-height:96dvh;padding:16px}
 .ambiances-row .grow{flex:1 1 160px}
 .ambiances-row .ghost{height:32px;padding:0 10px;font-size:13px}
 .ambiances-sleep{margin-top:16px;padding-top:12px;border-top:1px solid var(--rule)}
-.ambiances-sleep .choices{margin-top:8px;flex-wrap:wrap}
+.ambiances-sleep .choices{margin-top:8px;flex-wrap:wrap;border-radius:18px}
 .widget[data-size=s] .ambiances-form{display:none}
 
 /* J'ai cinq minutes */
