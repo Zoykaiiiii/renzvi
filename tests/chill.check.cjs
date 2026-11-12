@@ -7,6 +7,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
 const G = require('../site/chill/jeux.js');
+// Catalogue : on choisit le widget dans la liste, puis on confirme dans l'aperçu.
+const catClick = async (page, name) => {
+  const title = name.split(' : ')[1];
+  await page.locator('#catalog .cat-item').filter({ has: page.locator('b', { hasText: new RegExp('^' + title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$') }) }).click();
+  await page.getByRole('button', { name, exact: true }).click();
+};
 
 const ROOT = path.join(__dirname, '..', 'site');
 const SHOTS = process.argv[2];
@@ -454,7 +460,7 @@ async function stroke(page, canvas, from = [.3, .5], to = [.7, .5]) {
     assert.ok(await moving(), 'relancée');
     await shot(page, 'fenetre');
     await page.click('#open-add');
-    await page.getByRole('button', { name: "Retirer : Fenêtre d'ambiance" }).click();
+    await catClick(page, "Retirer : Fenêtre d'ambiance");
     assert.ok(await frames() <= 1, 'widget retiré : la boucle s\'arrête');
     assert.deepEqual(errors, []);
     await context.close();

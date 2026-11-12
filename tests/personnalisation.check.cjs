@@ -5,6 +5,12 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
+// Catalogue : on choisit le widget dans la liste, puis on confirme dans l'aperçu.
+const catClick = async (page, name) => {
+  const title = name.split(' : ')[1];
+  await page.locator('#catalog .cat-item').filter({ has: page.locator('b', { hasText: new RegExp('^' + title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$') }) }).click();
+  await page.getByRole('button', { name, exact: true }).click();
+};
 
 const ROOT = path.join(__dirname, '..', 'site');
 const SHOTS = process.argv[2];
@@ -138,7 +144,7 @@ async function photo(browser, kind) {
     const box = await page.locator('[data-widget=taches]').boundingBox();
     assert.ok(Math.abs(box.width - expected) < 1, `largeur d'un widget à ${width} px : ${box.width}`);
     assert.equal(await page.locator('[data-widget=taches]').getAttribute('data-size'), 'm');
-    assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.primary')).backgroundColor), 'rgb(27, 110, 102)');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('#board .primary')).backgroundColor), 'rgb(27, 110, 102)');
     assert.equal(await page.locator('.grip:visible').count(), 0, 'pas de poignée en utilisation normale');
     assert.equal(await page.isVisible('#custom'), false);
     assert.deepEqual(errors, []);
@@ -381,8 +387,8 @@ async function photo(browser, kind) {
   {
     const { page, db, context } = await openBoard(browser, base, desk, few({ sizes: { notes: 'l' } }));
     await page.click('#open-add');
-    await page.getByRole('button', { name: 'Retirer : Notes' }).click();
-    await page.getByRole('button', { name: 'Ajouter : Notes' }).click();
+    await catClick(page, 'Retirer : Notes');
+    await catClick(page, 'Ajouter : Notes');
     await page.locator('#add-dialog .primary').click();
     assert.deepEqual(await order(page), ['taches', 'heure', 'minuteur', 'notes']);
     assert.equal(await page.locator('#board [data-widget=notes]').getAttribute('data-size'), 'l');
@@ -441,7 +447,7 @@ async function photo(browser, kind) {
     assert.equal(db.rows.ecran.sizes, undefined);
     await page.click('#custom-done');
     assert.equal(await page.textContent('#saved'), 'Pas encore enregistré. Nouvel essai…', 'Terminer ne prétend pas avoir enregistré');
-    assert.ok(await page.isVisible('.tools #saved'));
+    assert.ok(await page.isVisible('.hello #saved'));
     db.failSave = false;
     await saved(page, 'Enregistré');
     assert.equal(db.rows.ecran.sizes.notes, 'l');
@@ -547,7 +553,7 @@ async function photo(browser, kind) {
     // Le catalogue dit où est un widget ; ajouté, il arrive sur la page affichée.
     await page.click('#open-add');
     assert.match(await page.locator('#catalog li', { hasText: 'Notes' }).first().textContent(), /Sur la page « Détente »/);
-    await page.getByRole('button', { name: 'Ajouter : Habitudes' }).click();
+    await catClick(page, 'Ajouter : Habitudes');
     await page.locator('#add-dialog .primary').click();
     assert.ok((await visible(page)).includes('habitudes'));
     // Supprimer une page : confirmation, puis ses widgets et leur contenu passent sur la voisine.

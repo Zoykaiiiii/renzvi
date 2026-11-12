@@ -5,6 +5,12 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
+// Catalogue : on choisit le widget dans la liste, puis on confirme dans l'aperçu.
+const catClick = async (page, name) => {
+  const title = name.split(' : ')[1];
+  await page.locator('#catalog .cat-item').filter({ has: page.locator('b', { hasText: new RegExp('^' + title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$') }) }).click();
+  await page.getByRole('button', { name, exact: true }).click();
+};
 
 const ROOT = path.join(__dirname, '..', 'site');
 const SHOTS = process.argv[2];
@@ -247,10 +253,10 @@ async function openDashboard(browser, base, options, rows, prepare) {
     assert.match(await wall(), /mapourika/);
     assert.match(await page.textContent('#credit'), /Richard Palmer/);
     // Changer le fond de Chill ne touche pas à Study.
-    await page.click('#open-wall');
+    await page.click('#open-custom');
     await page.locator('#wall-slot [data-wall=dune]').click();
     assert.equal(await page.locator('#wall-slot [data-wall=dune]').getAttribute('aria-pressed'), 'true');
-    await page.locator('#wall-dialog .primary').click();
+    await page.click('#custom-done');
     await page.getByRole('button', { name: 'Study' }).click();
     assert.match(await wall(), /bohinj/);
     await page.getByRole('button', { name: 'Chill' }).click();
@@ -289,16 +295,16 @@ async function openDashboard(browser, base, options, rows, prepare) {
     const pages = [{ id: 'a', name: 'Une', wall: 'perso' }, { id: 'b', name: 'Deux', wall: 'perso' }, { id: 'c', name: 'Trois', wall: 'lac' }];
     const { context, page, db } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ecran: { wallpaper: 'blanc', widgets: ['taches'], done: true, pages, where: { taches: 'c' } } }, d => { d.photo = Buffer.from('x'); });
     await page.goto(`${base}/dashboard.html`);
-    await page.waitForFunction(() => document.getElementById('page-tabs').children.length === 3);
-    await page.click('#open-wall');
+    await page.waitForFunction(() => document.querySelectorAll('#page-tabs button').length === 3);
+    await page.click('#open-custom');
     await page.locator('#wall-slot [data-wall=dune]').click();
-    await page.locator('#wall-dialog .primary').click();
+    await page.click('#custom-done');
     assert.equal(db.removed, 0, 'la page Deux utilise encore la photo');
     await page.getByRole('button', { name: 'Deux' }).click();
     await page.click('#open-custom');
     await page.click('#page-delete');
     await page.getByRole('button', { name: 'Supprimer la page' }).last().click();
-    await page.waitForFunction(() => document.getElementById('page-tabs').children.length === 2);
+    await page.waitForFunction(() => document.querySelectorAll('#page-tabs button').length === 2);
     await page.waitForTimeout(100);
     assert.equal(db.removed, 1, 'plus aucune page ne l\'utilise');
     await context.close();
@@ -373,14 +379,14 @@ async function openDashboard(browser, base, options, rows, prepare) {
     assert.match(await page.title(), /— Renzvi$/);
     await page.click('#open-add');
     await shot(page, 'ajouter-widget');
-    await page.getByRole('button', { name: 'Retirer : Tâches' }).click();
-    await page.getByRole('button', { name: 'Retirer : Minuteur focus' }).click();
+    await catClick(page, 'Retirer : Tâches');
+    await catClick(page, 'Retirer : Minuteur focus');
     assert.equal(await page.locator('.widget').count(), 0);
     assert.equal(await page.title(), 'Mon écran — Renzvi', 'le minuteur retiré ne continue pas');
     assert.equal(await page.isVisible('#board-empty'), true);
-    await page.getByRole('button', { name: 'Ajouter : Habitudes' }).click();
+    await catClick(page, 'Ajouter : Habitudes');
     assert.equal(await page.locator('.habit').count(), 1, 'les habitudes enregistrées reviennent');
-    await page.getByRole('button', { name: 'Ajouter : Tâches' }).click();
+    await catClick(page, 'Ajouter : Tâches');
     assert.equal(await page.locator('.row').count(), 2, 'y compris la tâche ajoutée juste avant');
     assert.equal(await page.locator('.row span').first().textContent(), 'Toute récente');
     assert.equal(await page.isVisible('#board-empty'), false);
@@ -401,7 +407,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     const { context, page, errors, db } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, {});
     await page.goto(`${base}/dashboard.html`);
     await page.waitForSelector('.widget');
-    await page.click('#open-wall');
+    await page.click('#open-custom');
     const input = page.locator('#wall-slot input[type=file]');
     const note = page.locator('#wall-slot .pick-note');
     await input.setInputFiles({ name: 'faux.png', mimeType: 'image/png', buffer: Buffer.from('pas une image') });
@@ -419,15 +425,15 @@ async function openDashboard(browser, base, options, rows, prepare) {
     assert.equal(await note.textContent(), '');
     assert.equal(db.photoPath, '/storage/v1/object/fonds/u1/fond.jpg');
     assert.equal(await page.isVisible('#credit'), false, 'pas de crédit sur sa propre photo');
-    await page.getByRole('button', { name: 'Fermer' }).first().click();
+    await page.click('#custom-done');
     await saved(page);
     assert.equal(db.rows.ecran.wallpaper, 'perso');
     await page.reload();
     await page.waitForFunction(() => document.documentElement.style.getPropertyValue('--wall').startsWith('url(blob:'));
-    await page.click('#open-wall');
+    await page.click('#open-custom');
     await page.locator('#wall-slot [data-wall=blanc]').click();
     await page.waitForFunction(() => !document.body.classList.contains('has-wall'));
-    await page.getByRole('button', { name: 'Fermer' }).first().click();
+    await page.click('#custom-done');
     await saved(page);
     assert.equal(db.removed, 1, 'la photo qui ne sert plus est supprimée');
     assert.equal(db.rows.ecran.wallpaper, 'blanc');
@@ -796,7 +802,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await shot(page, 'detente-ambiance');
     // Retirer le widget ferme le son.
     await page.click('#open-add');
-    await page.getByRole('button', { name: 'Retirer : Ambiance sonore' }).click();
+    await catClick(page, 'Retirer : Ambiance sonore');
     await page.waitForFunction(() => window.__ctxs[0].state === 'closed');
     assert.deepEqual(errors, []);
     await context.close();

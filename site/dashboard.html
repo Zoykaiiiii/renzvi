@@ -24,14 +24,16 @@
   /* Accents au choix : tous à 4,5:1 minimum avec --on-accent, vérifié par tests/personnalisation.check.cjs. */
   --accent-encre:#17191c; --accent-vert:#1b6e66; --accent-bleu:#1c5699; --accent-prune:#6e2a55; --accent-terre:#96401f;
   --accent:var(--accent-vert); --on-accent:#fff;
-  --tint:rgba(23,25,28,.06); --rule:rgba(23,25,28,.08); --edge:rgba(23,25,28,.2); --week-bar:rgba(23,25,28,.24);
-  --ground:#fff; --wall-glass:rgba(255,255,255,.82);
-  --glass:rgba(255,255,255,.56); --glass-wall:rgba(250,250,251,.74); --glass-solid:rgba(250,250,251,.95); --slate-wall:#43454b;
-  --glass-edge:rgba(255,255,255,.6); --glass-blur:blur(16px) saturate(1.25);
-  --glass-shine:inset 0 1px 0 rgba(255,255,255,.65),0 0 0 1px rgba(23,25,28,.05),0 1px 2px rgba(23,25,28,.05);
+  --tint:rgba(23,25,28,.06); --rule:rgba(23,25,28,.08); --edge:rgba(23,25,28,.16); --week-bar:rgba(23,25,28,.24);
+  /* Sans photo : un fond gris clair neutre et des panneaux presque blancs. Sur une photo : un verre plus clair et plus flou, pour lire sans effort. */
+  --ground:#f1f2f4; --wall-glass:rgba(255,255,255,.84);
+  --glass:rgba(255,255,255,.88); --glass-wall:rgba(255,255,255,.76); --glass-solid:rgba(252,252,253,.96); --slate-wall:#43454b;
+  --glass-edge:rgba(255,255,255,.72); --glass-blur:blur(24px) saturate(1.6);
+  --glass-shine:inset 0 1px 0 rgba(255,255,255,.7),0 2px 8px rgba(23,25,28,.06);
   --sans:-apple-system,BlinkMacSystemFont,"Hanken Grotesk",ui-sans-serif,system-ui,sans-serif;
-  --r-panel:28px; --r-panel-morph:36px 26px 34px 30px; --pill:9999px;
-  --spring:cubic-bezier(.34,1.56,.64,1); --gap:16px; --control:40px;
+  --r-panel:20px; --r-control:12px; --pill:9999px;
+  --gap:16px; --control:36px;
+  --ease:cubic-bezier(.2,.8,.2,1); --spring:cubic-bezier(.34,1.56,.64,1);
   --move:.18s cubic-bezier(.2,.7,.2,1); --lift:0 18px 40px rgba(23,25,28,.24);
 }
 :root[data-accent=encre]{--accent:var(--accent-encre)}
@@ -41,41 +43,60 @@
 *{box-sizing:border-box;margin:0}
 [hidden]{display:none!important}
 body{font:400 16px/1.5 var(--sans);letter-spacing:-.008em;color:var(--ink);background:var(--ground);min-height:100dvh;-webkit-font-smoothing:antialiased}
-body::before{content:"";position:fixed;inset:0;z-index:-1;background:var(--wall,none) center/cover}
+/* Le fond : une couche par photo, pour passer de l'une à l'autre en fondu quand on change de mode. */
+#wall{position:fixed;inset:0;z-index:-1;background:var(--ground);overflow:hidden}
+#wall i{position:absolute;inset:0;background:center/cover no-repeat;opacity:0;transition:opacity .7s ease}
+#wall i.on{opacity:1}
 /* Sur une photo (même noire), le verre garde 4,5:1 avec le gris secondaire et 3:1 avec l'accent, vérifié par tests/personnalisation.check.cjs. */
 body.has-wall{--glass:var(--glass-wall);--slate:var(--slate-wall)}
-body.has-wall :is(.mark,#hello,.credit,#saved:not(:empty),#board-empty,#load-error,.custom-hint,#page-note:not(:empty)){padding:4px 14px;border-radius:18px;background:var(--wall-glass);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
+body.has-wall :is(.credit,#load-error,#page-note:not(:empty)){padding:4px 14px;border-radius:14px;background:var(--wall-glass);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
 body.has-wall .credit{width:fit-content;margin-block:32px 24px}
-body.has-wall .ghost{background:var(--wall-glass)}
 button,textarea,input,select{font:inherit;letter-spacing:inherit;color:inherit}
 button{cursor:pointer}
 a{color:inherit}
 :focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 
-/* 12 x 77 + 11 x 16 = 1100 : toutes les largeurs de widgets tombent sur ces colonnes. */
+/* 12 x 77 + 11 x 16 = 1100 : la barre, le bonjour et toutes les largeurs de widgets tombent sur ces colonnes. */
 .col{width:min(1100px,100% - 32px);margin-inline:auto}
-.top{display:flex;align-items:center;justify-content:space-between;height:76px}
-.mark{display:inline-flex;align-items:center;gap:10px;min-height:44px;font-size:18px;font-weight:600;text-decoration:none}
-.mark svg{width:24px;height:24px}
-
 .glass{background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shine)}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   :root{--glass:var(--glass-solid);--glass-wall:var(--glass-solid)}
 }
 
-.me{width:44px;height:44px;border-radius:var(--pill);font-weight:600;transition:transform .45s var(--spring)}
-.me:active{transform:scale(.92)}
-/* Le menu sort du bouton de compte et se déforme en panneau. */
-#menu{position:fixed;inset:68px max(16px,calc((100vw - 1100px)/2)) auto auto;margin:0;width:min(300px,100vw - 32px);padding:16px;border-radius:24px;color:inherit;transform-origin:top right;transition:transform .45s var(--spring),border-radius .45s var(--spring),opacity .18s,display .45s allow-discrete,overlay .45s allow-discrete;--glass:rgba(255,255,255,.82);box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 16px 40px rgba(23,25,28,.14)}
-#menu:not(:popover-open){opacity:0;transform:scale(.3);border-radius:var(--pill)}
-@starting-style{#menu:popover-open{opacity:0;transform:scale(.3);border-radius:var(--pill)}}
+/* La barre : le nom, les modes, les deux actions et le compte. Elle reste en haut de l'écran.
+   Son verre est dessiné par ::before : la barre elle-même ne doit pas retenir la rangée des modes, fixée en bas sur téléphone. */
+.topbar{position:sticky;top:12px;z-index:20;display:flex;align-items:center;gap:12px;height:56px;margin-top:12px;padding:0 10px 0 18px;border-radius:18px}
+.topbar::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shine)}
+.mark{flex:none;display:inline-flex;align-items:center;gap:10px;min-height:44px;font-size:17px;font-weight:600;text-decoration:none}
+.mark svg{width:22px;height:22px}
+.modes{flex:1;display:flex;justify-content:center;min-width:0}
+.tools{flex:none;display:flex;align-items:center;gap:8px;margin-left:auto}
+/* Les modes : une piste, et une pastille blanche qui glisse sous le mode affiché. */
+.page-tabs{position:relative;display:flex;gap:2px;min-width:0;max-width:100%;padding:4px;border-radius:var(--pill);background:var(--tint);overflow-x:auto;scrollbar-width:none}
+.page-tabs::-webkit-scrollbar{display:none}
+.page-tabs button{position:relative;z-index:1;flex:none;height:32px;max-width:200px;padding:0 16px;border:0;border-radius:var(--pill);background:none;color:var(--slate);font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .2s}
+.page-tabs button[aria-pressed=true]{color:var(--ink)}
+.page-tabs button:focus-visible{outline-offset:-2px}
+.thumb{position:absolute;top:4px;left:0;width:var(--w,0);height:32px;border-radius:var(--pill);background:#fff;box-shadow:0 1px 2px rgba(23,25,28,.14);transform:translateX(var(--x,0));transition:transform .4s var(--ease),width .4s var(--ease)}
+.thumb.still{transition:none}
+
+.me{flex:none;width:36px;height:36px;padding:0;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.72);font-size:14px;font-weight:600;transition:transform .2s var(--ease)}
+.me:active{transform:scale(.94)}
+/* Le menu sort du bouton de compte. */
+#menu{position:fixed;inset:76px max(16px,calc((100vw - 1100px)/2)) auto auto;margin:0;width:min(300px,100vw - 32px);padding:16px;border-radius:var(--r-panel);color:inherit;transform-origin:top right;transition:transform .25s var(--ease),opacity .18s,display .25s allow-discrete,overlay .25s allow-discrete;--glass:var(--glass-solid);box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 16px 40px rgba(23,25,28,.14)}
+#menu:not(:popover-open){opacity:0;transform:scale(.96) translateY(-6px)}
+@starting-style{#menu:popover-open{opacity:0;transform:scale(.96) translateY(-6px)}}
 #who{font-size:14px;color:var(--slate);overflow-wrap:anywhere}
 .out{display:block;width:100%;height:44px;margin-top:12px;border:0;border-radius:var(--pill);background:var(--ink);color:#fff;font-weight:500;transition:transform .15s}
 .out:active{transform:scale(.98)}
 .out:disabled{cursor:progress}
 
-.hello{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;padding:24px 0 24px}
-h1{font-size:32px;line-height:1.15;font-weight:500;letter-spacing:-.024em}
+/* Le bonjour et le fait du jour, tiré des widgets de la personne. Sur une photo, la bande devient un panneau de verre. */
+.hello{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:4px 16px;margin:28px 0 20px}
+h1{font-size:28px;line-height:1.15;font-weight:600;letter-spacing:-.022em}
+.today{margin-top:4px;font-size:15px;color:var(--slate)}
+.today:empty{display:none}
+body.has-wall .hello{margin:16px 0;padding:16px 24px;border:1px solid var(--glass-edge);border-radius:var(--r-panel);background:var(--glass);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shine)}
 #saved{font-size:12px;color:var(--slate)}
 #saved.bad{color:var(--error)}
 .msg{color:var(--error)}
@@ -87,40 +108,91 @@ h1{font-size:32px;line-height:1.15;font-weight:500;letter-spacing:-.024em}
 /* 12 colonnes, placement sans « dense » : l'ordre affiché reste toujours l'ordre de lecture.
    Téléphone 12 ; tablette P 4, M 6, G 12 ; ordinateur P 3, M 4, G 8. 4 + 8 = 3 + 3 + 6… = 12 : les rangées pleines tombent sur les bords. */
 .board{position:relative;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:var(--gap)}
-.tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-#board-empty{width:fit-content;font-size:14px;color:var(--slate)}
 
-.setup{width:min(720px,100%);margin:24px auto 48px;padding:32px;border-radius:var(--r-panel)}
-.setup h1{font-size:28px}
+/* Page vide : l'invitation prend la place du premier widget. Le dessin reprend les quatre carrés du logo. */
+#board-empty{display:grid;justify-items:center;gap:8px;padding:48px 24px 44px;border-radius:var(--r-panel);text-align:center}
+#board-empty svg{width:min(264px,70%);height:auto;margin-bottom:12px;color:var(--ink)}
+#board-empty .tile-a{fill:var(--accent)}
+#board-empty h2{font-size:22px;line-height:1.2;font-weight:600;letter-spacing:-.015em}
+#board-empty p{max-width:46ch;font-size:15px;color:var(--slate)}
+#board-empty .actions{justify-content:center;margin-top:16px}
+
+/* Premiers pas : une aide courte, facultative, cochée par les vraies actions. */
+.aide{display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px;margin-bottom:var(--gap);padding:12px 12px 12px 20px;border-radius:var(--r-panel)}
+.aide h2{flex:none}
+.aide ol{flex:1 1 420px;display:flex;flex-wrap:wrap;gap:6px 20px;padding:0;list-style:none;font-size:14px}
+.aide li{display:flex;align-items:center;gap:8px;color:var(--slate)}
+.aide li::before{content:"";flex:none;width:16px;height:16px;border:1.5px solid var(--edge);border-radius:50%}
+.aide li.fait{color:var(--ink)}
+.aide li.fait::before{border-color:var(--accent);background:var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.200 8.300l2.500 2.500 5.100-5.400' fill='none' stroke='%23fff' stroke-width='1.800' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain}
+.aide .link{margin:0;padding:0;font-size:14px}
+.aide .ghost{margin-left:auto}
+
+.setup{width:min(720px,100%);margin:32px auto 48px;padding:32px;border-radius:var(--r-panel)}
+.setup h1{font-size:24px}
 .lead{margin-top:8px;color:var(--slate)}
 .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-top:20px}
-.tile{display:flex;align-items:flex-end;aspect-ratio:3/2;padding:0;border:1px solid var(--edge);border-radius:16px;background:#fff center/cover;overflow:hidden}
+.tile{display:flex;align-items:flex-end;aspect-ratio:3/2;padding:0;border:1px solid var(--edge);border-radius:var(--r-control);background:#fff center/cover;overflow:hidden}
 .tile span{width:100%;padding:4px 10px;background:var(--wall-glass);font-size:13px;font-weight:500;text-align:left}
-.tile[aria-pressed=true]{outline:3px solid var(--ink);outline-offset:2px}
+.tile[aria-pressed=true]{outline:2px solid var(--ink);outline-offset:2px}
 .tile:disabled{cursor:progress}
 .pick-note{margin-top:12px;font-size:14px;color:var(--error)}
 .pick-note:empty{display:none}
 .base{list-style:none;padding:0;margin-top:20px}
-.base li,.catalog li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--rule)}
-.base li{display:block}
-.base li:last-child,.catalog li:last-child{border-bottom:0}
-.base b,.catalog b{font-weight:600}
+.base li{padding:10px 0;border-bottom:1px solid var(--rule)}
+.base li:last-child{border-bottom:0}
+.base b{font-weight:600}
 .desc{font-size:14px;color:var(--slate)}
-.catalog{list-style:none;padding:0;margin-top:12px}
 
-dialog.glass{width:min(640px,100vw - 32px);max-height:85dvh;margin:auto;padding:24px;border-radius:var(--r-panel);color:inherit;overflow:auto;--glass:rgba(255,255,255,.92)}
-dialog::backdrop{background:rgba(23,25,28,.3)}
-dialog h2{font-size:20px;line-height:1.3}
+dialog.glass{width:min(640px,100vw - 32px);max-height:85dvh;margin:auto;padding:24px;border-radius:var(--r-panel);color:inherit;overflow:auto;--glass:var(--glass-solid);box-shadow:0 24px 64px rgba(23,25,28,.24)}
+dialog::backdrop{background:rgba(23,25,28,.36)}
+dialog h2{font-size:18px;line-height:1.3}
 dialog .actions{justify-content:flex-end}
+
+/* Le catalogue : la liste rangée par catégories à gauche, l'aperçu à droite. Rien n'est ajouté sans le bouton de l'aperçu. */
+dialog.cat{width:min(980px,100vw - 24px);height:min(720px,100dvh - 24px);max-height:none;padding:0;overflow:hidden}
+dialog.cat[open]{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr)}
+.cat-list{display:flex;flex-direction:column;min-height:0;padding:20px 12px 0 20px;border-right:1px solid var(--rule)}
+.cat-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-right:8px}
+.cat-search{width:calc(100% - 8px);height:40px;margin-top:14px;padding:0 14px;border:1px solid var(--edge);border-radius:var(--pill);background:#fff}
+.cat-search::placeholder{color:var(--slate);opacity:1}
+.catalog{flex:1;min-height:0;margin-top:12px;padding:0 8px 20px 0;overflow-y:auto}
+.catalog h3{margin:16px 0 4px;font-size:12px;line-height:16px;font-weight:500;color:var(--slate)}
+.catalog ul{list-style:none;padding:0}
+.cat-item{display:block;width:100%;padding:9px 12px;border:0;border-radius:var(--r-control);background:none;text-align:left}
+.cat-item:hover{background:var(--tint)}
+.cat-item[aria-pressed=true]{background:rgba(23,25,28,.09)}
+.cat-item b{display:block;font-size:14px;font-weight:600}
+.cat-item .desc{display:block;font-size:13px;line-height:1.4}
+.cat-where{display:block;margin-top:2px;font-size:12px;color:var(--slate)}
+.cat-modes li{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 4px;padding:12px;border-radius:var(--r-control);background:var(--tint)}
+.cat-modes b{font-weight:600;font-size:14px}
+.cat-modes .desc{font-size:13px}
+.cat-none{padding:24px 12px;font-size:14px;color:var(--slate)}
+.cat-view{display:flex;flex-direction:column;gap:16px;min-width:0;min-height:0;padding:20px;overflow-y:auto}
+.cat-view-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.cat-view-head p{font-size:12px;color:var(--slate)}
+.cat-back{display:none}
+/* La scène de l'aperçu montre le widget sur le fond de la personne, à la taille choisie. Elle ne répond à aucun clic. */
+.stage{flex:1 0 auto;display:grid;place-items:center;min-height:260px;padding:24px;border-radius:16px;background:var(--ground) center/cover;overflow:hidden}
+.stage .widget{width:min(100%,var(--stage-w,356px));max-height:420px;overflow:hidden;--glass:rgba(255,255,255,.8)}
+.stage-none{font-size:14px;color:var(--slate);text-align:center}
+.cat-pick{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
+.cat-pick p{font-size:13px;color:var(--slate)}
+.cat-view .actions{margin-top:0;align-items:center}
+.cat-view .actions .desc{margin-right:auto;font-size:13px}
+.cat-hello{flex:1;display:grid;place-content:center;justify-items:center;gap:8px;text-align:center;color:var(--slate);font-size:14px}
+.cat-hello svg{width:96px;height:auto;color:var(--ink)}
 
 .acct{margin-top:12px;padding-top:12px;border-top:1px solid var(--rule)}
 .acct p{font-size:14px}
 .acct .desc{margin-top:2px;font-size:12px}
+.acct .link{margin-top:4px}
 .ref{display:flex;gap:6px;margin-top:6px}
 .ref input{flex:1;min-width:0;height:36px;padding:0 10px;border:1px solid var(--edge);border-radius:10px;background:#fff;font-size:12px}
 .ref .ghost{height:36px;padding:0 12px;font-size:13px}
-.widget{container:widget/inline-size;grid-column:span 12;display:flex;flex-direction:column;min-width:0;padding:24px;border-radius:var(--r-panel);transition:border-radius .6s var(--spring)}
+.widget{container:widget/inline-size;grid-column:span 12;display:flex;flex-direction:column;min-width:0;padding:20px;border-radius:var(--r-panel)}
 .widget[data-size=s]{padding:16px}
 @media (min-width:728px){
   .widget{grid-column:span 6}
@@ -132,16 +204,12 @@ dialog .actions{justify-content:flex-end}
   .widget[data-size=s]{grid-column:span 3}
   .widget[data-size=l]{grid-column:span 8}
 }
-@media (hover:hover){.widget:hover{border-radius:var(--r-panel-morph)}}
+/* Vue agrandie : le widget reste le même (rien n'est rechargé), il passe au premier plan. */
+.widget.zoomed{position:fixed;inset:max(16px,6dvh) max(16px,calc((100vw - 920px)/2));z-index:60;overflow:auto;--glass:var(--glass-solid);box-shadow:0 24px 64px rgba(23,25,28,.28)} /* taste-skill-ignore : la vue agrandie flotte au-dessus de l'écran */
+.widget.zoomed .edit{display:none}
+.veil{position:fixed;inset:0;z-index:59;background:rgba(23,25,28,.36)}
+.zoom-lock{overflow:hidden}
 
-/* Pages : une rangée qui défile seule sur téléphone, jamais la page entière. */
-.page-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin-bottom:var(--gap)}
-/* Les 3 px laissent la place au contour de focus sans décaler les onglets du bord des widgets. */
-.page-tabs{display:flex;gap:8px;min-width:0;max-width:calc(100% + 6px);margin:-3px;padding:3px;overflow-x:auto;scrollbar-width:none}
-.page-tabs .ghost{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.page-tabs .ghost[aria-pressed=true]{border-color:transparent;background:var(--accent);color:var(--on-accent)}
-.page-tools{display:none;flex-wrap:wrap;gap:8px}
-.customizing .page-tools{display:flex}
 #page-note{width:fit-content;margin-bottom:var(--gap);font-size:13px}
 #page-note:empty{display:none}
 .edit-page{display:flex;flex:1 1 100%;align-items:center;gap:8px;font-size:13px}
@@ -149,18 +217,24 @@ dialog .actions{justify-content:flex-end}
 #page-slot .add{margin-top:16px}
 #page-slot .desc{margin-top:8px}
 
-/* Mode Personnaliser. */
-.custom{position:sticky;top:8px;z-index:5;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin-bottom:var(--gap);padding:8px 8px 8px 20px;border-radius:var(--r-panel);--glass:var(--glass-solid)}
-.custom-accent{display:flex;flex-wrap:wrap;align-items:center;gap:0 12px;min-width:0}
-.custom-accent p{font-size:14px}
-.custom-accent b{font-weight:600}
-.swatches{display:flex}
+/* Personnaliser : un panneau en bas de l'écran (fond, couleur, page), l'écran reste visible au-dessus. */
+.custom{position:fixed;inset:auto 0 16px;z-index:30;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,3fr) minmax(0,3fr) auto;align-items:start;gap:12px 28px;width:min(1100px,100% - 32px);margin-inline:auto;padding:16px 16px 16px 20px;border-radius:var(--r-panel);--glass:var(--glass-solid);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 16px 48px rgba(23,25,28,.2)} /* taste-skill-ignore : le panneau flotte au-dessus de l'écran */
+.customizing main{padding-bottom:var(--custom-h,220px)}
+.custom-part{min-width:0}
+.custom-label{font-size:12px;line-height:16px;color:var(--slate)}
+.custom-label b{font-weight:600;color:var(--ink)}
+.custom .tiles{display:flex;gap:8px;margin:8px -4px -4px;padding:4px;overflow-x:auto;scrollbar-width:thin}
+.custom .tile{flex:none;width:92px}
+.custom .tile span{padding:2px 8px;font-size:12px}
+.swatches{display:flex;margin:4px 0 0 -10px}
 .swatch{display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:var(--pill);background:none}
 .swatch i{display:block;width:24px;height:24px;border-radius:var(--pill);background:var(--c);transition:transform .15s}
 .swatch:active i{transform:scale(.9)}
 .swatch[aria-pressed=true] i{outline:2px solid var(--ink);outline-offset:3px}
-.custom-side{display:flex;align-items:center;gap:12px;margin-left:auto}
-.custom-hint{display:none;margin-bottom:var(--gap);font-size:13px}
+.page-tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.custom-side{display:flex;align-items:center;gap:12px}
+.custom-tip{grid-column:1/-1;font-size:13px}
+.custom-hint{display:none;grid-column:1/-1;font-size:13px}
 .edit{display:none;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
 .customizing .edit{display:flex}
 .edit .ghost{padding:0 12px;font-size:13px}
@@ -171,23 +245,28 @@ dialog .actions{justify-content:flex-end}
 .grip svg{width:14px;height:14px;fill:currentColor}
 .dragging{user-select:none;-webkit-user-select:none}
 .dragging .grip{cursor:grabbing}
-.customizing .widget:hover{border-radius:var(--r-panel)}
+.customizing .zoom{display:none}
 .widget.lifted{z-index:10;box-shadow:var(--lift),0 0 0 2px var(--accent);transition:none} /* taste-skill-ignore : le widget tenu flotte vraiment */
 .drop-slot{position:absolute;border:2px dashed var(--accent);border-radius:var(--r-panel);background:rgba(255,255,255,.28);transition:left var(--move),top var(--move),width var(--move),height var(--move);pointer-events:none}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-.head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.head{display:flex;align-items:center;gap:8px;min-height:28px}
 h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
-.meta{font-size:12px;line-height:20px;color:var(--slate);font-variant-numeric:tabular-nums;white-space:nowrap}
+.meta{margin-left:auto;font-size:12px;line-height:20px;color:var(--slate);font-variant-numeric:tabular-nums;white-space:nowrap}
+.zoom{flex:none;display:grid;place-items:center;width:28px;height:28px;margin-right:-6px;padding:0;border:0;border-radius:8px;background:none;color:var(--slate);transition:opacity .15s}
+.zoom svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round}
+.zoom:hover{background:var(--tint);color:var(--ink)}
+@media (hover:hover){.widget:not(:hover):not(:focus-within):not(.zoomed) .zoom{opacity:0}}
 .body{flex:1;display:flex;flex-direction:column;margin-top:12px;min-height:0}
 .empty{flex:1;display:grid;place-items:center;padding:12px 0;font-size:14px;color:var(--slate);text-align:center}
 .note{margin-top:8px;font-size:12px;color:var(--error)}
 
 .add{display:flex;gap:8px}
-.add input{flex:1;min-width:0;height:var(--control);padding:0 16px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7)}
+.add input{flex:1;min-width:0;height:var(--control);padding:0 14px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7)}
 .add input::placeholder{color:var(--slate);opacity:1}
-.ghost{flex:none;height:var(--control);padding:0 16px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7);font-size:14px;font-weight:500;transition:transform .15s}
+.ghost{flex:none;height:var(--control);padding:0 14px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.72);font-size:14px;font-weight:500;transition:transform .15s,background-color .15s}
+.ghost:hover:not(:disabled){background:#fff}
 .ghost:active{transform:scale(.97)}
-.primary{flex:none;height:var(--control);padding:0 20px;border:0;border-radius:var(--pill);background:var(--ink);color:#fff;font-size:14px;font-weight:500;transition:transform .15s}
+.primary{flex:none;height:var(--control);padding:0 18px;border:0;border-radius:var(--pill);background:var(--ink);color:#fff;font-size:14px;font-weight:500;transition:transform .15s}
 .primary:active{transform:scale(.97)}
 #screen .primary{background:var(--accent);color:var(--on-accent)}
 .x{flex:none;width:32px;height:32px;border:0;border-radius:var(--pill);background:none;color:var(--slate);font-size:18px;line-height:1}
@@ -413,40 +492,87 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 .flight-alert h2{font-size:32px;line-height:1.15;font-weight:500}
 .flight-alert p,.flight-end p{color:var(--flight-muted)}
 
+.icon{display:inline-flex;align-items:center;gap:6px}
+.icon svg{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round}
+.custom-tabs{display:none}
+/* Un widget qui arrive (ajout, changement de mode) : il se pose, sans rebond. */
+@keyframes arrive{from{opacity:0;transform:translateY(10px) scale(.985)}}
+.widget.arrive{animation:arrive .5s var(--ease) backwards}
+
 /* Le flou se recalcule à chaque image de défilement : plus léger et plus opaque sur téléphone. */
 @media (max-width:760px){
-  :root{--glass-blur:blur(10px) saturate(1.2);--glass-wall:rgba(250,250,251,.78)}
-  .hello{padding:12px 0 20px}
-  .grip{width:44px;height:44px}
-  .custom{padding:8px 8px 8px 16px}
-  .setup{margin-top:8px;padding:20px}
+  :root{--glass-blur:blur(12px) saturate(1.4);--glass-wall:rgba(255,255,255,.8);--control:44px}
+  .hello{margin:20px 0 16px}
+  body.has-wall .hello{margin:12px 0;padding:14px 18px}
+  h1{font-size:24px}
+  .setup{margin-top:16px;padding:20px}
   .ref input,.ref .ghost{height:44px}
-  h1{font-size:28px}
-  .widget{padding:20px}
+  .widget{padding:18px}
   .widget[data-size=s]{padding:16px}
   .rows{max-height:none}
   .x{width:44px;height:44px}
   .days button{height:44px}
-  .ghost,.primary,.add input,.edit-page select{height:44px}
   .choices button{height:38px}
+  .me{width:44px;height:44px}
+  .zoom{width:44px;height:44px;margin:-8px -12px -8px 0}
+  .widget.zoomed{inset:0;border-radius:0}
+  #board-empty{padding:36px 20px 32px}
+  .cat-search{height:44px}
+  /* Catalogue en plein écran : la liste, puis l'aperçu du widget choisi, avec un retour. */
+  dialog.cat{width:100vw;height:100dvh;max-width:none;margin:0;border:0;border-radius:0}
+  dialog.cat[open]{grid-template-columns:minmax(0,1fr)}
+  .cat-list{padding:16px 8px 0 16px;border-right:0}
+  .cat-view{display:none;padding:16px}
+  dialog.cat[data-vue=apercu] .cat-list{display:none}
+  dialog.cat[data-vue=apercu] .cat-view{display:flex}
+  .cat-back{display:inline-flex;align-items:center}
+  .stage{min-height:220px;padding:16px}
 }
-@media (max-width:727px){.custom-hint{display:block}}
-@media (max-height:600px){.custom{position:static}}
+@media (max-width:727px){
+  .custom-hint{display:block}
+  .topbar{gap:8px;padding:0 6px 0 14px}
+  #open-custom{width:44px;padding:0;justify-content:center}
+  #open-custom span{display:none}
+  /* Les modes passent en bas de l'écran, sous le pouce. Pendant « Personnaliser », le panneau prend le bas : ils remontent sous la barre. */
+  .modes{position:fixed;inset:auto 12px calc(12px + env(safe-area-inset-bottom)) 12px;z-index:20;padding:4px;border:1px solid var(--glass-edge);border-radius:var(--pill);background:var(--glass-solid);box-shadow:0 8px 24px rgba(23,25,28,.16)} /* taste-skill-ignore : la rangée des modes flotte au-dessus de l'écran */
+  .modes .page-tabs{flex:1;padding:0;background:none}
+  .page-tabs button{flex:1 0 auto;height:44px}
+  .thumb{top:0;height:44px;background:rgba(23,25,28,.08);box-shadow:none}
+  .has-modes main{padding-bottom:84px}
+  .customizing .modes{inset:76px 12px auto 12px}
+  .customizing.has-modes .hello{margin-top:76px}
+  /* Le panneau devient une feuille en bas : un réglage à la fois. */
+  .custom{inset:auto 0 0;width:100%;grid-template-columns:minmax(0,1fr) auto;gap:12px;max-height:60dvh;padding:12px 16px calc(16px + env(safe-area-inset-bottom));border-radius:var(--r-panel) var(--r-panel) 0 0;overflow-y:auto}
+  .custom-tabs{display:flex;align-self:center}
+  .custom-part{grid-column:1/-1;display:none}
+  .custom[data-tab=fond] [data-part=fond],.custom[data-tab=couleur] [data-part=couleur],.custom[data-tab=page] [data-part=page]{display:block}
+  .custom-side{grid-area:1/2}
+  .custom-tip{display:none}
+  .aide .ghost{margin-left:0}
+}
+@media (max-width:359px){.mark span{display:none}}
 @media (prefers-reduced-motion:reduce){
-  .drop-slot,.swatch i{transition:none}
-  .cockpit,.flight-end,.hublot,.hublot-wing{animation:none}
+  .drop-slot,.swatch i,.thumb,#wall i,.page-tabs button,.zoom{transition:none}
+  .cockpit,.flight-end,.hublot,.hublot-wing,.widget.arrive{animation:none}
   .breath{transition:none;transform:none}
   .ring .fill{transition:none}
-  .me,.out,.widget,#menu,.ghost,.primary{transition:none}
+  .me,.out,#menu,.ghost,.primary{transition:none}
   .me:active,.out:active,.ghost:active,.primary:active{transform:none}
-  .widget:hover{border-radius:var(--r-panel)}
 }
 </style>
 </head>
 <body>
-<header class="col top">
+<div id="wall" aria-hidden="true"></div>
+<header class="col topbar" id="bar">
   <a class="mark" href="./" aria-label="Renzvi, accueil"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="3" fill="#17191c"/><rect x="13" y="2" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="2" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="13" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/></svg><span>Renzvi</span></a>
-  <button class="me glass" id="me" type="button" popovertarget="menu" aria-label="Mon compte" hidden></button>
+  <nav class="modes" id="page-bar" aria-label="Modes et pages de ton écran" hidden>
+    <div class="page-tabs" id="page-tabs"></div>
+  </nav>
+  <div class="tools">
+    <button class="primary icon" id="open-add" type="button" aria-label="Ajouter un widget" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg><span>Ajouter</span></button>
+    <button class="ghost icon" id="open-custom" type="button" aria-label="Personnaliser" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5h5M11 5h3M2 11h2M8 11h6"/><circle cx="9" cy="5" r="2"/><circle cx="6" cy="11" r="2"/></svg><span>Personnaliser</span></button>
+    <button class="me" id="me" type="button" popovertarget="menu" aria-label="Mon compte" hidden></button>
+  </div>
 </header>
 <div class="glass" id="menu" popover>
   <p id="who"></p>
@@ -467,6 +593,10 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
     <h2>Application</h2>
     <button class="ghost ins-open ins-menu-btn" type="button" data-install><span>Installer l'app</span></button>
   </div>
+  <div class="acct">
+    <h2>Aide</h2>
+    <button class="link" id="aide-open" type="button">Revoir les premiers pas</button>
+  </div>
   <button class="out" id="logout" type="button">Se déconnecter</button>
   <p class="msg" id="logout-msg" role="alert"></p>
 </div>
@@ -475,36 +605,41 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
   <section class="setup glass" id="setup" hidden></section>
   <div id="screen" hidden>
     <div class="hello">
-      <h1 id="hello">Bonjour.</h1>
-      <div class="tools">
-        <p id="saved" role="status"></p>
-        <button class="ghost" id="open-wall" type="button">Fond d'écran</button>
-        <button class="ghost" id="open-add" type="button">Ajouter un widget</button>
-        <button class="ghost" id="open-custom" type="button">Personnaliser</button>
+      <div>
+        <h1 id="hello">Bonjour.</h1>
+        <p class="today" id="today"></p>
       </div>
+      <p id="saved" role="status"></p>
     </div>
-    <nav class="page-bar" id="page-bar" aria-label="Pages de ton écran" hidden>
-      <div class="page-tabs" id="page-tabs"></div>
-      <div class="page-tools">
-        <button class="ghost" id="page-new" type="button">Nouvelle page</button>
-        <button class="ghost" id="page-rename" type="button">Renommer</button>
-        <button class="ghost" id="page-delete" type="button">Supprimer la page</button>
-      </div>
-    </nav>
+    <section class="aide glass" id="aide" aria-labelledby="aide-title" hidden></section>
     <p class="desc" id="page-note" role="status"></p>
-    <section class="custom glass" id="custom" aria-label="Personnaliser ton écran" hidden>
-      <div class="custom-accent">
-        <p id="accent-label">Couleur d'accent : <b id="accent-name"></b></p>
+    <section class="custom glass" id="custom" aria-label="Personnaliser ton écran" data-tab="fond" hidden>
+      <div class="custom-tabs choices" id="custom-tabs" role="group" aria-label="Réglage affiché"></div>
+      <div class="custom-part" data-part="fond">
+        <p class="custom-label">Fond d'écran de cette page</p>
+        <div id="wall-slot"></div>
+      </div>
+      <div class="custom-part" data-part="couleur">
+        <p class="custom-label" id="accent-label">Couleur d'accent : <b id="accent-name"></b></p>
         <div class="swatches" id="swatches" role="group" aria-labelledby="accent-label"></div>
+      </div>
+      <div class="custom-part" data-part="page">
+        <p class="custom-label">Page affichée : <b id="page-current"></b></p>
+        <div class="page-tools">
+          <button class="ghost" id="page-new" type="button">Nouvelle page</button>
+          <button class="ghost" id="page-rename" type="button">Renommer</button>
+          <button class="ghost" id="page-delete" type="button">Supprimer la page</button>
+        </div>
       </div>
       <div class="custom-side" id="custom-side">
         <button class="primary" id="custom-done" type="button">Terminer</button>
       </div>
+      <p class="custom-tip desc">Sur chaque widget : glisse la poignée pour le déplacer, choisis sa taille ou retire-le.</p>
+      <p class="custom-hint desc" id="custom-hint">Sur téléphone, les widgets prennent toute la largeur. La taille choisie s'applique sur un écran plus large.</p>
     </section>
-    <p class="custom-hint desc" id="custom-hint" hidden>Sur téléphone, les widgets prennent toute la largeur. La taille choisie s'applique sur un écran plus large.</p>
     <p class="sr" id="custom-live" role="status"></p>
     <div class="board" id="board"></div>
-    <p id="board-empty" hidden>Ton écran est vide. Ajoute un widget quand tu veux.</p>
+    <section class="glass" id="board-empty" aria-labelledby="empty-title" hidden></section>
   </div>
   <div id="load-error" role="alert" hidden>
     <p class="msg">Impossible de charger ton écran.</p>
@@ -551,20 +686,21 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
   </div>
 </section>
 
-<dialog class="glass" id="wall-dialog" aria-labelledby="wall-title">
-  <h2 id="wall-title">Fond d'écran</h2>
-  <div id="wall-slot"></div>
-  <form class="actions" method="dialog"><button class="primary">Fermer</button></form>
-</dialog>
 <dialog class="glass" id="page-dialog" aria-labelledby="page-title">
   <h2 id="page-title"></h2>
   <div id="page-slot"></div>
 </dialog>
-<dialog class="glass" id="add-dialog" aria-labelledby="add-title">
-  <h2 id="add-title">Tes widgets</h2>
-  <p class="desc">Si tu retires un widget, son contenu est gardé : tu le retrouves en le remettant.</p>
-  <ul class="catalog" id="catalog"></ul>
-  <form class="actions" method="dialog"><button class="primary">Fermer</button></form>
+<dialog class="glass cat" id="add-dialog" aria-labelledby="add-title" data-vue="liste">
+  <div class="cat-list">
+    <div class="cat-head">
+      <h2 id="add-title">Ajouter un widget</h2>
+      <form method="dialog"><button class="x" id="add-close" aria-label="Fermer le catalogue">×</button></form>
+    </div>
+    <input class="cat-search" id="cat-search" type="search" placeholder="Chercher un widget" aria-label="Chercher un widget" autocomplete="off" maxlength="40">
+    <p class="sr" id="cat-count" role="status"></p>
+    <div class="catalog" id="catalog"></div>
+  </div>
+  <section class="cat-view" id="cat-view" aria-label="Aperçu du widget choisi"></section>
 </dialog>
 <p class="col msg blocked" id="blocked" role="alert" hidden></p>
 <noscript><p class="col msg blocked">Active JavaScript pour ouvrir ton écran.</p></noscript>
@@ -1937,6 +2073,7 @@ if (!sb) {
     stored[widget] = data;
     pending.set(widget, data);
     if (widget === 'vol' || widget === 'minuteur') document.dispatchEvent(new Event('renzvi:focus'));
+    if (loaded && ['vol', 'minuteur', 'taches', 'ecran'].includes(widget)) drawToday();
     showSaved('Enregistrement…');
     clearTimeout(saveTimer);
     saveTimer = setTimeout(flush, SAVE_DELAY);
@@ -1967,7 +2104,9 @@ if (!sb) {
   addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
   addEventListener('beforeunload', e => { if (pending.size || saving) e.preventDefault(); });
 
-  function mount(w, user) {
+  // Ces widgets ont déjà leur propre grande vue.
+  const OWN_ZOOM = ['cahier', 'vol', 'jardin', 'dessin', 'coloriage', 'puzzle', 'tangram', 'fenetre'];
+  function mount(w, user, arriving) {
     const box = el('section', 'widget glass');
     box.dataset.widget = w.id;
     box.dataset.size = screen.sizes[w.id] ?? w.size ?? DEFAULT_SIZE;
@@ -1980,23 +2119,109 @@ if (!sb) {
     const body = el('div', 'body');
     const edit = editBar(w, box);
     box.append(edit.bar, head, body);
-    let cleanup;
+    const entry = { box, edit };
+    if (!OWN_ZOOM.includes(w.id)) {
+      entry.zoomBtn = button('zoom', '', () => zoom(entry));
+      entry.zoomBtn.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.500 2.500h4v4M13.500 2.500 9 7M6.500 13.500h-4v-4M2.500 13.500 7 9"/></svg>';
+      entry.zoomBtn.ariaLabel = `Agrandir ${w.title}`;
+      entry.zoomBtn.setAttribute('aria-pressed', 'false');
+      head.append(entry.zoomBtn);
+    }
     // Un widget qui plante ne doit pas emporter tout l'écran.
-    try { cleanup = w.render({ body, meta, user, sb, data: stored[w.id], save: data => queueSave(w.id, data), focusLogs: () => [focusLog(stored.vol), focusLog(stored.minuteur)] }); }
+    try { entry.cleanup = w.render({ body, meta, user, sb, data: stored[w.id], save: data => queueSave(w.id, data), focusLogs: () => [focusLog(stored.vol), focusLog(stored.minuteur)] }); }
     catch (e) { console.error(w.id, e); body.replaceChildren(el('p', 'msg', "Ce widget n'a pas pu se charger.")); }
     $('board').append(box);
-    mounted.set(w.id, { box, cleanup, edit });
+    mounted.set(w.id, entry);
+    if (arriving) arrive([w.id]);
   }
   function unmount(id) {
     const m = mounted.get(id);
+    if (zoomed === m) zoom(null);
     m.cleanup?.();
     m.box.remove();
     mounted.delete(id);
   }
+  // Vue agrandie : le même widget passe au premier plan, le reste de l'écran ne répond plus tant qu'elle est ouverte.
+  const veil = el('div', 'veil');
+  veil.hidden = true;
+  veil.onclick = () => zoom(null);
+  document.body.append(veil);
+  let zoomed = null;
+  function zoom(next) {
+    const prev = zoomed;
+    zoomed = next === prev ? null : next;
+    prev?.box.classList.remove('zoomed');
+    prev?.zoomBtn.setAttribute('aria-pressed', 'false');
+    zoomed?.box.classList.add('zoomed');
+    zoomed?.zoomBtn.setAttribute('aria-pressed', 'true');
+    if (prev) prev.zoomBtn.ariaLabel = prev.zoomBtn.ariaLabel.replace('Réduire', 'Agrandir');
+    if (zoomed) zoomed.zoomBtn.ariaLabel = zoomed.zoomBtn.ariaLabel.replace('Agrandir', 'Réduire');
+    veil.hidden = !zoomed;
+    document.documentElement.classList.toggle('zoom-lock', !!zoomed);
+    for (const n of [$('bar'), $('aide'), $('board-empty'), ...[...mounted.values()].map(m => m.box)]) n.inert = !!zoomed && n !== zoomed.box;
+    if (zoomed || prev) (zoomed ?? prev).zoomBtn.focus();
+  }
+  addEventListener('keydown', e => { if (e.key === 'Escape' && zoomed && !document.querySelector('dialog[open]')) zoom(null); });
+  // Les widgets qui arrivent (ajout, changement de mode) se posent l'un après l'autre.
+  function arrive(ids) {
+    ids.forEach((id, i) => {
+      const box = mounted.get(id)?.box;
+      if (!box) return;
+      box.classList.remove('arrive');
+      box.style.animationDelay = `${Math.min(i, 8) * 40}ms`;
+      box.getBoundingClientRect();
+      box.classList.add('arrive');
+      box.addEventListener('animationend', () => box.classList.remove('arrive'), { once: true });
+    });
+  }
+
+  // Le fait du jour, sous le bonjour : la date, et ce que disent les widgets de la personne.
+  function drawToday() {
+    const date = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    const facts = [];
+    if (screen.widgets.includes('taches')) {
+      const left = listOf(stored.taches?.items).filter(t => !t?.done).length;
+      if (left) facts.push(`${plural(left, 'tâche')} à faire`);
+    }
+    const today = dayKey(new Date());
+    const focus = (focusLog(stored.vol)[today] ?? 0) + (focusLog(stored.minuteur)[today] ?? 0);
+    if (focus) facts.push(`${durationLabel(focus)} de focus aujourd'hui`);
+    $('today').textContent = [date[0].toUpperCase() + date.slice(1), ...facts].join(' · ');
+  }
+
+  // Premiers pas : une aide courte, cochée par les vraies actions, qu'on peut masquer et revoir depuis le menu du compte.
+  const AIDE = [['add', 'Ajoute un widget'], ['move', 'Dans « Personnaliser », déplace-le ou change sa taille'], ['wall', "Choisis ton fond d'écran"]];
+  function drawAide() {
+    const a = screen.aide;
+    $('aide').hidden = !a || a.off;
+    if ($('aide').hidden) return;
+    const done = AIDE.every(([key]) => a[key]);
+    const title = el('h2', '', done ? 'Premiers pas terminés' : 'Premiers pas');
+    title.id = 'aide-title';
+    const list = el('ol');
+    for (const [key, text] of AIDE) {
+      const li = el('li', a[key] ? 'fait' : '', text);
+      if (a[key]) li.append(el('span', 'sr', ' (fait)'));
+      list.append(li);
+    }
+    $('aide').replaceChildren(title, list, button('ghost', done ? 'Fermer' : 'Masquer', () => {
+      screen.aide = { ...a, off: true };
+      drawAide();
+      saveScreen();
+      $('open-add').focus();
+    }));
+  }
+  // Celui qui appelle enregistre l'écran juste après.
+  function aideStep(key) {
+    if (!screen.aide || screen.aide.off || screen.aide[key]) return;
+    screen.aide = { ...screen.aide, [key]: true };
+    drawAide();
+  }
+
   function refreshBoard() {
     const here = onPage();
     $('board-empty').hidden = here.length > 0;
-    $('board-empty').textContent = `${screen.pages.length > 1 ? 'Cette page' : 'Ton écran'} est vide. Ajoute un widget quand tu veux.`;
+    if ($('empty-title')) $('empty-title').textContent = `${screen.pages.length > 1 ? 'Cette page' : 'Ton écran'} est vide`;
     here.forEach((id, i) => {
       const { before, after } = mounted.get(id).edit;
       before.disabled = i === 0;
@@ -2007,12 +2232,19 @@ if (!sb) {
   // Masqués, pas retirés : le minuteur et les sons d'une autre page continuent de tourner.
   function drawPages() {
     const many = screen.pages.length > 1;
-    $('page-bar').hidden = !many && !document.body.classList.contains('customizing');
-    $('page-tabs').replaceChildren(...screen.pages.map(page => {
-      const tab = button('ghost', page.name, () => { showPage(page.id); focusTab(); });
+    $('page-bar').hidden = !many;
+    document.body.classList.toggle('has-modes', many);
+    const tabs = $('page-tabs');
+    // La pastille reste en place d'un dessin à l'autre : la retirer de la page couperait son glissement.
+    if (!tabs.querySelector('.thumb')) tabs.append(el('span', 'thumb still'));
+    for (const old of tabs.querySelectorAll('button')) old.remove();
+    tabs.append(...screen.pages.map(page => {
+      const tab = button('', page.name, () => { showPage(page.id); focusTab(); });
       tab.setAttribute('aria-pressed', page.id === currentPage);
       return tab;
     }));
+    moveThumb();
+    $('page-current').textContent = pageNow().name;
     $('page-new').disabled = screen.pages.length >= MAX_SCREEN_PAGES;
     $('page-delete').hidden = !many;
     for (const [id, m] of mounted) {
@@ -2023,13 +2255,28 @@ if (!sb) {
     }
     refreshBoard();
   }
+  function moveThumb() {
+    const tabs = $('page-tabs'), tab = tabs.querySelector('[aria-pressed=true]'), thumb = tabs.querySelector('.thumb');
+    if (!tab || !thumb || !tab.offsetWidth) return;
+    thumb.style.setProperty('--x', `${tab.offsetLeft}px`);
+    thumb.style.setProperty('--w', `${tab.offsetWidth}px`);
+    // Avec beaucoup de pages sur téléphone, la rangée défile jusqu'à l'onglet affiché.
+    if (tab.offsetLeft < tabs.scrollLeft || tab.offsetLeft + tab.offsetWidth > tabs.scrollLeft + tabs.clientWidth) tabs.scrollLeft = tab.offsetLeft - 16;
+    requestAnimationFrame(() => thumb.classList.remove('still'));
+  }
+  addEventListener('resize', moveThumb);
+  document.fonts?.ready.then(moveThumb);
   const focusTab = () => $('page-tabs').querySelector('[aria-pressed=true]').focus();
+  // Changer de mode : le fond passe en fondu, la pastille glisse, les widgets du mode se posent. Rien n'est rechargé ni perdu.
   function showPage(id) {
+    const changed = id !== currentPage;
+    zoom(null);
     currentPage = id;
     $('page-note').textContent = '';
     try { localStorage.setItem('renzvi:page', id); } catch {}
     applyWallpaper();
     drawPages();
+    if (changed) arrive(onPage());
   }
   // « Revoir dans le cours » depuis une carte : si le Cahier est sur une autre page, on y va (il fait le reste).
   document.addEventListener('renzvi:revoir', () => { if (mounted.has('cahier') && pageOf('cahier') !== currentPage) showPage(pageOf('cahier')); });
@@ -2097,6 +2344,7 @@ if (!sb) {
         flip(() => { box.dataset.size = s.id; }, box);
         screen.sizes = { ...screen.sizes, [w.id]: s.id };
         mark();
+        aideStep('move');
         saveScreen();
       });
       b.dataset.size = s.id;
@@ -2147,6 +2395,7 @@ if (!sb) {
     // Un bouton qui devient inactif perd le focus clavier : on le passe à son voisin.
     if (focused.disabled) (focused === before ? after : before).focus();
     $('custom-live').textContent = `${w.title} : position ${onPage().indexOf(w.id) + 1} sur ${onPage().length}`;
+    aideStep('move');
     saveScreen();
   }
   function nudge(w, step) {
@@ -2257,14 +2506,20 @@ if (!sb) {
     }));
     applyAccent();
   }
-  // L'état d'enregistrement suit la barre : il reste visible même en bas d'un long écran.
+  // L'état d'enregistrement suit le panneau : il reste visible même en bas d'un long écran.
   function setCustomizing(on) {
+    zoom(null);
     document.body.classList.toggle('customizing', on);
     $('custom').hidden = !on;
     $('custom-hint').hidden = !on;
     $('open-custom').hidden = on;
+    if (on) {
+      $('wall-slot').replaceChildren(wallpaperPicker());
+      $('custom-side').prepend($('saved'));
+    } else $('today').parentNode.after($('saved'));
     drawPages();
-    if (on) $('custom-side').prepend($('saved')); else $('open-wall').before($('saved'));
+    // L'écran garde, en bas, la place du panneau : le dernier widget reste atteignable.
+    document.documentElement.style.setProperty('--custom-h', on ? `${$('custom').offsetHeight + 40}px` : '');
     (on ? $('custom-done') : $('open-custom')).focus();
   }
 
@@ -2275,7 +2530,7 @@ if (!sb) {
     const ids = listOf(e.detail?.ids).filter(id => WIDGETS.some(w => w.id === id) && !screen.widgets.includes(id));
     if (!ids.length) return;
     screen.widgets = [...screen.widgets, ...ids];
-    for (const id of ids) { screen.where = { ...screen.where, [id]: currentPage }; mount(WIDGETS.find(w => w.id === id), screenUser); }
+    for (const id of ids) { screen.where = { ...screen.where, [id]: currentPage }; mount(WIDGETS.find(w => w.id === id), screenUser, true); }
     drawPages();
     saveScreen();
     e.detail.added = ids;
@@ -2313,11 +2568,37 @@ if (!sb) {
     screenUser = user;
     $('setup').hidden = true;
     $('screen').hidden = false;
+    $('open-add').hidden = false;
+    $('open-custom').hidden = document.body.classList.contains('customizing');
+    // Page vide : l'invitation reprend les carrés du logo, rangés comme un écran qui se remplit.
+    $('board-empty').innerHTML = '<svg viewBox="0 0 264 148" aria-hidden="true"><rect class="tile-a" x="4" y="4" width="120" height="66" rx="14"/><path d="M22 26h50M22 40h76M22 54h36" fill="none" stroke="#fff" stroke-opacity=".85" stroke-width="5" stroke-linecap="round"/><rect x="136" y="4" width="124" height="66" rx="14" fill="currentColor" opacity=".1"/><rect x="4" y="82" width="74" height="62" rx="14" fill="currentColor" opacity=".1"/><rect x="90" y="82" width="74" height="62" rx="14" fill="currentColor" opacity=".16"/><rect x="177" y="83" width="82" height="60" rx="13" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="1.500" stroke-dasharray="5 5"/><path d="M218 104v18M209 113h18" fill="none" stroke="currentColor" stroke-opacity=".6" stroke-width="1.800" stroke-linecap="round"/></svg><h2 id="empty-title"></h2><p>Choisis un premier widget dans le catalogue. Tu vois un aperçu avant de l\'ajouter, et tu peux le retirer quand tu veux.</p>';
+    const start = el('div', 'actions');
+    start.append(button('primary', 'Choisir un widget', () => openCatalog(user)));
+    $('board-empty').append(start);
     for (const id of screen.widgets) if (!mounted.has(id)) mount(WIDGETS.find(w => w.id === id), user);
     drawPages();
-    $('open-add').onclick = () => { drawCatalog(user); $('add-dialog').showModal(); };
+    drawToday();
+    drawAide();
+    $('open-add').onclick = () => openCatalog(user);
+    $('cat-search').oninput = () => drawCatalog(user);
+    $('add-dialog').onclose = () => pickWidget(null, user);
     $('open-custom').onclick = () => setCustomizing(true);
     $('custom-done').onclick = () => setCustomizing(false);
+    // Sur téléphone, le panneau montre un réglage à la fois.
+    $('custom-tabs').replaceChildren(...[['fond', 'Fond'], ['couleur', 'Couleur'], ['page', 'Page']].map(([id, name]) => {
+      const tab = button('', name, () => {
+        $('custom').dataset.tab = id;
+        for (const t of $('custom-tabs').children) t.setAttribute('aria-pressed', t === tab);
+      });
+      tab.setAttribute('aria-pressed', id === $('custom').dataset.tab);
+      return tab;
+    }));
+    $('aide-open').onclick = () => {
+      screen.aide = { add: screen.widgets.length > 0 };
+      $('menu').hidePopover();
+      drawAide();
+      saveScreen();
+    };
     $('page-new').onclick = () => askPageName('Nouvelle page', '', name => {
       const page = { id: crypto.randomUUID(), name };
       screen.pages = [...screen.pages, page];
@@ -2343,12 +2624,9 @@ if (!sb) {
         open.disabled = false;
       });
       open.id = 'chill-labo';
-      $('open-wall').before(open);
+      // Sous le bonjour, pas dans la barre : elle n'a pas la place d'un bouton de plus sur téléphone.
+      $('today').parentNode.after(open);
     }
-    $('open-wall').onclick = () => {
-      $('wall-slot').replaceChildren(wallpaperPicker());
-      $('wall-dialog').showModal();
-    };
   }
 
   const missingModes = () => MODES.filter(m => !screen.pages.some(p => p.id === m.id));
@@ -2384,37 +2662,146 @@ if (!sb) {
     li.append(text, action);
     return [li];
   }
+  // Le catalogue : une liste rangée par catégories, une recherche, et un aperçu. Rien n'est ajouté sans le bouton de l'aperçu.
+  const CATEGORIES = [...MODES.map(m => m.name), 'Quotidien', 'En préparation'];
+  const categoryOf = w => w.labo ? 'En préparation' : MODES.find(m => m.widgets.includes(w.id))?.name ?? 'Quotidien';
+  const plain = text => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const STAGE_WIDTH = { s: '263px', m: '356px', l: '728px' };
+  let picked = null, pickedSize = DEFAULT_SIZE, previewCleanup = null;
+  const pageName = id => screen.pages.find(p => p.id === id).name;
+  function openCatalog(user) {
+    $('cat-search').value = '';
+    drawCatalog(user);
+    pickWidget(null, user);
+    $('add-dialog').showModal();
+  }
   function drawCatalog(user) {
-    $('catalog').replaceChildren(...modesRow(user), ...WIDGETS.map(w => {
-      const li = el('li');
-      const text = el('div');
-      const on = screen.widgets.includes(w.id);
-      text.append(el('b', '', w.title), el('p', 'desc', w.desc));
-      if (on && pageOf(w.id) !== currentPage) text.append(el('p', 'desc', `Sur la page « ${screen.pages.find(p => p.id === pageOf(w.id)).name} »`));
-      const action = button('ghost', on ? 'Retirer' : 'Ajouter', () => {
-        if (on) {
-          screen.widgets = screen.widgets.filter(id => id !== w.id);
-          unmount(w.id);
-        } else {
-          screen.widgets = [...screen.widgets, w.id];
-          screen.where = { ...screen.where, [w.id]: currentPage };
-          mount(w, user);
-        }
-        drawPages();
-        saveScreen();
-        drawCatalog(user);
-        $('catalog').querySelector(`[data-widget=${w.id}]`).focus();
+    const query = plain($('cat-search').value.trim());
+    const found = WIDGETS.filter(w => !query || plain(`${w.title} ${w.desc}`).includes(query));
+    const nodes = [];
+    const modes = query ? [] : modesRow(user);
+    if (modes.length) {
+      const list = el('ul', 'cat-modes');
+      list.append(...modes);
+      nodes.push(list);
+    }
+    for (const category of CATEGORIES) {
+      const widgets = found.filter(w => categoryOf(w) === category);
+      if (!widgets.length) continue;
+      const list = el('ul');
+      for (const w of widgets) {
+        const item = button('cat-item', '', () => pickWidget(w, user));
+        item.dataset.widget = w.id;
+        item.setAttribute('aria-pressed', w.id === picked);
+        item.append(el('b', '', w.title), el('span', 'desc', w.desc));
+        if (screen.widgets.includes(w.id)) item.append(el('span', 'cat-where', pageOf(w.id) === currentPage ? (screen.pages.length > 1 ? 'Sur cette page' : 'Sur ton écran') : `Sur la page « ${pageName(pageOf(w.id))} »`));
+        const li = el('li');
+        li.append(item);
+        list.append(li);
+      }
+      nodes.push(el('h3', '', category), list);
+    }
+    if (!found.length) nodes.push(el('p', 'cat-none', 'Aucun widget ne correspond à cette recherche.'));
+    $('catalog').replaceChildren(...nodes);
+    $('cat-count').textContent = query ? `${plural(found.length, 'widget')} dans la liste` : '';
+  }
+  function pickWidget(w, user) {
+    previewCleanup?.();
+    previewCleanup = null;
+    picked = w?.id ?? null;
+    // Un widget déjà utilisé revient à la taille qu'il avait.
+    pickedSize = screen.sizes[w?.id] ?? w?.size ?? DEFAULT_SIZE;
+    for (const item of $('catalog').querySelectorAll('.cat-item')) item.setAttribute('aria-pressed', item.dataset.widget === picked);
+    $('add-dialog').dataset.vue = w ? 'apercu' : 'liste';
+    drawPreview(w, user);
+  }
+  function drawPreview(w, user) {
+    const view = $('cat-view');
+    if (!w) {
+      const hello = el('div', 'cat-hello');
+      hello.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="3" fill="currentColor"/><rect x="13" y="2" width="9" height="9" rx="3" fill="currentColor" opacity=".22"/><rect x="2" y="13" width="9" height="9" rx="3" fill="currentColor" opacity=".22"/><rect x="13" y="13" width="9" height="9" rx="3" fill="currentColor" opacity=".22"/></svg>';
+      hello.append(el('p', '', 'Choisis un widget dans la liste pour voir son aperçu.'));
+      view.replaceChildren(hello);
+      return;
+    }
+    const on = screen.widgets.includes(w.id), here = on && pageOf(w.id) === currentPage;
+    const head = el('div', 'cat-view-head');
+    const text = el('div');
+    text.append(el('h2', '', w.title), el('p', '', w.desc));
+    const back = button('ghost cat-back', 'Retour', () => {
+      pickWidget(null, user);
+      $('catalog').querySelector(`[data-widget=${w.id}]`)?.focus();
+    });
+    back.ariaLabel = 'Retour au catalogue';
+    head.append(text, back);
+    const stage = el('div', 'stage');
+    const actions = el('div', 'actions');
+    const redraw = () => { drawPages(); saveScreen(); drawCatalog(user); };
+    if (on) {
+      stage.append(el('p', 'stage-none', `${w.title} est déjà ${here ? (screen.pages.length > 1 ? 'sur cette page' : 'sur ton écran') : `sur la page « ${pageName(pageOf(w.id))} »`}.`));
+      const remove = button('ghost', 'Retirer', () => {
+        screen.widgets = screen.widgets.filter(id => id !== w.id);
+        unmount(w.id);
+        redraw();
+        pickWidget(null, user);
+        $('catalog').querySelector(`[data-widget=${w.id}]`)?.focus();
       });
-      action.dataset.widget = w.id;
-      action.ariaLabel = `${on ? 'Retirer' : 'Ajouter'} : ${w.title}`;
-      li.append(text, action);
-      return li;
-    }));
+      remove.ariaLabel = `Retirer : ${w.title}`;
+      actions.append(el('p', 'desc', 'Son contenu est gardé si tu le retires.'), remove, button('primary', 'Terminer', () => $('add-dialog').close()));
+      view.replaceChildren(head, stage, actions);
+      return;
+    }
+    // L'aperçu est le vrai widget, vide, sur le fond de la personne. Il ne répond à aucun clic (inert) et n'enregistre rien :
+    // le son, l'IA et toute écriture partent d'un clic dans les widgets, donc rien de tout cela ne peut se produire ici.
+    const box = el('section', 'widget glass');
+    box.dataset.size = pickedSize;
+    const meta = el('p', 'meta'), body = el('div', 'body'), boxHead = el('div', 'head');
+    boxHead.append(el('h2', '', w.title), meta);
+    box.append(boxHead, body);
+    try { previewCleanup = w.render({ body, meta, user, sb, data: undefined, save() {}, focusLogs: () => [{}, {}] }); }
+    catch (e) { console.error(w.id, e); body.replaceChildren(el('p', 'msg', "L'aperçu n'a pas pu se charger.")); }
+    stage.inert = true;
+    stage.setAttribute('aria-hidden', 'true');
+    stage.style.backgroundImage = wallUrl ?? '';
+    stage.style.setProperty('--stage-w', STAGE_WIDTH[pickedSize]);
+    stage.append(box);
+    const pick = el('div', 'cat-pick');
+    const sizes = el('div', 'choices');
+    sizes.setAttribute('role', 'group');
+    sizes.ariaLabel = `Taille de ${w.title}`;
+    for (const size of SIZES) {
+      const b = button('', size.name, () => {
+        pickedSize = box.dataset.size = size.id;
+        stage.style.setProperty('--stage-w', STAGE_WIDTH[size.id]);
+        for (const other of sizes.children) other.setAttribute('aria-pressed', other === b);
+      });
+      b.setAttribute('aria-pressed', size.id === pickedSize);
+      sizes.append(b);
+    }
+    pick.append(sizes, el('p', '', 'Aperçu vide : rien ne joue et rien n\'est enregistré.'));
+    const add = button('primary', 'Ajouter', () => {
+      // Sur une page vide, le premier ajout lance l'aide des premiers pas, sauf si elle a déjà été vue.
+      if (!screen.aide && !onPage().length) screen.aide = {};
+      screen.widgets = [...screen.widgets, w.id];
+      screen.where = { ...screen.where, [w.id]: currentPage };
+      screen.sizes = { ...screen.sizes, [w.id]: pickedSize };
+      previewCleanup?.();
+      previewCleanup = null;
+      mount(w, user, true);
+      aideStep('add');
+      redraw();
+      drawPreview(w, user);
+      view.querySelector('.primary').focus();
+    });
+    add.ariaLabel = `Ajouter : ${w.title}`;
+    actions.append(el('p', 'desc', screen.pages.length > 1 ? `Sera ajouté sur « ${pageName(currentPage)} ».` : 'Sera ajouté sur ton écran.'), add);
+    view.replaceChildren(head, stage, pick, actions);
   }
 
   const pageNow = () => screen.pages.find(p => p.id === currentPage);
   const wallNow = () => pageNow()?.wall ?? screen.wallpaper;
   const photoInUse = () => [screen.wallpaper, ...screen.pages.map(p => p.wall)].includes('perso');
+  let wallUrl = null;
   function applyWallpaper() {
     const wall = wallNow();
     const library = WALLPAPERS.find(w => w.id === wall);
@@ -2422,6 +2809,19 @@ if (!sb) {
     if (url) document.documentElement.style.setProperty('--wall', url);
     else document.documentElement.style.removeProperty('--wall');
     document.body.classList.toggle('has-wall', !!url);
+    // La nouvelle photo apparaît en fondu par-dessus l'ancienne, retirée ensuite.
+    if (url !== wallUrl) {
+      wallUrl = url;
+      const old = [...$('wall').children];
+      if (url) {
+        const layer = el('i', '');
+        layer.style.backgroundImage = url;
+        $('wall').append(layer);
+        layer.getBoundingClientRect();
+        layer.classList.add('on');
+      } else for (const layer of old) layer.classList.remove('on');
+      setTimeout(() => { for (const layer of old) layer.remove(); }, 800);
+    }
     $('credit').hidden = !library;
     if (library) {
       const link = Object.assign(el('a', '', library.license), { href: library.url });
@@ -2451,6 +2851,7 @@ if (!sb) {
       if (screen.pages.length > 1 || pageNow()?.wall) screen.pages = screen.pages.map(p => p.id === currentPage ? { ...p, wall: id } : p);
       else screen.wallpaper = id;
     });
+    aideStep('wall');
     saveScreen();
   }
   async function shrinkPhoto(file) {
@@ -2530,6 +2931,7 @@ if (!sb) {
         currentPage = MODES[0].id;
       }
       screen.done = true;
+      screen.aide = { add: install };
       saveScreen();
       showScreen(user);
     };
@@ -2567,6 +2969,7 @@ if (!sb) {
       const last = localStorage.getItem('renzvi:page');
       if (screen.pages.some(p => p.id === last)) currentPage = last;
     } catch {}
+    if (saved.aide && typeof saved.aide === 'object') screen.aide = Object.fromEntries(['add', 'move', 'wall', 'off'].map(key => [key, saved.aide[key] === true]));
     drawSwatches();
     if (validWall(saved.wallpaper)) screen.wallpaper = saved.wallpaper;
     applyWallpaper();
