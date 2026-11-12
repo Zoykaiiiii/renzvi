@@ -177,6 +177,7 @@ dialog.cat[open]{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr
 /* La scène de l'aperçu montre le widget sur le fond de la personne, à la taille choisie. Elle ne répond à aucun clic. */
 .stage{flex:1 0 auto;display:grid;place-items:center;min-height:260px;padding:24px;border-radius:16px;background:var(--ground) center/cover;overflow:hidden}
 .stage .widget{width:min(100%,var(--stage-w,356px));max-height:420px;overflow:hidden;--glass:rgba(255,255,255,.8)}
+.stage h2{font-size:14px;line-height:20px}
 .stage-none{font-size:14px;color:var(--slate);text-align:center}
 .cat-pick{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
 .cat-pick p{font-size:13px;color:var(--slate)}
@@ -257,7 +258,8 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 .zoom:hover{background:var(--tint);color:var(--ink)}
 @media (hover:hover){.widget:not(:hover):not(:focus-within):not(.zoomed) .zoom{opacity:0}}
 .body{flex:1;display:flex;flex-direction:column;margin-top:12px;min-height:0}
-.empty{flex:1;display:grid;place-items:center;padding:12px 0;font-size:14px;color:var(--slate);text-align:center}
+/* Widget vide : un emplacement en pointillés, comme celui de la page vide, qui occupe la place du futur contenu. */
+.empty{flex:1;display:grid;place-items:center;min-height:88px;margin-top:4px;padding:16px;border:1.5px dashed var(--edge);border-radius:14px;font-size:14px;color:var(--slate);text-align:center;text-wrap:balance}
 .note{margin-top:8px;font-size:12px;color:var(--error)}
 
 .add{display:flex;gap:8px}
@@ -351,8 +353,7 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 .break span{flex:none;font-size:13px;color:var(--slate);font-variant-numeric:tabular-nums}
 .book-title{font-size:16px;font-weight:600;overflow-wrap:anywhere}
 .row.quote .grow{font-style:italic}
-.pages{display:flex;align-items:center;gap:8px;margin-top:12px}
-[data-widget=lecture] .pages{margin-bottom:12px}
+.pages{display:flex;align-items:center;gap:8px;margin-block:12px}
 .pages input{width:88px;height:var(--control);padding:0 12px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7)}
 .insp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px;margin-top:8px}
 .insp{position:relative;margin:0;min-width:0}
@@ -2669,6 +2670,18 @@ if (!sb) {
   const plain = text => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const STAGE_WIDTH = { s: '263px', m: '356px', l: '728px' };
   let picked = null, pickedSize = DEFAULT_SIZE, previewCleanup = null;
+  // Des exemples pour l'aperçu, quand un widget vide ne montre rien. Jamais enregistrés : l'aperçu n'a pas de sauvegarde.
+  const exampleDay = n => dayKey(new Date(Date.now() + n * 864e5));
+  const exampleLog = () => ({ [exampleDay(0)]: 50, [exampleDay(-1)]: 75, [exampleDay(-2)]: 25 });
+  const EXAMPLES = {
+    taches: () => ({ items: [{ id: 'a', text: 'Relire le chapitre 4', done: false }, { id: 'b', text: 'Envoyer le dossier de stage', done: true }, { id: 'c', text: 'Préparer les fiches', done: false }] }),
+    notes: () => ({ text: 'Idées pour le mémoire\n— plan en trois parties\n— rappeler Sam pour les sources' }),
+    habitudes: () => ({ items: [{ id: 'a', name: 'Lire vingt minutes', days: [exampleDay(0), exampleDay(-1), exampleDay(-2)] }, { id: 'b', name: 'Marcher', days: [exampleDay(-1)] }] }),
+    compte: () => ({ items: [{ id: 'a', title: 'Partiel de droit civil', date: exampleDay(12) }, { id: 'b', title: 'Vacances', date: exampleDay(38) }] }),
+    raccourcis: () => ({ items: [{ id: 'a', label: 'Cours en ligne', url: 'https://exemple.fr/cours' }, { id: 'b', label: 'Bibliothèque', url: 'https://exemple.fr/bibliotheque' }] }),
+    lecture: () => ({ book: { title: 'Le Comte de Monte-Cristo', author: 'Alexandre Dumas', pages: 1200, page: 320 }, quotes: [{ id: 'a', text: 'Attendre et espérer.', book: 'Le Comte de Monte-Cristo' }], finished: [] }),
+    minuteur: () => ({ length: 25, day: exampleDay(0), minutes: 50, log: exampleLog() }),
+  };
   const pageName = id => screen.pages.find(p => p.id === id).name;
   function openCatalog(user) {
     $('cat-search').value = '';
@@ -2752,14 +2765,14 @@ if (!sb) {
       view.replaceChildren(head, stage, actions);
       return;
     }
-    // L'aperçu est le vrai widget, vide, sur le fond de la personne. Il ne répond à aucun clic (inert) et n'enregistre rien :
+    // L'aperçu est le vrai widget, avec des exemples ou vide, sur le fond de la personne. Il ne répond à aucun clic (inert) et n'enregistre rien :
     // le son, l'IA et toute écriture partent d'un clic dans les widgets, donc rien de tout cela ne peut se produire ici.
     const box = el('section', 'widget glass');
     box.dataset.size = pickedSize;
     const meta = el('p', 'meta'), body = el('div', 'body'), boxHead = el('div', 'head');
     boxHead.append(el('h2', '', w.title), meta);
     box.append(boxHead, body);
-    try { previewCleanup = w.render({ body, meta, user, sb, data: undefined, save() {}, focusLogs: () => [{}, {}] }); }
+    try { previewCleanup = w.render({ body, meta, user, sb, data: EXAMPLES[w.id]?.(), save() {}, focusLogs: () => [{}, exampleLog()] }); }
     catch (e) { console.error(w.id, e); body.replaceChildren(el('p', 'msg', "L'aperçu n'a pas pu se charger.")); }
     stage.inert = true;
     stage.setAttribute('aria-hidden', 'true');
@@ -2779,7 +2792,7 @@ if (!sb) {
       b.setAttribute('aria-pressed', size.id === pickedSize);
       sizes.append(b);
     }
-    pick.append(sizes, el('p', '', 'Aperçu vide : rien ne joue et rien n\'est enregistré.'));
+    pick.append(sizes, el('p', '', `${EXAMPLES[w.id] || w.id === 'semaine' ? 'Aperçu avec des exemples' : 'Aperçu'} : rien ne joue et rien n'est enregistré.`));
     const add = button('primary', 'Ajouter', () => {
       // Sur une page vide, le premier ajout lance l'aide des premiers pas, sauf si elle a déjà été vue.
       if (!screen.aide && !onPage().length) screen.aide = {};

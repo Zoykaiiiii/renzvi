@@ -36,6 +36,12 @@ const { start } = require('./demo.cjs');
     assert.match(await page.textContent('#catalog'), /Aucun widget/);
     await page.fill('#cat-search', 'ambiance');
     const savesBefore = db.saves;
+    // Un widget qui serait vide montre des exemples, jamais enregistrés.
+    await page.fill('#cat-search', 'tâches');
+    await page.locator('#catalog [data-widget=taches]').click();
+    assert.equal(await page.locator('#cat-view .stage .row').count(), 3, 'aperçu avec des exemples');
+    assert.match(await page.textContent('#cat-view .cat-pick'), /exemples/);
+    await page.fill('#cat-search', 'ambiance');
     await page.locator('#catalog [data-widget=ambiance]').click();
     assert.equal(await page.locator('#cat-view .stage .widget').count(), 1, "l'aperçu montre le widget");
     assert.equal(await page.locator('#cat-view .stage').evaluate(s => s.inert), true, "l'aperçu ne répond à aucun clic");
