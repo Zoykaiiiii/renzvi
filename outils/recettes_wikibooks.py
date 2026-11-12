@@ -168,7 +168,8 @@ def recette(titre, wiki, rev):
         return None
     sec = sections(wiki)
     ing_l = next((v for k, v in sec.items() if k.startswith("ingredient")), None)
-    prep_l = next((v for k, v in sec.items() if k.startswith(("preparation", "realisation", "recette", "etapes"))), None)
+    # « Recette » en dernier : souvent un titre parent qui contient aussi les ingrédients.
+    prep_l = next((v for pre in ("preparation", "realisation", "etapes", "recette") for k, v in sec.items() if k.startswith(pre)), None)
     if not ing_l or not prep_l:
         return None
     balise = wiki.count("{{i|") >= 2
@@ -190,16 +191,23 @@ def recette(titre, wiki, rev):
         if not x:
             continue
         ks = cles_balisees(line) if balise else [k for k in [cle_devinee(x)] if k]
+        if re.search(r"pommes? de terres?", x, re.I):  # {{i|pomme}}s de terre : la balise ne garde que « pomme »
+            ks = list(dict.fromkeys("pomme de terre" if k == "pomme" else k for k in ks))
         item = {"x": x[:200], "k": ks}
         if FACULTATIF.search(x):
             item["f"] = 1
         ing.append(item)
-    etapes = []
+    etapes, saute = [], None  # saute : niveau d'une sous-section ingrédients à ne pas recopier dans les étapes
     for line in prep_l:
-        if re.match(r"^=+.*=+\s*$", line):
-            g = texte(line.strip("= "))
-            if g:
+        if m := re.match(r"^(=+)\s*(.*?)\s*=+\s*$", line):
+            if saute and len(m.group(1)) > saute:
+                continue
+            g = texte(m.group(2))
+            saute = len(m.group(1)) if sans_accents(g).lower().startswith("ingredient") else None
+            if g and not saute:
                 etapes.append({"g": g})
+            continue
+        if saute:
             continue
         x = texte(line.lstrip("*#: "))
         if x and not x.lower().startswith(("catégorie", "category")):
@@ -296,6 +304,11 @@ Pour 4 personnes :
 [[Catégorie:Cuisine française]]"""
     r3 = recette("Livre de cuisine/Sauce test", wiki.replace("==Ingrédients==", "=== Ingrédients ===").replace("== Préparation ==", "=== Préparation ==="), 1)
     assert r3 and len(r3["ing"]) == 3 and len(r3["et"]) == 2, r3
+    r4 = recette("Livre de cuisine/Parent test", wiki.replace("==Ingrédients==", "== Recette ==\n=== Ingrédients ===").replace("== Préparation ==", "=== Préparation ===").replace("* 1 {{i|poulet}}", "* 4 {{i|pomme}}s de terre"), 1)
+    assert r4["et"] == ["Découper le poulet", "Cuire 1 heure"], r4["et"]
+    assert r4["ing"][0]["k"] == ["pomme de terre"], r4["ing"]
+    r5 = recette("Livre de cuisine/Bloc test", "== Recette ==\n=== Ingrédients ===\n* 1 {{i|poulet}}\n* 2 {{i|riz}}\n=== Cuisson ===\n* Cuire\n=== Ingrédients en plus ===\n* sel\n=== Service ===\n* Servir", 1)
+    assert r5["et"] == [{"g": "Cuisson"}, "Cuire", {"g": "Service"}, "Servir"], r5["et"]
     r = recette("Livre de cuisine/Poulet test", wiki, 1)
     assert r["id"] == "poulet-test" and r["p"] == "4 personnes" and r["ty"] == "plat" and r["o"] == ["française"], r
     assert [i["k"] for i in r["ing"]] == [["poulet"], ["tomate"], ["persil"]] and r["ing"][2]["f"] == 1, r["ing"]

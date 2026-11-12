@@ -59,6 +59,24 @@ test('frigo : « pomme » ne vaut pas « pomme de terre »', () => {
   assert.deepEqual(R.repasFrigo(rs, ['pomme'], false), []);
 });
 
+test('chercher : nom ou ingrédient, sans accents ni pluriel, tous les mots requis, nom d’abord', () => {
+  const rs = [rec('Gratin de courgettes', ['courgette', 'fromage']), rec('Ratatouille', ['courgette', 'aubergine', 'tomate']), rec('Crème brûlée', ['œuf', 'crème'])];
+  rs.forEach(r => { r.t = r.id; });
+  assert.deepEqual(R.repasChercher(rs, 'Courgettes').map(r => r.t), ['Gratin de courgettes', 'Ratatouille']);
+  assert.deepEqual(R.repasChercher(rs, 'creme brulee').map(r => r.t), ['Crème brûlée']);
+  assert.deepEqual(R.repasChercher(rs, 'oeufs').map(r => r.t), ['Crème brûlée']);
+  assert.deepEqual(R.repasChercher(rs, 'courgette tomate').map(r => r.t), ['Ratatouille']);
+  assert.deepEqual(R.repasChercher(rs, '  '), []);
+  assert.deepEqual(R.repasChercher(rs, 'poulet'), []);
+});
+
+test('catalogue : la préparation ne recopie pas la liste d’ingrédients, « pommes de terre » n’est pas « pomme »', () => {
+  for (const r of cat.recettes) {
+    assert.ok(!r.et.some(e => typeof e === 'object' && /^ingr[ée]dient/i.test(e.g)), `ingrédients dans les étapes : ${r.id}`);
+    for (const i of r.ing) if (/pommes? de terre/i.test(i.x ?? '')) assert.ok(!(i.k ?? []).includes('pomme'), `${r.id} : ${i.x}`);
+  }
+});
+
 test('état : nettoyé et plafonné (données abîmées ou trop longues)', () => {
   const s = R.repasClean({ tab: 'pirate', f: { ty: 'x', veg: 7, o: 3 }, frigo: Array.from({ length: 300 }, (_, i) => `i${i}`), fav: ['a', 'a', 4, 'b'], base: 'oui' });
   assert.equal(s.tab, 'roulette');

@@ -1,5 +1,5 @@
-// Nutrition N2 + N3 : « Qu'est-ce qu'on mange ? ». Un tirage de recette (Surprends-moi) et une recherche
-// à partir de ce qu'on a (Avec mon frigo), sur le catalogue nutrition/recettes.json.
+// Nutrition N1 à N3 : « Qu'est-ce qu'on mange ? ». Un tirage de recette (Surprends-moi), une recherche
+// à partir de ce qu'on a (Avec mon frigo) et une recherche par nom ou ingrédient (Chercher), sur nutrition/recettes.json.
 // Catalogue : « Livre de cuisine » de Wikibooks, CC BY-SA 4.0, importé par outils/recettes_wikibooks.py.
 // Chaque fiche cite sa page source et la licence (obligation de la licence).
 // Aucune IA, aucun appel payant. Le frigo, les favoris et les derniers tirages restent dans l'état privé du widget.
@@ -28,7 +28,7 @@ function repasClean(data) {
   const ids = (v, n) => Array.isArray(v) ? [...new Set(v.filter(x => typeof x === 'string' && x.length <= 120))].slice(0, n) : [];
   const f = data?.f ?? {};
   return {
-    tab: ['roulette', 'frigo', 'favoris'].includes(data?.tab) ? data.tab : 'roulette',
+    tab: ['roulette', 'frigo', 'chercher', 'favoris'].includes(data?.tab) ? data.tab : 'roulette',
     f: { ty: REPAS.TYPES.some(t => t[0] === f.ty) ? f.ty : '', veg: [0, 1, 2].includes(f.veg) ? f.veg : 0, o: typeof f.o === 'string' ? f.o.slice(0, 40) : '' },
     frigo: ids(data?.frigo, REPAS.MAX_FRIGO).map(x => x.slice(0, 40)),
     base: data?.base === true,
@@ -79,6 +79,22 @@ function repasFrigo(recettes, frigo, base, maxManque = 2) {
   return res.sort((a, b) => a.manque.length - b.manque.length || b.used - a.used || a.r.t.localeCompare(b.r.t, 'fr'));
 }
 
+// Recherche par mots : chaque mot doit se trouver dans le nom du plat ou dans un ingrédient requis ou facultatif.
+// Les plats dont le nom contient tous les mots passent devant.
+function repasChercher(recettes, q) {
+  const mots = repasSans(String(q ?? '')).split(/[\s,;'’-]+/).filter(m => m.length >= 2).map(repasCle).filter(Boolean).slice(0, 6);
+  if (!mots.length) return [];
+  const res = [];
+  for (const r of recettes) {
+    const titre = repasSans(r.t);
+    const ings = r.ing.flatMap(i => i.k ?? []).map(repasSans);
+    let dansTitre = 0;
+    const ok = mots.every(m => titre.includes(m) ? ++dansTitre : ings.some(k => k.includes(m)));
+    if (ok) res.push({ r, dansTitre });
+  }
+  return res.sort((a, b) => b.dansTitre - a.dansTitre || a.r.t.localeCompare(b.r.t, 'fr')).map(x => x.r);
+}
+
 const repasSource = r => `https://fr.wikibooks.org/w/index.php?oldid=${encodeURIComponent(r.rev)}`;
 const repasPage = r => `https://fr.wikibooks.org/wiki/${encodeURIComponent(`Livre de cuisine/${r.t}`.replace(/ /g, '_'))}`;
 const REPAS_TYPE_NOM = Object.fromEntries(REPAS.TYPES.filter(t => t[0]));
@@ -110,7 +126,7 @@ function repasStyle() {
 
 function repasWidget({ body, meta, data, save }) {
   repasStyle();
-  let state = repasClean(data), cat = null, gone = false, spin = null, tirage = null;
+  let state = repasClean(data), cat = null, gone = false, spin = null, tirage = null, q = '';
   const persist = () => save(state);
   const root = el('div', 'repas');
   const live = el('p', 'sr');
@@ -149,7 +165,7 @@ function repasWidget({ body, meta, data, save }) {
     const box = el('div', 'choices repas-tabs');
     box.setAttribute('role', 'group');
     box.ariaLabel = 'Choisir comment trouver une recette';
-    for (const [id, name] of [['roulette', 'Surprends-moi'], ['frigo', 'Avec mon frigo'], ['favoris', `Gardées${state.fav.length ? ` (${state.fav.length})` : ''}`]]) {
+    for (const [id, name] of [['roulette', 'Surprends-moi'], ['frigo', 'Avec mon frigo'], ['chercher', 'Chercher'], ['favoris', `Gardées${state.fav.length ? ` (${state.fav.length})` : ''}`]]) {
       const b = button('', name, () => { state.tab = id; persist(); draw(); root.querySelector('.repas-tabs [aria-pressed=true]')?.focus(); });
       b.setAttribute('aria-pressed', String(state.tab === id));
       box.append(b);
@@ -160,7 +176,7 @@ function repasWidget({ body, meta, data, save }) {
     stopSpin();
     const pool = repasFiltrer(cat.recettes, state.f);
     meta.textContent = state.tab === 'favoris' ? '' : `${pool.length} recettes`;
-    const view = state.tab === 'roulette' ? roulette(pool) : state.tab === 'frigo' ? frigo(pool) : favoris();
+    const view = { roulette, frigo, chercher }[state.tab]?.(pool) ?? favoris();
     root.replaceChildren(tabs(), ...(state.tab === 'favoris' ? [] : [filtres()]), view, credit());
   }
   const credit = () => {
@@ -281,27 +297,54 @@ function repasWidget({ body, meta, data, save }) {
       const group = res.filter(x => x.manque.length === n);
       if (!group.length) continue;
       box.append(el('p', 'repas-groupe', n === 0 ? 'Tu as tout' : n === 1 ? 'Il manque un ingrédient' : 'Il manque deux ingrédients'));
-      const ul = el('ul', 'rows repas-liste');
-      let shown = 0;
-      const more = button('link', '', () => addRows(10));
-      const addRows = k => {
-        for (const x of group.slice(shown, shown + k)) {
-          const li = el('li', 'row');
-          const open = button('repas-ouvrir', '', () => fiche(x.r));
-          open.append(el('span', 'repas-titre', x.r.t), el('span', 'zone', n ? `Manque : ${x.manque.map(k => nomAffiche(x.r, k)).join(', ')}` : resume(x.r)));
-          li.append(open);
-          ul.append(li);
-        }
-        shown = Math.min(group.length, shown + k);
-        more.hidden = shown >= group.length;
-        more.textContent = `Voir ${Math.min(10, group.length - shown)} de plus`;
-      };
-      addRows(5);
-      box.append(ul, more);
+      box.append(...lignes(group, x => x.r, x => n ? `Manque : ${x.manque.map(k => nomAffiche(x.r, k)).join(', ')}` : resume(x.r), 5));
     }
     box.append(el('p', 'repas-avert', 'Les ingrédients sont reconnus par leur nom. Vérifie toujours la liste complète, surtout en cas d’allergie.'));
     return box;
   }
+  // Liste de recettes affichée par paquets, avec « Voir … de plus ».
+  function lignes(items, recetteDe, sousTitre, premier) {
+    const ul = el('ul', 'rows repas-liste');
+    let shown = 0;
+    const more = button('link', '', () => addRows(10));
+    const addRows = k => {
+      for (const x of items.slice(shown, shown + k)) {
+        const li = el('li', 'row');
+        const r = recetteDe(x);
+        const open = button('repas-ouvrir', '', () => fiche(r));
+        open.append(el('span', 'repas-titre', r.t), el('span', 'zone', sousTitre(x)));
+        li.append(open);
+        ul.append(li);
+      }
+      shown = Math.min(items.length, shown + k);
+      more.hidden = shown >= items.length;
+      more.textContent = `Voir ${Math.min(10, items.length - shown)} de plus`;
+    };
+    addRows(premier);
+    return [ul, more];
+  }
+
+  // --- Chercher ---
+  function chercher(pool) {
+    const box = el('div', 'repas-chercher');
+    const input = Object.assign(el('input'), { type: 'search', placeholder: 'Un plat ou un ingrédient (ex. : curry, courgette)', maxLength: 60, autocomplete: 'off', value: q });
+    input.ariaLabel = 'Chercher une recette par nom ou ingrédient';
+    const res = el('div');
+    const montre = () => {
+      q = input.value.slice(0, 60);
+      if (!q.trim()) { res.replaceChildren(el('p', 'zone', `Cherche parmi ${pool.length} recettes, par nom de plat ou par ingrédient.`)); return; }
+      const found = repasChercher(pool, q);
+      live.textContent = `${found.length} recette${found.length > 1 ? 's' : ''} trouvée${found.length > 1 ? 's' : ''}.`;
+      res.replaceChildren(...(found.length ? lignes(found, r => r, resume, 10)
+        : [el('p', 'zone', 'Aucune recette ne correspond. Essaie un autre mot ou élargis les filtres.')]));
+    };
+    let t = null;
+    input.oninput = () => { clearTimeout(t); t = setTimeout(montre, 150); };
+    box.append(input, res);
+    montre();
+    return box;
+  }
+
   // La clé comparée est sans accents : on retrouve le nom tel qu'écrit dans la recette.
   const nomAffiche = (r, key) => r.ing.flatMap(i => i.k ?? []).find(k => repasSans(k) === key) ?? key;
 
@@ -353,7 +396,7 @@ function repasWidget({ body, meta, data, save }) {
       Object.assign(el('a', '', 'contributeurs'), { href: `${repasPage(r)}?action=history`, target: '_blank', rel: 'noopener' }), '. ',
       Object.assign(el('a', '', 'Version utilisée'), { href: repasSource(r), target: '_blank', rel: 'noopener' }), ', mise en forme par Renzvi. Licence ',
       Object.assign(el('a', '', 'CC BY-SA 4.0'), { href: 'https://creativecommons.org/licenses/by-sa/4.0/deed.fr', target: '_blank', rel: 'noopener' }), '.');
-    doc.append(ol, src);
+    doc.append(ol, el('p', 'repas-avert', 'Allergènes et valeurs nutritionnelles : non renseignés par la source. Vérifie chaque ingrédient en cas d’allergie.'), src);
     // Garder ou retirer depuis la fiche : la liste « Gardées » est redessinée à la fermeture.
     chillAgrandir(r.t, doc, () => { if (!gone && state.tab === 'favoris') draw(); });
   }
@@ -362,4 +405,4 @@ function repasWidget({ body, meta, data, save }) {
   return () => { gone = true; stopSpin(); };
 }
 
-if (typeof module !== 'undefined') module.exports = { REPAS, repasCle, repasClean, repasFiltrer, repasTirer, repasFrigo, repasRequis };
+if (typeof module !== 'undefined') module.exports = { REPAS, repasCle, repasClean, repasFiltrer, repasTirer, repasFrigo, repasRequis, repasChercher };

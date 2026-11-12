@@ -1,5 +1,5 @@
 // Vérifie le widget « Qu'est-ce qu'on mange ? » (labo) dans un vrai Chromium, Supabase simulé :
-// caché du public, tirage, recette gardée, fiche avec source et licence, frigo, panne du catalogue, mobile.
+// caché du public, tirage, recette gardée, fiche avec source et licence, frigo, recherche, panne du catalogue, mobile.
 // Lancement : NODE_PATH=<dossier node_modules contenant playwright> node tests/repas.check.cjs [dossier-captures]
 const assert = require('node:assert');
 const http = require('node:http');
@@ -128,6 +128,35 @@ const shot = (page, name, opts) => SHOTS && page.screenshot({ path: path.join(SH
     assert.deepEqual(errors, []);
     await context.close();
     console.log('ok - frigo');
+  }
+
+  // 3 bis. Chercher : par nom ou ingrédient, avec les filtres, mention des allergènes sur la fiche.
+  {
+    const { page, errors, context, db } = await openBoard(browser, base, { options: desk, rows: board(['repas']) });
+    const w = page.locator('#board [data-widget=repas]');
+    await w.getByRole('button', { name: 'Chercher' }).click();
+    await until(() => db.rows.repas?.tab === 'chercher', 'onglet enregistré');
+    const champ = w.getByRole('searchbox', { name: /Chercher une recette/ });
+    await champ.fill('Tartiflette');
+    await w.locator('.repas-chercher .repas-titre', { hasText: 'Tartiflette' }).first().waitFor();
+    await champ.fill('courgettes');
+    await until(async () => (await w.locator('.repas-chercher .repas-ouvrir').count()) === 10, 'premier paquet de 10');
+    await w.locator('.repas-chercher .link').click();
+    assert.ok(await w.locator('.repas-chercher .repas-ouvrir').count() > 10, 'voir de plus');
+    await w.locator('.repas-filtres select').nth(0).selectOption('dessert');
+    await w.getByRole('searchbox').waitFor();
+    assert.equal(await w.getByRole('searchbox').inputValue(), 'courgettes', 'la recherche reste après un filtre');
+    await w.getByRole('searchbox').fill('zzzz');
+    await w.getByText('Aucune recette ne correspond').waitFor();
+    await w.getByRole('searchbox').fill('tarte');
+    await w.locator('.repas-chercher .repas-ouvrir').first().click();
+    const dlg = page.locator('dialog.chill-big[open]');
+    await dlg.waitFor();
+    assert.ok((await dlg.textContent()).includes('Allergènes et valeurs nutritionnelles : non renseignés'), 'allergènes signalés inconnus');
+    await shot(page, 'chercher');
+    assert.deepEqual(errors, []);
+    await context.close();
+    console.log('ok - chercher');
   }
 
   // 4. Catalogue en panne puis réessai ; mouvement réduit : résultat immédiat.

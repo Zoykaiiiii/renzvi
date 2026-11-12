@@ -29,3 +29,6 @@
 .repas-sous{list-style:none;margin-left:-1.3em;font-weight:600}
 .repas-fiche .repas-credit{margin-top:24px}
 .widget[data-size=s] .repas-filtres{display:none}
+.repas-chercher{display:flex;flex-direction:column;gap:10px}
+.repas-chercher input{height:var(--control);padding:0 16px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7);min-width:0}
+.repas-chercher input::placeholder{color:var(--slate);opacity:1}

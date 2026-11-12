@@ -1029,7 +1029,7 @@ Pas de commit ni de push sans un nouveau « commit push ».
 
 **Ajout Codex, 10 novembre 2026, à la demande de Damien.** Concept proposé par Damien et validé pour le backlog ; pas encore développé ni disponible. Rattachement envisagé : Nutrition / Bien-être, accessible depuis Sport. Le nom du mode et le design restent à décider.
 
-### [ ] N1 — Catalogue de recettes et « Qu'est-ce qu'on mange ? »
+### [x] N1 — Catalogue de recettes et « Qu'est-ce qu'on mange ? » (partiel : 1 020 recettes, pas 10 000)
 
 - Vision de Damien : un large choix, à terme **plus de 10 000 recettes**, avec spécialités culinaires et tirage animé. Ce volume est un objectif, pas un catalogue acquis ou licencié.
 - Recommandation Codex : démarrer avec quelques centaines de recettes fiables, puis élargir ; ne pas fabriquer 10 000 entrées pour afficher un chiffre.
@@ -1085,5 +1085,7 @@ Objectif : un journal alimentaire relié aux recettes, alimenté par de vraies d
 4. Vérifier les usages réels avant d'élargir vers plus de 10 000 recettes.
 
 **Mise à jour Claude Code, 10 novembre 2026 (soir) :** N2 et N3 sont construits en un seul widget caché « Qu'est-ce qu'on mange ? » (`repas`, visible avec `?labo=1`) : onglets Surprends-moi, Avec mon frigo et Gardées, filtres type / régime / cuisine, fiche recette avec source et licence. Catalogue : 1 018 recettes du Livre de cuisine de Wikibooks (fr), licence CC BY-SA 4.0, importées par `outils/recettes_wikibooks.py` vers `site/nutrition/recettes.json` (sans images ni boissons). Limites connues : durée et budget absents de la source, donc pas de filtre ; quelques noms d'ingrédients mal reconnus (par exemple « pomme » pour « pomme de terre ») ; filtre allergènes non fait. Migration `20261110000000_nutrition_repas.sql` à passer pour enregistrer l'état. N1 (catalogue complet, recherche) et N4 (journal) restent à faire.
+
+**Mise à jour Claude Code, 10 novembre 2026 (nuit) :** N1 complété dans le même widget. Nouvel onglet « Chercher », par nom de plat ou ingrédient, sans accents ni pluriels, avec les filtres. Les fiches disent « allergènes et valeurs nutritionnelles non renseignés ». Import corrigé : 78 recettes recopiaient leurs ingrédients dans la préparation, et 12 « pommes de terre » étaient lues comme « pomme ». « Œufs brouillés » est retiré, car sa préparation est vide sur Wikibooks. 3 recettes de caramel sont ajoutées. Total : 1 020 recettes. Pas encore poussé. Restent : la durée et le budget (absents de la source), un filtre allergènes (impossible honnêtement sans données), plus de recettes, et N4.
 
 **À la date de l'ajout initial, aucun lot Nutrition n'était construit.** L'accord de Damien porte ici sur la documentation de l'idée ; il ne vaut pas lancement automatique du développement ou publication sur le site. Les prompts sont des briefs réutilisables pour une prochaine demande.
