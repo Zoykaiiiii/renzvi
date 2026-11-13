@@ -6,41 +6,51 @@
 <title>Connexion — Renzvi</title>
 <meta name="robots" content="noindex">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#0c0c0d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Renzvi">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<style>@font-face{font-family:"Hanken Grotesk";src:url(fonts/hanken-grotesk-latin.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}</style>
+<style>@font-face{font-family:"Hanken Grotesk";src:url(fonts/hanken-grotesk-latin.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:"Instrument Serif";src:url(fonts/instrument-serif-italic-latin.woff2) format("woff2");font-weight:400;font-style:italic;font-display:swap}</style>
 <style>
 /* Tous les choix visuels passent par ces variables : changer de style = changer ce bloc. */
 :root{
-  --ink:#17191c; --slate:#6a6a70; --error:#b3261e;
-  --ground:#fff; --soft:#f5f5f7; --field:#fff; --field-edge:#d2d2d7;
+  --ink:#f4f4f2; --slate:#a1a1a6; --error:#ff8a80;
+  --ground:#0c0c0d; --soft:#232326; --field:#1a1a1c; --field-edge:#2e2e31;
+  --serif:"Instrument Serif",Georgia,serif;
   --sans:-apple-system,BlinkMacSystemFont,"Hanken Grotesk",ui-sans-serif,system-ui,sans-serif;
   --r-field:12px; --pill:9999px; --control:52px;
 }
 *{box-sizing:border-box;margin:0}
 [hidden]{display:none!important}
-body{font:400 17px/1.47 var(--sans);letter-spacing:-.011em;color:var(--ink);background:var(--ground);min-height:100dvh;display:flex;flex-direction:column;padding:0 16px;-webkit-font-smoothing:antialiased}
+body{font:400 17px/1.47 var(--sans);letter-spacing:-.011em;color:var(--ink);background:var(--ground);min-height:100dvh;display:grid;grid-template-columns:minmax(0,45fr) minmax(0,55fr);gap:8px;padding:8px;-webkit-font-smoothing:antialiased}
 button,input{font:inherit;letter-spacing:inherit;color:inherit}
 a{color:inherit}
 :focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 
-.mark{align-self:center;display:inline-flex;align-items:center;gap:10px;height:72px;font-size:18px;font-weight:600;text-decoration:none}
-.mark svg{width:24px;height:24px}
-main{flex:1;display:grid;place-items:center;padding-bottom:72px}
+/* Le panneau d'image : le nom en haut, la promesse en bas. La photo est créditée dans le panneau (licence CC BY). */
+.art{position:relative;display:flex;flex-direction:column;justify-content:space-between;gap:24px;min-height:0;padding:28px;border-radius:20px;overflow:hidden;color:#fff;background:#1b2a33 url(assets/misty-morning-by-bohinj-lake-3849327601.jpg) center/cover}
+.art::before{content:"";position:absolute;inset:0;background:rgba(8,14,20,.34)} /* voile neutre : le texte reste lisible sur la photo */
+.art>*{position:relative}
+.mark{align-self:flex-start;display:inline-flex;align-items:center;gap:12px;min-height:44px;font-size:20px;font-weight:600;text-decoration:none}
+.mark i{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:#fff}
+.mark svg{width:22px;height:22px}
+.tagline{font-size:clamp(34px,3.6vw,56px);font-weight:700;line-height:1.05;letter-spacing:-.03em;max-width:11ch}
+.tagline em,h1 em{font-family:var(--serif);font-weight:400;font-style:italic;letter-spacing:-.01em;font-size:1.1em}
+.credit{position:absolute;right:16px;bottom:12px;font-size:12px;letter-spacing:0;opacity:.8}
+main{display:grid;place-items:center;padding:32px 16px}
 .panel{width:100%;max-width:380px}
-h1{font-size:32px;font-weight:600;line-height:1.12;letter-spacing:-.024em;text-align:center}
-.sub{margin-top:10px;color:var(--slate);text-align:center;text-wrap:balance}
+h1{font-size:36px;font-weight:700;line-height:1.1;letter-spacing:-.028em}
+.sub{margin-top:10px;color:var(--slate);text-wrap:balance}
 .who{color:var(--ink);font-weight:500;overflow-wrap:anywhere}
 
-.btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:var(--control);padding:0 20px;border-radius:var(--pill);border:1px solid var(--ink);font-weight:500;cursor:pointer;transition:transform .15s,background-color .15s}
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:var(--control);padding:0 20px;border-radius:14px;border:1px solid var(--ink);font-weight:500;cursor:pointer;transition:transform .15s,background-color .15s}
 .btn:active{transform:scale(.98)}
 .btn:disabled{cursor:progress}
-.fill{background:var(--ink);color:#fff}
-.fill:hover{background:#000}
+.fill{background:var(--ink);color:var(--ground)}
+.fill:hover{background:#fff}
 .google{background:var(--field);border-color:var(--field-edge)}
 .google:hover{background:var(--soft)}
 .google svg{width:18px;height:18px;flex:none}
@@ -58,14 +68,25 @@ form .btn{margin-top:12px}
 #code{font-size:20px;letter-spacing:.14em;font-variant-numeric:tabular-nums}
 .msg{margin-top:12px;font-size:15px;color:var(--error)}
 .msg:empty{display:none}
-.note{margin-top:20px;font-size:13px;letter-spacing:0;color:var(--slate);text-align:center}
+.note{margin-top:20px;font-size:13px;letter-spacing:0;color:var(--slate)}
 .inapp{margin-top:24px;padding:14px 16px;border-radius:var(--r-field);background:var(--soft);font-size:15px}
-@media (max-width:480px){h1{font-size:28px}.mark{height:60px}main{padding-bottom:60px}}
+@media (max-width:860px){
+  body{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr}
+  .art{min-height:210px;padding:20px}
+  .credit{top:14px;bottom:auto}
+  .tagline{font-size:32px;max-width:none}
+  main{place-items:start center;padding:24px 8px 40px}
+  h1{font-size:30px}
+}
 @media (prefers-reduced-motion:reduce){.btn{transition:none}.btn:active{transform:none}}
 </style>
 </head>
 <body>
-<a class="mark" href="./" aria-label="Renzvi, accueil"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="3" fill="#17191c"/><rect x="13" y="2" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="2" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="13" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/></svg><span>Renzvi</span></a>
+<aside class="art">
+  <a class="mark" href="./" aria-label="Renzvi, accueil"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="3" fill="#17191c"/><rect x="13" y="2" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="2" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="13" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/></svg></i><span>Renzvi</span></a>
+  <p class="tagline">Tes outils, au <em>même endroit</em></p>
+  <p class="credit">Photo : ufoncz, CC BY 2.0</p>
+</aside>
 
 <main>
   <div class="panel">
