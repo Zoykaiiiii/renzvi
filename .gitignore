@@ -1,2 +1,4 @@
 .deno-cache/
 .taste-skill/
+
+node_modules/
