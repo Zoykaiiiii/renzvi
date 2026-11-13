@@ -16,30 +16,87 @@
 <link rel="stylesheet" href="study/cahier.css">
 <link rel="stylesheet" href="study/cartes.css">
 <script src="install.js" defer></script>
-<style>@font-face{font-family:"Hanken Grotesk";src:url(fonts/hanken-grotesk-latin.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}</style>
+<style>@font-face{font-family:"Hanken Grotesk";src:url(fonts/hanken-grotesk-latin.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
+/* Polices au choix (Réglages) : le navigateur ne télécharge que celle qui est utilisée. */
+@font-face{font-family:"Instrument Sans";src:url(fonts/instrument-sans-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Inter";src:url(fonts/inter-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Source Serif 4";src:url(fonts/source-serif-4-latin.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Instrument Serif";src:url(fonts/instrument-serif-latin.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Gloock";src:url(fonts/gloock-latin.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Syne";src:url(fonts/syne-latin.woff2) format("woff2");font-weight:400 800;font-display:swap}
+@font-face{font-family:"Unbounded";src:url(fonts/unbounded-latin.woff2) format("woff2");font-weight:400 800;font-display:swap}
+@font-face{font-family:"Playpen Sans";src:url(fonts/playpen-sans-latin.woff2) format("woff2");font-weight:400 800;font-display:swap}
+@font-face{font-family:"Pixelify Sans";src:url(fonts/pixelify-sans-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Fraunces";src:url(fonts/fraunces-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Young Serif";src:url(fonts/young-serif-latin.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Bodoni Moda";src:url(fonts/bodoni-moda-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Bricolage Grotesque";src:url(fonts/bricolage-grotesque-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Space Grotesk";src:url(fonts/space-grotesk-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Sora";src:url(fonts/sora-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Dela Gothic One";src:url(fonts/dela-gothic-one-latin.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Climate Crisis";src:url(fonts/climate-crisis-latin.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"DynaPuff";src:url(fonts/dynapuff-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Bagel Fat One";src:url(fonts/bagel-fat-one-latin.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Gochi Hand";src:url(fonts/gochi-hand-latin.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Big Shoulders Display";src:url(fonts/big-shoulders-display-latin.woff2) format("woff2");font-weight:400 800;font-display:swap}
+@font-face{font-family:"Manrope";src:url(fonts/manrope-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Plus Jakarta Sans";src:url(fonts/plus-jakarta-sans-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Figtree";src:url(fonts/figtree-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Outfit";src:url(fonts/outfit-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Work Sans";src:url(fonts/work-sans-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Onest";src:url(fonts/onest-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Lexend";src:url(fonts/lexend-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Epilogue";src:url(fonts/epilogue-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Atkinson Hyperlegible";src:url(fonts/atkinson-hyperlegible-latin.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Literata";src:url(fonts/literata-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Grandstander";src:url(fonts/grandstander-latin.woff2) format("woff2");font-weight:400 800;font-display:swap}
+@font-face{font-family:"Baloo 2";src:url(fonts/baloo-2-latin.woff2) format("woff2");font-weight:400 800;font-display:swap}
+@font-face{font-family:"Rubik Bubbles";src:url(fonts/rubik-bubbles-latin.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Chivo";src:url(fonts/chivo-latin.woff2) format("woff2");font-weight:400 800;font-display:swap}
+@font-face{font-family:"Geologica";src:url(fonts/geologica-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}</style>
+<script>
+// Apparence choisie dans les Réglages, lue avant l'affichage pour éviter un flash clair en mode sombre. La version du compte la remplace au chargement.
+try { const l = JSON.parse(localStorage.getItem('renzvi:look') || '{}'); for (const k of ['theme', 'accent', 'titre', 'texte', 'coins', 'densite']) if (typeof l[k] === 'string' && /^[a-z0-9-]{1,20}$/.test(l[k])) document.documentElement.dataset[k] = l[k]; for (const [k, v] of Object.entries(l.vars || {})) if (/^--(display|display-weight|sans|accent|on-accent|glass-blur|boost)$/.test(k) && typeof v === 'string' && /^[\w\s",.()#-]{1,200}$/.test(v)) document.documentElement.style.setProperty(k, v); } catch {}
+</script>
 <style>
 /* Tous les choix visuels passent par ces variables : changer de style = changer ce bloc. */
 :root{
   --ink:#17191c; --slate:#55565c; --error:#b3261e;
-  /* Accents au choix : tous à 4,5:1 minimum avec --on-accent, vérifié par tests/personnalisation.check.cjs. */
-  --accent-encre:#17191c; --accent-vert:#1b6e66; --accent-bleu:#1c5699; --accent-prune:#6e2a55; --accent-terre:#96401f;
-  --accent:var(--accent-vert); --on-accent:#fff;
+  /* Accent : posé par le script (applyAccent), toujours à 4,5:1 minimum avec --on-accent, vérifié par tests/personnalisation.check.cjs. */
+  --accent:#1b6e66; --on-accent:#fff;
   --tint:rgba(23,25,28,.06); --rule:rgba(23,25,28,.08); --edge:rgba(23,25,28,.16); --week-bar:rgba(23,25,28,.24);
   /* Sans photo : un fond gris clair neutre et des panneaux presque blancs. Sur une photo : un verre plus clair et plus flou, pour lire sans effort. */
   --ground:#f1f2f4; --wall-glass:rgba(255,255,255,.84);
-  --glass:rgba(255,255,255,.88); --glass-wall:rgba(255,255,255,.76); --glass-solid:rgba(252,252,253,.96); --slate-wall:#43454b;
+  --glass:rgba(255,255,255,min(1,.88 + var(--boost,0))); --glass-wall:rgba(255,255,255,min(1,.76 + var(--boost,0))); --glass-solid:rgba(252,252,253,.96); --slate-wall:#43454b;
   --glass-edge:rgba(255,255,255,.72); --glass-blur:blur(24px) saturate(1.6);
   --glass-shine:inset 0 1px 0 rgba(255,255,255,.7),0 2px 8px rgba(23,25,28,.06);
   --sans:-apple-system,BlinkMacSystemFont,"Hanken Grotesk",ui-sans-serif,system-ui,sans-serif;
+  --display:var(--sans); --display-weight:600;
+  /* Surfaces pleines (champs, pastille du mode) et fonds des contrôles : le mode sombre les remplace. */
+  --paper:#fff; --field:rgba(255,255,255,.72); --press:rgba(23,25,28,.09); --field-hover:#fff; --veil:rgba(23,25,28,.36); --pop-shine:rgba(255,255,255,.95);
   --r-panel:20px; --r-control:12px; --pill:9999px;
-  --gap:16px; --control:36px;
+  --gap:16px; --pad:20px; --control:36px;
   --ease:cubic-bezier(.2,.8,.2,1); --spring:cubic-bezier(.34,1.56,.64,1);
   --move:.18s cubic-bezier(.2,.7,.2,1); --lift:0 18px 40px rgba(23,25,28,.24);
 }
-:root[data-accent=encre]{--accent:var(--accent-encre)}
-:root[data-accent=bleu]{--accent:var(--accent-bleu)}
-:root[data-accent=prune]{--accent:var(--accent-prune)}
-:root[data-accent=terre]{--accent:var(--accent-terre)}
+/* Mode sombre : gris neutres (ni bleu nuit ni ardoise), l'écart entre surfaces fait le relief. Accents éclaircis, texte foncé dessus. */
+:root[data-theme=dark]{
+  color-scheme:dark;
+  --ink:#f2f2f0; --slate:#a3a4a8; --error:#ff8a80;
+  --accent:#5cc0b2; --on-accent:#141414;
+  --tint:rgba(255,255,255,.07); --rule:rgba(255,255,255,.08); --edge:rgba(255,255,255,.16); --week-bar:rgba(255,255,255,.26);
+  --ground:#111112; --wall-glass:rgba(24,24,26,.84);
+  --glass:rgba(30,30,32,min(1,.9 + var(--boost,0))); --glass-wall:rgba(22,22,24,min(1,.74 + var(--boost,0))); --glass-solid:rgba(28,28,30,.97); --slate-wall:#b8b9bd;
+  --glass-edge:rgba(255,255,255,.08); --glass-shine:inset 0 1px 0 rgba(255,255,255,.05),0 2px 8px rgba(0,0,0,.3);
+  --paper:#2a2a2d; --field:rgba(255,255,255,.06); --press:rgba(255,255,255,.12); --field-hover:rgba(255,255,255,.12); --veil:rgba(0,0,0,.55); --pop-shine:rgba(255,255,255,.06);
+  --lift:0 18px 40px rgba(0,0,0,.5);
+}
+/* Polices des titres et du texte : posées par le script (LOOK), une variable chacune. */
+/* Coins et densité. Le flou et l'opacité du verre (--glass-blur, --boost) sont posés par le script. */
+:root[data-coins=nets]{--r-panel:8px;--r-control:6px;--pill:8px}
+:root[data-coins=ronds]{--r-panel:30px;--r-control:18px}
+:root[data-densite=compacte]{--gap:10px;--pad:14px}
+:root[data-densite=aeree]{--gap:24px;--pad:28px}
 *{box-sizing:border-box;margin:0}
 [hidden]{display:none!important}
 body{font:400 16px/1.5 var(--sans);letter-spacing:-.008em;color:var(--ink);background:var(--ground);min-height:100dvh;-webkit-font-smoothing:antialiased}
@@ -77,23 +134,23 @@ a{color:inherit}
 .page-tabs button{position:relative;z-index:1;flex:none;height:32px;max-width:200px;padding:0 16px;border:0;border-radius:var(--pill);background:none;color:var(--slate);font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .2s}
 .page-tabs button[aria-pressed=true]{color:var(--ink)}
 .page-tabs button:focus-visible{outline-offset:-2px}
-.thumb{position:absolute;top:4px;left:0;width:var(--w,0);height:32px;border-radius:var(--pill);background:#fff;box-shadow:0 1px 2px rgba(23,25,28,.14);transform:translateX(var(--x,0));transition:transform .4s var(--ease),width .4s var(--ease)}
+.thumb{position:absolute;top:4px;left:0;width:var(--w,0);height:32px;border-radius:var(--pill);background:var(--paper);box-shadow:0 1px 2px rgba(23,25,28,.14);transform:translateX(var(--x,0));transition:transform .4s var(--ease),width .4s var(--ease)}
 .thumb.still{transition:none}
 
-.me{flex:none;width:36px;height:36px;padding:0;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.72);font-size:14px;font-weight:600;transition:transform .2s var(--ease)}
+.me{flex:none;width:36px;height:36px;padding:0;border:1px solid var(--edge);border-radius:var(--pill);background:var(--field);font-size:14px;font-weight:600;transition:transform .2s var(--ease)}
 .me:active{transform:scale(.94)}
 /* Le menu sort du bouton de compte. */
-#menu{position:fixed;inset:76px max(16px,calc((100vw - 1100px)/2)) auto auto;margin:0;width:min(300px,100vw - 32px);padding:16px;border-radius:var(--r-panel);color:inherit;transform-origin:top right;transition:transform .25s var(--ease),opacity .18s,display .25s allow-discrete,overlay .25s allow-discrete;--glass:var(--glass-solid);box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 16px 40px rgba(23,25,28,.14)}
+#menu{position:fixed;inset:76px max(16px,calc((100vw - 1100px)/2)) auto auto;margin:0;width:min(300px,100vw - 32px);padding:16px;border-radius:var(--r-panel);color:inherit;transform-origin:top right;transition:transform .25s var(--ease),opacity .18s,display .25s allow-discrete,overlay .25s allow-discrete;--glass:var(--glass-solid);box-shadow:inset 0 1px 0 var(--pop-shine),0 16px 40px rgba(23,25,28,.14)}
 #menu:not(:popover-open){opacity:0;transform:scale(.96) translateY(-6px)}
 @starting-style{#menu:popover-open{opacity:0;transform:scale(.96) translateY(-6px)}}
 #who{font-size:14px;color:var(--slate);overflow-wrap:anywhere}
-.out{display:block;width:100%;height:44px;margin-top:12px;border:0;border-radius:var(--pill);background:var(--ink);color:#fff;font-weight:500;transition:transform .15s}
+.out{display:block;width:100%;height:44px;margin-top:12px;border:0;border-radius:var(--pill);background:var(--ink);color:var(--paper);font-weight:500;transition:transform .15s}
 .out:active{transform:scale(.98)}
 .out:disabled{cursor:progress}
 
 /* Le bonjour et le fait du jour, tiré des widgets de la personne. Sur une photo, la bande devient un panneau de verre. */
 .hello{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:4px 16px;margin:28px 0 20px}
-h1{font-size:28px;line-height:1.15;font-weight:600;letter-spacing:-.022em}
+h1{font-family:var(--display);font-size:28px;line-height:1.15;font-weight:var(--display-weight);letter-spacing:-.022em}
 .today{margin-top:4px;font-size:15px;color:var(--slate)}
 .today:empty{display:none}
 body.has-wall .hello{margin:16px 0;padding:16px 24px;border:1px solid var(--glass-edge);border-radius:var(--r-panel);background:var(--glass);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shine)}
@@ -133,7 +190,7 @@ body.has-wall .hello{margin:16px 0;padding:16px 24px;border:1px solid var(--glas
 .lead{margin-top:8px;color:var(--slate)}
 .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-top:20px}
-.tile{display:flex;align-items:flex-end;aspect-ratio:3/2;padding:0;border:1px solid var(--edge);border-radius:var(--r-control);background:#fff center/cover;overflow:hidden}
+.tile{display:flex;align-items:flex-end;aspect-ratio:3/2;padding:0;border:1px solid var(--edge);border-radius:var(--r-control);background:var(--paper) center/cover;overflow:hidden}
 .tile span{width:100%;padding:4px 10px;background:var(--wall-glass);font-size:13px;font-weight:500;text-align:left}
 .tile[aria-pressed=true]{outline:2px solid var(--ink);outline-offset:2px}
 .tile:disabled{cursor:progress}
@@ -146,7 +203,7 @@ body.has-wall .hello{margin:16px 0;padding:16px 24px;border:1px solid var(--glas
 .desc{font-size:14px;color:var(--slate)}
 
 dialog.glass{width:min(640px,100vw - 32px);max-height:85dvh;margin:auto;padding:24px;border-radius:var(--r-panel);color:inherit;overflow:auto;--glass:var(--glass-solid);box-shadow:0 24px 64px rgba(23,25,28,.24)}
-dialog::backdrop{background:rgba(23,25,28,.36)}
+dialog::backdrop{background:var(--veil,rgba(23,25,28,.36))}
 dialog h2{font-size:18px;line-height:1.3}
 dialog .actions{justify-content:flex-end}
 
@@ -155,14 +212,14 @@ dialog.cat{width:min(980px,100vw - 24px);height:min(720px,100dvh - 24px);max-hei
 dialog.cat[open]{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr)}
 .cat-list{display:flex;flex-direction:column;min-height:0;padding:20px 12px 0 20px;border-right:1px solid var(--rule)}
 .cat-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-right:8px}
-.cat-search{width:calc(100% - 8px);height:40px;margin-top:14px;padding:0 14px;border:1px solid var(--edge);border-radius:var(--pill);background:#fff}
+.cat-search{width:calc(100% - 8px);height:40px;margin-top:14px;padding:0 14px;border:1px solid var(--edge);border-radius:var(--pill);background:var(--paper)}
 .cat-search::placeholder{color:var(--slate);opacity:1}
 .catalog{flex:1;min-height:0;margin-top:12px;padding:0 8px 20px 0;overflow-y:auto}
 .catalog h3{margin:16px 0 4px;font-size:12px;line-height:16px;font-weight:500;color:var(--slate)}
 .catalog ul{list-style:none;padding:0}
 .cat-item{display:block;width:100%;padding:9px 12px;border:0;border-radius:var(--r-control);background:none;text-align:left}
 .cat-item:hover{background:var(--tint)}
-.cat-item[aria-pressed=true]{background:rgba(23,25,28,.09)}
+.cat-item[aria-pressed=true]{background:var(--press)}
 .cat-item b{display:block;font-size:14px;font-weight:600}
 .cat-item .desc{display:block;font-size:13px;line-height:1.4}
 .cat-where{display:block;margin-top:2px;font-size:12px;color:var(--slate)}
@@ -176,7 +233,7 @@ dialog.cat[open]{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr
 .cat-back{display:none}
 /* La scène de l'aperçu montre le widget sur le fond de la personne, à la taille choisie. Elle ne répond à aucun clic. */
 .stage{flex:1 0 auto;display:grid;place-items:center;min-height:260px;padding:24px;border-radius:16px;background:var(--ground) center/cover;overflow:hidden}
-.stage .widget{width:min(100%,var(--stage-w,356px));max-height:420px;overflow:hidden;--glass:rgba(255,255,255,.8)}
+.stage .widget{width:min(100%,var(--stage-w,356px));max-height:420px;overflow:hidden;--glass:var(--glass-wall)}
 .stage h2{font-size:14px;line-height:20px}
 .stage-none{font-size:14px;color:var(--slate);text-align:center}
 .cat-pick{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
@@ -191,10 +248,10 @@ dialog.cat[open]{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr
 .acct .desc{margin-top:2px;font-size:12px}
 .acct .link{margin-top:4px}
 .ref{display:flex;gap:6px;margin-top:6px}
-.ref input{flex:1;min-width:0;height:36px;padding:0 10px;border:1px solid var(--edge);border-radius:10px;background:#fff;font-size:12px}
+.ref input{flex:1;min-width:0;height:36px;padding:0 10px;border:1px solid var(--edge);border-radius:10px;background:var(--paper);font-size:12px}
 .ref .ghost{height:36px;padding:0 12px;font-size:13px}
-.widget{container:widget/inline-size;grid-column:span 12;display:flex;flex-direction:column;min-width:0;padding:20px;border-radius:var(--r-panel)}
-.widget[data-size=s]{padding:16px}
+.widget{container:widget/inline-size;grid-column:span 12;display:flex;flex-direction:column;min-width:0;padding:var(--pad);border-radius:var(--r-panel)}
+.widget[data-size=s]{padding:calc(var(--pad) - 4px)}
 @media (min-width:728px){
   .widget{grid-column:span 6}
   .widget[data-size=s]{grid-column:span 4}
@@ -208,18 +265,18 @@ dialog.cat[open]{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr
 /* Vue agrandie : le widget reste le même (rien n'est rechargé), il passe au premier plan. */
 .widget.zoomed{position:fixed;inset:max(16px,6dvh) max(16px,calc((100vw - 920px)/2));z-index:60;overflow:auto;--glass:var(--glass-solid);box-shadow:0 24px 64px rgba(23,25,28,.28)} /* taste-skill-ignore : la vue agrandie flotte au-dessus de l'écran */
 .widget.zoomed .edit{display:none}
-.veil{position:fixed;inset:0;z-index:59;background:rgba(23,25,28,.36)}
+.veil{position:fixed;inset:0;z-index:59;background:var(--veil)}
 .zoom-lock{overflow:hidden}
 
 #page-note{width:fit-content;margin-bottom:var(--gap);font-size:13px}
 #page-note:empty{display:none}
 .edit-page{display:flex;flex:1 1 100%;align-items:center;gap:8px;font-size:13px}
-.edit-page select{flex:1;min-width:0;height:var(--control);padding:0 12px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7)}
+.edit-page select{flex:1;min-width:0;height:var(--control);padding:0 12px;border:1px solid var(--edge);border-radius:var(--pill);background:var(--field)}
 #page-slot .add{margin-top:16px}
 #page-slot .desc{margin-top:8px}
 
 /* Personnaliser : un panneau en bas de l'écran (fond, couleur, page), l'écran reste visible au-dessus. */
-.custom{position:fixed;inset:auto 0 16px;z-index:30;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,3fr) minmax(0,3fr) auto;align-items:start;gap:12px 28px;width:min(1100px,100% - 32px);margin-inline:auto;padding:16px 16px 16px 20px;border-radius:var(--r-panel);--glass:var(--glass-solid);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 16px 48px rgba(23,25,28,.2)} /* taste-skill-ignore : le panneau flotte au-dessus de l'écran */
+.custom{position:fixed;inset:auto 0 16px;z-index:30;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,3fr) minmax(0,3fr) auto;align-items:start;gap:12px 28px;width:min(1100px,100% - 32px);margin-inline:auto;padding:16px 16px 16px 20px;border-radius:var(--r-panel);--glass:var(--glass-solid);box-shadow:inset 0 1px 0 var(--pop-shine),0 16px 48px rgba(23,25,28,.2)} /* taste-skill-ignore : le panneau flotte au-dessus de l'écran */
 .customizing main{padding-bottom:var(--custom-h,220px)}
 .custom-part{min-width:0}
 .custom-label{font-size:12px;line-height:16px;color:var(--slate)}
@@ -227,11 +284,17 @@ dialog.cat[open]{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr
 .custom .tiles{display:flex;gap:8px;margin:8px -4px -4px;padding:4px;overflow-x:auto;scrollbar-width:thin}
 .custom .tile{flex:none;width:92px}
 .custom .tile span{padding:2px 8px;font-size:12px}
-.swatches{display:flex;margin:4px 0 0 -10px}
+.swatches{display:flex;flex-wrap:wrap;margin:4px 0 0 -10px}
 .swatch{display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:var(--pill);background:none}
 .swatch i{display:block;width:24px;height:24px;border-radius:var(--pill);background:var(--c);transition:transform .15s}
 .swatch:active i{transform:scale(.9)}
 .swatch[aria-pressed=true] i{outline:2px solid var(--ink);outline-offset:3px}
+/* Couleur libre : le cercle du nuancier ouvre le sélecteur du système. */
+.swatch-pick{position:relative;cursor:pointer}
+.swatch-pick i{background:conic-gradient(#e5484d,#f5a524,#e8d33f,#46a758,#12a594,#3e8ed0,#6e56cf,#d6409f,#e5484d)} /* taste-skill-ignore : le symbole universel du choix de couleur */
+.swatch-pick input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.swatch-pick:has(input:focus-visible) i{outline:2px solid var(--ink);outline-offset:3px}
+.swatch-pick[aria-pressed=true] i{box-shadow:inset 0 0 0 6px var(--c)}
 .page-tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .custom-side{display:flex;align-items:center;gap:12px}
 .custom-tip{grid-column:1/-1;font-size:13px}
@@ -242,7 +305,7 @@ dialog.cat[open]{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr
 .edit .ghost:disabled{color:var(--slate);opacity:.55;cursor:default}
 .edit .choices{flex:1 1 auto;align-self:auto;width:auto}
 .edit .choices button{flex:1;min-width:0;padding:0 6px}
-.grip{display:grid;place-items:center;flex:none;width:var(--control);height:var(--control);padding:0;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7);color:var(--ink);cursor:grab;touch-action:none}
+.grip{display:grid;place-items:center;flex:none;width:var(--control);height:var(--control);padding:0;border:1px solid var(--edge);border-radius:var(--pill);background:var(--field);color:var(--ink);cursor:grab;touch-action:none}
 .grip svg{width:14px;height:14px;fill:currentColor}
 .dragging{user-select:none;-webkit-user-select:none}
 .dragging .grip{cursor:grabbing}
@@ -251,7 +314,7 @@ dialog.cat[open]{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr
 .drop-slot{position:absolute;border:2px dashed var(--accent);border-radius:var(--r-panel);background:rgba(255,255,255,.28);transition:left var(--move),top var(--move),width var(--move),height var(--move);pointer-events:none}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .head{display:flex;align-items:center;gap:8px;min-height:28px}
-h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
+h2{font-family:var(--display);font-size:14px;line-height:20px;font-weight:var(--display-weight);letter-spacing:0}
 .meta{margin-left:auto;font-size:12px;line-height:20px;color:var(--slate);font-variant-numeric:tabular-nums;white-space:nowrap}
 .zoom{flex:none;display:grid;place-items:center;width:28px;height:28px;margin-right:-6px;padding:0;border:0;border-radius:8px;background:none;color:var(--slate);transition:opacity .15s}
 .zoom svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round}
@@ -263,12 +326,12 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 .note{margin-top:8px;font-size:12px;color:var(--error)}
 
 .add{display:flex;gap:8px}
-.add input{flex:1;min-width:0;height:var(--control);padding:0 14px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7)}
+.add input{flex:1;min-width:0;height:var(--control);padding:0 14px;border:1px solid var(--edge);border-radius:var(--pill);background:var(--field)}
 .add input::placeholder{color:var(--slate);opacity:1}
-.ghost{flex:none;height:var(--control);padding:0 14px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.72);font-size:14px;font-weight:500;transition:transform .15s,background-color .15s}
-.ghost:hover:not(:disabled){background:#fff}
+.ghost{flex:none;height:var(--control);padding:0 14px;border:1px solid var(--edge);border-radius:var(--pill);background:var(--field);font-size:14px;font-weight:500;transition:transform .15s,background-color .15s}
+.ghost:hover:not(:disabled){background:var(--field-hover)}
 .ghost:active{transform:scale(.97)}
-.primary{flex:none;height:var(--control);padding:0 18px;border:0;border-radius:var(--pill);background:var(--ink);color:#fff;font-size:14px;font-weight:500;transition:transform .15s}
+.primary{flex:none;height:var(--control);padding:0 18px;border:0;border-radius:var(--pill);background:var(--ink);color:var(--paper);font-size:14px;font-weight:500;transition:transform .15s}
 .primary:active{transform:scale(.97)}
 #screen .primary{background:var(--accent);color:var(--on-accent)}
 .x{flex:none;width:32px;height:32px;border:0;border-radius:var(--pill);background:none;color:var(--slate);font-size:18px;line-height:1}
@@ -285,7 +348,7 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 
 .notes{flex:1;width:100%;min-height:132px;padding:0;border:0;background:none;resize:none;line-height:1.55}
 .notes:focus-visible{outline:none}
-.widget:has(.notes:focus-visible){outline:1.5px solid rgba(23,25,28,.55);outline-offset:0}
+.widget:has(.notes:focus-visible){outline:1.5px solid color-mix(in srgb,var(--ink) 55%,transparent);outline-offset:0}
 .notes::placeholder{color:var(--slate);opacity:1}
 
 .time{display:block;font-size:40px;line-height:1.1;font-weight:400;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
@@ -318,7 +381,7 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 
 .breath-stage{display:grid;place-items:center;height:168px;margin-top:4px}
 .breath{width:132px;height:132px;border-radius:50%;background:var(--tint);box-shadow:inset 0 0 0 1.5px var(--edge);transform:scale(.6);transition:transform var(--dur,4s) ease-in-out,background-color var(--dur,4s) ease-in-out}
-.breath.in{transform:scale(1);background:rgba(23,25,28,.1)}
+.breath.in{transform:scale(1);background:var(--press)}
 .breath-word{min-height:28px;font-size:18px;font-weight:500;text-align:center}
 .sound{display:flex;align-items:center;gap:12px;min-height:44px}
 .sound span{flex:none;width:104px;font-size:14px}
@@ -354,11 +417,11 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 .book-title{font-size:16px;font-weight:600;overflow-wrap:anywhere}
 .row.quote .grow{font-style:italic}
 .pages{display:flex;align-items:center;gap:8px;margin-block:12px}
-.pages input{width:88px;height:var(--control);padding:0 12px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7)}
+.pages input{width:88px;height:var(--control);padding:0 12px;border:1px solid var(--edge);border-radius:var(--pill);background:var(--field)}
 .insp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px;margin-top:8px}
 .insp{position:relative;margin:0;min-width:0}
 .insp img,.insp .blank{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;background:var(--tint)}
-.insp .x{position:absolute;top:4px;right:4px;width:28px;height:28px;background:rgba(255,255,255,.88)}
+.insp .x{position:absolute;top:4px;right:4px;width:28px;height:28px;background:var(--glass-solid)}
 .insp input{width:100%;margin-top:4px;padding:6px 2px;border:0;border-bottom:1px solid transparent;border-radius:0;background:none;font-size:12px}
 .insp input:focus-visible{outline:none;border-bottom-color:var(--ink)}
 .credit{padding:32px 0 24px;font-size:12px;color:var(--slate)}
@@ -415,7 +478,7 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 }
 
 /* Carte d'embarquement : la même dans le widget et dans la scène 3D, sa taille suit font-size. */
-.boarding{display:grid;grid-template-columns:72fr 28fr;border-radius:1em;background:#fff;color:var(--ink);box-shadow:0 0 0 1px var(--rule);font-size:var(--boarding-size,14px);line-height:1.3;overflow:hidden}
+.boarding{display:grid;grid-template-columns:72fr 28fr;border-radius:1em;background:var(--paper);color:var(--ink);box-shadow:0 0 0 1px var(--rule);font-size:var(--boarding-size,14px);line-height:1.3;overflow:hidden}
 .bmain{min-width:0;padding:1em 1.15em}
 .bstub{display:flex;flex-direction:column;justify-content:space-between;gap:.5em;min-width:0;padding:1em .9em;border-left:.15em dashed var(--edge);background:var(--tint)}
 .blabel{font-size:.8em;color:var(--slate)}
@@ -503,14 +566,14 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
 
 /* Le flou se recalcule à chaque image de défilement : plus léger et plus opaque sur téléphone. */
 @media (max-width:760px){
-  :root{--glass-blur:blur(12px) saturate(1.4);--glass-wall:rgba(255,255,255,.8);--control:44px}
+  :root{--glass-blur:blur(12px) saturate(1.4);--glass-wall:rgba(255,255,255,min(1,.8 + var(--boost,0)));--control:44px}
   .hello{margin:20px 0 16px}
   body.has-wall .hello{margin:12px 0;padding:14px 18px}
   h1{font-size:24px}
   .setup{margin-top:16px;padding:20px}
   .ref input,.ref .ghost{height:44px}
-  .widget{padding:18px}
-  .widget[data-size=s]{padding:16px}
+  .widget{padding:calc(var(--pad) - 2px)}
+  .widget[data-size=s]{padding:calc(var(--pad) - 4px)}
   .rows{max-height:none}
   .x{width:44px;height:44px}
   .days button{height:44px}
@@ -535,11 +598,13 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
   .topbar{gap:8px;padding:0 6px 0 14px}
   #open-custom{width:44px;padding:0;justify-content:center}
   #open-custom span{display:none}
+  /* Sur téléphone, la barre est pleine : les Réglages s'ouvrent depuis le menu du compte. */
+  #open-settings{display:none}
   /* Les modes passent en bas de l'écran, sous le pouce. Pendant « Personnaliser », le panneau prend le bas : ils remontent sous la barre. */
   .modes{position:fixed;inset:auto 12px calc(12px + env(safe-area-inset-bottom)) 12px;z-index:20;padding:4px;border:1px solid var(--glass-edge);border-radius:var(--pill);background:var(--glass-solid);box-shadow:0 8px 24px rgba(23,25,28,.16)} /* taste-skill-ignore : la rangée des modes flotte au-dessus de l'écran */
   .modes .page-tabs{flex:1;padding:0;background:none}
   .page-tabs button{flex:1 0 auto;height:44px}
-  .thumb{top:0;height:44px;background:rgba(23,25,28,.08);box-shadow:none}
+  .thumb{top:0;height:44px;background:var(--press);box-shadow:none}
   .has-modes main{padding-bottom:84px}
   .customizing .modes{inset:76px 12px auto 12px}
   .customizing.has-modes .hello{margin-top:76px}
@@ -561,18 +626,134 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
   .me,.out,#menu,.ghost,.primary{transition:none}
   .me:active,.out:active,.ghost:active,.primary:active{transform:none}
 }
+
+/* Réglages : un panneau qui glisse du bord droit. Pas de voile : l'écran derrière change en direct. */
+dialog.settings{position:fixed;inset:12px 12px 12px auto;width:min(420px,100vw - 24px);height:auto;max-width:none;max-height:none;margin:0;padding:0;border:1px solid var(--glass-edge);border-radius:var(--r-panel);background:var(--glass-solid);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);color:var(--ink);box-shadow:inset 0 1px 0 var(--pop-shine),0 24px 64px rgba(0,0,0,.22);overflow:hidden;transition:transform .32s var(--ease),opacity .2s,display .32s allow-discrete,overlay .32s allow-discrete}
+dialog.settings[open]{display:flex;flex-direction:column}
+dialog.settings:not([open]){opacity:0;transform:translateX(24px)}
+@starting-style{dialog.settings[open]{opacity:0;transform:translateX(24px)}}
+dialog.settings::backdrop{background:transparent}
+.set-head{display:flex;align-items:center;gap:12px;padding:18px 16px 14px 24px;border-bottom:1px solid var(--rule)}
+.set-head h2{font-size:20px;line-height:1.2;letter-spacing:-.015em}
+#set-saved{margin-left:auto;font-size:12px;color:var(--slate)}
+#set-saved.bad{color:var(--error)}
+.set-body{flex:1;min-height:0;padding:0 24px 24px;overflow-y:auto;overscroll-behavior:contain}
+.set-sec{padding:22px 0;border-bottom:1px solid var(--rule)}
+.set-sec h3{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px;font-size:14px;line-height:20px;font-weight:600}
+.set-sec h3 span{font-weight:400;font-size:13px;color:var(--slate)}
+/* Les deux thèmes : chacun montre une miniature de l'écran, avec le soleil ou la lune. */
+.themes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.theme-btn{display:grid;gap:10px;padding:6px 6px 10px;border:1px solid var(--edge);border-radius:var(--r-control);background:none;text-align:left;transition:border-color .2s,box-shadow .2s,transform .15s}
+.theme-btn:active{transform:scale(.98)}
+.theme-btn[aria-pressed=true]{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.mini{display:grid;grid-template-columns:2fr 3fr;grid-template-rows:9px 1fr 1fr;gap:5px;height:88px;padding:8px;border-radius:max(4px,calc(var(--r-control) - 6px));background:#e9ebee}
+.mini i{border-radius:4px;background:#fff}
+.mini i:first-child{grid-column:1/-1;width:46%;justify-self:center;border-radius:9px}
+.mini i:nth-child(2){grid-row:span 2}
+.mini i:nth-child(2)::before{content:"";display:block;width:34%;height:4px;margin:9px 8px;border-radius:2px;background:var(--accent)}
+.mini.dark{background:#111112}
+.mini.dark i{background:#2a2a2d}
+.theme-name{display:flex;align-items:center;gap:8px;padding:0 4px;font-size:14px;font-weight:500}
+.theme-name svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.theme-btn[aria-pressed=true] .theme-name::after{content:"";width:6px;height:6px;margin-left:auto;margin-right:2px;border-radius:50%;background:var(--accent)}
+.settings .swatches{margin:-4px 0 0 -10px}
+/* Polices : chaque choix s'écrit dans sa propre police. */
+.fonts{position:relative;display:flex;gap:16px;margin:-2px;padding:2px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+.fonts::-webkit-scrollbar{display:none}
+.font-page{flex:0 0 100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;gap:8px;scroll-snap-align:start;scroll-snap-stop:always}
+.pager{display:flex;align-items:center;justify-content:center;gap:2px;margin-top:10px}
+.pager-dot{display:grid;place-items:center;width:20px;height:28px;padding:0;border:0;background:none}
+.pager-dot::before{content:"";width:6px;height:6px;border-radius:3px;background:var(--edge);transition:width .25s var(--ease),background-color .25s}
+.pager-dot[aria-current=true]::before{width:18px;background:var(--ink)}
+.pager-arrow{display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:var(--pill);background:none;color:var(--ink);transition:background-color .15s,opacity .15s}
+.pager-arrow:hover:not(:disabled){background:var(--tint)}
+.pager-arrow:disabled{opacity:.3;cursor:default}
+.pager-arrow svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.pager-arrow:first-child{margin-right:6px}
+.pager-arrow:last-child{margin-left:6px}
+.font-opt{display:grid;gap:2px;min-width:0;padding:10px 12px;border:1px solid var(--edge);border-radius:var(--r-control);background:var(--field);text-align:left;transition:border-color .2s,box-shadow .2s,transform .15s}
+.font-opt:hover{background:var(--field-hover)}
+.font-opt:active{transform:scale(.98)}
+.font-opt b{font-family:var(--f);font-weight:var(--fw,500);font-size:21px;line-height:1.25;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.font-opt span{font-size:12px;color:var(--slate);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.font-opt[aria-pressed=true]{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.set-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;min-height:44px}
+.set-row + .set-row{margin-top:6px}
+.set-row > span{font-size:14px}
+.set-slider{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 12px}
+.set-slider + .set-slider{margin-top:10px}
+.set-slider label{font-size:14px}
+.set-slider output{font-size:13px;color:var(--slate);font-variant-numeric:tabular-nums}
+.set-slider input{grid-column:1/-1;width:100%;height:32px;margin:0;accent-color:var(--accent);cursor:pointer}
+.settings .choices{align-self:center}
+.dock-pick h3{margin:0}
+.set-open{display:block;width:100%;margin-top:6px}
+/* Réglages : une icône dans la barre ; le libellé n'apparaît que dans le rail latéral, qui en a la place. */
+#open-settings{width:var(--control);padding:0;justify-content:center}
+#open-settings span{display:none}
+.set-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:18px}
+.set-foot .link{margin:0;color:var(--slate)}
+.set-foot .link:hover{color:var(--ink)}
+/* Le logo garde ses carrés : sur fond sombre, les trois atténués passent à .45. */
+:root[data-theme=dark] .mark rect:not(:first-child){opacity:.45}
+@media (max-width:727px){
+  dialog.settings{inset:auto 0 0 0;width:100%;max-height:88dvh;border-radius:var(--r-panel) var(--r-panel) 0 0;padding-bottom:env(safe-area-inset-bottom)}
+  dialog.settings:not([open]){transform:translateY(32px)}
+  @starting-style{dialog.settings[open]{transform:translateY(32px)}}
+  .set-body{padding:0 16px 20px}
+  .set-head{padding:14px 8px 12px 16px}
+  .mini{height:72px}
+}
+
+/* Barre flottante (écrans larges) : un rail d'icônes sur un bord, qui s'ouvre au survol ou au clavier.
+   Sa place (gauche, haut, droite, bas) se choisit dans les Réglages et reste sur l'appareil.
+   Sous 1024 px (tablette, téléphone), rien ne change : le rail mangerait trop de largeur. */
+.dock-pick{display:none}
+.dock-row{display:flex}
+@media (min-width:1024px){
+  .dock-pick{display:block}
+  body[data-dock=left]{padding-left:88px}
+  body[data-dock=right]{padding-right:88px}
+  body:is([data-dock=left],[data-dock=right]) .topbar{position:fixed;top:12px;bottom:12px;left:12px;width:64px;height:auto;margin:0;padding:10px;flex-direction:column;align-items:stretch;gap:10px;overflow:hidden;transition:width .3s var(--ease)}
+  body[data-dock=right] .topbar{left:auto;right:12px}
+  /* Au clavier seulement (:focus-visible) : après un clic, le rail se referme dès que la souris le quitte. */
+  body:is([data-dock=left],[data-dock=right]) .topbar:is(:hover,:has(:focus-visible)){width:196px}
+  body:is([data-dock=left],[data-dock=right]) .mark{padding-left:11px;gap:14px;white-space:nowrap;overflow:hidden}
+  body:is([data-dock=left],[data-dock=right]) .mark svg{flex:none}
+  body:is([data-dock=left],[data-dock=right]) .modes{flex:none;justify-content:stretch}
+  body:is([data-dock=left],[data-dock=right]) .page-tabs{flex:1;flex-direction:column;padding:4px;border-radius:14px;overflow:hidden}
+  body:is([data-dock=left],[data-dock=right]) .page-tabs button{display:flex;align-items:center;gap:8px;width:100%;max-width:none;height:36px;padding:0;border-radius:10px;text-overflow:clip}
+  body:is([data-dock=left],[data-dock=right]) .page-tabs button::before{content:attr(data-i);content:attr(data-i) / "";flex:none;width:36px;text-align:center;font-weight:600;text-transform:uppercase}
+  body:is([data-dock=left],[data-dock=right]) .thumb{top:0;left:4px;width:calc(100% - 8px);height:36px;border-radius:10px;transform:translateY(var(--y,0))}
+  body:is([data-dock=left],[data-dock=right]) .tools{flex-direction:column;align-items:stretch;margin:auto 0 0}
+  body:is([data-dock=left],[data-dock=right]) .tools .icon{width:100%;height:44px;padding:0 14px;justify-content:flex-start;gap:14px;border-radius:12px;overflow:hidden;white-space:nowrap}
+  body:is([data-dock=left],[data-dock=right]) .tools #open-settings{width:100%;padding:0 14px;justify-content:flex-start}
+  body:is([data-dock=left],[data-dock=right]) #open-settings span{display:inline}
+  body:is([data-dock=left],[data-dock=right]) .me{align-self:flex-start;margin-left:4px}
+  body[data-dock=left] #menu{inset:auto auto 12px 88px;transform-origin:bottom left}
+  body[data-dock=right] #menu{inset:auto 88px 12px auto;transform-origin:bottom right}
+  body[data-dock=bottom] .topbar{position:fixed;top:auto;bottom:12px;left:0;right:0;margin:0 auto}
+  body[data-dock=bottom] main{padding-bottom:84px}
+  body[data-dock=bottom] #menu{inset:auto max(16px,calc((100vw - 1100px)/2)) 76px auto;transform-origin:bottom right}
+}
+@media (prefers-reduced-motion:reduce){.topbar{transition:none!important}}
 </style>
 </head>
 <body>
+<script>
+// Place de la barre, lue tout de suite pour éviter un saut à l'affichage.
+try { document.body.dataset.dock = { left: 1, top: 1, right: 1, bottom: 1 }[localStorage.getItem('renzvi:dock')] ? localStorage.getItem('renzvi:dock') : 'left'; } catch { document.body.dataset.dock = 'left'; }
+</script>
 <div id="wall" aria-hidden="true"></div>
 <header class="col topbar" id="bar">
-  <a class="mark" href="./" aria-label="Renzvi, accueil"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="3" fill="#17191c"/><rect x="13" y="2" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="2" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/><rect x="13" y="13" width="9" height="9" rx="3" fill="#17191c" opacity=".22"/></svg><span>Renzvi</span></a>
+  <a class="mark" href="./" aria-label="Renzvi, accueil"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="3" fill="currentColor"/><rect x="13" y="2" width="9" height="9" rx="3" fill="currentColor" opacity=".22"/><rect x="2" y="13" width="9" height="9" rx="3" fill="currentColor" opacity=".22"/><rect x="13" y="13" width="9" height="9" rx="3" fill="currentColor" opacity=".22"/></svg><span>Renzvi</span></a>
   <nav class="modes" id="page-bar" aria-label="Modes et pages de ton écran" hidden>
     <div class="page-tabs" id="page-tabs"></div>
   </nav>
   <div class="tools">
     <button class="primary icon" id="open-add" type="button" aria-label="Ajouter un widget" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg><span>Ajouter</span></button>
     <button class="ghost icon" id="open-custom" type="button" aria-label="Personnaliser" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5h5M11 5h3M2 11h2M8 11h6"/><circle cx="9" cy="5" r="2"/><circle cx="6" cy="11" r="2"/></svg><span>Personnaliser</span></button>
+    <button class="ghost icon" id="open-settings" type="button" aria-label="Réglages" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span>Réglages</span></button>
     <button class="me" id="me" type="button" popovertarget="menu" aria-label="Mon compte" hidden></button>
   </div>
 </header>
@@ -591,6 +772,10 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
     </div>
     <p class="desc" id="ref-info" role="status">Chargement…</p>
   </div>
+  <div class="acct">
+    <h2>Apparence</h2>
+    <button class="ghost set-open" id="menu-settings" type="button">Thème, couleurs et polices</button>
+  </div>
   <div class="acct" data-install-row>
     <h2>Application</h2>
     <button class="ghost ins-open ins-menu-btn" type="button" data-install><span>Installer l'app</span></button>
@@ -603,6 +788,72 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
   <p class="msg" id="logout-msg" role="alert"></p>
 </div>
 
+<dialog class="settings" id="settings" aria-labelledby="settings-title">
+  <header class="set-head">
+    <h2 id="settings-title">Réglages</h2>
+    <p id="set-saved" role="status"></p>
+    <button class="x" id="settings-close" type="button" aria-label="Fermer les réglages">×</button>
+  </header>
+  <div class="set-body">
+    <section class="set-sec" aria-labelledby="set-theme">
+      <h3 id="set-theme">Thème</h3>
+      <div class="themes" id="themes" role="group" aria-labelledby="set-theme">
+        <button class="theme-btn" type="button" data-value="light"><span class="mini" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="theme-name"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.8"/><path d="M8 1.5v1.4M8 13.1v1.4M1.5 8h1.4M13.1 8h1.4M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/></svg>Clair</span></button>
+        <button class="theme-btn" type="button" data-value="dark"><span class="mini dark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="theme-name"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.6A5.6 5.6 0 0 1 6.4 2.5a5.6 5.6 0 1 0 7.1 7.1z"/></svg>Sombre</span></button>
+      </div>
+    </section>
+    <section class="set-sec">
+      <h3 id="accent-label">Couleur d'accent <span id="accent-name"></span></h3>
+      <div class="swatches" id="swatches" role="group" aria-labelledby="accent-label"></div>
+    </section>
+    <section class="set-sec">
+      <h3 id="set-titre">Police des titres <span id="titre-name"></span></h3>
+      <div class="fonts" id="fonts-titre" role="group" aria-labelledby="set-titre"></div>
+      <div class="pager" id="pager-titre"></div>
+    </section>
+    <section class="set-sec">
+      <h3 id="set-texte">Police du texte <span id="texte-name"></span></h3>
+      <div class="fonts" id="fonts-texte" role="group" aria-labelledby="set-texte"></div>
+      <div class="pager" id="pager-texte"></div>
+    </section>
+    <section class="set-sec" aria-labelledby="set-forme">
+      <h3 id="set-forme">Forme</h3>
+      <div class="set-row"><span id="set-coins">Coins</span><div class="choices" id="look-coins" role="group" aria-labelledby="set-coins"></div></div>
+      <div class="set-row"><span id="set-densite">Espacement</span><div class="choices" id="look-densite" role="group" aria-labelledby="set-densite"></div></div>
+    </section>
+    <section class="set-sec" aria-labelledby="set-verre">
+      <h3 id="set-verre">Verre des widgets</h3>
+      <div class="set-slider"><label for="look-flou">Flou</label><output id="flou-val" for="look-flou"></output><input type="range" id="look-flou" min="0" max="40" step="1"></div>
+      <div class="set-slider"><label for="look-opacite">Opacité</label><output id="opacite-val" for="look-opacite"></output><input type="range" id="look-opacite" min="0" max="100" step="5"></div>
+    </section>
+    <section class="set-sec dock-pick" aria-labelledby="set-dock">
+      <div class="set-row"><h3 id="set-dock">Place de la barre</h3>
+        <div class="choices dock-row" id="dock" role="group" aria-label="Place de la barre">
+          <button type="button" data-dock="left">Gauche</button><button type="button" data-dock="top">Haut</button><button type="button" data-dock="right">Droite</button><button type="button" data-dock="bottom">Bas</button>
+        </div>
+      </div>
+    </section>
+    <div class="set-foot">
+      <button class="link" id="look-reset" type="button">Revenir aux réglages d'origine</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+{
+  const pick = document.getElementById('dock');
+  const mark = () => { for (const b of pick.children) b.setAttribute('aria-pressed', b.dataset.dock === document.body.dataset.dock); };
+  pick.addEventListener('click', e => {
+    const d = e.target.dataset?.dock;
+    if (!d) return;
+    document.body.dataset.dock = d;
+    try { localStorage.setItem('renzvi:dock', d); } catch {}
+    mark();
+    dispatchEvent(new Event('resize')); // la pastille du mode se recale
+  });
+  mark();
+}
+</script>
 <main class="col" id="app" hidden>
   <section class="setup glass" id="setup" hidden></section>
   <div id="screen" hidden>
@@ -622,8 +873,8 @@ h2{font-size:14px;line-height:20px;font-weight:600;letter-spacing:0}
         <div id="wall-slot"></div>
       </div>
       <div class="custom-part" data-part="couleur">
-        <p class="custom-label" id="accent-label">Couleur d'accent : <b id="accent-name"></b></p>
-        <div class="swatches" id="swatches" role="group" aria-labelledby="accent-label"></div>
+        <p class="custom-label">Thème, couleur, polices et formes</p>
+        <div class="page-tools"><button class="ghost" id="custom-settings" type="button">Ouvrir les réglages</button></div>
       </div>
       <div class="custom-part" data-part="page">
         <p class="custom-label">Page affichée : <b id="page-current"></b></p>
@@ -745,11 +996,78 @@ const MODES = [
   { id: 'study', name: 'Study', desc: 'Pour travailler', widgets: ['guide', 'cahier', 'revisions', 'cartes', 'quiz', 'schemas', 'vol', 'minuteur', 'taches', 'semaine', 'notes', 'compte'] },
   { id: 'chill', name: 'Chill', desc: 'Pour décompresser', wall: 'lac', widgets: ['respiration', 'ambiance', 'lecture', 'playlist', 'pause', 'inspiration'] },
 ];
+// Accents : hex en clair ; dark, une teinte réglée à la main pour le sombre. Les autres sont ajustés par legible().
 const ACCENTS = [
-  { id: 'encre', name: 'Encre' }, { id: 'vert', name: 'Vert' }, { id: 'bleu', name: 'Bleu' },
-  { id: 'prune', name: 'Prune' }, { id: 'terre', name: 'Terre cuite' },
+  { id: 'encre', name: 'Encre', hex: '#17191c', dark: '#ededeb' }, { id: 'graphite', name: 'Graphite', hex: '#4a4f57' },
+  { id: 'vert', name: 'Vert', hex: '#1b6e66', dark: '#5cc0b2' }, { id: 'emeraude', name: 'Émeraude', hex: '#0f7a52' },
+  { id: 'sauge', name: 'Sauge', hex: '#5b7a5e' }, { id: 'olive', name: 'Olive', hex: '#6b7320' },
+  { id: 'turquoise', name: 'Turquoise', hex: '#0b7f8f' }, { id: 'ciel', name: 'Ciel', hex: '#2f78c4' },
+  { id: 'bleu', name: 'Bleu', hex: '#1c5699', dark: '#82aef0' }, { id: 'marine', name: 'Marine', hex: '#1f3470' },
+  { id: 'lavande', name: 'Lavande', hex: '#6a5bb8' }, { id: 'prune', name: 'Prune', hex: '#6e2a55', dark: '#d895c1' },
+  { id: 'rose', name: 'Rose', hex: '#c03a6e' }, { id: 'framboise', name: 'Framboise', hex: '#a3194b' },
+  { id: 'rouge', name: 'Rouge', hex: '#c0262d' }, { id: 'corail', name: 'Corail', hex: '#c4472e' },
+  { id: 'orange', name: 'Orange', hex: '#b55a10' }, { id: 'ambre', name: 'Ambre', hex: '#966a00' },
+  { id: 'terre', name: 'Terre cuite', hex: '#96401f', dark: '#ec9a74' }, { id: 'chocolat', name: 'Chocolat', hex: '#6b4423' },
+  { id: 'sable', name: 'Sable', hex: '#87683a' },
 ];
+const HEX = /^#[0-9a-f]{6}$/;
 const DEFAULT_ACCENT = 'vert', DEFAULT_SIZE = 'm';
+// Apparence (Réglages). Seules ces valeurs sont acceptées au chargement.
+// Polices : [valeur, nom, famille CSS, graisse des titres]. Toutes auto-hébergées (site/fonts), listées sur fontesk.com.
+const LOOK = {
+  theme: [['light', 'Clair'], ['dark', 'Sombre']],
+  titre: [
+    ['defaut', 'Comme le texte', 'var(--sans)', 600],
+    ['instrument-serif', 'Instrument Serif', '"Instrument Serif",serif', 400],
+    ['gloock', 'Gloock', 'Gloock,serif', 400],
+    ['fraunces', 'Fraunces', 'Fraunces,serif', 600],
+    ['young-serif', 'Young Serif', '"Young Serif",serif', 400],
+    ['bodoni', 'Bodoni Moda', '"Bodoni Moda",serif', 600],
+    ['syne', 'Syne', 'Syne,sans-serif', 700],
+    ['bricolage', 'Bricolage Grotesque', '"Bricolage Grotesque",sans-serif', 700],
+    ['space-grotesk', 'Space Grotesk', '"Space Grotesk",sans-serif', 600],
+    ['sora', 'Sora', 'Sora,sans-serif', 600],
+    ['chivo', 'Chivo', 'Chivo,sans-serif', 700],
+    ['geologica', 'Geologica', 'Geologica,sans-serif', 600],
+    ['unbounded', 'Unbounded', 'Unbounded,sans-serif', 600],
+    ['big-shoulders', 'Big Shoulders', '"Big Shoulders Display",sans-serif', 800],
+    ['dela-gothic', 'Dela Gothic One', '"Dela Gothic One",sans-serif', 400],
+    ['climate-crisis', 'Climate Crisis', '"Climate Crisis",sans-serif', 400],
+    ['rubik-bubbles', 'Rubik Bubbles', '"Rubik Bubbles",sans-serif', 400],
+    ['bagel', 'Bagel Fat One', '"Bagel Fat One",sans-serif', 400],
+    ['playpen', 'Playpen Sans', '"Playpen Sans",sans-serif', 600],
+    ['dynapuff', 'DynaPuff', 'DynaPuff,sans-serif', 600],
+    ['baloo', 'Baloo 2', '"Baloo 2",sans-serif', 700],
+    ['grandstander', 'Grandstander', 'Grandstander,sans-serif', 700],
+    ['gochi', 'Gochi Hand', '"Gochi Hand",cursive', 400],
+    ['pixelify', 'Pixelify Sans', '"Pixelify Sans",sans-serif', 500],
+  ],
+  texte: [
+    ['systeme', 'Système', '-apple-system,BlinkMacSystemFont,"Hanken Grotesk",ui-sans-serif,system-ui,sans-serif'],
+    ['hanken', 'Hanken Grotesk', '"Hanken Grotesk",ui-sans-serif,system-ui,sans-serif'],
+    ['instrument-sans', 'Instrument Sans', '"Instrument Sans",ui-sans-serif,system-ui,sans-serif'],
+    ['inter', 'Inter', 'Inter,ui-sans-serif,system-ui,sans-serif'],
+    ['manrope', 'Manrope', 'Manrope,ui-sans-serif,system-ui,sans-serif'],
+    ['jakarta', 'Plus Jakarta Sans', '"Plus Jakarta Sans",ui-sans-serif,system-ui,sans-serif'],
+    ['figtree', 'Figtree', 'Figtree,ui-sans-serif,system-ui,sans-serif'],
+    ['outfit', 'Outfit', 'Outfit,ui-sans-serif,system-ui,sans-serif'],
+    ['work-sans', 'Work Sans', '"Work Sans",ui-sans-serif,system-ui,sans-serif'],
+    ['onest', 'Onest', 'Onest,ui-sans-serif,system-ui,sans-serif'],
+    ['sora', 'Sora', 'Sora,ui-sans-serif,system-ui,sans-serif'],
+    ['geologica', 'Geologica', 'Geologica,ui-sans-serif,system-ui,sans-serif'],
+    ['lexend', 'Lexend', 'Lexend,ui-sans-serif,system-ui,sans-serif'],
+    ['epilogue', 'Epilogue', 'Epilogue,ui-sans-serif,system-ui,sans-serif'],
+    ['chivo', 'Chivo', 'Chivo,ui-sans-serif,system-ui,sans-serif'],
+    ['atkinson', 'Atkinson Hyperlegible', '"Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif'],
+    ['source-serif', 'Source Serif 4', '"Source Serif 4",Georgia,serif'],
+    ['literata', 'Literata', 'Literata,Georgia,serif'],
+  ],
+  coins: [['nets', 'Nets'], ['doux', 'Doux'], ['ronds', 'Ronds']],
+  densite: [['compacte', 'Serré'], ['normale', 'Normal'], ['aeree', 'Aéré']],
+};
+// flou : null = réglage d'origine (24 px, 12 px sur téléphone), sinon 0 à 40 px. opacite : 0 (givré, le plus transparent encore lisible) à 100 (plein).
+const LOOK_DEFAULT = { theme: 'light', titre: 'defaut', texte: 'systeme', coins: 'doux', densite: 'normale', flou: null, opacite: 0 };
+const FLOU_MAX = 40, BOOST_MAX = .26;
 const SIZES = [{ id: 's', name: 'Petit' }, { id: 'm', name: 'Moyen' }, { id: 'l', name: 'Grand' }];
 const MAX_SCREEN_PAGES = 6, MAX_PAGE_NAME = 24, FIRST_PAGE = { id: 'p1', name: 'Mon écran' };
 const MIN_FLIGHT = 5, MAX_FLIGHT = 180, FLIGHT_GRACE = 10000, CANCEL_CONFIRM = 3000;
@@ -2059,7 +2377,7 @@ if (!sb) {
   let userId, saveTimer, saving = null, loaded = false, stored = {}, photoUrl = null, referral = null;
   // done reste faux tant que le premier lancement n'est pas terminé : on le reprend au retour.
   // widgets garde l'ordre de tous les widgets ; where dit sur quelle page chacun se trouve (sans entrée : la première).
-  const screen = { wallpaper: 'blanc', widgets: [], done: false, accent: DEFAULT_ACCENT, sizes: {}, pages: [FIRST_PAGE], where: {} };
+  const screen = { wallpaper: 'blanc', widgets: [], done: false, accent: DEFAULT_ACCENT, look: { ...LOOK_DEFAULT }, sizes: {}, pages: [FIRST_PAGE], where: {} };
   let currentPage = FIRST_PAGE.id;
   const pageOf = id => screen.where[id] ?? screen.pages[0].id;
   const onPage = () => screen.widgets.filter(id => pageOf(id) === currentPage);
@@ -2067,8 +2385,10 @@ if (!sb) {
   const photoPath = () => `${userId}/fond.jpg`;
 
   function showSaved(text, bad = false) {
-    $('saved').textContent = text;
-    $('saved').classList.toggle('bad', bad);
+    for (const id of ['saved', 'set-saved']) {
+      $(id).textContent = text;
+      $(id).classList.toggle('bad', bad);
+    }
   }
   function queueSave(widget, data) {
     // Tenu à jour : un widget remis sur l'écran doit retrouver son dernier contenu, pas celui du chargement.
@@ -2242,6 +2562,7 @@ if (!sb) {
     for (const old of tabs.querySelectorAll('button')) old.remove();
     tabs.append(...screen.pages.map(page => {
       const tab = button('', page.name, () => { showPage(page.id); focusTab(); });
+      tab.dataset.i = [...page.name.trim()][0] ?? '';
       tab.setAttribute('aria-pressed', page.id === currentPage);
       return tab;
     }));
@@ -2262,6 +2583,7 @@ if (!sb) {
     if (!tab || !thumb || !tab.offsetWidth) return;
     thumb.style.setProperty('--x', `${tab.offsetLeft}px`);
     thumb.style.setProperty('--w', `${tab.offsetWidth}px`);
+    thumb.style.setProperty('--y', `${tab.offsetTop}px`); // rail vertical
     // Avec beaucoup de pages sur téléphone, la rangée défile jusqu'à l'onglet affiché.
     if (tab.offsetLeft < tabs.scrollLeft || tab.offsetLeft + tab.offsetWidth > tabs.scrollLeft + tabs.clientWidth) tabs.scrollLeft = tab.offsetLeft - 16;
     requestAnimationFrame(() => thumb.classList.remove('still'));
@@ -2490,22 +2812,172 @@ if (!sb) {
     grip.onpointercancel = () => finish(false);
   }
 
+  // Contraste WCAG entre deux couleurs hex.
+  const lum = hex => {
+    const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(c => c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4);
+    return .2126 * r + .7152 * g + .0722 * b;
+  };
+  const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + .05) / (y + .05); };
+  const mix = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - t) + parseInt(b.slice(i, i + 2), 16) * t).toString(16).padStart(2, '0')).join('');
+  // Toute couleur reste lisible : en clair, assombrie jusqu'à 4,5:1 avec un texte blanc ; en sombre, éclaircie jusqu'à 4,5:1 avec un texte presque noir.
+  function legible(hex, dark) {
+    const [toward, text] = dark ? ['#ffffff', '#141414'] : ['#000000', '#ffffff'];
+    for (let t = 0; t <= 1; t += .02) { const c = mix(hex, toward, t); if (contrast(c, text) >= 4.5) return c; }
+    return toward;
+  }
+  const accentColor = (id, dark = screen.look.theme === 'dark') => {
+    const preset = ACCENTS.find(a => a.id === id);
+    return dark && preset?.dark ? preset.dark : legible(preset ? preset.hex : id, dark);
+  };
   function applyAccent() {
-    document.documentElement.dataset.accent = screen.accent;
-    $('accent-name').textContent = ACCENTS.find(a => a.id === screen.accent).name;
-    for (const b of $('swatches').children) b.setAttribute('aria-pressed', b.dataset.accent === screen.accent);
+    const root = document.documentElement, dark = screen.look.theme === 'dark';
+    const preset = ACCENTS.find(a => a.id === screen.accent);
+    root.dataset.accent = preset ? preset.id : 'perso';
+    root.style.setProperty('--accent', accentColor(screen.accent));
+    root.style.setProperty('--on-accent', dark ? '#141414' : '#ffffff');
+    $('accent-name').textContent = preset ? preset.name : `Perso ${screen.accent}`;
+    for (const b of $('swatches').querySelectorAll('.swatch')) {
+      b.setAttribute('aria-pressed', preset ? b.dataset.accent === preset.id : b.classList.contains('swatch-pick'));
+      b.style.setProperty('--c', accentColor(b.dataset.accent ?? screen.accent));
+    }
+    if (!preset) $('accent-pick').value = screen.accent;
+    rememberLook();
+  }
+  // Copie sur l'appareil, relue avant l'affichage au prochain chargement (pas de flash clair en mode sombre).
+  const lookVars = () => {
+    const [, , display, weight] = LOOK.titre.find(o => o[0] === screen.look.titre);
+    return {
+      '--display': display, '--display-weight': String(weight), '--sans': LOOK.texte.find(o => o[0] === screen.look.texte)[2],
+      '--accent': accentColor(screen.accent), '--on-accent': screen.look.theme === 'dark' ? '#141414' : '#ffffff',
+      '--glass-blur': screen.look.flou == null ? null : screen.look.flou ? `blur(${screen.look.flou}px) saturate(1.6)` : 'none',
+      '--boost': String(Math.round(screen.look.opacite / 100 * BOOST_MAX * 1000) / 1000),
+    };
+  };
+  function rememberLook() {
+    try { localStorage.setItem('renzvi:look', JSON.stringify({ ...screen.look, accent: screen.accent, vars: lookVars() })); } catch {}
+  }
+  function applyLook() {
+    const root = document.documentElement;
+    for (const key of Object.keys(LOOK)) root.dataset[key] = screen.look[key];
+    for (const [name, value] of Object.entries(lookVars())) value == null ? root.style.removeProperty(name) : root.style.setProperty(name, value);
+    applyAccent();
+    const flou = screen.look.flou ?? (matchMedia('(max-width:760px)').matches ? 12 : 24);
+    $('look-flou').value = flou;
+    $('flou-val').textContent = flou ? `${flou} px` : 'Aucun';
+    $('look-opacite').value = screen.look.opacite;
+    $('opacite-val').textContent = screen.look.opacite === 0 ? 'Givré' : screen.look.opacite === 100 ? 'Plein' : `${screen.look.opacite} %`;
+    document.querySelector('meta[name=theme-color]').content = screen.look.theme === 'dark' ? '#111112' : '#ffffff';
+    for (const b of $('themes').children) b.setAttribute('aria-pressed', b.dataset.value === screen.look.theme);
+    for (const key of ['titre', 'texte']) {
+      $(`${key}-name`).textContent = LOOK[key].find(o => o[0] === screen.look[key])[1];
+      for (const b of $(`fonts-${key}`).querySelectorAll('.font-opt')) b.setAttribute('aria-pressed', b.dataset.value === screen.look[key]);
+    }
+    for (const key of ['coins', 'densite']) for (const b of $(`look-${key}`).children) b.setAttribute('aria-pressed', b.dataset.value === screen.look[key]);
+    rememberLook();
+  }
+  function setLook(key, value) {
+    if (screen.look[key] === value) return;
+    screen.look = { ...screen.look, [key]: value };
+    applyLook();
+    saveScreen();
+    dispatchEvent(new Event('resize')); // la pastille du mode suit les nouvelles tailles
+  }
+  // Polices rangées par pages de six, qu'on fait glisser (doigt, trackpad), ou qu'on tourne avec les flèches et les points.
+  const PER_PAGE = 6;
+  const smooth = () => matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+  function drawFonts(key) {
+    const track = $(`fonts-${key}`);
+    const pages = [];
+    LOOK[key].forEach(([id, name, family, weight], i) => {
+      if (i % PER_PAGE === 0) pages.push(el('div', 'font-page'));
+      const b = button('font-opt', '', () => setLook(key, id));
+      b.dataset.value = id;
+      b.ariaLabel = name;
+      b.style.setProperty('--f', family);
+      if (weight) b.style.setProperty('--fw', weight);
+      b.append(el('b', '', key === 'titre' ? 'Bonjour' : 'Tes outils'), el('span', '', name));
+      pages.at(-1).append(b);
+    });
+    track.replaceChildren(...pages);
+    const pager = $(`pager-${key}`);
+    const go = (i, behavior = smooth()) => track.scrollTo({ left: pages[Math.max(0, Math.min(i, pages.length - 1))].offsetLeft, behavior });
+    const prev = button('pager-arrow', '', () => go(current() - 1));
+    const next = button('pager-arrow', '', () => go(current() + 1));
+    prev.ariaLabel = 'Page précédente';
+    next.ariaLabel = 'Page suivante';
+    prev.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>';
+    next.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg>';
+    const dots = pages.map((_, i) => {
+      const d = button('pager-dot', '', () => go(i));
+      d.ariaLabel = `Page ${i + 1} sur ${pages.length}`;
+      return d;
+    });
+    pager.replaceChildren(prev, ...dots, next);
+    const current = () => Math.round(track.scrollLeft / (pages[1]?.offsetLeft || 1));
+    const mark = () => {
+      const c = current();
+      dots.forEach((d, i) => d.setAttribute('aria-current', i === c));
+      prev.disabled = c === 0;
+      next.disabled = c === pages.length - 1;
+    };
+    track.onscroll = () => requestAnimationFrame(mark);
+    mark();
+    // À l'ouverture, la page du choix en cours.
+    track.showChoice = () => { go(Math.floor(LOOK[key].findIndex(o => o[0] === screen.look[key]) / PER_PAGE), 'auto'); mark(); };
+  }
+  function drawSettings() {
+    for (const b of $('themes').children) b.onclick = () => setLook('theme', b.dataset.value);
+    for (const key of ['titre', 'texte']) drawFonts(key);
+    // Curseurs : l'écran suit en direct, l'enregistrement part quand on lâche.
+    for (const [key, max] of [['flou', FLOU_MAX], ['opacite', 100]]) {
+      const input = $(`look-${key}`);
+      input.oninput = () => { screen.look = { ...screen.look, [key]: Math.max(0, Math.min(max, Math.round(+input.value))) }; applyLook(); };
+      input.onchange = () => saveScreen();
+    }
+    for (const key of ['coins', 'densite']) {
+      $(`look-${key}`).replaceChildren(...LOOK[key].map(([id, name]) => {
+        const b = button('', name, () => setLook(key, id));
+        b.dataset.value = id;
+        return b;
+      }));
+    }
+    $('look-reset').onclick = () => {
+      screen.look = { ...LOOK_DEFAULT };
+      screen.accent = DEFAULT_ACCENT;
+      applyAccent();
+      applyLook();
+      saveScreen();
+      dispatchEvent(new Event('resize'));
+    };
+    const open = () => {
+      if (document.body.classList.contains('customizing')) setCustomizing(false);
+      $('settings').showModal();
+      for (const key of ['titre', 'texte']) $(`fonts-${key}`).showChoice();
+    };
+    $('open-settings').onclick = open;
+    $('custom-settings').onclick = open;
+    $('menu-settings').onclick = () => { $('menu').hidePopover(); open(); };
+    $('settings-close').onclick = () => $('settings').close();
+    // Un clic à côté du panneau le ferme : seul le fond invisible du dialogue reçoit ce clic.
+    $('settings').onclick = e => { if (e.target === $('settings')) $('settings').close(); };
+    $('settings').onclose = () => ($('open-settings').offsetParent ? $('open-settings') : $('me')).focus();
+    applyLook();
   }
   function drawSwatches() {
+    const pick = el('label', 'swatch swatch-pick');
+    pick.title = 'Toutes les couleurs';
+    const input = Object.assign(el('input'), { type: 'color', id: 'accent-pick', value: '#1b6e66' });
+    input.ariaLabel = 'Choisir une couleur libre';
+    input.oninput = () => { if (HEX.test(input.value)) { screen.accent = input.value; applyAccent(); saveScreen(); } };
+    pick.append(input, el('i'));
     $('swatches').replaceChildren(...ACCENTS.map(a => {
       const b = button('swatch', '', () => { screen.accent = a.id; applyAccent(); saveScreen(); });
       b.dataset.accent = a.id;
       b.ariaLabel = a.name;
       b.title = a.name;
-      const dot = el('i');
-      dot.style.setProperty('--c', `var(--accent-${a.id})`);
-      b.append(dot);
+      b.append(el('i'));
       return b;
-    }));
+    }), pick);
     applyAccent();
   }
   // L'état d'enregistrement suit le panneau : il reste visible même en bas d'un long écran.
@@ -2572,8 +3044,9 @@ if (!sb) {
     $('screen').hidden = false;
     $('open-add').hidden = false;
     $('open-custom').hidden = document.body.classList.contains('customizing');
+    $('open-settings').hidden = false;
     // Page vide : l'invitation reprend les carrés du logo, rangés comme un écran qui se remplit.
-    $('board-empty').innerHTML = '<svg viewBox="0 0 264 148" aria-hidden="true"><rect class="tile-a" x="4" y="4" width="120" height="66" rx="14"/><path d="M22 26h50M22 40h76M22 54h36" fill="none" stroke="#fff" stroke-opacity=".85" stroke-width="5" stroke-linecap="round"/><rect x="136" y="4" width="124" height="66" rx="14" fill="currentColor" opacity=".1"/><rect x="4" y="82" width="74" height="62" rx="14" fill="currentColor" opacity=".1"/><rect x="90" y="82" width="74" height="62" rx="14" fill="currentColor" opacity=".16"/><rect x="177" y="83" width="82" height="60" rx="13" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="1.500" stroke-dasharray="5 5"/><path d="M218 104v18M209 113h18" fill="none" stroke="currentColor" stroke-opacity=".6" stroke-width="1.800" stroke-linecap="round"/></svg><h2 id="empty-title"></h2><p>Choisis un premier widget dans le catalogue. Tu vois un aperçu avant de l\'ajouter, et tu peux le retirer quand tu veux.</p>';
+    $('board-empty').innerHTML = '<svg viewBox="0 0 264 148" aria-hidden="true"><rect class="tile-a" x="4" y="4" width="120" height="66" rx="14"/><path d="M22 26h50M22 40h76M22 54h36" fill="none" style="stroke:var(--on-accent)" stroke-opacity=".85" stroke-width="5" stroke-linecap="round"/><rect x="136" y="4" width="124" height="66" rx="14" fill="currentColor" opacity=".1"/><rect x="4" y="82" width="74" height="62" rx="14" fill="currentColor" opacity=".1"/><rect x="90" y="82" width="74" height="62" rx="14" fill="currentColor" opacity=".16"/><rect x="177" y="83" width="82" height="60" rx="13" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="1.500" stroke-dasharray="5 5"/><path d="M218 104v18M209 113h18" fill="none" stroke="currentColor" stroke-opacity=".6" stroke-width="1.800" stroke-linecap="round"/></svg><h2 id="empty-title"></h2><p>Choisis un premier widget dans le catalogue. Tu vois un aperçu avant de l\'ajouter, et tu peux le retirer quand tu veux.</p>';
     const start = el('div', 'actions');
     start.append(button('primary', 'Choisir un widget', () => openCatalog(user)));
     $('board-empty').append(start);
@@ -2587,7 +3060,7 @@ if (!sb) {
     $('open-custom').onclick = () => setCustomizing(true);
     $('custom-done').onclick = () => setCustomizing(false);
     // Sur téléphone, le panneau montre un réglage à la fois.
-    $('custom-tabs').replaceChildren(...[['fond', 'Fond'], ['couleur', 'Couleur'], ['page', 'Page']].map(([id, name]) => {
+    $('custom-tabs').replaceChildren(...[['fond', 'Fond'], ['couleur', 'Style'], ['page', 'Page']].map(([id, name]) => {
       const tab = button('', name, () => {
         $('custom').dataset.tab = id;
         for (const t of $('custom-tabs').children) t.setAttribute('aria-pressed', t === tab);
@@ -2971,7 +3444,11 @@ if (!sb) {
     const known = id => WIDGETS.some(w => w.id === id);
     screen.widgets = [...new Set(listOf(saved.widgets))].filter(known);
     screen.done = saved.done === true;
-    if (ACCENTS.some(a => a.id === saved.accent)) screen.accent = saved.accent;
+    if (ACCENTS.some(a => a.id === saved.accent) || HEX.test(saved.accent)) screen.accent = saved.accent;
+    screen.look = Object.fromEntries(Object.entries(LOOK).map(([k, list]) => [k, list.some(o => o[0] === saved.look?.[k]) ? saved.look[k] : LOOK_DEFAULT[k]]));
+    const whole = (v, max) => Number.isInteger(v) && v >= 0 && v <= max;
+    screen.look.flou = whole(saved.look?.flou, FLOU_MAX) ? saved.look.flou : null;
+    screen.look.opacite = whole(saved.look?.opacite, 100) ? saved.look.opacite : 0;
     screen.sizes = Object.fromEntries(Object.entries(saved.sizes ?? {}).filter(([id, size]) => known(id) && SIZES.some(s => s.id === size)));
     // Une configuration abîmée ne doit pas empêcher d'ouvrir l'écran : on ne garde que ce qui est valide.
     const pages = listOf(saved.pages).filter(p => typeof p?.id === 'string' && p.id && p.id.length <= 64 && typeof p.name === 'string' && p.name.trim());
@@ -2985,6 +3462,7 @@ if (!sb) {
     } catch {}
     if (saved.aide && typeof saved.aide === 'object') screen.aide = Object.fromEntries(['add', 'move', 'wall', 'off'].map(key => [key, saved.aide[key] === true]));
     drawSwatches();
+    drawSettings();
     if (validWall(saved.wallpaper)) screen.wallpaper = saved.wallpaper;
     applyWallpaper();
     if (photoInUse()) loadPhoto();

@@ -97,7 +97,7 @@ const { start } = require('./demo.cjs');
     await page.getByRole('textbox', { name: 'Nouvelle tâche' }).fill('Réviser la procédure');
     await page.getByRole('textbox', { name: 'Nouvelle tâche' }).press('Enter');
     await page.locator('[data-widget=notes] textarea').fill('note gardée');
-    const thumb = () => page.locator('#page-tabs .thumb').evaluate(t => t.style.getPropertyValue('--x'));
+    const thumb = () => page.locator('#page-tabs .thumb').evaluate(t => t.style.getPropertyValue('--x') + ' ' + t.style.getPropertyValue('--y')); // rail vertical : la pastille glisse de haut en bas
     const before = await thumb();
     await page.getByRole('button', { name: 'Chill', exact: true }).click();
     assert.equal(await pressed(), 'Chill');
@@ -154,8 +154,8 @@ const { start } = require('./demo.cjs');
     await page.keyboard.press('Escape');
     await page.click('#open-custom');
     await noOverflow('personnaliser');
-    await page.getByRole('group', { name: 'Réglage affiché' }).getByRole('button', { name: 'Couleur' }).click();
-    assert.ok(await page.isVisible('#swatches'));
+    await page.getByRole('group', { name: 'Réglage affiché' }).getByRole('button', { name: 'Style' }).click();
+    assert.ok(await page.isVisible('#custom-settings'));
     assert.equal(await page.isVisible('#wall-slot'), false, 'un réglage à la fois');
     await context.close();
   }

@@ -1,7 +1,7 @@
 /* Widget Cahier (Study S1). Reprend les variables du dashboard pour suivre ses changements de style. */
 .cahier-bar,.cahier-nav{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .cahier-nav{margin-top:8px}
-.cahier-pick,.cahier-search,.cahier-field input,.cahier-rename{min-width:0;height:var(--control);padding:0 14px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7);font:inherit;font-size:14px;color:var(--ink)}
+.cahier-pick,.cahier-search,.cahier-field input,.cahier-rename{min-width:0;height:var(--control);padding:0 14px;border:1px solid var(--edge);border-radius:var(--pill);background:var(--field);font:inherit;font-size:14px;color:var(--ink)}
 .cahier-pick{flex:1 1 180px;max-width:100%;text-overflow:ellipsis}
 .cahier-search{flex:1 1 200px}
 .cahier-search::placeholder,.cahier-field input::placeholder,.cahier-paste::placeholder{color:var(--slate);opacity:1}
@@ -25,7 +25,7 @@
 .cahier-edit .ghost{justify-self:start}
 .cahier-chapters{display:block;max-height:220px;margin-top:0}
 .cahier-chapters .row{gap:4px}
-.row .cahier-rename{flex:1;width:auto;height:36px;margin:4px 0;background:rgba(255,255,255,.85)}
+.row .cahier-rename{flex:1;width:auto;height:36px;margin:4px 0;background:var(--field)}
 .cahier-tools{display:flex;flex-wrap:wrap;gap:0 20px}
 .cahier-tools[hidden],.cahier-nav[hidden],.cahier-bar[hidden]{display:none}
 .cahier-danger{color:var(--error)}
@@ -39,7 +39,7 @@
 .cahier-filerow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
 .cahier-chosen{min-width:0;font-size:14px;overflow-wrap:anywhere}
 .cahier-import .zone{margin-top:0}
-.cahier-paste{min-height:120px;padding:12px 14px;border:1px solid var(--edge);border-radius:18px;background:rgba(255,255,255,.7);font:inherit;font-size:14px;line-height:1.5;resize:vertical}
+.cahier-paste{min-height:120px;padding:12px 14px;border:1px solid var(--edge);border-radius:18px;background:var(--field);font:inherit;font-size:14px;line-height:1.5;resize:vertical}
 .cahier-progress{width:100%;height:6px;accent-color:var(--accent)}
 .cahier-actions{display:flex;flex-wrap:wrap;gap:8px}
 
@@ -55,4 +55,4 @@ body.cahier-lock{overflow:hidden}
   .cahier-pick,.cahier-search,.cahier-field input{height:44px}
   .cahier-step{width:44px}
 }
-@media (prefers-reduced-transparency:reduce){.cahier-pick,.cahier-search,.cahier-field input,.cahier-paste{background:#fff}}
+@media (prefers-reduced-transparency:reduce){.cahier-pick,.cahier-search,.cahier-field input,.cahier-paste{background:var(--paper,#fff)}}

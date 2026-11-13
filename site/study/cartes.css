@@ -1,6 +1,6 @@
 /* Widget Flashcards (Study S2). Reprend les classes du Cahier et les variables du dashboard ; le design sera refait. */
 .cartes-view{flex:1;display:flex;flex-direction:column;gap:12px;min-height:0;margin-top:12px}
-.cartes-card{display:grid;gap:12px;padding:20px;border-radius:18px;background:rgba(255,255,255,.55)}
+.cartes-card{display:grid;gap:12px;padding:20px;border-radius:18px;background:var(--field)}
 .cartes-deck{font-size:13px;color:var(--slate)}
 .cartes-face{font-size:18px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
 .cartes-back{padding-top:12px;border-top:1px solid var(--rule);font-size:16px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
@@ -55,7 +55,7 @@
 .quiz-ko{color:var(--error)}
 .quiz-edit{display:grid;gap:8px}
 .quiz-edit-row{display:flex;gap:8px;align-items:center}
-.quiz-edit-row input[type=text]{flex:1;min-width:0;height:var(--control);padding:0 14px;border:1px solid var(--edge);border-radius:var(--pill);background:rgba(255,255,255,.7);font:inherit;font-size:14px}
+.quiz-edit-row input[type=text]{flex:1;min-width:0;height:var(--control);padding:0 14px;border:1px solid var(--edge);border-radius:var(--pill);background:var(--field);font:inherit;font-size:14px}
 .quiz-good{display:flex;align-items:center;gap:6px;font-size:13px}
 /* Schémas (S7). */
 .schema-stage{position:relative;width:min(100%,calc(70vh * var(--r,1)));margin-inline:auto;border-radius:12px;overflow:hidden;background:var(--tint)}
@@ -65,7 +65,7 @@
 .schema-zone[aria-pressed=true]{border-width:3px;background:color-mix(in srgb,var(--accent) 25%,transparent)}
 .schema-zone.ghost{border-style:dashed;pointer-events:none}
 .schema-zone.shown{pointer-events:none}
-.schema-mask{position:absolute;display:grid;place-items:center;border-radius:6px;background:var(--ink);color:#fff;font-weight:600}
+.schema-mask{position:absolute;display:grid;place-items:center;border-radius:6px;background:var(--ink);color:var(--paper,#fff);font-weight:600}
 .schema-answers{display:grid;gap:4px;padding-left:20px;font-size:15px}
 /* Guide Study (S8). */
 .guide{display:grid;gap:12px}

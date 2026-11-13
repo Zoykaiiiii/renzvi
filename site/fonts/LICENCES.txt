@@ -2,7 +2,44 @@ Polices hébergées avec le site (sous-ensemble « latin », téléchargé depui
 - inter-latin.woff2 : Inter, graisses 400 à 700 (variable).
 - source-serif-4-latin.woff2 : Source Serif 4, graisse 400.
 - hanken-grotesk-latin.woff2 : Hanken Grotesk, graisses 100 à 900 (variable), ajoutée le 10 nov. 2026 depuis le paquet @fontsource-variable/hanken-grotesk 5.2.8. Copyright 2021 The Hanken Grotesk Project Authors (https://github.com/marcologous/hanken-grotesk).
-Les trois sont sous licence SIL Open Font License 1.1 (usage commercial autorisé). Textes complets ci-dessous.
+- instrument-serif-italic-latin.woff2 : Instrument Serif italique, graisse 400, ajoutée le 13 nov. 2026 depuis Google Fonts. Copyright 2022 The Instrument Serif Project Authors (https://github.com/Instrument/instrument-serif). Même licence SIL OFL 1.1 que les autres (texte identique ci-dessous).
+Ajoutées le 13 nov. 2026 depuis Google Fonts (sous-ensemble « latin »), pour le choix des polices dans les réglages du dashboard. Toutes listées sur fontesk.com. Même licence SIL OFL 1.1 (texte identique ci-dessous) :
+- instrument-sans-latin.woff2 : Instrument Sans, graisses 400 à 700 (variable). Copyright 2022 The Instrument Sans Project Authors (https://github.com/Instrument/instrument-sans).
+- instrument-serif-latin.woff2 : Instrument Serif, graisse 400. Copyright 2022 The Instrument Serif Project Authors (https://github.com/Instrument/instrument-serif).
+- gloock-latin.woff2 : Gloock, graisse 400. Copyright 2022 The Gloock Project Authors (https://github.com/duartp/gloock).
+- syne-latin.woff2 : Syne, graisses 400 à 800 (variable). Copyright 2017 The Syne Project Authors (https://gitlab.com/bonjour-monde/fonderie/syne-typeface).
+- unbounded-latin.woff2 : Unbounded, graisses 400 à 800 (variable). Copyright 2022 The Unbounded Project Authors (https://github.com/googlefonts/unbounded).
+- playpen-sans-latin.woff2 : Playpen Sans, graisses 400 à 800 (variable). Copyright 2023 The Playpen Sans Project Authors (https://github.com/TypeTogether/Playpen-Sans).
+- pixelify-sans-latin.woff2 : Pixelify Sans, graisses 400 à 700 (variable). Copyright 2021 The Pixelify Sans Project Authors (https://github.com/eifetx/Pixelify-Sans).
+Deuxième lot, ajouté le 13 nov. 2026 de la même façon (Google Fonts, sous-ensemble « latin », toutes listées sur fontesk.com, SIL OFL 1.1) :
+- fraunces-latin.woff2 : Fraunces, 400 à 700. Copyright 2018 The Fraunces Project Authors (https://github.com/undercasetype/Fraunces).
+- young-serif-latin.woff2 : Young Serif, 400. Copyright 2023 The Young Serif Project Authors (https://github.com/noirblancrouge/YoungSerif).
+- bodoni-moda-latin.woff2 : Bodoni Moda, 400 à 700. Copyright 2020 The Bodoni Moda Project Authors (https://github.com/indestructible-type/Bodoni).
+- bricolage-grotesque-latin.woff2 : Bricolage Grotesque, 400 à 700. Copyright 2022 The Bricolage Grotesque Project Authors (https://github.com/ateliertriay/bricolage).
+- space-grotesk-latin.woff2 : Space Grotesk, 400 à 700. Copyright 2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk).
+- sora-latin.woff2 : Sora, 400 à 700. Copyright 2019 The Sora Project Authors (https://github.com/sora-xor/sora-font).
+- dela-gothic-one-latin.woff2 : Dela Gothic One, 400. Copyright 2020 The Dela Gothic Project Authors (https://github.com/syakuzen/DelaGothic).
+- climate-crisis-latin.woff2 : Climate Crisis, 400. Copyright 2020 The Climate Crisis Project Authors (https://github.com/dancoull/ClimateCrisis).
+- dynapuff-latin.woff2 : DynaPuff, 400 à 700. Copyright 2021 The DynaPuff Project Authors (https://github.com/googlefonts/dynapuff).
+- bagel-fat-one-latin.woff2 : Bagel Fat One, 400. Copyright 2022 The Bagel Fat Project Authors (https://github.com/JAMO-TYPEFACE/BagelFat).
+- gochi-hand-latin.woff2 : Gochi Hand, 400. Copyright (c) 2011, Juan Pablo del Peral, with Reserved Font Name "Gochi".
+- big-shoulders-display-latin.woff2 : Big Shoulders Display, 400 à 800. Copyright 2019 The Big Shoulders Project Authors (https://github.com/xotypeco/big_shoulders).
+- manrope-latin.woff2 : Manrope, 400 à 700. Copyright 2018 The Manrope Project Authors (https://github.com/googlefonts/manrope).
+- plus-jakarta-sans-latin.woff2 : Plus Jakarta Sans, 400 à 700. Copyright 2020 The Plus Jakarta Sans Project Authors (https://github.com/tokotype/PlusJakartaSans).
+- figtree-latin.woff2 : Figtree, 400 à 700. Copyright 2022 The Figtree Project Authors (https://github.com/erikdkennedy/figtree).
+- outfit-latin.woff2 : Outfit, 400 à 700. Copyright 2021 The Outfit Project Authors (https://github.com/Outfitio/Outfit-Fonts).
+- work-sans-latin.woff2 : Work Sans, 400 à 700. Copyright 2019 The Work Sans Project Authors (https://github.com/weiweihuanghuang/Work-Sans).
+- onest-latin.woff2 : Onest, 400 à 700. Copyright 2021 The Onest Project Authors (https://github.com/googlefonts/onest).
+- lexend-latin.woff2 : Lexend, 400 à 700. Copyright 2018 The Lexend Project Authors (https://github.com/googlefonts/lexend), with Reserved Font Name "RevReading Lexend".
+- epilogue-latin.woff2 : Epilogue, 400 à 700. Copyright 2020 The Epilogue Project Authors (https://github.com/Etcetera-Type-Co/Epilogue).
+- atkinson-hyperlegible-latin.woff2 : Atkinson Hyperlegible, 400. Copyright 2020 Braille Institute of America, Inc.
+- literata-latin.woff2 : Literata, 400 à 700. Copyright 2017 The Literata Project Authors (https://github.com/googlefonts/literata).
+- grandstander-latin.woff2 : Grandstander, 400 à 800. Copyright 2020 The Grandstander Project Authors (https://github.com/Etcetera-Type-Co/Grandstander).
+- baloo-2-latin.woff2 : Baloo 2, 400 à 800. Copyright 2019 The Baloo 2 Project Authors (https://github.com/EkType/Baloo2).
+- rubik-bubbles-latin.woff2 : Rubik Bubbles, 400. Copyright 2020 The Rubik Filtered Project Authors (https://github.com/NaN-xyz/Rubik-Filtered).
+- chivo-latin.woff2 : Chivo, 400 à 800. Copyright 2019 The Chivo Project Authors (https://github.com/Omnibus-Type/Chivo).
+- geologica-latin.woff2 : Geologica, 400 à 700. Copyright 2020 The Geologisk Project Authors (https://github.com/monokromskriftforlag/geologisk).
+Toutes sont sous licence SIL Open Font License 1.1 (usage commercial autorisé). Textes complets ci-dessous.
 
 ===== Inter =====
 Copyright (c) 2016 The Inter Project Authors (https://github.com/rsms/inter)

@@ -153,7 +153,7 @@ async function photo(browser, kind) {
 
   // Configuration abîmée : on retombe sur les valeurs par défaut, sans rien casser.
   {
-    const { page, errors, context } = await openBoard(browser, base, desk, few({ accent: 'rose', sizes: { taches: 'xl', notes: 's', inconnu: 'l', heure: null } }));
+    const { page, errors, context } = await openBoard(browser, base, desk, few({ accent: 'fuchsia<script>', sizes: { taches: 'xl', notes: 's', inconnu: 'l', heure: null } }));
     assert.equal(await page.evaluate(() => document.documentElement.dataset.accent), 'vert');
     assert.equal(await page.locator('[data-widget=taches]').getAttribute('data-size'), 'm');
     assert.equal(await page.locator('[data-widget=notes]').getAttribute('data-size'), 's');
@@ -404,9 +404,9 @@ async function photo(browser, kind) {
   {
     const rows = { ...everything(), ecran: { wallpaper: 'blanc', widgets: ['taches', 'habitudes', 'minuteur', 'ambiance'], done: true } };
     const { page, db, context } = await openBoard(browser, base, desk, rows);
-    await page.click('#open-custom');
+    await page.click('#open-settings');
     assert.equal(await page.textContent('#accent-name'), 'Vert');
-    assert.equal(await page.locator('.swatch').count(), 5);
+    assert.equal(await page.locator('#swatches button.swatch').count(), 21);
     const logo = () => page.locator('.mark rect').first().getAttribute('fill');
     const logoFill = await logo();
     const error = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--error').trim());
@@ -432,6 +432,101 @@ async function photo(browser, kind) {
     await page.reload();
     await page.waitForSelector('#board .widget:not([hidden])');
     assert.equal(await page.evaluate(() => document.documentElement.dataset.accent), 'terre');
+    await context.close();
+  }
+
+  // Réglages : thème sombre, polices, formes. Appliqués en direct, enregistrés sur le compte, relus avant l'affichage, valeurs inconnues ignorées.
+  {
+    const rows = { ...everything(), ecran: { wallpaper: 'blanc', widgets: ['taches', 'habitudes', 'minuteur'], done: true, look: { theme: 'rose', titre: 'comic', coins: 'nets' } } };
+    const { page, db, context } = await openBoard(browser, base, desk, rows);
+    const data = () => page.evaluate(() => ({ ...document.documentElement.dataset }));
+    let d = await data();
+    assert.equal(d.theme, 'light', 'thème inconnu ignoré');
+    assert.equal(d.titre, 'defaut', 'police inconnue ignorée');
+    assert.equal(d.coins, 'nets', 'valeur connue gardée');
+    await page.click('#open-settings');
+    assert.ok(await page.isVisible('#settings'));
+    await page.getByRole('button', { name: 'Sombre' }).click();
+    assert.equal(await page.getByRole('button', { name: 'Sombre' }).getAttribute('aria-pressed'), 'true');
+    const look = () => page.evaluate(() => {
+      const css = (s, p) => getComputedStyle(document.querySelector(s))[p];
+      return { ground: css('body', 'backgroundColor'), ink: css('body', 'color'), title: css('#hello', 'fontFamily'), radius: css('.widget', 'borderTopLeftRadius'), theme: document.querySelector('meta[name=theme-color]').content };
+    });
+    let l = await look();
+    assert.equal(l.ground, 'rgb(17, 17, 18)');
+    assert.equal(l.theme, '#111112');
+    assert.ok(contrast(l.ink.match(/\d+/g).map(Number), [17, 17, 18]) >= 12, 'texte lisible en sombre');
+    assert.equal(l.radius, '8px');
+    // En sombre, chaque accent reste lisible avec son texte et visible sur le fond.
+    for (const name of ['Encre', 'Vert', 'Bleu', 'Prune', 'Terre cuite']) {
+      await page.getByRole('button', { name, exact: true }).click();
+      const [acc, on] = await page.evaluate(() => ['--accent', '--on-accent'].map(v => { const n = document.createElement('i'); n.style.color = `var(${v})`; document.body.append(n); const c = getComputedStyle(n).color; n.remove(); return c.match(/\d+/g).map(Number); }));
+      assert.ok(contrast(acc, on) >= 4.5, `${name} : texte sur l'accent en sombre`);
+      assert.ok(contrast(acc, [42, 42, 45]) >= 3, `${name} : accent visible en sombre`);
+    }
+    // Polices en pages de six : les flèches tournent les pages, un choix d'une autre page reste atteignable.
+    assert.equal(await page.locator('#fonts-titre .font-page').count(), 4);
+    assert.equal(await page.locator('#fonts-titre .font-opt').count(), 24);
+    assert.equal(await page.locator('#fonts-texte .font-page').count(), 3);
+    const pagerT = page.locator('#pager-titre');
+    assert.equal(await pagerT.getByRole('button', { name: 'Page précédente' }).isDisabled(), true);
+    await pagerT.getByRole('button', { name: 'Page suivante' }).click();
+    await page.waitForFunction(() => document.querySelector('#pager-titre [aria-label="Page 2 sur 4"]').getAttribute('aria-current') === 'true');
+    await page.getByRole('button', { name: 'Gochi Hand', exact: true }).click();
+    assert.match(await page.evaluate(() => getComputedStyle(document.getElementById('hello')).fontFamily), /^"Gochi Hand"/);
+    // Couleur libre : même un jaune très clair reste lisible, assombri en clair ou gardé clair en sombre, et enregistré tel quel.
+    const pickColor = hex => page.locator('#accent-pick').evaluate((n, v) => { n.value = v; n.dispatchEvent(new Event('input', { bubbles: true })); }, hex);
+    await pickColor('#ffe14d');
+    assert.equal(await page.textContent('#accent-name'), 'Perso #ffe14d');
+    assert.equal(await page.evaluate(() => document.documentElement.dataset.accent), 'perso');
+    const accentNow = () => page.evaluate(() => ['--accent', '--on-accent'].map(v => { const n = document.createElement('i'); n.style.color = `var(${v})`; document.body.append(n); const c = getComputedStyle(n).color; n.remove(); return c.match(/\d+/g).map(Number); }));
+    let [acc, on] = await accentNow();
+    assert.ok(contrast(acc, on) >= 4.5, 'jaune libre lisible en sombre');
+    await page.getByRole('button', { name: 'Clair' }).click();
+    [acc, on] = await accentNow();
+    assert.deepEqual(on, [255, 255, 255]);
+    assert.ok(contrast(acc, on) >= 4.5, 'jaune libre assombri en clair');
+    await page.getByRole('button', { name: 'Sombre' }).click();
+    await page.getByRole('button', { name: 'Vert', exact: true }).click();
+    await page.getByRole('button', { name: 'Gloock', exact: true }).click();
+    await page.getByRole('button', { name: 'Inter', exact: true }).click();
+    await page.getByRole('group', { name: 'Coins' }).getByRole('button', { name: 'Ronds' }).click();
+    l = await look();
+    assert.match(l.title, /^Gloock/);
+    assert.equal(l.radius, '30px');
+    assert.match(await page.evaluate(() => getComputedStyle(document.body).fontFamily), /^Inter/);
+    await saved(page, 'Enregistré');
+    assert.deepEqual(db.rows.ecran.look, { theme: 'dark', titre: 'gloock', texte: 'inter', coins: 'ronds', densite: 'normale', flou: null, opacite: 0 });
+    // Verre : le flou et l'opacité suivent les curseurs et s'enregistrent ; jamais plus transparent que l'origine.
+    const slide = (id, v) => page.locator(id).evaluate((n, v) => { n.value = v; n.dispatchEvent(new Event('input', { bubbles: true })); n.dispatchEvent(new Event('change', { bubbles: true })); }, v);
+    const widgetGlass = () => page.evaluate(() => { const c = getComputedStyle(document.querySelector('#board .widget')); return [c.backdropFilter, c.backgroundColor]; });
+    const [, before] = await widgetGlass();
+    await slide('#look-flou', 6);
+    assert.equal((await widgetGlass())[0], 'blur(6px) saturate(1.6)');
+    assert.equal(await page.textContent('#flou-val'), '6 px');
+    await slide('#look-flou', 0);
+    assert.equal((await widgetGlass())[0], 'none');
+    await slide('#look-opacite', 100);
+    const after = (await widgetGlass())[1];
+    assert.notEqual(after, before);
+    assert.equal(await page.textContent('#opacite-val'), 'Plein');
+    await saved(page, 'Enregistré');
+    assert.equal(db.rows.ecran.look.flou, 0);
+    assert.equal(db.rows.ecran.look.opacite, 100);
+    assert.equal(await page.locator('#look-opacite').getAttribute('min'), '0');
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('#settings', { state: 'hidden' });
+    // Rechargé : le sombre est posé avant le chargement du compte (pas de flash clair).
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'dark');
+    await page.waitForSelector('#board .widget:not([hidden])');
+    await page.click('#open-settings');
+    await page.getByRole('button', { name: "Revenir aux réglages d'origine" }).click();
+    d = await data();
+    assert.equal(d.theme, 'light');
+    assert.equal(d.accent, 'vert');
+    await saved(page, 'Enregistré');
+    assert.equal(db.rows.ecran.look.theme, 'light');
     await context.close();
   }
 
