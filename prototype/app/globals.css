@@ -41,8 +41,6 @@ h2 { font-size: var(--text-title); }
 /* Les carrés du logo : coins à un tiers, comme le rx=3 sur 9 du SVG. */
 .sq { border-radius: 30%; }
 
-/* Verre de la barre : demandé par Damien le 9 nov., prime sur la règle du skill. */
-.nav-glass { background: rgb(246 245 244 / .72); -webkit-backdrop-filter: blur(24px) saturate(1.35); backdrop-filter: blur(24px) saturate(1.35); }
 
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
@@ -56,3 +54,6 @@ h2 { font-size: var(--text-title); }
 .faq-plus { transition: transform .35s cubic-bezier(.2,.8,.2,1); }
 .faq[open] .faq-plus { transform: rotate(45deg); }
 .faq summary:hover { background: var(--color-lin); border-radius: var(--radius-box); }
+
+/* Duo de polices demandé par Damien (13 nov.) : titre en gras, un groupe de mots en italique à empattements. */
+h1 em, h2 em { font-family: var(--font-c1), Georgia, serif; font-style: italic; font-weight: 400; font-stretch: 100%; letter-spacing: -0.015em; font-size: 1.1em; }

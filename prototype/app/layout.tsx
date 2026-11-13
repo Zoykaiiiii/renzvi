@@ -4,7 +4,7 @@ import "./globals.css";
 
 // Polices choisies sur Fontesk, toutes sous licence SIL OFL (usage commercial permis). Hébergées avec le site, aucun appel à Google.
 const sans = Instrument_Sans({ subsets: ["latin"], axes: ["wdth"], variable: "--font-instrument-sans" });
-const f1 = Instrument_Serif({ subsets: ["latin"], weight: "400", variable: "--font-c1" });
+const f1 = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-c1" });
 const f2 = Pixelify_Sans({ subsets: ["latin"], variable: "--font-c2" });
 const f3 = Playpen_Sans({ subsets: ["latin"], variable: "--font-c3" });
 const f4 = Unbounded({ subsets: ["latin"], variable: "--font-c4" });

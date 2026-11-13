@@ -1,6 +1,7 @@
 import FontCycle from "@/components/FontCycle";
 import Magnet from "@/components/Magnet";
 import Motion from "@/components/Motion";
+import Nav from "@/components/Nav";
 import { Logo, Slot } from "@/components/Bits";
 import { BoardSwap, ToolsOrbit } from "@/components/Showcase";
 
@@ -49,25 +50,14 @@ export default function Page() {
     <>
       <a href="#contenu" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-ink focus:px-4 focus:py-2 focus:text-white">Aller au contenu</a>
 
-      <header className="nav-glass fixed inset-x-0 top-0 z-40">
-        <div className="flex h-16 items-center gap-6 px-[var(--m)]">
-          <a href="#top" className="flex min-h-11 items-center gap-2.5 text-lg font-semibold" aria-label="Renzvi, haut de page"><Logo className="size-6" />Renzvi</a>
-          <nav aria-label="Sections de la page" className="hidden gap-1 lg:flex">
-            {NAV.map(([href, label]) => <a key={href} href={href} className="flex h-9 items-center rounded-full px-3 font-medium hover:bg-lin">{label}</a>)}
-          </nav>
-          <div className="ml-auto flex items-center gap-2">
-            <a href={LOGIN} className="hidden h-11 items-center rounded-full px-3 font-medium hover:bg-lin sm:flex">Connexion</a>
-            <a href={LOGIN} className="btn btn-ink !min-h-10 !px-4">Créer mon espace</a>
-          </div>
-        </div>
-      </header>
+      <Nav links={NAV} login={LOGIN} />
 
       <Motion>
         <main id="contenu">
           {/* Héros, épinglé : la carte à gauche, les quatre carrés du logo à droite. */}
           <section id="top" data-hero className="grid min-h-svh gap-3 px-[var(--m)] pb-[var(--m)] pt-20 lg:grid-cols-2">
             <div className="flex flex-col justify-between gap-10 rounded-box bg-card p-6 sm:p-10 lg:p-14">
-              <h1 data-split>Tes outils, au<br />même endroit</h1>
+              <h1 data-split>Tes outils, au<br /><em>même endroit</em></h1>
               <div className="flex flex-col gap-8">
                 <div data-rise><FontCycle>Et tout se règle à ton goût.</FontCycle></div>
                 <p data-rise className="max-w-[44ch]">Renzvi réunit tâches, notes, minuteur et musique sur un dashboard que tu composes comme un moodboard&nbsp;: ton fond, tes couleurs, tes widgets.</p>
@@ -93,7 +83,7 @@ export default function Page() {
           {/* Les outils : pleine largeur, l'orbite autour du logo. */}
           <section id="outils" className="px-[var(--m)] pt-32 lg:pt-48">
             <div className="grid gap-6 lg:grid-cols-2">
-              <h2 data-split>Tout gravite autour<br />d'un seul écran</h2>
+              <h2 data-split>Tout gravite autour<br />d'un <em>seul écran</em></h2>
               <p data-rise className="max-w-[46ch] lg:pt-3">Ta liste dans une fenêtre, tes notes dans une autre, le minuteur à retrouver, la musique ailleurs. Dans Renzvi, ce sont des widgets posés côte à côte. Attrape une tuile pour faire tourner l'orbite.</p>
             </div>
             <div data-rise className="mt-10 overflow-hidden rounded-box bg-lin py-10 lg:mt-16 lg:py-20">
@@ -104,7 +94,7 @@ export default function Page() {
           {/* Les dashboards : champ sombre, les cartes qui se relaient. */}
           <section id="dashboards" className="mx-[var(--m)] mt-32 grid items-center gap-10 overflow-hidden rounded-box bg-night p-6 text-white sm:p-10 lg:mt-48 lg:min-h-[86svh] lg:grid-cols-2 lg:p-14">
             <div className="flex flex-col gap-6 self-start lg:self-center">
-              <h2 data-split>Même app, jamais<br />le même écran</h2>
+              <h2 data-split>Même app, jamais<br /><em>le même écran</em></h2>
               <p data-rise className="max-w-[44ch]">Deux personnes, deux dashboards. Tu choisis le fond ou ta propre photo, la couleur d'accent, la taille et la place de chaque widget. Tu retrouves ton espace tel que tu l'as laissé.</p>
               <div data-rise><a href={LOGIN} className="btn btn-paper">Composer le mien</a></div>
             </div>
@@ -115,7 +105,7 @@ export default function Page() {
 
           {/* Study et Chill : l'illustration reste en place, son état change. */}
           <section id="modes" data-modes className="px-[var(--m)] pt-32 lg:pt-48">
-            <h2 data-split className="lg:max-w-[50%]">Study pour bosser.<br />Chill pour souffler.</h2>
+            <h2 data-split className="lg:max-w-[50%]">Study pour bosser.<br /><em>Chill pour souffler.</em></h2>
             <div className="mt-8 grid gap-x-3 lg:mt-0 lg:grid-cols-2">
               <div data-stage className="z-10 self-start bg-paper pb-3 lg:order-2 lg:bg-transparent lg:pb-0">
                 <div className="relative h-[42svh] lg:h-[calc(100svh-128px)]">
@@ -139,7 +129,7 @@ export default function Page() {
           {/* Offres, comme une carte de café. */}
           <section id="offres" className="grid gap-10 px-[var(--m)] pt-32 lg:grid-cols-12 lg:pt-48">
             <div className="flex flex-col gap-5 lg:col-span-4">
-              <h2 data-split>Gratuit pour<br />commencer</h2>
+              <h2 data-split>Gratuit pour<br /><em>commencer</em></h2>
               <p data-rise className="max-w-[36ch]">Offres envisagées&nbsp;: ces prix sont des hypothèses. Aucun abonnement n'est vendu aujourd'hui et rien ne t'est facturé.</p>
               <div data-rise><a href={LOGIN} className="btn btn-ink">Créer mon espace</a></div>
             </div>
@@ -156,7 +146,7 @@ export default function Page() {
 
           {/* Questions : une ligne déroulante par question (demande de Damien, 13 nov.). */}
           <section id="questions" className="grid gap-10 px-[var(--m)] pt-32 lg:grid-cols-12 lg:pt-48">
-            <h2 data-split className="lg:col-span-4">Questions<br />fréquentes</h2>
+            <h2 data-split className="lg:col-span-4">Questions<br /><em>fréquentes</em></h2>
             <div data-rise className="flex flex-col gap-2 lg:col-span-8">
               {FAQ.map(([q, a], n) => (
                 <details key={q} name="faq" open={n === 0} className="faq rounded-box bg-card">
@@ -171,7 +161,7 @@ export default function Page() {
           </section>
 
           <section aria-labelledby="fin" className="px-[var(--m)] pb-[18svh] pt-[26svh]">
-            <h2 id="fin" data-split className="max-w-[18ch]">Réunis tes outils aujourd'hui</h2>
+            <h2 id="fin" data-split className="max-w-[18ch]">Réunis tes outils <em>aujourd'hui</em></h2>
             <p data-rise className="max-w-[40ch] pt-6">Il te suffit de Google ou d'un code reçu par email. Ton espace t'attend tel que tu l'as laissé, à chaque retour.</p>
             <div data-rise className="pt-6"><Magnet padding={90} magnetStrength={3}><a href={LOGIN} className="btn btn-ink">Créer mon espace</a></Magnet></div>
           </section>
