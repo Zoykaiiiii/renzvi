@@ -1,8 +1,8 @@
 /* Widget Cahier (Study S1). Reprend les variables du dashboard pour suivre ses changements de style. */
 .cahier-bar,.cahier-nav{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .cahier-nav{margin-top:8px}
-.cahier-pick,.cahier-search,.cahier-field input,.cahier-rename{min-width:0;height:var(--control);padding:0 14px;border:1px solid var(--edge);border-radius:var(--pill);background:var(--field);font:inherit;font-size:14px;color:var(--ink)}
-.cahier-pick{flex:1 1 180px;max-width:100%;text-overflow:ellipsis}
+.cahier-pick,.cahier-pick + .dd-trigger,.cahier-search,.cahier-field input,.cahier-rename{min-width:0;height:var(--control);padding:0 14px;border:1px solid var(--edge);border-radius:var(--pill);background:var(--field);font:inherit;font-size:14px;color:var(--ink)}
+.cahier-pick,.cahier-pick + .dd-trigger{flex:1 1 180px;max-width:100%;text-overflow:ellipsis}
 .cahier-search{flex:1 1 200px}
 .cahier-search::placeholder,.cahier-field input::placeholder,.cahier-paste::placeholder{color:var(--slate);opacity:1}
 .cahier-step{width:var(--control);padding:0;font-size:18px}
@@ -52,7 +52,7 @@
 body.cahier-lock{overflow:hidden}
 @media (max-width:640px){
   .widget.cahier-open{inset:0;border-radius:0;padding:16px}
-  .cahier-pick,.cahier-search,.cahier-field input{height:44px}
+  .cahier-pick,.cahier-pick + .dd-trigger,.cahier-search,.cahier-field input{height:44px}
   .cahier-step{width:44px}
 }
-@media (prefers-reduced-transparency:reduce){.cahier-pick,.cahier-search,.cahier-field input,.cahier-paste{background:var(--paper,#fff)}}
+@media (prefers-reduced-transparency:reduce){.cahier-pick,.cahier-pick + .dd-trigger,.cahier-search,.cahier-field input,.cahier-paste{background:var(--paper,#fff)}}

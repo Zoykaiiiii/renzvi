@@ -320,7 +320,7 @@ input[type=range]:disabled{opacity:.5;cursor:default}
 #page-note{width:fit-content;margin-bottom:var(--gap);font-size:13px}
 #page-note:empty{display:none}
 .edit-page{display:flex;flex:1 1 100%;align-items:center;gap:8px;font-size:13px}
-.edit-page select{flex:1;min-width:0;height:var(--control);padding:0 12px;border:1px solid var(--edge);border-radius:var(--pill);background:var(--field)}
+.edit-page :is(select,.dd-trigger){flex:1;min-width:0;height:var(--control);padding:0 12px;border:1px solid var(--edge);border-radius:var(--pill);background:var(--field)}
 #page-slot .add{margin-top:16px}
 #page-slot .desc{margin-top:8px}
 
@@ -1030,6 +1030,7 @@ try { document.body.dataset.dock = { left: 1, top: 1, right: 1, bottom: 1 }[loca
 <script src="dash/layout.js"></script>
 <script src="dash/code-slots.js"></script>
 <script src="dash/lock.js"></script>
+<script src="dash/select.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>
 <script>
 // Clé publique par conception : ce sont les règles de sécurité de la base qui protègent les données.

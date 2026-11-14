@@ -270,5 +270,31 @@ dialog.lock-setup h2{font-size:20px;font-weight:600}
 .lock-set .lock-tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .lock-set .primary{background:var(--accent);color:var(--on-accent)}
 .lock-set .set-row{margin-top:12px}
-.lock-set select{height:36px;padding:0 10px;border:1px solid var(--edge);border-radius:10px;background:var(--paper);font-size:14px}
+.lock-set :is(select,.dd-trigger){height:36px;padding:0 10px;border:1px solid var(--edge);border-radius:10px;background:var(--paper);font-size:14px}
 .lock-help{margin-top:10px;font-size:13px}
+
+/* Menus déroulants (dash/select.js). Le <select> natif reste dans la page, masqué : valeur, événements et tests passent par lui. */
+.dd-native{position:absolute!important;width:1px!important;height:1px!important;min-width:0!important;margin:0!important;padding:0!important;border:0!important;opacity:0!important;pointer-events:none!important;overflow:hidden}
+.dd-trigger{display:inline-flex;align-items:center;gap:8px;min-width:0;text-align:left;color:var(--ink);transition:background-color .15s,border-color .15s}
+.dd-value{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dd-chev{flex:none;width:14px;height:14px;margin-right:-2px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;opacity:.55;transition:transform .2s var(--ease),opacity .15s}
+.dd-trigger:hover:not(:disabled){background:var(--field-hover)}
+.dd-trigger:hover:not(:disabled) .dd-chev,.dd-trigger[aria-expanded=true] .dd-chev{opacity:.9}
+.dd-trigger[aria-expanded=true]{border-color:color-mix(in srgb,var(--accent) 60%,var(--edge))}
+.dd-trigger[aria-expanded=true] .dd-chev{transform:rotate(180deg)}
+.dd-trigger:disabled{opacity:.5;cursor:not-allowed}
+.dd-list{position:fixed;inset:auto;z-index:1000;box-sizing:border-box;width:max-content;max-width:min(420px,100vw - 16px);margin:0;padding:4px;overflow:auto;overscroll-behavior:contain;border:1px solid var(--edge);border-radius:calc(var(--r-control) + 2px);background:var(--glass-solid);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);color:var(--ink);font-size:14px;line-height:1.35;box-shadow:inset 0 1px 0 var(--pop-shine),0 12px 32px rgba(23,25,28,.16),0 2px 6px rgba(23,25,28,.06);scrollbar-width:thin}
+.dd-group{padding:8px 10px 4px 36px;color:var(--slate);font-size:12px;font-weight:600}
+.dd-opt{display:flex;align-items:center;gap:10px;min-height:34px;padding:7px 12px 7px 10px;border-radius:calc(var(--r-control) - 4px);cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+.dd-text{flex:1;min-width:0;overflow-wrap:anywhere}
+.dd-check{flex:none;width:16px;height:16px;fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;visibility:hidden}
+.dd-opt[aria-selected=true]{font-weight:600}
+.dd-opt[aria-selected=true] .dd-check{visibility:visible}
+.dd-opt.is-active{background:var(--press)}
+.dd-list.is-kbd .dd-opt.is-active{background:color-mix(in srgb,var(--accent) 12%,transparent);box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--accent) 70%,transparent)}
+.dd-opt[aria-disabled=true]{opacity:.45;cursor:not-allowed}
+.dd-opt[aria-disabled=true].is-active{background:none}
+@media (pointer:coarse),(max-width:760px){.dd-opt{min-height:44px}}
+@media (prefers-reduced-transparency:reduce){.dd-list{background:var(--paper);-webkit-backdrop-filter:none;backdrop-filter:none}}
+@media (forced-colors:active){.dd-opt.is-active{outline:2px solid Highlight}.dd-check{stroke:CanvasText}}
+@media (prefers-reduced-motion:reduce){.dd-trigger,.dd-chev{transition:none}}

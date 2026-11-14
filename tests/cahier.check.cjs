@@ -187,6 +187,16 @@ async function importFile(page, name, buffer, mimeType, subject = 'Droit civil')
 
       // Les cours sont rangés par matière dans le choix du cours.
       assert.deepStrictEqual(await w.locator('.cahier-bar select optgroup').evaluateAll(g => g.map(x => x.label)), ['Biologie', 'Droit civil']);
+      // Menu stylé (dash/select.js) : mêmes groupes et options que le <select>, l'option choisie cochée.
+      const coursePick = w.getByRole('combobox', { name: 'Cours' });
+      await coursePick.click();
+      const lb = page.getByRole('listbox', { name: 'Cours' });
+      assert.deepStrictEqual(await lb.getByRole('group').evaluateAll(g => g.map(x => x.getAttribute('aria-labelledby') && document.getElementById(x.getAttribute('aria-labelledby')).textContent)), ['Biologie', 'Droit civil']);
+      assert.strictEqual(await lb.getByRole('option', { selected: true }).innerText(), await w.locator('.cahier-bar select').evaluate(s => s.selectedOptions[0].label));
+      await page.waitForTimeout(200);
+      await shot(page, 'cahier-menu-cours-ouvert');
+      await page.keyboard.press('Escape');
+      assert.strictEqual(await lb.count(), 0);
 
       await w.getByRole('button', { name: 'Chapitre suivant' }).click();
       await w.getByRole('button', { name: 'Chapitre suivant' }).click();
