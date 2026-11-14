@@ -5,7 +5,7 @@
 //   - une fausse session est posée avant le chargement, pour le profil choisi dans l'adresse.
 // Lancement : node tests/demo.cjs [port]   puis http://127.0.0.1:<port>/dashboard.html?profil=plein
 // Profils : plein (modes Study et Chill remplis), simple (une seule page), vide (compte existant, page vide),
-// nouveau (premier lancement). ?bac=<nom> isole un jeu de données (un par test) ; sans lui, le profil est partagé.
+// nouveau (premier lancement), vues (présentations, avec ?vues=1). ?bac=<nom> isole un jeu de données (un par test) ; sans lui, le profil est partagé.
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -39,6 +39,17 @@ const PROFILS = {
   }),
   simple: () => ({ ...contenu(), ecran: { wallpaper: 'blanc', done: true, widgets: ['taches', 'minuteur', 'notes', 'heure', 'habitudes', 'compte'] } }),
   vide: () => ({ ...contenu(), ecran: { wallpaper: 'blanc', done: true, widgets: [] } }),
+  // Présentations (labo ?vues=1) : les cinq widgets témoins sur Study, une page Chill restée en grille.
+  vues: () => ({
+    ...contenu(),
+    playlist: { provider: 'spotify', kind: 'playlist', id: '37i9dQZF1DXcBWIGoYBM5M', title: 'Lecture calme' },
+    ecran: {
+      wallpaper: 'blanc', done: true, accent: 'vert', sizes: { cahier: 'l', heure: 's' },
+      pages: [{ id: 'study', name: 'Study', wall: 'brume' }, { id: 'chill', name: 'Chill', wall: 'lac' }],
+      widgets: ['heure', 'taches', 'minuteur', 'playlist', 'cahier', 'respiration', 'notes'],
+      where: { heure: 'study', taches: 'study', minuteur: 'study', playlist: 'study', cahier: 'study', respiration: 'chill', notes: 'chill' },
+    },
+  }),
   nouveau: () => ({}),
 };
 

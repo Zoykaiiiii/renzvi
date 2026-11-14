@@ -102,7 +102,9 @@ try { const l = JSON.parse(localStorage.getItem('renzvi:look') || '{}'); for (co
 body{font:400 16px/1.5 var(--sans);letter-spacing:-.008em;color:var(--ink);background:var(--ground);min-height:100dvh;-webkit-font-smoothing:antialiased}
 /* Le fond : une couche par photo, pour passer de l'une à l'autre en fondu quand on change de mode. */
 #wall{position:fixed;inset:0;z-index:-1;background:var(--ground);overflow:hidden}
-#wall i{position:absolute;inset:0;background:center/cover no-repeat;opacity:0;transition:opacity .7s ease}
+#wall i{position:absolute;inset:0;isolation:isolate;background:center/cover no-repeat;opacity:0;transition:opacity .7s ease}
+/* Fond dézoomé : la photo plus petite, posée sur une copie floue d'elle-même qui remplit les bords. */
+#wall i.recul::before{content:"";position:absolute;inset:-48px;z-index:-1;background-image:inherit;background-position:center;background-size:cover;filter:blur(32px) brightness(.9)}
 #wall i.on{opacity:1}
 /* Sur une photo (même noire), le verre garde 4,5:1 avec le gris secondaire et 3:1 avec l'accent, vérifié par tests/personnalisation.check.cjs. */
 body.has-wall{--glass:var(--glass-wall);--slate:var(--slate-wall)}
@@ -238,8 +240,8 @@ dialog.cat[open]{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr
 .stage-none{font-size:14px;color:var(--slate);text-align:center}
 .cat-pick{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
 .cat-pick p{font-size:13px;color:var(--slate)}
-.cat-view .actions{margin-top:0;align-items:center}
-.cat-view .actions .desc{margin-right:auto;font-size:13px}
+.cat-view-head>div:first-child{margin-right:auto}
+.cat-view .actions{flex-wrap:nowrap;margin-top:0;align-items:center}
 .cat-hello{flex:1;display:grid;place-content:center;justify-items:center;gap:8px;text-align:center;color:var(--slate);font-size:14px}
 .cat-hello svg{width:96px;height:auto;color:var(--ink)}
 
@@ -266,6 +268,48 @@ dialog.cat[open]{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr
 .widget.zoomed{position:fixed;inset:max(16px,6dvh) max(16px,calc((100vw - 920px)/2));z-index:60;overflow:auto;--glass:var(--glass-solid);box-shadow:0 24px 64px rgba(23,25,28,.28)} /* taste-skill-ignore : la vue agrandie flotte au-dessus de l'écran */
 .widget.zoomed .edit{display:none}
 .veil{position:fixed;inset:0;z-index:59;background:var(--veil)}
+/* Un widget qui se referme reste au-dessus des autres le temps de rejoindre sa place. */
+.widget.settling{position:relative;z-index:61}
+.board[data-vue=libre]>.widget.settling{position:absolute}
+@media (prefers-reduced-motion:no-preference){.veil:not([hidden]){animation:veil-in .24s var(--ease) both}}
+@keyframes veil-in{from{opacity:0}}
+/* Présentation de la page (labo ?vues=1) : un choix à part des modes, qui sont des usages. */
+.vue-pick{display:flex;align-items:center;gap:10px;margin-left:auto}
+.vue-label{font-size:12px;color:var(--slate)}
+/* Curseurs : piste fine, partie remplie, bouton blanc entouré d'un halo au survol et au clavier. --p est posé par fillRange(). */
+input[type=range]{-webkit-appearance:none;appearance:none;height:24px;padding:0;background:none;accent-color:var(--accent);cursor:pointer;--p:50%}
+input[type=range]:focus{outline:none}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:9999px;background:linear-gradient(to right,color-mix(in srgb,var(--accent) 75%,transparent) var(--p),var(--edge) var(--p))}
+input[type=range]::-moz-range-track{height:6px;border-radius:9999px;background:var(--edge)}
+input[type=range]::-moz-range-progress{height:6px;border-radius:9999px;background:color-mix(in srgb,var(--accent) 75%,transparent)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;margin-top:-5px;border:1px solid var(--accent);border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.18);transition:box-shadow .18s}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border:1px solid var(--accent);border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.18);transition:box-shadow .18s}
+input[type=range]:is(:hover,:focus-visible)::-webkit-slider-thumb{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 25%,transparent)}
+input[type=range]:is(:hover,:focus-visible)::-moz-range-thumb{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 25%,transparent)}
+input[type=range]:disabled{opacity:.5;cursor:default}
+/* Curseur en ligne (zoom du fond) : le nom et la valeur dans la piste, des crans, un trait qui s'ouvre en deux points sur le texte. */
+.islider{position:relative;height:40px;width:100%;overflow:hidden;border-radius:10px;background:var(--tint);color:var(--ink);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+.islider:active{cursor:grabbing}
+.islider.off{opacity:.5;pointer-events:none}
+.is-clip{position:absolute;inset:0 2px;overflow:hidden;border-radius:10px;pointer-events:none}
+.is-fill{position:absolute;inset:0;border-radius:10px;background:color-mix(in srgb,var(--ink) 15%,transparent)}
+.is-label,.is-value{position:absolute;top:50%;max-width:40%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;transform:translateY(-50%);pointer-events:none}
+.is-label{left:20px;font-size:14px;font-weight:500}
+.is-value{right:20px;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.is-tick{position:absolute;top:50%;width:4px;height:4px;margin-top:-2px;border-radius:50%;background:color-mix(in srgb,var(--ink) 25%,transparent);pointer-events:none}
+.is-thumb{position:absolute;left:0;top:8px;width:4px;height:24px;pointer-events:none;transition:scale .35s var(--spring)}
+.islider.held .is-thumb{scale:1 1.35}
+.is-thumb i{position:absolute;left:0;width:4px;border-radius:2px;background:currentColor}
+.is-thumb .cap{height:4px}
+.is-thumb .cap:first-child{top:0}.is-thumb .cap:last-child{bottom:0}
+.is-thumb .stem{top:0;bottom:0}
+.is-key{position:absolute;inset:0;width:100%;padding:0;border:0;border-radius:10px;background:none;cursor:inherit;outline:none}
+.is-key:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
+@media (prefers-reduced-motion:reduce){.is-thumb{transition:none}}
+.wall-zoom{margin-top:16px;max-width:420px}
+.wall-zoom p{margin-top:6px;font-size:12px;color:var(--slate)}
+.hello .vue-pick{order:1}
+.hello #saved{order:2}
 .zoom-lock{overflow:hidden}
 
 #page-note{width:fit-content;margin-bottom:var(--gap);font-size:13px}
@@ -387,7 +431,7 @@ h2{font-family:var(--display);font-size:14px;line-height:20px;font-weight:var(--
 .sound span{flex:none;width:104px;font-size:14px}
 .sound.master{margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid var(--rule)}
 .sound.master span{font-weight:600}
-.sound input{flex:1;min-width:0;height:32px;accent-color:var(--accent)}
+.sound input{flex:1;min-width:0}
 .add.stack{flex-wrap:wrap}
 .add.stack input[type=text],.add.stack input[type=url]{flex:1 1 100%}
 .add.stack input[type=date]{flex:1 1 140px}
@@ -490,9 +534,19 @@ h2{font-family:var(--display);font-size:14px;line-height:20px;font-weight:var(--
 .bfields dd{margin:0;font-weight:600;overflow-wrap:anywhere}
 .bstub svg{display:block;width:100%;height:3em}
 .bstub p{font-size:.8em;font-weight:600;text-align:center;white-space:nowrap}
-.vol-time{display:block;margin-top:14px;font-size:14px;font-weight:500}
-.vol-time output{float:right;font-variant-numeric:tabular-nums}
-.vol-time input{display:block;width:100%;height:32px;margin-top:2px;accent-color:var(--accent)}
+.vol-time{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;font-size:14px;font-weight:500}
+.vol-time output{display:block;margin-top:2px;font-size:13px;font-weight:400;color:var(--slate);font-variant-numeric:tabular-nums}
+/* Compteur de minutes : trois chiffres qui roulent, et + / − (on peut les maintenir). */
+.dial{display:flex;align-items:center;gap:6px;padding:6px;border:1px solid var(--edge);border-radius:14px;background:var(--field);outline:none}
+.dial:focus-visible{box-shadow:0 0 0 2px var(--accent)}
+.dial-d{position:relative;display:grid;place-items:center;width:30px;height:40px;overflow:hidden;border:1px solid var(--edge);border-radius:9px;background:var(--paper);font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.dial-d span{grid-area:1/1}
+.dial-pm{display:grid;gap:4px;margin-left:2px}
+.dial-pm button{display:grid;place-items:center;width:26px;height:18px;padding:0;border:1px solid var(--edge);border-radius:6px;background:none;color:var(--ink);font-size:14px;line-height:1;transition:transform var(--t-press,140ms) var(--ease),background-color .18s}
+.dial-pm button:hover:not(:disabled){background:var(--tint)}
+.dial-pm button:active:not(:disabled){transform:scale(.94)}
+.dial-pm button:disabled{opacity:.4;cursor:default}
+@media (pointer:coarse){.dial-pm button{width:36px;height:24px}}
 .vol-go{align-self:flex-start;margin-top:10px}
 
 /* Le vol : plein écran, au-dessus de tout. */
@@ -684,7 +738,7 @@ dialog.settings::backdrop{background:transparent}
 .set-slider + .set-slider{margin-top:10px}
 .set-slider label{font-size:14px}
 .set-slider output{font-size:13px;color:var(--slate);font-variant-numeric:tabular-nums}
-.set-slider input{grid-column:1/-1;width:100%;height:32px;margin:0;accent-color:var(--accent);cursor:pointer}
+.set-slider input{grid-column:1/-1;width:100%;margin:0}
 .settings .choices{align-self:center}
 .dock-pick h3{margin:0}
 .set-open{display:block;width:100%;margin-top:6px}
@@ -1066,7 +1120,8 @@ const LOOK = {
   densite: [['compacte', 'Serré'], ['normale', 'Normal'], ['aeree', 'Aéré']],
 };
 // flou : null = réglage d'origine (24 px, 12 px sur téléphone), sinon 0 à 40 px. opacite : 0 (givré, le plus transparent encore lisible) à 100 (plein).
-const LOOK_DEFAULT = { theme: 'light', titre: 'defaut', texte: 'systeme', coins: 'doux', densite: 'normale', flou: null, opacite: 0 };
+const LOOK_DEFAULT = { theme: 'light', titre: 'defaut', texte: 'systeme', coins: 'doux', densite: 'normale', flou: null, opacite: 0, fond: 100 };
+const FOND_MIN = 40; // zoom du fond d'écran, en % de la taille qui couvre l'écran
 const FLOU_MAX = 40, BOOST_MAX = .26;
 const SIZES = [{ id: 's', name: 'Petit' }, { id: 'm', name: 'Moyen' }, { id: 'l', name: 'Grand' }];
 const MAX_SCREEN_PAGES = 6, MAX_PAGE_NAME = 24, FIRST_PAGE = { id: 'p1', name: 'Mon écran' };
@@ -1433,6 +1488,203 @@ function startFlight(ticket, onLanded, returnFocus) {
 // Ajouter un widget = ajouter une entrée ici, et son identifiant dans la liste autorisée de la table widget_state
 // (Heure n'enregistre rien, elle n'y figure pas). render reçoit ses données enregistrées (ou rien) et save() pour
 // les enregistrer ; il peut renvoyer une fonction appelée quand le widget est retiré de l'écran.
+// Remplissage des curseurs natifs (Chrome n'a pas de pseudo-élément pour la partie remplie).
+const fillRange = r => r.style.setProperty('--p', `${(Number(r.value) - Number(r.min || 0)) / ((Number(r.max || 100) - Number(r.min || 0)) || 1) * 100}%`);
+document.addEventListener('input', e => { if (e.target.type === 'range') fillRange(e.target); }, true);
+
+// Compteur de minutes à trois chiffres. Les chiffres qui changent roulent (vers le haut si on augmente).
+function minuteDial({ value, min, max, step, label, onInput, onCommit }) {
+  const dial = el('div', 'dial');
+  dial.tabIndex = 0;
+  dial.setAttribute('role', 'spinbutton');
+  dial.ariaLabel = label;
+  dial.ariaValueMin = min;
+  dial.ariaValueMax = max;
+  const digits = [0, 1, 2].map(() => { const d = el('span', 'dial-d'); d.setAttribute('aria-hidden', 'true'); d.append(el('span', '')); dial.append(d); return d; });
+  const pm = el('div', 'dial-pm');
+  const plus = button('', '+', null), minus = button('', '−', null);
+  plus.ariaLabel = `Ajouter ${step} minutes`;
+  minus.ariaLabel = `Retirer ${step} minutes`;
+  plus.tabIndex = minus.tabIndex = -1;
+  pm.append(plus, minus);
+  dial.append(pm);
+  let shown = String(value).padStart(3, '0');
+  digits.forEach((d, i) => { d.firstChild.textContent = shown[i]; });
+  function set(next, commit = true) {
+    next = Math.max(min, Math.min(max, next));
+    const up = next > value;
+    if (next === value) return;
+    value = next;
+    const text = String(value).padStart(3, '0');
+    digits.forEach((d, i) => {
+      if (text[i] === shown[i]) return;
+      const old = d.lastChild, now = el('span', '', text[i]);
+      d.append(now);
+      if (REDUCED_MOTION()) { d.replaceChildren(now); return; }
+      const dir = up ? 1 : -1, ease = 'cubic-bezier(.22,1,.36,1)';
+      now.animate([{ transform: `translateY(${dir * 100}%)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 260, easing: ease });
+      old.animate([{ transform: 'none', opacity: 1 }, { transform: `translateY(${-dir * 100}%)`, opacity: 0 }], { duration: 200, easing: ease, fill: 'forwards' }).finished.then(() => old.remove(), () => {});
+    });
+    shown = text;
+    mark();
+    onInput(value);
+    if (commit) onCommit(value);
+  }
+  function mark() {
+    dial.ariaValueNow = value;
+    dial.ariaValueText = durationLabel(value);
+    plus.disabled = value >= max;
+    minus.disabled = value <= min;
+  }
+  // Maintenir + ou − fait défiler, de plus en plus vite ; on enregistre en lâchant.
+  for (const [b, dir] of [[plus, 1], [minus, -1]]) {
+    let timer = null;
+    const stop = () => { if (timer == null) return; clearTimeout(timer); timer = null; onCommit(value); };
+    b.onpointerdown = e => {
+      if (e.button !== 0 || b.disabled) return;
+      e.preventDefault();
+      b.setPointerCapture(e.pointerId);
+      let wait = 380;
+      const tick = () => { set(value + dir * step, false); wait = Math.max(60, wait * .8); timer = setTimeout(tick, wait); };
+      tick();
+    };
+    b.onpointerup = b.onpointercancel = b.onlostpointercapture = stop;
+    b.onclick = e => { if (e.detail === 0) set(value + dir * step); }; // clavier (Entrée/Espace sur le bouton)
+  }
+  dial.onkeydown = e => {
+    const next = { ArrowUp: value + step, ArrowRight: value + step, ArrowDown: value - step, ArrowLeft: value - step, PageUp: value + 30, PageDown: value - 30, Home: min, End: max }[e.key];
+    if (next == null) return;
+    e.preventDefault();
+    set(Math.round(next / step) * step || min);
+  };
+  mark();
+  return dial;
+}
+
+// Curseur en ligne : nom et valeur dans la piste, dix crans répartis, le trait glisse librement puis se pose sur le cran le plus proche.
+// Au-dessus du texte, le trait s'efface et ne garde que ses deux points, pour que le texte reste lisible.
+function inlineSlider({ label, min, max, step, value, format, onInput, onCommit }) {
+  const START = 8, END_INSET = 12, TEXT = 20, STOPS = 10;
+  const track = el('div', 'islider');
+  const clip = el('div', 'is-clip'), fill = el('div', 'is-fill');
+  clip.append(fill);
+  const name = el('span', 'is-label', label), out = el('span', 'is-value');
+  const thumb = el('div', 'is-thumb');
+  const capTop = el('i', 'cap'), stem = el('i', 'stem'), capBottom = el('i', 'cap');
+  thumb.append(capTop, stem, capBottom);
+  const key = el('button', 'is-key');
+  key.type = 'button';
+  key.setAttribute('role', 'slider');
+  key.ariaLabel = label;
+  key.ariaValueMin = min;
+  key.ariaValueMax = max;
+  for (const n of [clip, name, out, thumb]) n.setAttribute('aria-hidden', 'true');
+  track.append(clip, name, out, thumb, key);
+  let width = 0, x = START, target = START, speed = 0, frame = 0, gesture = null, ticks = [];
+  const snap = v => Math.min(max, Math.max(min, Math.round((v - min) / step) * step + min));
+  const values = [...new Set(Array.from({ length: STOPS }, (_, i) => snap(min + i / (STOPS - 1) * (max - min))))];
+  const endX = () => Math.max(START, width - END_INSET);
+  const stops = () => values.map((v, i) => ({ value: v, x: values.length === 1 ? START : START + i / (values.length - 1) * (endX() - START) }));
+  const between = (point, from, to) => {
+    const s = stops(), hi = Math.max(0, s.findIndex(p => p[from] >= point)), up = s[hi < 0 ? s.length - 1 : hi], lo = s[Math.max(0, hi - 1)];
+    return lo[from] === up[from] ? up[to] : lo[to] + (point - lo[from]) / (up[from] - lo[from]) * (up[to] - lo[to]);
+  };
+  function paint() {
+    thumb.style.transform = `translateX(${x}px)`;
+    const right = x >= endX() ? width - 2 : x + 8;
+    fill.style.transform = `translateX(${right - width + 2}px)`;
+    const part = (a, b) => Math.max(0, Math.min(1, (x + 4 - a) / 6, (b - x) / 6));
+    const amount = Math.max(part(TEXT, TEXT + name.offsetWidth), part(width - TEXT - out.offsetWidth, width - TEXT));
+    stem.style.opacity = 1 - amount;
+    capTop.style.transform = `translateY(${-amount * 2}px)`;
+    capBottom.style.transform = `translateY(${amount * 2}px)`;
+  }
+  function show(v) {
+    out.textContent = format(v);
+    key.ariaValueNow = v;
+    key.ariaValueText = format(v);
+  }
+  function drawTicks() {
+    for (const t of ticks) t.remove();
+    const nameEnd = TEXT + name.offsetWidth, outStart = width - TEXT - out.offsetWidth;
+    ticks = stops().filter(s => s.x + 2 < TEXT || (s.x - 2 > nameEnd && s.x + 2 < outStart) || s.x - 2 > width - TEXT).map(s => {
+      const t = el('span', 'is-tick');
+      t.style.left = `${s.x}px`;
+      t.setAttribute('aria-hidden', 'true');
+      track.insertBefore(t, thumb);
+      return t;
+    });
+  }
+  // Un ressort simple : le trait glisse jusqu'au cran, sans à-coup. Rien en mouvement réduit.
+  function glide(to) {
+    target = to;
+    cancelAnimationFrame(frame);
+    if (REDUCED_MOTION()) { x = to; speed = 0; return paint(); }
+    let last = performance.now();
+    const stepFrame = now => {
+      const dt = Math.min(.032, (now - last) / 1000);
+      last = now;
+      speed += (-380 * (x - target) - 34 * speed) * dt;
+      x += speed * dt;
+      if (Math.abs(x - target) < .2 && Math.abs(speed) < 4) { x = target; speed = 0; return paint(); }
+      paint();
+      frame = requestAnimationFrame(stepFrame);
+    };
+    frame = requestAnimationFrame(stepFrame);
+  }
+  function set(v, commit) {
+    value = v;
+    show(v);
+    onInput(v);
+    if (commit) onCommit(v);
+  }
+  new ResizeObserver(() => {
+    width = track.getBoundingClientRect().width;
+    if (!width) return;
+    x = target = between(value, 'value', 'x');
+    drawTicks();
+    paint();
+  }).observe(track);
+  track.onpointerdown = e => {
+    if (e.button !== 0 || gesture || !width) return;
+    e.preventDefault();
+    const left = track.getBoundingClientRect().left, px = e.clientX - left;
+    cancelAnimationFrame(frame);
+    gesture = { id: e.pointerId, left, offset: Math.abs(px - x - 2) <= 12 ? px - x : 2 };
+    track.setPointerCapture(e.pointerId);
+    track.classList.add('held');
+    key.focus({ preventScroll: true });
+  };
+  track.onpointermove = e => {
+    if (!gesture || gesture.id !== e.pointerId) return;
+    x = Math.min(endX(), Math.max(START, e.clientX - gesture.left - gesture.offset));
+    paint();
+    const v = Math.round(between(x, 'x', 'value'));
+    if (v !== value) set(v, false);
+  };
+  track.onpointerup = track.onpointercancel = e => {
+    if (!gesture || gesture.id !== e.pointerId) return;
+    const px = e.type === 'pointerup' ? e.clientX - gesture.left - gesture.offset : x;
+    gesture = null;
+    track.classList.remove('held');
+    const near = stops().reduce((a, b) => Math.abs(b.x - px) < Math.abs(a.x - px) ? b : a);
+    set(near.value, true);
+    glide(near.x);
+  };
+  key.onkeydown = e => {
+    const s = stops();
+    const next = { ArrowRight: s.find(p => p.value > value)?.value ?? max, ArrowUp: s.find(p => p.value > value)?.value ?? max,
+      ArrowLeft: s.findLast(p => p.value < value)?.value ?? min, ArrowDown: s.findLast(p => p.value < value)?.value ?? min,
+      Home: min, End: max, PageUp: max, PageDown: min }[e.key];
+    if (next == null) return;
+    e.preventDefault();
+    set(next, true);
+    glide(between(next, 'value', 'x'));
+  };
+  show(value);
+  return { el: track, disable(off) { track.classList.toggle('off', off); key.disabled = off; } };
+}
+
 const WIDGETS = [
   {
     id: 'cahier', title: 'Cahier', size: 'l', desc: 'Ton cours importé une fois, rangé par chapitres, pour lire et chercher.',
@@ -1469,10 +1721,10 @@ const WIDGETS = [
       let flights = sameDay && Number.isFinite(data?.flights) ? data.flights : 0;
       let log = focusLog(data);
       const slot = el('div');
-      const label = el('label', 'vol-time', 'Durée du vol');
+      const label = el('div', 'vol-time');
       const output = el('output');
-      const range = Object.assign(el('input'), { type: 'range', min: MIN_FLIGHT, max: MAX_FLIGHT, step: 5, value: length });
-      label.append(output, range);
+      const title = el('div', '', 'Durée du vol');
+      title.append(output);
       const persist = () => save({ length, day, minutes, flights, log });
       const ticket = () => ({
         minutes: length,
@@ -1485,8 +1737,7 @@ const WIDGETS = [
         slot.replaceChildren(boardingPass(ticket()));
         meta.textContent = `Aujourd'hui : ${plural(flights, 'vol')} · ${minutes} min`;
       }
-      range.oninput = () => { length = Number(range.value); draw(); };
-      range.onchange = persist;
+      label.append(title, minuteDial({ value: length, min: MIN_FLIGHT, max: MAX_FLIGHT, step: 5, label: 'Durée du vol, en minutes', onInput: v => { length = v; draw(); }, onCommit: persist }));
       const go = button('primary vol-go', 'Déchirer et décoller', () => {
         const flightMinutes = length;
         startFlight(ticket(), () => {
@@ -1840,9 +2091,10 @@ const WIDGETS = [
         say();
         range.oninput = () => { set(Number(range.value)); say(); };
         range.onchange = persist;
+        fillRange(range);
         row.append(el('span', '', name), range);
         list.append(row);
-        ranges.push(() => { range.value = get(); say(); });
+        ranges.push(() => { range.value = get(); say(); fillRange(range); });
       };
       slider('sound master', 'Volume général', ChillSon.master, ChillSon.setMaster);
       for (const snd of SOUNDS) slider('sound', snd.name, () => ChillSon.volume(snd.id), v => ChillSon.setVolume(snd.id, v));
@@ -2355,6 +2607,21 @@ WIDGETS.push(
   { id: 'ambiances', labo: 'chill', title: 'Mes ambiances', desc: 'Retrouve en un clic ton fond, ton mélange de sons et ta scène.', render: chillLazy('chill/ambiances.js', 'ambiancesWidget') },
   { id: 'cinq', labo: 'chill', title: "J'ai cinq minutes", desc: 'Une petite activité calme, choisie ou tirée au hasard.', render: chillLazy('chill/cinq.js', 'cinqWidget') },
 );
+// Présentations (labo, ?vues=1) : d'autres façons de disposer les mêmes widgets d'une page. Usage (Study, Chill…) = la page ;
+// présentation = sa disposition. Chaque présentation est un fichier chargé à la demande (contrat : voir applyVue).
+// Ce n'est pas une sécurité : les données restent protégées par la base.
+const VUES_LABO = (() => {
+  try {
+    const q = new URLSearchParams(location.search).get('vues');
+    if (q != null) localStorage.setItem('renzvi:vues', q === '1' ? '1' : '');
+    return localStorage.getItem('renzvi:vues') === '1';
+  } catch { return false; }
+})();
+const VUES = [
+  { id: 'grille', name: 'Grille' },
+  { id: 'libre', name: 'Tableau libre', script: 'vues/libre.js', style: 'vues/libre.css', make: 'vueLibre' },
+];
+const VUES_VERSION = 1, VUE_MAX = 20000;
 // Nutrition (labo, ?labo=1) : recettes Wikibooks en CC BY-SA, chargées seulement quand le widget s'affiche.
 WIDGETS.push({ id: 'repas', labo: true, title: "Qu'est-ce qu'on mange ?", desc: 'Une recette tirée au sort, ou ce que tu peux cuisiner avec ton frigo.', render: chillLazy('nutrition/repas.js', 'repasWidget') });
 for (let i = WIDGETS.length - 1; i >= 0; i--) if (WIDGETS[i].labo === 'chill' ? !CHILL_LABO : WIDGETS[i].labo && !LABO) WIDGETS.splice(i, 1);
@@ -2377,7 +2644,7 @@ if (!sb) {
   let userId, saveTimer, saving = null, loaded = false, stored = {}, photoUrl = null, referral = null;
   // done reste faux tant que le premier lancement n'est pas terminé : on le reprend au retour.
   // widgets garde l'ordre de tous les widgets ; where dit sur quelle page chacun se trouve (sans entrée : la première).
-  const screen = { wallpaper: 'blanc', widgets: [], done: false, accent: DEFAULT_ACCENT, look: { ...LOOK_DEFAULT }, sizes: {}, pages: [FIRST_PAGE], where: {} };
+  const screen = { wallpaper: 'blanc', widgets: [], done: false, accent: DEFAULT_ACCENT, look: { ...LOOK_DEFAULT }, sizes: {}, pages: [FIRST_PAGE], where: {}, vues: { v: VUES_VERSION, page: {}, places: {} } };
   let currentPage = FIRST_PAGE.id;
   const pageOf = id => screen.where[id] ?? screen.pages[0].id;
   const onPage = () => screen.widgets.filter(id => pageOf(id) === currentPage);
@@ -2469,9 +2736,26 @@ if (!sb) {
   veil.onclick = () => zoom(null);
   document.body.append(veil);
   let zoomed = null;
+  // Continuité : une boîte qui change de place part visuellement de l'ancienne (transform seulement, rien n'est recréé).
+  // Un nouveau changement interrompt proprement le précédent ; en mouvement réduit, la boîte est tout de suite à sa place.
+  const flips = new WeakMap();
+  function morph(box, from, ms = 420) {
+    flips.get(box)?.cancel();
+    if (REDUCED_MOTION() || !from?.width) return null;
+    const to = box.getBoundingClientRect();
+    if (!to.width || Math.abs(from.left - to.left) + Math.abs(from.top - to.top) + Math.abs(from.width - to.width) + Math.abs(from.height - to.height) < 1) return null;
+    const a = box.animate([
+      { transformOrigin: '0 0', transform: `translate(${from.left - to.left}px,${from.top - to.top}px) scale(${from.width / to.width},${from.height / to.height})` },
+      { transformOrigin: '0 0', transform: 'none' },
+    ], { duration: ms, easing: 'cubic-bezier(.22,1,.36,1)' });
+    flips.set(box, a);
+    return a;
+  }
+  // Ouvrir et fermer un widget, depuis sa place : réutilisé par toutes les présentations.
   function zoom(next) {
     const prev = zoomed;
     zoomed = next === prev ? null : next;
+    const from = new Map([prev, zoomed].filter(Boolean).map(m => [m.box, m.box.getBoundingClientRect()]));
     prev?.box.classList.remove('zoomed');
     prev?.zoomBtn.setAttribute('aria-pressed', 'false');
     zoomed?.box.classList.add('zoomed');
@@ -2482,6 +2766,13 @@ if (!sb) {
     document.documentElement.classList.toggle('zoom-lock', !!zoomed);
     for (const n of [$('bar'), $('aide'), $('board-empty'), ...[...mounted.values()].map(m => m.box)]) n.inert = !!zoomed && n !== zoomed.box;
     if (zoomed || prev) (zoomed ?? prev).zoomBtn.focus();
+    for (const [box, rect] of from) {
+      // Celui qui se referme reste au-dessus des autres le temps de rejoindre sa place.
+      if (box !== zoomed?.box) box.classList.add('settling');
+      const a = morph(box, rect, box === zoomed?.box ? 380 : 300);
+      if (a) a.finished.catch(() => {}).finally(() => { if (flips.get(box) === a) box.classList.remove('settling'); });
+      else box.classList.remove('settling');
+    }
   }
   addEventListener('keydown', e => { if (e.key === 'Escape' && zoomed && !document.querySelector('dialog[open]')) zoom(null); });
   // Les widgets qui arrivent (ajout, changement de mode) se posent l'un après l'autre.
@@ -2567,6 +2858,7 @@ if (!sb) {
       return tab;
     }));
     moveThumb();
+    drawVuePick();
     $('page-current').textContent = pageNow().name;
     $('page-new').disabled = screen.pages.length >= MAX_SCREEN_PAGES;
     $('page-delete').hidden = !many;
@@ -2577,6 +2869,7 @@ if (!sb) {
       m.edit.page.value = pageOf(id);
     }
     refreshBoard();
+    applyVue();
   }
   function moveThumb() {
     const tabs = $('page-tabs'), tab = tabs.querySelector('[aria-pressed=true]'), thumb = tabs.querySelector('.thumb');
@@ -2602,6 +2895,98 @@ if (!sb) {
     drawPages();
     if (changed) arrive(onPage());
   }
+  // Présentations. Contrat d'un fichier de présentation : window[make](ctx) rend { relayout(), leave() }.
+  // ctx donne les boîtes déjà montées de la page, leur place d'avant (pour que rien ne saute), la disposition enregistrée
+  // et de quoi l'enregistrer. relayout() est rappelé à chaque changement de la page ; leave() doit tout remettre comme avant.
+  let vue = { key: 'grille', leave() {} }, vueTurn = 0;
+  const vueOf = page => (VUES_LABO && VUES.find(v => v.id === screen.vues.page[page])) || VUES[0];
+  const vueFiles = v => Promise.all([chillScript(v.script), new Promise((ok, ko) => {
+    if (document.querySelector(`link[href="${v.style}"]`)) return ok();
+    const link = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: v.style });
+    link.onload = ok;
+    link.onerror = () => { link.remove(); ko(new Error(v.style)); };
+    document.head.append(link);
+  })]);
+  const shown = () => onPage().filter(id => mounted.has(id));
+  function boxRects() {
+    const area = $('board').getBoundingClientRect();
+    return new Map(shown().map(id => {
+      const r = mounted.get(id).box.getBoundingClientRect();
+      return [id, { x: r.left - area.left, y: r.top - area.top, w: r.width, h: r.height, rect: r }];
+    }));
+  }
+  // animate : seulement quand la personne change elle-même de présentation, jamais au chargement.
+  async function applyVue(animate = false) {
+    const want = vueOf(currentPage), page = currentPage, key = want.id === 'grille' ? 'grille' : `${want.id}:${page}`;
+    if (vue.key === key) return vue.relayout?.();
+    const turn = ++vueTurn;
+    if (want.script) {
+      try { await vueFiles(want); } catch (e) {
+        console.error(e);
+        if (turn === vueTurn) $('page-note').textContent = `« ${want.name} » n'a pas pu se charger. La grille reste affichée.`;
+        return;
+      }
+      if (turn !== vueTurn || page !== currentPage) return;
+    }
+    zoom(null);
+    const before = boxRects();
+    vue.leave();
+    vue = { key, page: want.id === 'grille' ? null : page, leave() {} };
+    if (want.make) {
+      try {
+        vue = { key, page, ...window[want.make]({
+          board: $('board'),
+          from: before,
+          ids: shown,
+          box: id => mounted.get(id)?.box,
+          title: id => WIDGETS.find(w => w.id === id)?.title ?? id,
+          places: () => screen.vues.places[want.id]?.[page] ?? {},
+          save: places => {
+            screen.vues = { ...screen.vues, places: { ...screen.vues.places, [want.id]: { ...screen.vues.places[want.id], [page]: places } } };
+            saveScreen();
+          },
+          say: text => { $('custom-live').textContent = text; },
+        }) };
+      } catch (e) {
+        console.error(e);
+        vue = { key: 'grille', leave() {} };
+        $('page-note').textContent = `« ${want.name} » n'a pas pu s'afficher. La grille reste affichée.`;
+      }
+    }
+    // Même page, autre présentation : chaque widget glisse de son ancienne place à la nouvelle.
+    if (animate) for (const [id, b] of before) morph(mounted.get(id).box, b.rect, 520);
+  }
+  function drawVuePick() {
+    const pick = $('vue-pick');
+    if (!pick) return;
+    const now = vueOf(currentPage).id;
+    for (const b of pick.querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.vue === now);
+  }
+  function vuePicker() {
+    const wrap = el('div', 'vue-pick');
+    wrap.id = 'vue-pick';
+    const label = el('span', 'vue-label', 'Présentation');
+    label.id = 'vue-label';
+    const choices = el('div', 'choices');
+    choices.setAttribute('role', 'group');
+    choices.setAttribute('aria-labelledby', 'vue-label');
+    for (const v of VUES) {
+      const b = button('', v.name, () => {
+        if (vueOf(currentPage).id === v.id) return;
+        screen.vues = { ...screen.vues, page: { ...screen.vues.page, [currentPage]: v.id } };
+        if (v.id === 'grille') delete screen.vues.page[currentPage];
+        saveScreen();
+        drawVuePick();
+        applyVue(true);
+        $('custom-live').textContent = `Présentation : ${v.name}.`;
+      });
+      b.dataset.vue = v.id;
+      choices.append(b);
+    }
+    wrap.append(label, choices);
+    return wrap;
+  }
+
   // « Revoir dans le cours » depuis une carte : si le Cahier est sur une autre page, on y va (il fait le reste).
   document.addEventListener('renzvi:revoir', () => { if (mounted.has('cahier') && pageOf('cahier') !== currentPage) showPage(pageOf('cahier')); });
   document.addEventListener('renzvi:schema', () => { if (mounted.has('schemas') && pageOf('schemas') !== currentPage) showPage(pageOf('schemas')); });
@@ -2690,7 +3075,6 @@ if (!sb) {
   }
 
   // Les autres widgets glissent de leur ancienne place à la nouvelle.
-  const flips = new WeakMap();
   function flip(change, skip) {
     const boxes = [...mounted.values()].map(m => m.box);
     const from = new Map(boxes.map(b => [b, b.getBoundingClientRect()]));
@@ -2865,6 +3249,8 @@ if (!sb) {
     $('look-flou').value = flou;
     $('flou-val').textContent = flou ? `${flou} px` : 'Aucun';
     $('look-opacite').value = screen.look.opacite;
+    fillRange($('look-flou'));
+    fillRange($('look-opacite'));
     $('opacite-val').textContent = screen.look.opacite === 0 ? 'Givré' : screen.look.opacite === 100 ? 'Plein' : `${screen.look.opacite} %`;
     document.querySelector('meta[name=theme-color]').content = screen.look.theme === 'dark' ? '#111112' : '#ffffff';
     for (const b of $('themes').children) b.setAttribute('aria-pressed', b.dataset.value === screen.look.theme);
@@ -3050,6 +3436,7 @@ if (!sb) {
     const start = el('div', 'actions');
     start.append(button('primary', 'Choisir un widget', () => openCatalog(user)));
     $('board-empty').append(start);
+    if (VUES_LABO && !$('vue-pick')) document.querySelector('.hello').append(vuePicker());
     for (const id of screen.widgets) if (!mounted.has(id)) mount(WIDGETS.find(w => w.id === id), user);
     drawPages();
     drawToday();
@@ -3220,12 +3607,12 @@ if (!sb) {
       $('catalog').querySelector(`[data-widget=${w.id}]`)?.focus();
     });
     back.ariaLabel = 'Retour au catalogue';
-    head.append(text, back);
-    const stage = el('div', 'stage');
     const actions = el('div', 'actions');
+    head.append(text, actions, back);
+    const stage = el('div', 'stage');
     const redraw = () => { drawPages(); saveScreen(); drawCatalog(user); };
     if (on) {
-      stage.append(el('p', 'stage-none', `${w.title} est déjà ${here ? (screen.pages.length > 1 ? 'sur cette page' : 'sur ton écran') : `sur la page « ${pageName(pageOf(w.id))} »`}.`));
+      stage.append(el('p', 'stage-none', `${w.title} est déjà ${here ? (screen.pages.length > 1 ? 'sur cette page' : 'sur ton écran') : `sur la page « ${pageName(pageOf(w.id))} »`}. Son contenu est gardé si tu le retires.`));
       const remove = button('ghost', 'Retirer', () => {
         screen.widgets = screen.widgets.filter(id => id !== w.id);
         unmount(w.id);
@@ -3234,8 +3621,8 @@ if (!sb) {
         $('catalog').querySelector(`[data-widget=${w.id}]`)?.focus();
       });
       remove.ariaLabel = `Retirer : ${w.title}`;
-      actions.append(el('p', 'desc', 'Son contenu est gardé si tu le retires.'), remove, button('primary', 'Terminer', () => $('add-dialog').close()));
-      view.replaceChildren(head, stage, actions);
+      actions.append(remove, button('primary', 'Terminer', () => $('add-dialog').close()));
+      view.replaceChildren(head, stage);
       return;
     }
     // L'aperçu est le vrai widget, avec des exemples ou vide, sur le fond de la personne. Il ne répond à aucun clic (inert) et n'enregistre rien :
@@ -3265,7 +3652,7 @@ if (!sb) {
       b.setAttribute('aria-pressed', size.id === pickedSize);
       sizes.append(b);
     }
-    pick.append(sizes, el('p', '', `${EXAMPLES[w.id] || w.id === 'semaine' ? 'Aperçu avec des exemples' : 'Aperçu'} : rien ne joue et rien n'est enregistré.`));
+    pick.append(sizes, el('p', '', `${EXAMPLES[w.id] || w.id === 'semaine' ? 'Aperçu avec des exemples' : 'Aperçu'} : rien ne joue et rien n'est enregistré. ${screen.pages.length > 1 ? `Sera ajouté sur « ${pageName(currentPage)} ».` : 'Sera ajouté sur ton écran.'}`));
     const add = button('primary', 'Ajouter', () => {
       // Sur une page vide, le premier ajout lance l'aide des premiers pas, sauf si elle a déjà été vue.
       if (!screen.aide && !onPage().length) screen.aide = {};
@@ -3281,8 +3668,8 @@ if (!sb) {
       view.querySelector('.primary').focus();
     });
     add.ariaLabel = `Ajouter : ${w.title}`;
-    actions.append(el('p', 'desc', screen.pages.length > 1 ? `Sera ajouté sur « ${pageName(currentPage)} ».` : 'Sera ajouté sur ton écran.'), add);
-    view.replaceChildren(head, stage, pick, actions);
+    actions.append(add);
+    view.replaceChildren(head, stage, pick);
   }
 
   const pageNow = () => screen.pages.find(p => p.id === currentPage);
@@ -3303,7 +3690,9 @@ if (!sb) {
       if (url) {
         const layer = el('i', '');
         layer.style.backgroundImage = url;
+        layer.dataset.src = library ? `assets/${library.file}` : photoUrl;
         $('wall').append(layer);
+        sizeWall();
         layer.getBoundingClientRect();
         layer.classList.add('on');
       } else for (const layer of old) layer.classList.remove('on');
@@ -3315,6 +3704,26 @@ if (!sb) {
       $('credit').replaceChildren(`Fond : « ${library.title} » par ${library.by}, `, link, ', via Wikimedia Commons.');
     }
   }
+  // Zoom du fond : sous 100 %, la photo est affichée plus petite que l'écran (moins agrandie, donc moins floue),
+  // et une copie floue d'elle-même remplit les bords. Il faut ses vraies dimensions, lues une fois par image.
+  const wallSizes = new Map();
+  function sizeWall() {
+    const zoom = screen.look.fond ?? 100;
+    for (const layer of $('wall').children) {
+      const src = layer.dataset.src, dims = wallSizes.get(src);
+      if (zoom < 100 && src && !dims) {
+        const img = new Image();
+        img.onload = () => { wallSizes.set(src, [img.naturalWidth, img.naturalHeight]); sizeWall(); };
+        img.src = src;
+        continue;
+      }
+      const s = dims ? Math.max(innerWidth / dims[0], innerHeight / dims[1]) * zoom / 100 : 0;
+      layer.style.backgroundSize = zoom < 100 && dims ? `${Math.round(dims[0] * s)}px ${Math.round(dims[1] * s)}px` : '';
+      layer.classList.toggle('recul', zoom < 100 && !!dims);
+    }
+  }
+  addEventListener('resize', () => { if ((screen.look.fond ?? 100) < 100) sizeWall(); });
+
   async function loadPhoto() {
     const { data, error } = await sb.storage.from('fonds').download(photoPath());
     if (error) return showSaved("Ta photo de fond n'a pas pu se charger.", true);
@@ -3371,9 +3780,17 @@ if (!sb) {
       return tile;
     });
     const photoTile = entries.at(-1);
+    const zoom = inlineSlider({
+      label: 'Zoom du fond', min: FOND_MIN, max: 100, step: 5, value: screen.look.fond ?? 100, format: v => `${v} %`,
+      onInput: v => { screen.look = { ...screen.look, fond: v }; sizeWall(); },
+      onCommit: () => saveScreen(),
+    });
+    const zoomBox = el('div', 'wall-zoom');
+    zoomBox.append(zoom.el, el('p', '', "Sous 100 %, la photo est moins agrandie : plus nette, avec des bords flous."));
     function mark() {
       for (const t of entries) t.setAttribute('aria-pressed', t.dataset.wall === wallNow());
       photoTile.style.backgroundImage = photoUrl ? `url(${photoUrl})` : '';
+      zoom.disable(wallNow() === 'blanc');
     }
     file.onchange = async () => {
       const chosen = file.files[0];
@@ -3398,7 +3815,7 @@ if (!sb) {
       mark();
     };
     mark();
-    box.append(tiles, file, note);
+    box.append(tiles, zoomBox, file, note);
     return box;
   }
 
@@ -3449,12 +3866,14 @@ if (!sb) {
     const whole = (v, max) => Number.isInteger(v) && v >= 0 && v <= max;
     screen.look.flou = whole(saved.look?.flou, FLOU_MAX) ? saved.look.flou : null;
     screen.look.opacite = whole(saved.look?.opacite, 100) ? saved.look.opacite : 0;
+    screen.look.fond = whole(saved.look?.fond, 100) && saved.look.fond >= FOND_MIN ? saved.look.fond : 100;
     screen.sizes = Object.fromEntries(Object.entries(saved.sizes ?? {}).filter(([id, size]) => known(id) && SIZES.some(s => s.id === size)));
     // Une configuration abîmée ne doit pas empêcher d'ouvrir l'écran : on ne garde que ce qui est valide.
     const pages = listOf(saved.pages).filter(p => typeof p?.id === 'string' && p.id && p.id.length <= 64 && typeof p.name === 'string' && p.name.trim());
     const validWall = id => id === 'perso' || id === 'blanc' || WALLPAPERS.some(w => w.id === id);
     if (pages.length) screen.pages = [...new Map(pages.map(p => [p.id, { id: p.id, name: p.name.trim().slice(0, MAX_PAGE_NAME), ...(validWall(p.wall) && { wall: p.wall }) }])).values()].slice(0, MAX_SCREEN_PAGES);
     screen.where = Object.fromEntries(Object.entries(saved.where ?? {}).filter(([id, page]) => known(id) && screen.pages.some(p => p.id === page)));
+    screen.vues = cleanVues(saved.vues, known);
     currentPage = screen.pages[0].id;
     try {
       const last = localStorage.getItem('renzvi:page');
@@ -3467,6 +3886,23 @@ if (!sb) {
     applyWallpaper();
     if (photoInUse()) loadPhoto();
     if (screen.done) showScreen(user); else setupWallpaper(user);
+  }
+
+  // Une disposition abîmée ou d'une autre version est ignorée : la page revient simplement à la grille.
+  function cleanVues(v, known) {
+    const out = { v: VUES_VERSION, page: {}, places: {} };
+    if (v?.v !== VUES_VERSION || typeof v !== 'object') return out;
+    const pageOk = id => screen.pages.some(p => p.id === id);
+    const num = n => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= VUE_MAX;
+    for (const [page, id] of Object.entries(v.page ?? {})) if (pageOk(page) && VUES.some(x => x.id === id)) out.page[page] = id;
+    for (const vue of VUES) {
+      for (const [page, list] of Object.entries(v.places?.[vue.id] ?? {})) {
+        if (!pageOk(page) || !list || typeof list !== 'object') continue;
+        const ok = Object.entries(list).filter(([id, p]) => known(id) && num(p?.x) && num(p?.y) && Number.isInteger(p?.z) && num(p.z));
+        if (ok.length) (out.places[vue.id] ??= {})[page] = Object.fromEntries(ok.map(([id, p]) => [id, { x: p.x, y: p.y, z: p.z }]));
+      }
+    }
+    return out;
   }
 
   async function claimReferral() {

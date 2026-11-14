@@ -496,7 +496,7 @@ async function photo(browser, kind) {
     assert.equal(l.radius, '30px');
     assert.match(await page.evaluate(() => getComputedStyle(document.body).fontFamily), /^Inter/);
     await saved(page, 'Enregistré');
-    assert.deepEqual(db.rows.ecran.look, { theme: 'dark', titre: 'gloock', texte: 'inter', coins: 'ronds', densite: 'normale', flou: null, opacite: 0 });
+    assert.deepEqual(db.rows.ecran.look, { theme: 'dark', titre: 'gloock', texte: 'inter', coins: 'ronds', densite: 'normale', flou: null, opacite: 0, fond: 100 });
     // Verre : le flou et l'opacité suivent les curseurs et s'enregistrent ; jamais plus transparent que l'origine.
     const slide = (id, v) => page.locator(id).evaluate((n, v) => { n.value = v; n.dispatchEvent(new Event('input', { bubbles: true })); n.dispatchEvent(new Event('change', { bubbles: true })); }, v);
     const widgetGlass = () => page.evaluate(() => { const c = getComputedStyle(document.querySelector('#board .widget')); return [c.backdropFilter, c.backgroundColor]; });

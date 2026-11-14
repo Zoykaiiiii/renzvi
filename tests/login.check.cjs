@@ -538,7 +538,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     const { context, page, errors } = await openDashboard(browser, base, { viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' }, { ecran: VOL_SCREEN });
     await page.goto(`${base}/dashboard.html`);
     await page.waitForSelector('.boarding');
-    await page.locator('.vol-time input').fill('180');
+    await page.locator('.vol-time .dial').press('End');
     await page.getByRole('button', { name: 'Déchirer et décoller' }).click();
     await page.waitForSelector('#flight-run:not([hidden])');
     assert.match(await page.textContent('#flight-clock'), /^[23]:\d\d:\d\d$/);
@@ -560,7 +560,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.clock.install();
     await page.goto(`${base}/dashboard.html`);
     await page.waitForSelector('.boarding');
-    await page.locator('.vol-time input').fill('5');
+    await page.locator('.vol-time .dial').press('Home');
     await page.getByRole('button', { name: 'Déchirer et décoller' }).click();
     await page.waitForSelector('#flight-run:not([hidden])');
     assert.equal(await page.locator('#flight-view canvas').count(), 0);
@@ -603,11 +603,16 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.clock.install();
     await page.goto(`${base}/dashboard.html`);
     await page.waitForSelector('.boarding');
-    const range = page.locator('.vol-time input');
-    await range.evaluate(r => { r.value = 90; r.dispatchEvent(new Event('input', { bubbles: true })); r.dispatchEvent(new Event('change', { bubbles: true })); });
+    // Le compteur : Page haut ajoute 30 minutes, flèche haut 5.
+    const dial = page.getByRole('spinbutton', { name: 'Durée du vol, en minutes' });
+    await dial.press('PageUp');
+    await dial.press('PageUp');
+    await dial.press('ArrowUp');
+    assert.equal(await dial.getAttribute('aria-valuenow'), '90');
     assert.equal(await page.locator('.vol-time output').textContent(), '1 h 30');
     assert.match(await page.locator('.broute').textContent(), /LIS/);
-    await range.evaluate(r => { r.value = 5; r.dispatchEvent(new Event('input', { bubbles: true })); r.dispatchEvent(new Event('change', { bubbles: true })); });
+    await dial.press('Home');
+    assert.equal(await page.getByRole('button', { name: 'Retirer 5 minutes' }).isDisabled(), true, 'pas sous 5 minutes');
     const go = page.getByRole('button', { name: 'Déchirer et décoller' });
     await go.click();
     await page.waitForSelector('#flight-run:not([hidden])');
