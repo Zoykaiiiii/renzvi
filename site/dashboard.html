@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="install.css">
 <link rel="stylesheet" href="study/cahier.css">
 <link rel="stylesheet" href="study/cartes.css">
+<link rel="stylesheet" href="dash/dash.css">
 <script src="install.js" defer></script>
 <style>@font-face{font-family:"Hanken Grotesk";src:url(fonts/hanken-grotesk-latin.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
 /* Polices au choix (Réglages) : le navigateur ne télécharge que celle qui est utilisée. */
@@ -506,10 +507,6 @@ h2{font-family:var(--display);font-size:14px;line-height:20px;font-weight:var(--
   [data-widget=vol] .body{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);align-items:center;column-gap:32px}
   [data-widget=vol] .body>:first-child{grid-row:span 2}
   [data-widget=vol] .vol-go{justify-self:start}
-  [data-widget=minuteur] .body{display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:24px}
-  [data-widget=minuteur] .choices{grid-area:1/1;justify-self:start}
-  [data-widget=minuteur] .ctrl{grid-area:1/2;margin:0}
-  [data-widget=minuteur] .focus-time,[data-widget=minuteur] .bar{grid-column:1/-1}
   [data-widget=respiration] .body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;column-gap:32px}
   [data-widget=respiration] .breath-stage{grid-area:1/1/7/2;height:240px;margin:0}
   [data-widget=respiration] .breath{width:200px;height:200px}
@@ -940,6 +937,7 @@ try { document.body.dataset.dock = { left: 1, top: 1, right: 1, bottom: 1 }[loca
           <button class="ghost" id="page-new" type="button">Nouvelle page</button>
           <button class="ghost" id="page-rename" type="button">Renommer</button>
           <button class="ghost" id="page-delete" type="button">Supprimer la page</button>
+          <button class="ghost" id="layout-reset" type="button">Réinitialiser la disposition</button>
         </div>
       </div>
       <div class="custom-side" id="custom-side">
@@ -1025,6 +1023,13 @@ try { document.body.dataset.dock = { left: 1, top: 1, right: 1, bottom: 1 }[loca
 <script src="study/schemas.js"></script>
 <script src="study/guide.js"></script>
 <script src="chill/chill.js"></script>
+<script src="dash/comet-dial.js"></script>
+<script src="dash/minuteur.js"></script>
+<script src="dash/option-wheel.js"></script>
+<script src="dash/modes.js"></script>
+<script src="dash/layout.js"></script>
+<script src="dash/code-slots.js"></script>
+<script src="dash/lock.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>
 <script>
 // Clé publique par conception : ce sont les règles de sécurité de la base qui protègent les données.
@@ -1033,7 +1038,6 @@ const SUPABASE_KEY = 'sb_publishable_-RJvqWleUNCM9vu5TumV6w_r2SUd8mQ';
 // Limites choisies pour rester sous les 64 Ko par widget imposés par la base, même en caractères spéciaux.
 const MAX_TASKS = 100, MAX_TASK_LENGTH = 140, MAX_HABITS = 12, MAX_HABIT_LENGTH = 60, MAX_NOTES_LENGTH = 15000;
 const SAVE_DELAY = 600, SAVE_RETRY = 5000;
-const FOCUS_CHOICES = [15, 25, 50];
 const BREATH_CHOICES = [1, 3, 5], BREATH_IN = 4000, BREATH_OUT = 6000;
 const BREAKS = [
   { id: 'loin', name: 'Regarder au loin', seconds: 20, text: 'Pose les yeux sur quelque chose de lointain, par la fenêtre si possible. Cligne des yeux doucement.' },
@@ -1070,6 +1074,7 @@ const ACCENTS = [
 ];
 const HEX = /^#[0-9a-f]{6}$/;
 const DEFAULT_ACCENT = 'vert', DEFAULT_SIZE = 'm';
+const MODE_ICONS = window.renzviModes?.icons ?? []; // icônes possibles d'un mode (dash/modes.js)
 // Apparence (Réglages). Seules ces valeurs sont acceptées au chargement.
 // Polices : [valeur, nom, famille CSS, graisse des titres]. Toutes auto-hébergées (site/fonts), listées sur fontesk.com.
 const LOOK = {
@@ -1839,86 +1844,9 @@ const WIDGETS = [
     },
   },
   {
-    id: 'minuteur', title: 'Minuteur focus', desc: 'Des sessions de 15, 25 ou 50 minutes.',
-    render({ body, meta, data, save }) {
-      // shortcut: une session en cours est perdue si la page est rechargée ; enregistrer l'heure de fin si ça gêne à l'usage.
-      const pageTitle = document.title;
-      let length = FOCUS_CHOICES.includes(data?.length) ? data.length : 25;
-      let day = dayKey(new Date());
-      let minutes = data?.day === day && Number.isFinite(data?.minutes) ? data.minutes : 0;
-      let remaining = length * 60000, endAt = null, ticker = null;
-      let log = focusLog(data);
-
-      const choices = el('div', 'choices');
-      choices.setAttribute('role', 'group');
-      choices.ariaLabel = 'Durée de la session';
-      const time = el('div', 'time focus-time');
-      time.setAttribute('role', 'timer');
-      const bar = el('div', 'bar');
-      bar.setAttribute('aria-hidden', 'true');
-      const fill = el('i');
-      bar.append(fill);
-      const go = button('primary', 'Démarrer', toggle);
-      const reset = button('ghost', 'Remettre', () => { stop(); remaining = length * 60000; draw(); });
-      const ctrl = el('div', 'ctrl');
-      ctrl.append(go, reset);
-      const persist = () => save({ length, day, minutes, log });
-
-      function draw() {
-        const total = Math.ceil(remaining / 1000);
-        const label = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
-        time.textContent = label;
-        fill.style.transform = `scaleX(${1 - remaining / (length * 60000)})`;
-        if (endAt) document.title = `${label} — Renzvi`;
-        for (const b of choices.children) b.disabled = !!endAt || remaining !== length * 60000;
-        go.textContent = endAt ? 'Pause' : remaining === length * 60000 ? 'Démarrer' : 'Reprendre';
-        meta.textContent = `Aujourd'hui : ${minutes} min`;
-      }
-      function stop() {
-        clearInterval(ticker);
-        endAt = null;
-        document.title = pageTitle;
-      }
-      function finish() {
-        stop();
-        const today = dayKey(new Date());
-        if (today !== day) { day = today; minutes = 0; }
-        minutes += length;
-        log = { ...log, [today]: (log[today] ?? 0) + length };
-        remaining = length * 60000;
-        persist();
-        document.title = 'Session terminée — Renzvi';
-        draw();
-      }
-      function toggle() {
-        if (endAt) {
-          remaining = endAt - Date.now();
-          stop();
-        } else {
-          endAt = Date.now() + remaining;
-          // L'heure de fin fait foi : un onglet en arrière-plan ralentit les minuteries du navigateur.
-          ticker = setInterval(() => {
-            remaining = endAt - Date.now();
-            if (remaining <= 0) finish(); else draw();
-          }, 250);
-        }
-        draw();
-      }
-      for (const n of FOCUS_CHOICES) {
-        const b = button('', `${n} min`, () => {
-          length = n;
-          remaining = n * 60000;
-          for (const c of choices.children) c.setAttribute('aria-pressed', c === b);
-          persist();
-          draw();
-        });
-        b.setAttribute('aria-pressed', n === length);
-        choices.append(b);
-      }
-      draw();
-      body.append(choices, time, bar, ctrl);
-      return stop;
-    },
+    id: 'minuteur', title: 'Minuteur focus', desc: 'Une session de focus réglée au cadran, en préréglage ou à la seconde près.',
+    // Moteur et interface dans dash/minuteur.js, cadran dans dash/comet-dial.js.
+    render: ctx => window.renzviMinuteur(ctx),
   },
   {
     id: 'semaine', title: 'Temps de focus', desc: 'Tes minutes de la semaine, vols et minuteur réunis.',
@@ -2648,11 +2576,22 @@ if (!sb) {
   let userId, saveTimer, saving = null, loaded = false, stored = {}, photoUrl = null, referral = null;
   // done reste faux tant que le premier lancement n'est pas terminé : on le reprend au retour.
   // widgets garde l'ordre de tous les widgets ; where dit sur quelle page chacun se trouve (sans entrée : la première).
-  const screen = { wallpaper: 'blanc', widgets: [], done: false, accent: DEFAULT_ACCENT, look: { ...LOOK_DEFAULT }, sizes: {}, pages: [FIRST_PAGE], where: {}, vues: { v: VUES_VERSION, page: {}, places: {} } };
+  const screen = { wallpaper: 'blanc', widgets: [], done: false, accent: DEFAULT_ACCENT, look: { ...LOOK_DEFAULT }, sizes: {}, spans: {}, heights: {}, collapsed: [], pages: [FIRST_PAGE], where: {}, vues: { v: VUES_VERSION, page: {}, places: {} } };
   let currentPage = FIRST_PAGE.id;
   const pageOf = id => screen.where[id] ?? screen.pages[0].id;
   const onPage = () => screen.widgets.filter(id => pageOf(id) === currentPage);
   const saveScreen = () => queueSave('ecran', { ...screen });
+  // Modules d'interaction (dossier dash/) : roue des modes, disposition fine, verrou de l'appareil.
+  let modes = null, lock = null;
+  const layoutGet = id => ({ span: screen.spans[id], h: screen.heights[id], collapsed: screen.collapsed.includes(id) });
+  function layoutSet(id, patch, final) {
+    const put = (map, v) => { const { [id]: _, ...rest } = map; return v ? { ...rest, [id]: v } : rest; };
+    if ('span' in patch) screen.spans = put(screen.spans, patch.span);
+    if ('h' in patch) screen.heights = put(screen.heights, patch.h);
+    if ('collapsed' in patch) screen.collapsed = patch.collapsed ? [...new Set([...screen.collapsed, id])] : screen.collapsed.filter(x => x !== id);
+    if (final) saveScreen();
+  }
+  const layout = window.renzviLayout({ get: layoutGet, set: layoutSet, flip: (change, skip) => flip(change, skip), board: () => $('board'), say: text => { $('custom-live').textContent = text; } });
   const photoPath = () => `${userId}/fond.jpg`;
 
   function showSaved(text, bad = false) {
@@ -2713,6 +2652,8 @@ if (!sb) {
     const edit = editBar(w, box);
     box.append(edit.bar, head, body);
     const entry = { box, edit };
+    layout.apply(box, w.id);
+    entry.layout = layout.decorate(w, box, head);
     if (!OWN_ZOOM.includes(w.id)) {
       entry.zoomBtn = button('zoom', '', () => zoom(entry));
       entry.zoomBtn.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.500 2.500h4v4M13.500 2.500 9 7M6.500 13.500h-4v-4M2.500 13.500 7 9"/></svg>';
@@ -2858,6 +2799,8 @@ if (!sb) {
     tabs.append(...screen.pages.map(page => {
       const tab = button('', page.name, () => { showPage(page.id); focusTab(); });
       tab.dataset.i = [...page.name.trim()][0] ?? '';
+      const ico = modes?.iconSvg(page);
+      if (ico) { tab.classList.add('has-ico'); tab.insertAdjacentHTML('afterbegin', `<span class="tab-ico">${ico}</span>`); }
       tab.setAttribute('aria-pressed', page.id === currentPage);
       return tab;
     }));
@@ -2896,6 +2839,7 @@ if (!sb) {
     $('page-note').textContent = '';
     try { localStorage.setItem('renzvi:page', id); } catch {}
     applyWallpaper();
+    applyAccent();
     drawPages();
     if (changed) arrive(onPage());
   }
@@ -3054,7 +2998,8 @@ if (!sb) {
     const mark = () => { for (const b of sizes.children) b.setAttribute('aria-pressed', b.dataset.size === box.dataset.size); };
     for (const s of SIZES) {
       const b = button('', s.name, () => {
-        flip(() => { box.dataset.size = s.id; }, box);
+        // Un préréglage remplace la taille fine choisie à la poignée.
+        flip(() => { box.dataset.size = s.id; layoutSet(w.id, { span: null, h: null }, false); layout.apply(box, w.id); }, box);
         screen.sizes = { ...screen.sizes, [w.id]: s.id };
         mark();
         aideStep('move');
@@ -3196,8 +3141,12 @@ if (!sb) {
       if (slot) update();
       else if (Math.hypot(x - startX, y - startY) > 4) lift();
     };
-    grip.onpointerup = () => finish(true);
-    grip.onpointercancel = () => finish(false);
+    // Échap : le widget revient à sa place, rien n'est enregistré.
+    const esc = k => { if (k.key === 'Escape' && slot) { k.preventDefault(); k.stopPropagation(); finish(false); } };
+    addEventListener('keydown', esc, true);
+    const done = keep => { removeEventListener('keydown', esc, true); finish(keep); };
+    grip.onpointerup = () => done(true);
+    grip.onpointercancel = () => done(false);
   }
 
   // Contraste WCAG entre deux couleurs hex.
@@ -3217,18 +3166,27 @@ if (!sb) {
     const preset = ACCENTS.find(a => a.id === id);
     return dark && preset?.dark ? preset.dark : legible(preset ? preset.hex : id, dark);
   };
+  // Un mode peut avoir sa propre couleur ; sinon, celle de l'écran.
+  const accentNow = () => pageNow()?.accent ?? screen.accent;
+  // Dans les Réglages, la couleur choisie va au mode affiché s'il a la sienne, sinon à tout l'écran.
+  function setAccent(value) {
+    if (pageNow()?.accent) screen.pages = screen.pages.map(p => p.id === currentPage ? { ...p, accent: value } : p);
+    else screen.accent = value;
+    applyAccent();
+    saveScreen();
+  }
   function applyAccent() {
-    const root = document.documentElement, dark = screen.look.theme === 'dark';
-    const preset = ACCENTS.find(a => a.id === screen.accent);
+    const root = document.documentElement, dark = screen.look.theme === 'dark', accent = accentNow();
+    const preset = ACCENTS.find(a => a.id === accent);
     root.dataset.accent = preset ? preset.id : 'perso';
-    root.style.setProperty('--accent', accentColor(screen.accent));
+    root.style.setProperty('--accent', accentColor(accent));
     root.style.setProperty('--on-accent', dark ? '#141414' : '#ffffff');
-    $('accent-name').textContent = preset ? preset.name : `Perso ${screen.accent}`;
+    $('accent-name').textContent = (preset ? preset.name : `Perso ${accent}`) + (pageNow()?.accent ? ` (mode ${pageNow().name})` : '');
     for (const b of $('swatches').querySelectorAll('.swatch')) {
       b.setAttribute('aria-pressed', preset ? b.dataset.accent === preset.id : b.classList.contains('swatch-pick'));
-      b.style.setProperty('--c', accentColor(b.dataset.accent ?? screen.accent));
+      b.style.setProperty('--c', accentColor(b.dataset.accent ?? accent));
     }
-    if (!preset) $('accent-pick').value = screen.accent;
+    if (!preset) $('accent-pick').value = accent;
     rememberLook();
   }
   // Copie sur l'appareil, relue avant l'affichage au prochain chargement (pas de flash clair en mode sombre).
@@ -3236,7 +3194,7 @@ if (!sb) {
     const [, , display, weight] = LOOK.titre.find(o => o[0] === screen.look.titre);
     return {
       '--display': display, '--display-weight': String(weight), '--sans': LOOK.texte.find(o => o[0] === screen.look.texte)[2],
-      '--accent': accentColor(screen.accent), '--on-accent': screen.look.theme === 'dark' ? '#141414' : '#ffffff',
+      '--accent': accentColor(accentNow()), '--on-accent': screen.look.theme === 'dark' ? '#141414' : '#ffffff',
       '--glass-blur': screen.look.flou == null ? null : screen.look.flou ? `blur(${screen.look.flou}px) saturate(1.6)` : 'none',
       '--boost': String(Math.round(screen.look.opacite / 100 * BOOST_MAX * 1000) / 1000),
     };
@@ -3358,10 +3316,10 @@ if (!sb) {
     pick.title = 'Toutes les couleurs';
     const input = Object.assign(el('input'), { type: 'color', id: 'accent-pick', value: '#1b6e66' });
     input.ariaLabel = 'Choisir une couleur libre';
-    input.oninput = () => { if (HEX.test(input.value)) { screen.accent = input.value; applyAccent(); saveScreen(); } };
+    input.oninput = () => { if (HEX.test(input.value)) setAccent(input.value); };
     pick.append(input, el('i'));
     $('swatches').replaceChildren(...ACCENTS.map(a => {
-      const b = button('swatch', '', () => { screen.accent = a.id; applyAccent(); saveScreen(); });
+      const b = button('swatch', '', () => setAccent(a.id));
       b.dataset.accent = a.id;
       b.ariaLabel = a.name;
       b.title = a.name;
@@ -3465,11 +3423,49 @@ if (!sb) {
       drawAide();
       saveScreen();
     };
+    if (!modes) {
+      modes = window.renzviModes({
+        pages: () => screen.pages,
+        current: () => currentPage,
+        show: id => showPage(id),
+        canCreate: () => screen.pages.length < MAX_SCREEN_PAGES,
+        create: ({ name, icon, accent, sameWall }) => {
+          const page = { id: crypto.randomUUID(), name: name.slice(0, MAX_PAGE_NAME), icon, ...(accent && { accent }), wall: sameWall ? wallNow() : 'blanc' };
+          changeWalls(() => { screen.pages = [...screen.pages, page]; });
+          saveScreen();
+          return page;
+        },
+        accents: () => ['vert', 'bleu', 'prune', 'terre', 'ambre', 'rose', 'sauge', 'encre'].map(id => ({ id, name: ACCENTS.find(a => a.id === id).name, hex: accentColor(id) })),
+        wallName: () => { const w = wallNow(); return w === 'blanc' ? 'blanc' : w === 'perso' ? 'ta photo' : (WALLPAPERS.find(x => x.id === w)?.name ?? w).toLowerCase(); },
+        openCatalog: () => openCatalog(user),
+        customize: () => setCustomizing(true),
+        // En mode Disposer, l'appui long laisse la main au glisser et aux poignées de taille.
+        blocked: () => !!lock?.isLocked() || !!zoomed || $('screen').hidden || document.body.classList.contains('dragging') || document.body.classList.contains('customizing') || !!document.querySelector('dialog[open]'),
+        say: text => { $('page-note').textContent = text; },
+        afterCreate: () => $('board-empty').querySelector('.primary')?.focus(),
+      });
+      modes.showRail(true);
+      drawPages();
+    }
+    // Création rapide (nom seul) dans Personnaliser ; la roue et le rail ouvrent la fenêtre complète (icône, couleur, fond).
     $('page-new').onclick = () => askPageName('Nouvelle page', '', name => {
       const page = { id: crypto.randomUUID(), name };
       screen.pages = [...screen.pages, page];
       showPage(page.id);
     });
+    $('layout-reset').onclick = () => {
+      flip(() => {
+        for (const id of onPage()) {
+          const { [id]: _, ...sizes } = screen.sizes;
+          screen.sizes = sizes;
+          layoutSet(id, { span: null, h: null, collapsed: false }, false);
+          const m = mounted.get(id);
+          if (m) { m.box.dataset.size = WIDGETS.find(w => w.id === id).size ?? DEFAULT_SIZE; layout.apply(m.box, id); m.layout.markFold(); }
+        }
+      });
+      saveScreen();
+      $('page-note').textContent = 'Disposition remise à zéro. Le contenu des widgets n’a pas changé.';
+    };
     $('page-rename').onclick = () => {
       const page = screen.pages.find(p => p.id === currentPage);
       askPageName('Renommer la page', page.name, name => {
@@ -3872,10 +3868,15 @@ if (!sb) {
     screen.look.opacite = whole(saved.look?.opacite, 100) ? saved.look.opacite : 0;
     screen.look.fond = whole(saved.look?.fond, 100) && saved.look.fond >= FOND_MIN ? saved.look.fond : 100;
     screen.sizes = Object.fromEntries(Object.entries(saved.sizes ?? {}).filter(([id, size]) => known(id) && SIZES.some(s => s.id === size)));
+    // Taille fine (colonnes, hauteur) et widgets repliés : une valeur abîmée est simplement oubliée.
+    screen.spans = Object.fromEntries(Object.entries(saved.spans ?? {}).filter(([id, n]) => known(id) && Number.isInteger(n) && n >= 3 && n <= 12));
+    screen.heights = Object.fromEntries(Object.entries(saved.heights ?? {}).filter(([id, n]) => known(id) && Number.isInteger(n) && n >= 140 && n <= 1200));
+    screen.collapsed = [...new Set(listOf(saved.collapsed))].filter(known);
     // Une configuration abîmée ne doit pas empêcher d'ouvrir l'écran : on ne garde que ce qui est valide.
     const pages = listOf(saved.pages).filter(p => typeof p?.id === 'string' && p.id && p.id.length <= 64 && typeof p.name === 'string' && p.name.trim());
     const validWall = id => id === 'perso' || id === 'blanc' || WALLPAPERS.some(w => w.id === id);
-    if (pages.length) screen.pages = [...new Map(pages.map(p => [p.id, { id: p.id, name: p.name.trim().slice(0, MAX_PAGE_NAME), ...(validWall(p.wall) && { wall: p.wall }) }])).values()].slice(0, MAX_SCREEN_PAGES);
+    const validAccent = a => ACCENTS.some(x => x.id === a) || HEX.test(a);
+    if (pages.length) screen.pages = [...new Map(pages.map(p => [p.id, { id: p.id, name: p.name.trim().slice(0, MAX_PAGE_NAME), ...(validWall(p.wall) && { wall: p.wall }), ...(MODE_ICONS.includes(p.icon) && { icon: p.icon }), ...(validAccent(p.accent) && { accent: p.accent }) }])).values()].slice(0, MAX_SCREEN_PAGES);
     screen.where = Object.fromEntries(Object.entries(saved.where ?? {}).filter(([id, page]) => known(id) && screen.pages.some(p => p.id === page)));
     screen.vues = cleanVues(saved.vues, known);
     currentPage = screen.pages[0].id;
@@ -3937,6 +3938,28 @@ if (!sb) {
 
   function enter(user) {
     userId = user.id;
+    // Le verrou de l'appareil passe avant tout affichage du contenu.
+    if (!lock) {
+      lock = window.renzviLock({
+        userId,
+        signOut: async before => {
+          if (!await flush()) return false;
+          before();
+          await sb.auth.signOut();
+          toLogin();
+          return true;
+        },
+        closeAll: () => {
+          zoom(null);
+          modes?.close();
+          for (const d of document.querySelectorAll('dialog[open]')) d.close();
+          for (const p of document.querySelectorAll(':popover-open')) p.hidePopover();
+          if (document.body.classList.contains('customizing')) setCustomizing(false);
+        },
+        say: text => { $('custom-live').textContent = text; },
+      });
+      document.querySelector('#settings .set-foot').before(lock.settingsSection());
+    }
     const first = firstName(user);
     $('hello').textContent = first ? `Bonjour ${first}.` : 'Bonjour.';
     $('who').textContent = user.email ?? '';
