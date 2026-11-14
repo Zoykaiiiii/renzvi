@@ -1025,6 +1025,15 @@ Pas de commit ni de push sans un nouveau « commit push ».
 - Recommandation Codex : ne fixer quotas, recharges et remise annuelle qu'après mesures des coûts et des usages. Une remise de 50 % a été envisagée par Damien, pas validée économiquement.
 - Objectif de marge à définir précisément : revenu hors TVA moins coûts directs n'est pas le bénéfice net. Ne pas promettre 90 % sans calcul intégrant fournisseur, paiement et infrastructure.
 
+## Présentations de l'espace (labo `?vues=1`, 14 nov. 2026)
+
+Les mêmes widgets et données, disposés autrement, choisis page par page. Détails techniques dans `memoire.md` section 14.
+
+- [x] Socle : contrat commun, chargement à la demande, sauvegarde versionnée par page, retour à la grille, ouverture/fermeture animée depuis la place du widget, états d'erreur. Pas encore poussé.
+- [x] Grille (existante).
+- [x] Tableau libre : glisser, clavier, téléphone en liste. Testé avec Heure, Tâches, Minuteur, Playlist et Cahier.
+- [ ] Arbre à widgets, constellation, carnet, bureau avec fenêtres, pièce illustrée, orbite de focus, parcours d'activité : lots suivants.
+
 ## Nutrition — recettes, mon frigo et journal alimentaire
 
 **Ajout Codex, 10 novembre 2026, à la demande de Damien.** Concept proposé par Damien et validé pour le backlog ; pas encore développé ni disponible. Rattachement envisagé : Nutrition / Bien-être, accessible depuis Sport. Le nom du mode et le design restent à décider.

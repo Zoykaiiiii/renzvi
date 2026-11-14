@@ -379,3 +379,27 @@ Damien a confié à Codex la préparation technique des prompts pour pouvoir se 
 **Tests réellement lancés le 9 nov. :** `node tests/chill.test.cjs` (25 OK), `tests/chill.check.cjs` (Chromium, Supabase simulé, 2 passages OK), `tests/rls.check.sh` avec les cas Chill (RAPPORT OK, base jetable), `login` et `personnalisation` OK après le refactor. `install`, `landing`, `cahier`, `cartes` passaient au début de la session, pas relancés après.
 
 **Limites connues :** croissance et arrosage du jardin vérifiés côté navigateur seulement (sans enjeu : pas de monnaie). Le bac à sable Ambiance partage le vrai moteur audio. Rien n'a été essayé sur un vrai téléphone ni un vrai compte. Prochaines étapes : passer la migration, essai réel, session design (illustrations, couleurs, présentation), puis intégration publique widget par widget.
+
+## 14. Présentations de l'espace (labo) — Claude, 14 novembre 2026
+
+**Caché du public.** Accès : `dashboard.html?vues=1` (gardé sur l'appareil, `?vues=0` pour sortir). Brief de Damien (via Codex) : plusieurs présentations des mêmes outils (grille, arbre, constellation, tableau libre, carnet, bureau à fenêtres, pièce illustrée, orbite de focus, parcours), livrées par lots. **Lot 1 fait : le socle commun et le Tableau libre.** Rien n'est poussé.
+
+**Usage et présentation sont séparés.** Usage = la page (Study, Chill, pages perso) : onglets du rail. Présentation = sa disposition, choisie par page dans le sélecteur « Présentation » de l'en-tête. Exemple : Study en tableau libre, Chill en grille.
+
+**Un seul état par outil.** Une présentation ne crée, ne copie et ne relance aucun widget. Elle ne déplace même pas les boîtes dans la page, car un iframe déplacé se recharge et la musique s'arrête. Elle change seulement leur place, avec des variables CSS (`--x`, `--y`, `--w`, `--z`) retirées en partant. Minuteur, lecteur et tâches continuent sans interruption (vérifié par test).
+
+**Sauvegarde :** dans la ligne `ecran` de `widget_state`, sans migration. `screen.vues = { v: 1, page: { [pageId]: vueId }, places: { [vueId]: { [pageId]: { [widgetId]: { x, y, z } } } } }`. Validée au chargement par `cleanVues` : une autre version ou des valeurs abîmées font revenir la page à la grille. **Gardée même hors labo**, donc un enregistrement public n'efface rien. Limite : un futur `v: 2` serait effacé par un ancien onglet resté ouvert.
+
+**Contrat d'une présentation** (`applyVue` dans `dashboard.html`) : un fichier `site/vues/<nom>.js` (+ `.css`) chargé à la demande, qui définit `window.vueXxx(ctx)` et rend `{ relayout(), leave() }`. `ctx` fournit `ids()`, `box(id)`, `title(id)`, `from` (place d'avant de chaque boîte, pour que rien ne saute), `places()`, `save(places)` et `say(texte)`. Pour ajouter une présentation : une entrée dans `VUES`, plus son fichier. En cas d'échec de chargement, la grille reste et un message s'affiche.
+
+**Ouverture et fermeture réutilisables :** `zoom()` anime maintenant la boîte depuis sa place (`morph`, transformation seulement, interrompue proprement, rien en mouvement réduit). Le changement de présentation fait glisser chaque widget de son ancienne place à la nouvelle, seulement quand la personne clique, jamais au chargement. Ces deux animations s'appliquent aussi à la grille publique.
+
+**Tableau libre :** glisser par l'en-tête ou la poignée (souris, doigt, stylet), flèches au clavier sur la poignée (16 px, Maj : 64 px), aimantation à 8 px, le widget touché passe devant. Au premier passage, chaque widget garde la place qu'il avait dans la grille. Sous 728 px, pas de placement libre : les widgets s'empilent dans l'ordre du tableau, avec une note.
+
+**Widgets témoins testés :** Heure (simple), Tâches (éditable), Minuteur focus (minuterie), Playlist (iframe), Cahier (grand contenu). Les autres fonctionnent par construction (même boîte), mais n'ont pas été essayés un par un.
+
+**Tests :** `tests/vues.check.cjs` (profil de démo `vues`) couvre choix par page, un seul exemplaire, minuteur et lecteur conservés, glisser souris et clavier, sauvegarde puis rechargement, retour à la grille, fermeture pendant l'animation, mouvement réduit, téléphone, panne de chargement et conservation hors labo. Le 14 nov., `vues`, `parcours`, `personnalisation`, `login`, `chill`, `cahier`, `cartes` et `install` passent. Rien n'a été essayé sur un vrai compte ni sur un vrai téléphone.
+
+**Limites connues :** l'ouverture agrandie écrase un instant le contenu pendant le zoom (effet « app qui s'ouvre »). Le tableau ne s'élargit pas : les places sont en pixels, ramenées dans la largeur de l'écran. Les places des widgets retirés restent enregistrées, ce qui est sans effet. Prochains lots : les autres présentations, à choisir par Damien.
+
+**Curseurs (14 nov., même session, pas poussé) :** les curseurs natifs (réglages Flou/Opacité, volumes d'Ambiance) prennent le style « piste fine + bouton blanc à halo » demandé par Damien, en CSS (`input[type=range]`, remplissage par `fillRange`). Nouveau réglage **Zoom du fond** (40 à 100 %, `screen.look.fond`) dans Personnaliser > Fond, avec un curseur « en ligne » (`inlineSlider`) : sous 100 %, la photo est moins agrandie et une copie floue remplit les bords. La durée du vol est un **compteur à trois chiffres** (`minuteDial`, +/− à maintenir, flèches, Page haut/bas, Début/Fin). Les composants React/Tailwind/shadcn fournis par Damien n'ont pas été installés : le dashboard est en HTML/JS sans React, donc ils ont été refaits en JS natif, avec le même comportement. Test : `tests/curseurs.check.cjs`.
