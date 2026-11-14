@@ -5,6 +5,7 @@
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const { start } = require('./demo.cjs');
+const { custom, dispose, openMe, modeNow } = require('./menu.cjs');
 
 (async () => {
   const srv = await start();
@@ -135,10 +136,10 @@ const { start } = require('./demo.cjs');
     // Dans un champ de texte : la sélection garde la main.
     await press(page, 750, { target: '.widget[data-widget=notes] .notes' });
     assert.equal(await wheelOpen(page), false, 'dans les notes');
-    const before = await page.locator('#page-tabs [aria-pressed=true]').textContent();
+    const before = await modeNow(page);
     await press(page, 750);
     assert.equal(await wheelOpen(page), true, 'appui long');
-    assert.equal(await page.locator('#page-tabs [aria-pressed=true]').textContent(), before, 'le relâchement ne choisit rien');
+    assert.equal(await modeNow(page), before, 'le relâchement ne choisit rien');
     const items = page.locator('.mode-wheel [role=option]');
     assert.deepEqual(await items.allInnerTexts().then(a => a.map(x => x.replace(/\s+/g, ' ').trim())), ['S Study Actuel', 'C Chill', 'Créer un mode']);
     await page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running'));
@@ -150,7 +151,7 @@ const { start } = require('./demo.cjs');
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Enter');
     await page.waitForFunction(() => !document.querySelector('dialog.mode-wheel[open]'));
-    assert.equal(await page.locator('#page-tabs [aria-pressed=true]').textContent(), 'Chill');
+    assert.equal(await modeNow(page), 'Chill');
     // Échap ferme sans rien changer ; clic à côté aussi.
     await press(page, 750);
     await page.keyboard.press('Escape');
@@ -158,15 +159,15 @@ const { start } = require('./demo.cjs');
     await press(page, 750);
     await page.mouse.click(5, 5);
     await page.waitForFunction(() => !document.querySelector('dialog.mode-wheel[open]'));
-    assert.equal(await page.locator('#page-tabs [aria-pressed=true]').textContent(), 'Chill');
-    // Le bouton du rail fait la même chose, au clavier.
+    assert.equal(await modeNow(page), 'Chill');
+    // Le bouton « Changer de mode » du menu fait la même chose, au clavier.
     await page.getByRole('button', { name: 'Changer de mode' }).focus();
     await page.keyboard.press('Enter');
-    assert.equal(await wheelOpen(page), true, 'bouton du rail');
+    assert.equal(await wheelOpen(page), true, 'bouton du menu');
     await page.locator('.mode-wheel [role=option]').first().click();
     await page.waitForFunction(() => !document.querySelector('dialog.mode-wheel[open]'));
-    assert.equal(await page.locator('#page-tabs [aria-pressed=true]').textContent(), 'Study');
-    assert.equal(await page.evaluate(() => document.activeElement?.ariaLabel), 'Changer de mode', 'le focus revient');
+    assert.equal(await modeNow(page), 'Study');
+    assert.equal(await page.evaluate(() => document.activeElement?.id), 'open-modes', 'le focus revient');
     // Changements de mode rapides, minuteur en cours : il continue, rien n'est remonté.
     await timer(page).getByRole('button', { name: 'Démarrer' }).click();
     for (let i = 0; i < 4; i++) {
@@ -182,7 +183,9 @@ const { start } = require('./demo.cjs');
   // 4. Créer un mode : validation, icône, couleur, enregistrement, présent partout.
   {
     const { page, context, db } = await open({ width: 1440, height: 900 }, 'creer');
-    await page.getByRole('button', { name: 'Créer un mode' }).click();
+    // Depuis Personnaliser > Espace actuel : la même fenêtre que dans la roue.
+    await custom(page);
+    await page.locator('#page-new').click();
     const dlg = page.locator('dialog.mode-create');
     await dlg.getByRole('button', { name: 'Créer le mode' }).click();
     assert.equal(await dlg.locator('.mc-err').textContent(), 'Donne un nom à ce mode.');
@@ -194,17 +197,18 @@ const { start } = require('./demo.cjs');
     await dlg.getByRole('radio', { name: 'Bleu' }).check({ force: true });
     await shot(page, 'creer-mode');
     await dlg.getByRole('button', { name: 'Créer le mode' }).click();
-    assert.equal(await page.locator('#page-tabs [aria-pressed=true]').textContent(), 'Sport');
+    assert.equal(await modeNow(page), 'Sport');
+    assert.equal(await page.textContent('#page-current'), 'Sport', 'le panneau suit le nouveau mode');
     assert.equal(await page.locator('#board-empty').isVisible(), true, 'mode vide, invitation à ajouter');
     assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()), '#1c5699', 'couleur du mode');
     await saved(page);
     const sport = db.rows.ecran.pages.find(p => p.name === 'Sport');
     assert.deepEqual({ icon: sport.icon, accent: sport.accent, wall: sport.wall }, { icon: 'sport', accent: 'bleu', wall: 'blanc' });
     assert.equal(Object.values(db.rows.ecran.where).includes(sport.id), false, 'aucun widget copié');
-    // Rechargement : le mode et son icône sont là, dans les onglets et dans la roue.
+    // Rechargement : le mode est là, dans le menu et dans la roue.
     await page.reload();
     await page.waitForSelector('#board .widget:not([hidden]), #board-empty:not([hidden])');
-    assert.equal(await page.locator('#page-tabs button.has-ico').count(), 1);
+    assert.equal(await modeNow(page), 'Sport');
     await page.getByRole('button', { name: 'Changer de mode' }).click();
     assert.ok((await page.locator('.mode-wheel [role=option]').allInnerTexts()).some(t => /Sport/.test(t)));
     await page.keyboard.press('Escape');
@@ -214,7 +218,7 @@ const { start } = require('./demo.cjs');
   // 5. Taille fine et repli : poignée (souris, clavier, Échap), préréglage, repli qui garde le minuteur, remise à zéro.
   {
     const { page, context, db } = await open({ width: 1440, height: 900 }, 'taille');
-    await page.locator('#open-custom').click();
+    await dispose(page);
     const notes = page.locator('.widget[data-widget=notes]');
     const handle = notes.locator('.resize-handle');
     // Le panneau « Disposer » couvre le bas de l'écran : le widget est amené en haut.
@@ -272,9 +276,13 @@ const { start } = require('./demo.cjs');
     await page.waitForSelector('#board .widget:not([hidden])');
     assert.equal(await timer(page).getAttribute('data-collapsed'), '', 'replié après rechargement');
     // Remise à zéro de la disposition : contenu intact.
-    await page.locator('#open-custom').click();
-    await page.locator('#custom-tabs').getByRole('button', { name: 'Page' }).click().catch(() => {});
+    await custom(page);
     await page.locator('#layout-reset').click();
+    assert.match(await page.textContent('#page-dialog'), /contenu des widgets ne changent pas/, 'la conséquence est dite avant');
+    await page.locator('#page-dialog').getByRole('button', { name: 'Annuler' }).click();
+    assert.equal(await timer(page).getAttribute('data-collapsed'), '', 'annuler ne touche à rien');
+    await page.locator('#layout-reset').click();
+    await page.locator('#page-dialog .primary').click();
     await saved(page);
     assert.deepEqual(db.rows.ecran.collapsed, []);
     assert.match(await page.locator('.widget[data-widget=notes] .notes').inputValue(), /Idées pour le mémoire/);
@@ -285,8 +293,9 @@ const { start } = require('./demo.cjs');
   {
     const { page, context } = await open({ width: 1440, height: 900 }, 'verrou');
     const typeCode = async code => { await page.keyboard.type(code, { delay: 20 }); await page.waitForTimeout(500); };
-    await page.locator('#open-settings').click();
-    await page.locator('.lock-set').scrollIntoViewIfNeeded();
+    // Le verrou est sous le compte, pas dans Personnaliser.
+    await openMe(page);
+    await page.locator('#menu .lock-set').scrollIntoViewIfNeeded();
     await page.getByRole('button', { name: 'Choisir un code' }).click();
     await typeCode('123456');
     assert.match(await page.locator('#lock-setup-msg').textContent(), /trop facile/);
@@ -298,6 +307,7 @@ const { start } = require('./demo.cjs');
     await page.waitForFunction(() => !document.querySelector('dialog.lock-setup[open]'));
     const stored = await page.evaluate(() => Object.entries(localStorage).filter(([k]) => k.startsWith('renzvi:verrou')).map(([, v]) => v).join(''));
     assert.ok(stored.includes('"hash"') && !stored.includes('482915'), 'empreinte seulement, jamais le code');
+    if (!await page.locator('#menu').evaluate(n => n.matches(':popover-open'))) await openMe(page);
     await page.locator('.lock-set').screenshot({ path: process.env.SHOTS ? `${process.env.SHOTS}/verrou-reglages.png` : '/dev/null' }).catch(() => {});
     await page.getByRole('button', { name: 'Verrouiller maintenant' }).click();
     assert.equal(await page.locator('.lock-screen').isVisible(), true);
@@ -325,7 +335,7 @@ const { start } = require('./demo.cjs');
     await page.getByRole('button', { name: 'Verrouiller maintenant' }).click({ force: true }).catch(() => {});
     await page.evaluate(() => document.querySelector('.lock-set .primary')?.click());
     if (!(await page.locator('.lock-screen').isVisible())) {
-      await page.locator('#open-settings').click();
+      await openMe(page);
       await page.getByRole('button', { name: 'Verrouiller maintenant' }).click();
     }
     for (let i = 0; i < 5; i++) {
@@ -344,13 +354,13 @@ const { start } = require('./demo.cjs');
     await context.close();
   }
 
-  // 7. Téléphone : rail replié en un bouton, pas de poignée de taille, roue utilisable, pas de débordement.
+  // 7. Téléphone : menu en tiroir, pas de poignée de taille, roue utilisable, pas de débordement.
   {
     const { page, context } = await open({ width: 390, height: 844 }, 'tel', { touch: true });
-    assert.equal(await page.locator('.qrail__list').isVisible(), false);
-    await page.getByRole('button', { name: 'Actions' }).click();
-    assert.equal(await page.locator('.qrail__list').isVisible(), true);
-    await shot(page, 'telephone-actions');
+    assert.equal(await page.locator('#bar-nav').isVisible(), false);
+    await page.getByRole('button', { name: 'Afficher le menu' }).click();
+    assert.equal(await page.locator('#bar-nav').isVisible(), true);
+    await shot(page, 'telephone-menu');
     await page.getByRole('button', { name: 'Changer de mode' }).click();
     assert.equal(await wheelOpen(page), true);
     await page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running'));
@@ -360,7 +370,7 @@ const { start } = require('./demo.cjs');
     await shot(page, 'telephone-roue');
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => !document.querySelector('dialog.mode-wheel[open]'));
-    await page.locator('#open-custom').click();
+    await dispose(page);
     assert.equal(await page.locator('.resize-handle').first().isVisible(), false);
     await page.locator('#custom-done').click();
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));

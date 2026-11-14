@@ -4,6 +4,7 @@
 // SHOTS=dossier pour garder les captures.
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
+const { custom, goMode } = require('./menu.cjs');
 const { start } = require('./demo.cjs');
 
 (async () => {
@@ -25,7 +26,7 @@ const { start } = require('./demo.cjs');
   // 1. Zoom du fond, sur ordinateur.
   {
     const { page, context, db } = await open({ width: 1440, height: 900 }, 'zoom');
-    await page.locator('#open-custom').click();
+    await custom(page);
     const slider = page.getByRole('slider', { name: 'Zoom du fond' });
     assert.equal(await slider.getAttribute('aria-valuenow'), '100', '100 % par défaut');
     assert.equal(await wallSize(page), 'cover', 'la photo couvre l\'écran comme avant');
@@ -58,7 +59,7 @@ const { start } = require('./demo.cjs');
     await page.waitForFunction(() => document.querySelector('#wall i.on:last-child')?.classList.contains('recul'));
     assert.equal(db.rows.ecran.look.fond, 40);
     // Sur le fond blanc, le curseur ne sert à rien : il est désactivé.
-    await page.locator('#open-custom').click();
+    await custom(page);
     await page.locator('#wall-slot .tile[data-wall=blanc]').click();
     assert.equal(await page.getByRole('slider', { name: 'Zoom du fond' }).isDisabled(), true);
     await page.keyboard.press('Escape');
@@ -98,7 +99,7 @@ const { start } = require('./demo.cjs');
   // 3. Curseurs restylés : la partie remplie suit la valeur ; téléphone sans débordement.
   {
     const { page, context } = await open({ width: 390, height: 844 }, 'tel');
-    await page.locator('#page-tabs').getByRole('button', { name: 'Chill' }).click();
+    await goMode(page, 'Chill');
     const r = page.locator('[data-widget=ambiance] input[type=range]').first();
     await r.focus();
     await page.keyboard.press('End');
@@ -108,7 +109,7 @@ const { start } = require('./demo.cjs');
     await r.scrollIntoViewIfNeeded();
     await shot(page, 'curseurs-telephone');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-    await page.locator('#page-tabs').getByRole('button', { name: 'Study' }).click();
+    await goMode(page, 'Study');
     await page.locator('[data-widget=vol] .dial').scrollIntoViewIfNeeded();
     await shot(page, 'vol-telephone');
     await context.close();

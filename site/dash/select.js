@@ -138,7 +138,8 @@
       current?.close(false);
       current = inst;
       render();
-      host = sel.closest('dialog') || document.body; // dans un dialogue modal, le reste de la page est inerte
+      // Dans un dialogue modal, le reste de la page est inerte ; dans un menu (popover), un clic hors de lui le fermerait.
+      host = sel.closest('dialog,[popover]') || document.body;
       host.append(list);
       try { list.showPopover?.(); } catch {}
       btn.setAttribute('aria-expanded', 'true');

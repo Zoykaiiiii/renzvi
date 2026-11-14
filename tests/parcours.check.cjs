@@ -3,6 +3,7 @@
 // vue agrandie, clavier et téléphone. Lancement : NODE_PATH=~/pw/node_modules node tests/parcours.check.cjs
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
+const { showMenu, custom, closeCustom, dispose, openMe, goMode, modeNow, wheelShut } = require('./menu.cjs');
 const { start } = require('./demo.cjs');
 
 (async () => {
@@ -59,10 +60,12 @@ const { start } = require('./demo.cjs');
     // L'aide démarre aussi pour un compte existant, première étape cochée.
     assert.ok(await page.isVisible('#aide'));
     assert.deepEqual(await page.locator('#aide li').evaluateAll(l => l.map(x => x.classList.contains('fait'))), [true, false, false]);
-    await page.click('#open-custom');
+    await dispose(page);
     await page.getByRole('group', { name: 'Taille de Ambiance sonore' }).getByRole('button', { name: 'Moyen' }).click();
-    await page.locator('#wall-slot [data-wall=lac]').click();
     await page.click('#custom-done');
+    await custom(page);
+    await page.locator('#wall-slot [data-wall=lac]').click();
+    await closeCustom(page);
     assert.match(await page.textContent('#aide h2'), /terminés/);
     await saved(page);
     assert.deepEqual(db.rows.ecran.widgets, ['ambiance']);
@@ -75,7 +78,7 @@ const { start } = require('./demo.cjs');
     await saved(page);
     await reload();
     assert.equal(await page.isVisible('#aide'), false, "l'aide masquée ne revient pas");
-    await page.click('#me');
+    await openMe(page);
     await page.getByRole('button', { name: 'Revoir les premiers pas' }).click();
     assert.ok(await page.isVisible('#aide'), 'on peut la revoir depuis le menu');
     // Retirer : la page redevient vide, avec la même invitation.
@@ -90,37 +93,38 @@ const { start } = require('./demo.cjs');
   // 2. Changement de mode : rien n'est perdu, le fond suit, la saisie en cours reste.
   {
     const { page, context, db, reload } = await open('plein');
-    const pressed = () => page.locator('#page-tabs [aria-pressed=true]').textContent();
+    const pressed = () => modeNow(page);
     const wall = () => page.evaluate(() => document.documentElement.style.getPropertyValue('--wall'));
     assert.equal(await pressed(), 'Study');
     assert.match(await wall(), /bohinj/);
     await page.getByRole('textbox', { name: 'Nouvelle tâche' }).fill('Réviser la procédure');
     await page.getByRole('textbox', { name: 'Nouvelle tâche' }).press('Enter');
     await page.locator('[data-widget=notes] textarea').fill('note gardée');
-    const thumb = () => page.locator('#page-tabs .thumb').evaluate(t => t.style.getPropertyValue('--x') + ' ' + t.style.getPropertyValue('--y')); // rail vertical : la pastille glisse de haut en bas
-    const before = await thumb();
-    await page.getByRole('button', { name: 'Chill', exact: true }).click();
+    await goMode(page, 'Chill');
     assert.equal(await pressed(), 'Chill');
-    assert.notEqual(await thumb(), before, 'la pastille a glissé');
     assert.match(await wall(), /mapourika/);
     await page.waitForFunction(() => document.querySelectorAll('#wall i').length === 1 && document.querySelector('#wall i.on'), null, { timeout: 5000 }); // l'ancien fond est retiré après le fondu
     assert.equal(await page.isVisible('[data-widget=taches]'), false);
     assert.equal(await page.locator('#board .widget:visible').count(), 6);
     assert.equal(await page.locator('#board .widget').count(), 15, 'les widgets de Study restent montés');
-    await page.getByRole('button', { name: 'Study', exact: true }).click();
+    await goMode(page, 'Study');
     assert.equal(await page.locator('[data-widget=taches] .row span').first().textContent(), 'Réviser la procédure');
     assert.equal(await page.locator('[data-widget=notes] textarea').inputValue(), 'note gardée');
     assert.match(await page.textContent('#today'), /4 tâches à faire/, 'le fait du jour suit les tâches');
     await saved(page);
     assert.equal(db.rows.taches.items[0].text, 'Réviser la procédure');
-    await page.getByRole('button', { name: 'Chill', exact: true }).click();
+    await goMode(page, 'Chill');
     await reload();
     assert.equal(await pressed(), 'Chill', 'le mode affiché est retrouvé au rechargement');
     // Clavier : les modes se changent sans souris.
-    await page.locator('#page-tabs button').first().focus();
+    await page.locator('#open-modes').focus();
     await page.keyboard.press('Enter');
+    await page.waitForSelector('dialog.mode-wheel[open]');
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('Enter');
+    await wheelShut(page);
     assert.equal(await pressed(), 'Study');
-    assert.equal(await page.evaluate(() => document.activeElement.textContent), 'Study', 'le focus reste sur le mode choisi');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'open-modes', 'le focus revient sur « Changer de mode »');
 
     // Vue agrandie : le même widget, au premier plan ; Échap la referme et rend le focus.
     await page.getByRole('button', { name: 'Agrandir Notes' }).click();
@@ -134,14 +138,16 @@ const { start } = require('./demo.cjs');
     await context.close();
   }
 
-  // 3. Téléphone : modes en bas, catalogue en deux vues, pas de défilement horizontal.
+  // 3. Téléphone : menu en tiroir, catalogue en deux vues, Personnaliser d'un seul tenant, pas de défilement horizontal.
   {
     const { page, context } = await open('plein', { width: 390, height: 844 });
     const noOverflow = async label => assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `pas de défilement horizontal (${label})`);
     await noOverflow('écran');
-    const bar = await page.locator('#page-bar').boundingBox();
-    assert.ok(bar.y > 700, 'les modes sont en bas, sous le pouce');
-    assert.ok((await page.locator('#page-tabs button').first().boundingBox()).height >= 44, 'cibles de 44 px');
+    const bar = await page.locator('#bar').boundingBox();
+    assert.ok(bar.y < 20 && bar.width < 200, 'une pastille en haut à gauche, pas une barre');
+    assert.ok((await page.locator('#bar-toggle').boundingBox()).height >= 44, 'cible de 44 px');
+    await showMenu(page);
+    assert.ok((await page.locator('#open-modes').boundingBox()).height >= 44, 'cibles de 44 px');
     await page.click('#open-add');
     assert.ok(await page.isVisible('#catalog'));
     assert.equal(await page.isVisible('#cat-view'), false, "d'abord la liste");
@@ -152,11 +158,13 @@ const { start } = require('./demo.cjs');
     await page.getByRole('button', { name: 'Retour au catalogue' }).click();
     assert.ok(await page.isVisible('#catalog'));
     await page.keyboard.press('Escape');
-    await page.click('#open-custom');
+    await custom(page);
     await noOverflow('personnaliser');
-    await page.getByRole('group', { name: 'Réglage affiché' }).getByRole('button', { name: 'Style' }).click();
-    assert.ok(await page.isVisible('#custom-settings'));
-    assert.equal(await page.isVisible('#wall-slot'), false, 'un réglage à la fois');
+    assert.deepEqual(await page.locator('#settings .set-group > h3').allTextContents(), ["Fond d'écran", 'Apparence', 'Disposition', 'Espace actuel']);
+    assert.ok(await page.isVisible('#wall-slot .tile'));
+    await page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running'));
+    const sheet = await page.locator('#settings').boundingBox();
+    assert.ok(sheet.y + sheet.height <= 844 + 1, 'le panneau tient dans l\'écran');
     await context.close();
   }
 

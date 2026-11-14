@@ -5,6 +5,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
+const { custom, closeCustom, openMe, modeNames, goMode, modeNow } = require('./menu.cjs');
 // Catalogue : on choisit le widget dans la liste, puis on confirme dans l'aperçu.
 const catClick = async (page, name) => {
   const title = name.split(' : ')[1];
@@ -159,7 +160,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     assert.equal(await page.inputValue('.notes'), 'Appeler le comptable <b>');
 
     // Déconnexion, même réseau coupé : Supabase efface la session de l'appareil, retour au login.
-    await page.click('#me');
+    await openMe(page);
     await page.waitForSelector('#logout', { state: 'visible' });
     assert.equal(await page.textContent('#who'), 'lea@exemple.fr');
     await page.route(`${API}/logout*`, r => r.abort());
@@ -183,10 +184,10 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.goto(`${base}/dashboard.html`);
     await page.waitForSelector('.notes');
     assert.equal(await page.textContent('#hello'), 'Bonjour Léa.');
-    assert.equal(await page.textContent('#me'), 'L');
+    assert.equal(await page.textContent('#me-letter'), 'L');
     assert.match(await page.textContent('.time'), /^\d\d:\d\d$/);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0, `débordement à ${width}`);
-    await page.click('#me');
+    await openMe(page);
     await page.waitForSelector('#logout', { state: 'visible' });
     const menu = await page.locator('#menu').boundingBox();
     assert.ok(menu.x >= 0 && menu.x + menu.width <= width && menu.y + menu.height <= 800, `menu coupé à ${width}`);
@@ -217,8 +218,8 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await shot(page, 'setup-widgets');
     await page.getByRole('button', { name: 'Installer Study et Chill' }).click();
     assert.equal(await page.locator('.widget:visible').count(), 9, 'Study : le cahier, les révisions, les flashcards et les 6 widgets de travail');
-    assert.deepEqual(await page.locator('#page-tabs button').allTextContents(), ['Study', 'Chill']);
-    assert.equal(await page.locator('#page-tabs [aria-pressed=true]').textContent(), 'Study');
+    assert.deepEqual(await modeNames(page), ['Study', 'Chill']);
+    assert.equal(await modeNow(page), 'Study');
     assert.equal(await page.isVisible('#setup'), false);
     await saved(page);
     assert.deepEqual(db.rows.ecran.pages, [{ id: 'study', name: 'Study' }, { id: 'chill', name: 'Chill', wall: 'lac' }]);
@@ -242,30 +243,30 @@ async function openDashboard(browser, base, options, rows, prepare) {
     const wall = () => page.evaluate(() => document.documentElement.style.getPropertyValue('--wall'));
     await page.click('#open-add');
     await page.getByRole('button', { name: 'Installer : Study et Chill' }).click();
-    assert.deepEqual(await page.locator('#page-tabs button').allTextContents(), ['Mon écran', 'Study', 'Chill']);
+    assert.deepEqual(await modeNames(page), ['Mon écran', 'Study', 'Chill']);
     assert.equal(await page.locator('.widget:visible').count(), 9);
     assert.ok(await page.locator('[data-widget=taches]', { hasText: 'Déjà là' }).isVisible());
     assert.match(await wall(), /bohinj/);
-    await page.getByRole('button', { name: 'Mon écran' }).click();
+    await goMode(page, 'Mon écran');
     assert.deepEqual(await page.locator('.widget:visible').evaluateAll(b => b.map(x => x.dataset.widget)), ['heure']);
-    await page.getByRole('button', { name: 'Chill' }).click();
+    await goMode(page, 'Chill');
     assert.equal(await page.locator('.widget:visible').count(), 6);
     assert.match(await wall(), /mapourika/);
     assert.match(await page.textContent('#credit'), /Richard Palmer/);
     // Changer le fond de Chill ne touche pas à Study.
-    await page.click('#open-custom');
+    await custom(page);
     await page.locator('#wall-slot [data-wall=dune]').click();
     assert.equal(await page.locator('#wall-slot [data-wall=dune]').getAttribute('aria-pressed'), 'true');
-    await page.click('#custom-done');
-    await page.getByRole('button', { name: 'Study' }).click();
+    await closeCustom(page);
+    await goMode(page, 'Study');
     assert.match(await wall(), /bohinj/);
-    await page.getByRole('button', { name: 'Chill' }).click();
+    await goMode(page, 'Chill');
     assert.match(await wall(), /sossusvlei/);
     await saved(page);
     assert.equal(db.rows.ecran.wallpaper, 'brume');
     await page.reload();
     await page.waitForSelector('.widget:visible');
-    assert.equal(await page.locator('#page-tabs [aria-pressed=true]').textContent(), 'Chill');
+    assert.equal(await modeNow(page), 'Chill');
     assert.match(await wall(), /sossusvlei/);
     await page.click('#open-add');
     assert.equal(await page.getByRole('button', { name: /^Installer/ }).count(), 0);
@@ -279,7 +280,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.waitForSelector('.widget');
     await page.click('#open-add');
     await page.getByRole('button', { name: 'Installer : Study et Chill' }).click();
-    assert.deepEqual(await page.locator('#page-tabs button').allTextContents(), ['Study', 'Chill']);
+    assert.deepEqual(await modeNames(page), ['Study', 'Chill']);
     await context.close();
     const pages = ['a', 'b', 'c', 'd', 'e'].map(id => ({ id, name: id }));
     const crowded = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ecran: { wallpaper: 'blanc', widgets: ['taches'], done: true, pages } });
@@ -295,16 +296,16 @@ async function openDashboard(browser, base, options, rows, prepare) {
     const pages = [{ id: 'a', name: 'Une', wall: 'perso' }, { id: 'b', name: 'Deux', wall: 'perso' }, { id: 'c', name: 'Trois', wall: 'lac' }];
     const { context, page, db } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ecran: { wallpaper: 'blanc', widgets: ['taches'], done: true, pages, where: { taches: 'c' } } }, d => { d.photo = Buffer.from('x'); });
     await page.goto(`${base}/dashboard.html`);
-    await page.waitForFunction(() => document.querySelectorAll('#page-tabs button').length === 3);
-    await page.click('#open-custom');
+    await page.waitForSelector('#open-modes:not([hidden])');
+    await custom(page);
     await page.locator('#wall-slot [data-wall=dune]').click();
-    await page.click('#custom-done');
+    await closeCustom(page);
     assert.equal(db.removed, 0, 'la page Deux utilise encore la photo');
-    await page.getByRole('button', { name: 'Deux' }).click();
-    await page.click('#open-custom');
+    await goMode(page, 'Deux');
+    await custom(page);
     await page.click('#page-delete');
-    await page.getByRole('button', { name: 'Supprimer la page' }).last().click();
-    await page.waitForFunction(() => document.querySelectorAll('#page-tabs button').length === 2);
+    await page.getByRole('button', { name: 'Supprimer le mode' }).last().click();
+    await page.waitForFunction(() => document.getElementById('page-current').textContent !== 'Deux');
     await page.waitForTimeout(100);
     assert.equal(db.removed, 1, 'plus aucune page ne l\'utilise');
     await context.close();
@@ -407,7 +408,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     const { context, page, errors, db } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, {});
     await page.goto(`${base}/dashboard.html`);
     await page.waitForSelector('.widget');
-    await page.click('#open-custom');
+    await custom(page);
     const input = page.locator('#wall-slot input[type=file]');
     const note = page.locator('#wall-slot .pick-note');
     await input.setInputFiles({ name: 'faux.png', mimeType: 'image/png', buffer: Buffer.from('pas une image') });
@@ -425,15 +426,15 @@ async function openDashboard(browser, base, options, rows, prepare) {
     assert.equal(await note.textContent(), '');
     assert.equal(db.photoPath, '/storage/v1/object/fonds/u1/fond.jpg');
     assert.equal(await page.isVisible('#credit'), false, 'pas de crédit sur sa propre photo');
-    await page.click('#custom-done');
+    await closeCustom(page);
     await saved(page);
     assert.equal(db.rows.ecran.wallpaper, 'perso');
     await page.reload();
     await page.waitForFunction(() => document.documentElement.style.getPropertyValue('--wall').startsWith('url(blob:'));
-    await page.click('#open-custom');
+    await custom(page);
     await page.locator('#wall-slot [data-wall=blanc]').click();
     await page.waitForFunction(() => !document.body.classList.contains('has-wall'));
-    await page.click('#custom-done');
+    await closeCustom(page);
     await saved(page);
     assert.equal(db.removed, 1, 'la photo qui ne sert plus est supprimée');
     assert.equal(db.rows.ecran.wallpaper, 'blanc');
@@ -452,14 +453,14 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.goto(`${base}/dashboard.html`);
     await page.waitForSelector('.widget');
-    await page.click('#me');
+    await openMe(page);
     await page.waitForFunction(() => /indisponible/.test(document.getElementById('ref-info').textContent));
     assert.equal(await page.isVisible('#ref-row'), false);
     assert.ok(await page.getByText('Gratuit', { exact: true }).isVisible());
     await page.keyboard.press('Escape');
     await page.waitForSelector('#logout', { state: 'hidden' });
     db.failRpc = false;
-    await page.click('#me');
+    await openMe(page);
     await page.waitForSelector('#ref-row:not([hidden])');
     assert.equal(await page.inputValue('#ref-link'), `${base}/login.html?ref=ABCD1234`);
     assert.equal(await page.textContent('#ref-info'), 'Ton code : ABCD1234 · 1 filleul');
@@ -1224,7 +1225,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.goto(`${base}/dashboard.html`);
     await page.waitForSelector('#screen:not([hidden])');
     assert.equal(await page.locator('dialog.ins[open]').count(), 0, 'le guide ne s\'ouvre pas tout seul');
-    await page.click('#me');
+    await openMe(page);
     await page.locator('#menu [data-install]').click();
     await page.waitForSelector('dialog.ins[open]');
     await page.waitForFunction(() => !document.querySelector('#menu').matches(':popover-open')); // le menu se referme
@@ -1358,7 +1359,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     db.failSave = true;
     await page.fill('.notes', 'à ne pas perdre');
     await page.waitForFunction(() => document.getElementById('saved').classList.contains('bad'));
-    await page.click('#me');
+    await openMe(page);
     await page.click('#logout');
     await page.waitForFunction(() => /pas enregistrés/.test(document.getElementById('logout-msg').textContent));
     assert.ok(page.url().endsWith('dashboard.html'), 'la déconnexion attend que tout soit enregistré');

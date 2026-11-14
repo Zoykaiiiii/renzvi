@@ -12,6 +12,9 @@ const catClick = async (page, name) => {
   await page.getByRole('button', { name, exact: true }).click();
 };
 
+const { showMenu, custom, dispose, modeNames, goMode } = require('./menu.cjs');
+const newMode = async (page, name) => { await page.click('#page-new'); await page.fill('#mc-name', name); await page.keyboard.press('Enter'); await page.waitForSelector('dialog.mode-create', { state: 'hidden' }); };
+
 const ROOT = path.join(__dirname, '..', 'site');
 const SHOTS = process.argv[2];
 const SUPABASE = 'https://xjkmztfsyyccveaeyzov.supabase.co';
@@ -173,7 +176,7 @@ async function photo(browser, kind) {
     const sizes = Object.fromEntries(ALL_IDS.map(id => [id, size]));
     const { page, errors, context } = await openBoard(browser, base, { viewport: { width, height } }, everything({ wallpaper: 'lac', sizes }));
     for (const editing of [false, true]) {
-      if (editing) await page.click('#open-custom');
+      if (editing) await dispose(page);
       const problems = await page.evaluate(() => {
         const out = [];
         if (document.documentElement.scrollWidth > innerWidth) out.push(`page : ${document.documentElement.scrollWidth}`);
@@ -199,7 +202,7 @@ async function photo(browser, kind) {
   // Sur ordinateur, les tailles changent vraiment l'espace et la disposition, pas la police.
   {
     const { page, db, context } = await openBoard(browser, base, desk, few());
-    await page.click('#open-custom');
+    await dispose(page);
     assert.equal(await page.evaluate(() => document.activeElement.id), 'custom-done');
     const sizeBtn = name => page.getByRole('group', { name: 'Taille de Tâches' }).getByRole('button', { name, exact: true });
     const w = () => page.locator('[data-widget=taches]').evaluate(b => b.offsetWidth);
@@ -225,7 +228,7 @@ async function photo(browser, kind) {
   // Souris : le widget tenu et sa destination se voient, rien n'est enregistré avant le lâcher, et tout revient au rechargement.
   {
     const { page, db, errors, context } = await openBoard(browser, base, desk, few({ sizes: { notes: 'l' } }));
-    await page.click('#open-custom');
+    await dispose(page);
     await mouseDrag(page, 'taches', 'heure', false);
     assert.equal(await page.locator('.widget.lifted').count(), 1);
     assert.equal(await page.locator('.drop-slot').count(), 1);
@@ -253,7 +256,7 @@ async function photo(browser, kind) {
   {
     const rows = { ...everything(), ecran: { wallpaper: 'blanc', widgets: ['notes', 'taches', 'ambiance', 'heure'], done: true } };
     const { page, db, context } = await openBoard(browser, base, desk, rows);
-    await page.click('#open-custom');
+    await dispose(page);
     const before = await order(page);
     const notes = page.locator('.notes');
     const n = await notes.boundingBox();
@@ -283,8 +286,8 @@ async function photo(browser, kind) {
     const { page, db, context } = await openBoard(browser, base, options, few());
     const cdp = await context.newCDPSession(page);
     const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' || type === 'touchCancel' ? [] : [{ x, y }] });
-    await page.locator('#open-custom').tap();
-    assert.equal(await page.isVisible('#custom-hint'), true, 'sur téléphone, on dit que la taille s\'applique sur grand écran');
+    await dispose(page);
+    assert.equal(await page.isVisible('#custom'), true, 'la barre « Disposer » est là');
     const [hx, hy] = await center(grip(page, 'taches'));
     assert.ok((await grip(page, 'taches').boundingBox()).height >= 44, 'poignée de 44 px au doigt');
     await touch('touchStart', hx, hy);
@@ -323,7 +326,7 @@ async function photo(browser, kind) {
   // Clavier : boutons Avant et Après, flèches sur la poignée, focus conservé, position annoncée.
   {
     const { page, db, context } = await openBoard(browser, base, desk, few());
-    await page.click('#open-custom');
+    await dispose(page);
     const after = page.getByRole('button', { name: 'Déplacer Tâches après le widget suivant' });
     const before = page.getByRole('button', { name: 'Déplacer Tâches avant le widget précédent' });
     assert.ok(await before.isDisabled(), 'le premier widget ne peut pas reculer');
@@ -363,7 +366,7 @@ async function photo(browser, kind) {
     const clock = () => page.textContent('.focus-time');
     await page.waitForFunction(() => document.querySelector('.focus-time').textContent !== '25:00');
     const running = await clock();
-    await page.click('#open-custom');
+    await dispose(page);
     await mouseDrag(page, 'taches', 'playlist');
     assert.equal((await order(page))[0], 'taches');
     await page.getByRole('button', { name: 'Déplacer Playlist après le widget suivant' }).click();
@@ -394,7 +397,7 @@ async function photo(browser, kind) {
     assert.equal(await page.locator('#board [data-widget=notes]').getAttribute('data-size'), 'l');
     await saved(page, 'Enregistré');
     assert.equal(db.rows.ecran.sizes.notes, 'l');
-    await page.click('#open-custom');
+    await dispose(page);
     assert.ok(await page.getByRole('button', { name: 'Déplacer Notes après le widget suivant' }).isDisabled());
     assert.ok(!await page.getByRole('button', { name: 'Déplacer Minuteur focus après le widget suivant' }).isDisabled());
     await context.close();
@@ -404,7 +407,7 @@ async function photo(browser, kind) {
   {
     const rows = { ...everything(), ecran: { wallpaper: 'blanc', widgets: ['taches', 'habitudes', 'minuteur', 'ambiance'], done: true } };
     const { page, db, context } = await openBoard(browser, base, desk, rows);
-    await page.click('#open-settings');
+    await custom(page);
     assert.equal(await page.textContent('#accent-name'), 'Vert');
     assert.equal(await page.locator('#swatches button.swatch').count(), 21);
     const logo = () => page.locator('.mark rect').first().getAttribute('fill');
@@ -444,7 +447,7 @@ async function photo(browser, kind) {
     assert.equal(d.theme, 'light', 'thème inconnu ignoré');
     assert.equal(d.titre, 'defaut', 'police inconnue ignorée');
     assert.equal(d.coins, 'nets', 'valeur connue gardée');
-    await page.click('#open-settings');
+    await custom(page);
     assert.ok(await page.isVisible('#settings'));
     await page.getByRole('button', { name: 'Sombre' }).click();
     assert.equal(await page.getByRole('button', { name: 'Sombre' }).getAttribute('aria-pressed'), 'true');
@@ -520,8 +523,8 @@ async function photo(browser, kind) {
     await page.reload({ waitUntil: 'domcontentloaded' });
     assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'dark');
     await page.waitForSelector('#board .widget:not([hidden])');
-    await page.click('#open-settings');
-    await page.getByRole('button', { name: "Revenir aux réglages d'origine" }).click();
+    await custom(page);
+    await page.getByRole('button', { name: "Revenir à l'apparence d'origine" }).click();
     d = await data();
     assert.equal(d.theme, 'light');
     assert.equal(d.accent, 'vert');
@@ -533,7 +536,7 @@ async function photo(browser, kind) {
   // Panne d'enregistrement : jamais de fausse réussite, et ça repart tout seul.
   {
     const { page, db, context } = await openBoard(browser, base, desk, few());
-    await page.click('#open-custom');
+    await dispose(page);
     db.failSave = true;
     await page.getByRole('group', { name: 'Taille de Notes' }).getByRole('button', { name: 'Grand' }).click();
     await saved(page, 'Pas encore enregistré. Nouvel essai…');
@@ -552,7 +555,7 @@ async function photo(browser, kind) {
   // Mouvement réduit : plus aucune animation de déplacement ; sinon, une animation courte.
   for (const [reducedMotion, expected] of [['reduce', 0], ['no-preference', 1]]) {
     const { page, context } = await openBoard(browser, base, { ...desk, reducedMotion }, few());
-    await page.click('#open-custom');
+    await dispose(page);
     await page.getByRole('button', { name: 'Déplacer Tâches après le widget suivant' }).click();
     const moving = await page.evaluate(() => document.getAnimations().filter(a => a.effect.getKeyframes().some(k => k.transform)).map(a => a.effect.getTiming().duration));
     assert.equal(Math.min(moving.length, 1), expected);
@@ -589,40 +592,47 @@ async function photo(browser, kind) {
     await context.close();
   }
 
-  // Pages : créer, ranger, renommer, retrouver au rechargement ; le premier écran reste inchangé.
+  // Modes (pages) : créer, ranger, renommer, retrouver au rechargement ; le premier écran reste inchangé.
   {
-    const tabs = page => page.$$eval('#page-tabs button', b => b.map(n => n.textContent));
     const visible = page => page.$$eval('#board > .widget:not([hidden])', b => b.map(n => n.dataset.widget));
     const moveTo = (page, id, name) => page.locator(`#board [data-widget=${id}] select`).selectOption({ label: name });
     const { page, db, errors, context } = await openBoard(browser, base, desk, { ...few(), notes: { text: 'Mon texte précieux' } });
-    assert.equal(await page.isVisible('#page-bar'), false, 'une seule page : aucune barre en utilisation normale');
-    await page.click('#open-custom');
-    assert.equal(await page.isVisible('#page-delete'), false, 'on ne peut pas supprimer la dernière page');
+    assert.equal(await page.textContent('#mode-now'), 'Mode : Mon écran', 'le mode affiché se lit dans le menu');
+    assert.equal(await page.locator('#bar .page-tabs, #page-tabs').count(), 0, 'aucune liste de modes dans le menu');
+    await custom(page);
+    assert.equal(await page.isVisible('#page-delete'), false, 'on ne peut pas supprimer le dernier mode');
     assert.equal(await page.locator('#board [data-widget=notes] select').isVisible(), false);
-    // Création : nom vide = nom proposé ; un nom piégé reste du texte.
+    // Création : la même fenêtre que la roue ; un nom est demandé ; un nom piégé reste du texte.
     await page.click('#page-new');
     await page.keyboard.press('Enter');
-    assert.deepEqual(await tabs(page), ['Mon écran', 'Page 2']);
-    assert.deepEqual(await visible(page), [], 'la nouvelle page est vide');
+    assert.match(await page.textContent('#mc-name-err'), /Donne un nom/);
+    await page.fill('#mc-name', 'Page 2');
+    await page.keyboard.press('Enter');
+    await page.waitForSelector('dialog.mode-create', { state: 'hidden' });
+    assert.equal(await page.textContent('#page-current'), 'Page 2', 'le panneau suit le nouveau mode');
+    assert.deepEqual(await visible(page), [], 'le nouveau mode est vide');
     assert.match(await page.textContent('#board-empty'), /Cette page est vide/);
-    assert.ok(await page.locator('#page-tabs [aria-pressed=true]').evaluate(n => n === document.activeElement));
     await page.click('#page-rename');
     await page.fill('#page-dialog input', '<b>piège</b>');
     await page.keyboard.press('Enter');
-    assert.deepEqual(await tabs(page), ['Mon écran', '<b>piège</b>'], 'un nom reste du texte');
-    assert.equal(await page.locator('#page-tabs b').count(), 0);
+    assert.equal(await page.textContent('#page-current'), '<b>piège</b>', 'un nom reste du texte');
+    assert.equal(await page.locator('#page-current b').count(), 0);
     await page.click('#page-rename');
     await page.fill('#page-dialog input', 'x'.repeat(40));
     assert.equal((await page.inputValue('#page-dialog input')).length, 24, 'nom limité à 24 caractères');
     await page.fill('#page-dialog input', 'Détente');
     await page.keyboard.press('Enter');
-    assert.deepEqual(await tabs(page), ['Mon écran', 'Détente']);
-    // Ranger un widget : il quitte la page affichée, et son texte le suit.
-    await page.getByRole('button', { name: 'Mon écran', exact: true }).click();
+    assert.equal(await page.textContent('#page-current'), 'Détente');
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('#settings', { state: 'hidden' });
+    assert.deepEqual(await modeNames(page), ['Mon écran', 'Détente']);
+    // Ranger un widget : il quitte le mode affiché, et son texte le suit.
+    await goMode(page, 'Mon écran');
+    await dispose(page);
     await moveTo(page, 'notes', 'Détente');
     assert.deepEqual(await visible(page), ['taches', 'heure', 'minuteur']);
     assert.match(await page.textContent('#page-note'), /Notes est maintenant sur « Détente »/);
-    // Avant/Après ne comptent que les widgets de la page affichée.
+    // Avant/Après ne comptent que les widgets du mode affiché.
     assert.ok(await page.getByRole('button', { name: 'Déplacer Tâches avant le widget précédent' }).isDisabled());
     await page.getByRole('button', { name: 'Déplacer Tâches après le widget suivant' }).click();
     assert.deepEqual(await visible(page), ['heure', 'taches', 'minuteur']);
@@ -630,45 +640,46 @@ async function photo(browser, kind) {
     await mouseDrag(page, 'minuteur', 'heure');
     assert.deepEqual(await visible(page), ['minuteur', 'heure', 'taches']);
     await page.click('#custom-done');
-    assert.equal(await page.isVisible('#page-bar'), true, 'plusieurs pages : les onglets restent');
-    assert.equal(await page.isVisible('#page-new'), false, 'créer une page reste dans Personnaliser');
-    await page.getByRole('button', { name: 'Détente', exact: true }).click();
+    assert.equal(await page.isVisible('#page-new'), false, 'créer un mode reste dans Personnaliser');
+    await goMode(page, 'Détente');
+    assert.equal(await page.textContent('#mode-now'), 'Mode : Détente');
     assert.deepEqual(await visible(page), ['notes']);
     assert.equal(await page.inputValue('.notes'), 'Mon texte précieux');
     await saved(page, 'Enregistré');
     assert.deepEqual(db.rows.ecran.pages.map(p => p.name), ['Mon écran', 'Détente']);
     assert.deepEqual(db.rows.notes, { text: 'Mon texte précieux' }, 'ranger un widget ne touche pas à son contenu');
-    // Rechargement : mêmes pages, même rangement, et on revient sur la dernière page ouverte.
+    // Rechargement : mêmes modes, même rangement, et on revient sur le dernier mode ouvert.
     await page.reload();
     await page.waitForSelector('#board .widget:not([hidden])');
-    assert.deepEqual(await tabs(page), ['Mon écran', 'Détente']);
+    assert.deepEqual(await modeNames(page), ['Mon écran', 'Détente']);
     assert.deepEqual(await visible(page), ['notes']);
-    await page.getByRole('button', { name: 'Mon écran', exact: true }).click();
+    await goMode(page, 'Mon écran');
     assert.deepEqual(await visible(page), ['minuteur', 'heure', 'taches']);
-    // Le catalogue dit où est un widget ; ajouté, il arrive sur la page affichée.
+    // Le catalogue dit où est un widget ; ajouté, il arrive sur le mode affiché.
     await page.click('#open-add');
     assert.match(await page.locator('#catalog li', { hasText: 'Notes' }).first().textContent(), /Sur la page « Détente »/);
     await catClick(page, 'Ajouter : Habitudes');
     await page.locator('#add-dialog .primary').click();
     assert.ok((await visible(page)).includes('habitudes'));
-    // Supprimer une page : confirmation, puis ses widgets et leur contenu passent sur la voisine.
-    await page.getByRole('button', { name: 'Détente', exact: true }).click();
-    await page.click('#open-custom');
+    // Supprimer un mode : confirmation, puis ses widgets et leur contenu passent sur le voisin.
+    await goMode(page, 'Détente');
+    await custom(page);
     await page.click('#page-delete');
     assert.match(await page.textContent('#page-dialog'), /1 widget et leur contenu passeront sur « Mon écran »/);
     await page.locator('#page-dialog').getByRole('button', { name: 'Annuler' }).click();
-    assert.deepEqual(await tabs(page), ['Mon écran', 'Détente'], 'annuler ne supprime rien');
+    assert.equal(await page.textContent('#page-current'), 'Détente', 'annuler ne supprime rien');
     await page.click('#page-delete');
     await page.locator('#page-dialog .primary').click();
-    assert.deepEqual(await tabs(page), ['Mon écran']);
+    assert.equal(await page.textContent('#page-current'), 'Mon écran');
     assert.ok((await visible(page)).includes('notes'));
     assert.equal(await page.inputValue('.notes'), 'Mon texte précieux');
     await saved(page, 'Enregistré');
     assert.deepEqual(db.rows.notes, { text: 'Mon texte précieux' });
     assert.deepEqual(db.rows.ecran.pages.map(p => p.name), ['Mon écran']);
-    // Limite de 6 pages.
-    for (let i = 0; i < 5; i++) { await page.click('#page-new'); await page.keyboard.press('Enter'); }
+    // Limite de 6 modes.
+    for (let i = 2; i <= 6; i++) await newMode(page, `Mode ${i}`);
     assert.ok(await page.isDisabled('#page-new'));
+    assert.equal(await page.isVisible('#page-max'), true, 'la limite est dite');
     assert.deepEqual(errors, []);
     await context.close();
   }
@@ -676,14 +687,14 @@ async function photo(browser, kind) {
   {
     const pages = [{ id: 'a', name: 'Une' }, { id: 'b', name: 'Deux' }, { id: 'c', name: 'Trois' }];
     const { page, context } = await openBoard(browser, base, desk, few({ pages, where: { notes: 'b', heure: 'c' } }));
-    await page.click('#open-custom');
+    await custom(page);
     await page.click('#page-delete');
     await page.locator('#page-dialog .primary').click();
-    const count = await page.$$eval('#page-tabs button', b => b.length);
-    assert.equal(count, 2);
+    await page.keyboard.press('Escape');
+    assert.deepEqual(await modeNames(page), ['Deux', 'Trois']);
     const all = [];
     for (const name of ['Deux', 'Trois']) {
-      await page.getByRole('button', { name, exact: true }).click();
+      await goMode(page, name);
       all.push(...await page.$$eval('#board > .widget:not([hidden])', b => b.map(n => n.dataset.widget)));
     }
     assert.deepEqual(all.sort(), [...SMALL].sort());
@@ -707,15 +718,15 @@ async function photo(browser, kind) {
     await page.locator('[data-widget=minuteur]').getByRole('button', { name: 'Démarrer' }).click();
     await page.waitForFunction(() => document.querySelector('.focus-time').textContent !== '25:00');
     const before = await page.textContent('.focus-time');
-    await page.getByRole('button', { name: 'Deux', exact: true }).click();
+    await goMode(page, 'Deux');
     assert.equal(await page.isVisible('[data-widget=minuteur]'), false);
     await page.waitForTimeout(2200);
-    await page.getByRole('button', { name: 'Une', exact: true }).click();
+    await goMode(page, 'Une');
     assert.ok(await page.textContent('.focus-time') < before, 'le minuteur a continué sur l\'autre page');
     assert.equal(loads, 1, 'le lecteur n\'a pas été rechargé');
-    await page.click('#open-custom');
+    await dispose(page);
     await page.locator('#board [data-widget=playlist] select').selectOption({ label: 'Deux' });
-    await page.getByRole('button', { name: 'Deux', exact: true }).click();
+    await goMode(page, 'Deux');
     assert.equal(await page.locator('[data-widget=playlist] iframe').isVisible(), true);
     assert.equal(loads, 1, 'ranger le lecteur sur une autre page ne le recharge pas');
     await context.close();
@@ -724,14 +735,14 @@ async function photo(browser, kind) {
   for (const width of [320, 390, 768]) {
     const pages = ['Mon écran', 'Révisions de droit civil', 'Détente du soir', 'Sport', 'Lectures', 'Projets'].map((name, i) => ({ id: `p${i}`, name }));
     const { page, context } = await openBoard(browser, base, { viewport: { width, height: 800 } }, everything({ wallpaper: 'lac', pages, where: { notes: 'p1', vol: 'p1' } }));
-    await page.click('#open-custom');
+    await dispose(page);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width} px : pas de défilement de côté`);
     const select = await page.locator('#board [data-widget=taches] select').boundingBox();
     const box = await page.locator('#board [data-widget=taches]').boundingBox();
     assert.ok(select.x + select.width <= box.x + box.width);
-    await page.locator('#page-tabs button').last().scrollIntoViewIfNeeded();
-    await page.locator('#page-tabs button').last().click();
-    assert.equal(await page.locator('#page-tabs button').last().getAttribute('aria-pressed'), 'true');
+    await page.click('#custom-done');
+    await goMode(page, 'Projets');
+    assert.equal(await page.textContent('#mode-now'), 'Mode : Projets');
     await context.close();
   }
 
@@ -764,14 +775,14 @@ async function photo(browser, kind) {
       ['pages-390-personnaliser', 390, { wallpaper: 'brume', accent: 'bleu', pages: PAGES, where: PAGE_WHERE }, true],
     ]) {
       const { page, context } = await openBoard(browser, base, { viewport: { width, height: 900 } }, { ...everything(), ecran: { ...composition, done: true, ...extra } });
-      if (editing) await page.click('#open-custom');
+      if (editing) await dispose(page);
       await full(page, name, width);
       await context.close();
     }
     const video = { dir: SHOTS, size: { width: 1280, height: 800 } };
     const { page, context } = await openBoard(browser, base, { viewport: video.size, recordVideo: video }, { ...everything(), ecran: { wallpaper: 'lac', accent: 'vert', widgets: ['taches', 'heure', 'minuteur', 'notes', 'compte', 'pause'], done: true } });
     await page.waitForTimeout(600);
-    await page.click('#open-custom');
+    await dispose(page);
     await page.waitForTimeout(600);
     await mouseDrag(page, 'taches', 'minuteur', false);
     await page.waitForTimeout(500);
@@ -779,8 +790,6 @@ async function photo(browser, kind) {
     await page.mouse.up();
     await page.waitForTimeout(700);
     await page.getByRole('group', { name: 'Taille de Minuteur focus' }).getByRole('button', { name: 'Grand' }).click();
-    await page.waitForTimeout(700);
-    await page.getByRole('button', { name: 'Bleu', exact: true }).click();
     await page.waitForTimeout(700);
     await page.click('#custom-done');
     await page.waitForTimeout(900);

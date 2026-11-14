@@ -126,14 +126,6 @@ dialog.mode-wheel::backdrop{background:color-mix(in srgb,var(--ground) 45%,trans
 .is-off .mw-name{color:var(--slate)}
 .is-picked .mw-item{transform:scale(1.06);background:color-mix(in srgb,var(--accent) 22%,transparent)}
 
-/* Icône d'un mode dans les onglets. */
-.tab-ico{display:inline-grid;place-items:center;width:16px;height:16px;margin-right:6px;vertical-align:-3px}
-.tab-ico svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.600;stroke-linecap:round;stroke-linejoin:round}
-@media (min-width:1024px){
-  body:is([data-dock=left],[data-dock=right]) .page-tabs button.has-ico::before{display:none}
-  body:is([data-dock=left],[data-dock=right]) .page-tabs .tab-ico{flex:none;width:36px;height:36px;margin:0}
-}
-
 /* ---------- Créer un mode ---------- */
 dialog.mode-create{width:min(460px,100vw - 24px);max-height:min(720px,100dvh - 24px);padding:24px;border:1px solid var(--glass-edge);border-radius:var(--r-panel);background:var(--glass-solid);color:var(--ink);overflow:auto}
 dialog.mode-create::backdrop{background:var(--veil)}
@@ -158,42 +150,6 @@ dialog.mode-create::backdrop{background:var(--veil)}
 .mc-form input:focus-visible+span{outline:2px solid var(--ink);outline-offset:2px}
 .mc-form .actions{display:flex;justify-content:flex-end;gap:8px}
 .mc-form .primary{background:var(--accent);color:var(--on-accent)}
-
-/* ---------- Rail d'actions rapides ---------- */
-.qrail{position:fixed;z-index:25;right:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;padding:6px;border:1px solid var(--glass-edge);border-radius:18px;background:var(--glass);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shine)}
-.qrail__list{display:flex;flex-direction:column;gap:4px}
-.qrail__btn{position:relative;display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:12px;background:none;color:var(--ink);transition:background-color .15s,transform .15s}
-.qrail__btn:hover{background:var(--tint)}
-.qrail__btn:active{transform:scale(.94)}
-.qrail__btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.600;stroke-linecap:round;stroke-linejoin:round}
-.qrail__tip{position:absolute;right:calc(100% + 10px);top:50%;padding:6px 10px;border-radius:8px;background:var(--ink);color:var(--paper);font-size:13px;font-weight:500;white-space:nowrap;pointer-events:none;opacity:0;transform:translate(4px,-50%);transition:opacity .15s,transform .15s}
-.qrail__btn:is(:hover,:focus-visible) .qrail__tip{opacity:1;transform:translate(0,-50%)}
-.qrail__toggle{display:none}
-body[data-dock=right] .qrail{right:auto;left:12px}
-body[data-dock=right] .qrail__tip{right:auto;left:calc(100% + 10px)}
-.locked .qrail,.customizing .qrail{display:none}
-/* Place pour le rail seulement quand la colonne de 1100 px ne lui en laisse pas assez (sinon la grille glisserait sous la barre de gauche). */
-@media (min-width:1024px) and (max-width:1359px){
-  body:not([data-dock=right]){padding-right:72px}
-  body[data-dock=right]{padding-left:72px}
-}
-/* Tablette et téléphone : un seul bouton en bas à droite, qui déplie les actions vers le haut. */
-@media (max-width:1023px){
-  .qrail{top:auto;bottom:calc(16px + env(safe-area-inset-bottom));right:16px;transform:none;flex-direction:column-reverse;border-radius:var(--pill)}
-  .qrail__toggle{display:grid;border-radius:50%}
-  .qrail:not([data-open=true]) .qrail__list{display:none}
-  .qrail__tip{position:static;display:none}
-  .qrail[data-open=true]{border-radius:24px}
-  .qrail[data-open=true] .qrail__btn:not(.qrail__toggle){width:auto;grid-template-columns:20px auto;gap:10px;justify-content:start;padding:0 14px}
-  .qrail[data-open=true] .qrail__tip{display:block;opacity:1;transform:none;padding:0;background:none;color:var(--ink);font-size:14px}
-  main{padding-bottom:72px}
-  .qrail__toggle .qrail__tip{display:none!important}
-}
-/* Téléphone avec plusieurs modes : la barre des modes occupe le bas, le bouton se pose au-dessus. */
-@media (max-width:727px){
-  .has-modes .qrail{bottom:calc(80px + env(safe-area-inset-bottom))}
-  .has-modes main{padding-bottom:148px}
-}
 
 /* ---------- Disposer : taille fine et repli ---------- */
 @media (min-width:728px){

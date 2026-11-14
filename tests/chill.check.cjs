@@ -6,6 +6,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
+const { dispose } = require('./menu.cjs');
 const G = require('../site/chill/jeux.js');
 // Catalogue : on choisit le widget dans la liste, puis on confirme dans l'aperçu.
 const catClick = async (page, name) => {
@@ -239,7 +240,7 @@ async function stroke(page, canvas, from = [.3, .5], to = [.7, .5]) {
     assert.deepEqual(db.rows.dessin.items.map(i => i.slot), [1]);
     // Redimensionner ne touche pas au dessin.
     const before = await hash(canvas);
-    await page.click('#open-custom');
+    await dispose(page);
     for (const size of ['Grand', 'Petit', 'Moyen']) {
       await page.getByRole('group', { name: 'Taille de Atelier de dessin' }).getByRole('button', { name: size, exact: true }).click();
       assert.equal(await hash(canvas), before, `dessin intact en taille ${size}`);

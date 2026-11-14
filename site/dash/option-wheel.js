@@ -30,7 +30,7 @@
       b.setAttribute('role', 'option');
       b.id = `ow-${Math.random().toString(36).slice(2, 8)}-${i}`;
       if (item.node) b.append(item.node); else b.textContent = item.label;
-      if (item.className) b.classList.add(item.className);
+      if (item.className) b.classList.add(...item.className.split(' ').filter(Boolean));
       b.addEventListener('click', () => { if (!moved) pick(i); });
       root.append(b);
       return b;

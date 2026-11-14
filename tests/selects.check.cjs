@@ -5,6 +5,7 @@
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const { start } = require('./demo.cjs');
+const { dispose, openMe, goMode } = require('./menu.cjs');
 
 (async () => {
   const srv = await start();
@@ -34,7 +35,7 @@ const { start } = require('./demo.cjs');
   // 1. Le sélecteur de page de la capture, en mode Disposer, à la souris et au clavier.
   {
     const { page, context } = await open({ width: 1440, height: 900 }, 'page');
-    await page.click('#open-custom');
+    await dispose(page);
     const box = page.locator('#board [data-widget=taches]');
     const trigger = box.getByRole('combobox', { name: 'Page' });
     const native = box.locator('select');
@@ -85,7 +86,9 @@ const { start } = require('./demo.cjs');
     await page.waitForFunction(() => document.querySelector('#board [data-widget=taches]').hidden);
     assert.match(await page.textContent('#page-note'), /Tâches est maintenant sur « Chill »/);
     // Retour par le menu natif (chemin des autres suites) : le bouton suit.
-    await page.click('#page-tabs button:has-text("Chill")');
+    await page.click('#custom-done');
+    await goMode(page, 'Chill');
+    await dispose(page);
     await native.selectOption('study');
     assert.equal(await box.locator('.dd-trigger').textContent(), 'Study', 'le bouton suit une valeur posée par le code');
     await context.close();
@@ -97,7 +100,7 @@ const { start } = require('./demo.cjs');
     await page.evaluate(() => {
       const l = document.createElement('label');
       l.id = 'test-long';
-      l.style.cssText = 'position:fixed;left:24px;bottom:24px;display:flex;gap:8px;align-items:center;z-index:5';
+      l.style.cssText = 'position:fixed;left:300px;bottom:24px;display:flex;gap:8px;align-items:center;z-index:5';
       const s = document.createElement('select');
       s.style.cssText = 'width:220px;height:36px;padding:0 12px;border:1px solid var(--edge);border-radius:999px;background:var(--field)';
       s.className = 'cahier-pick';
@@ -141,7 +144,7 @@ const { start } = require('./demo.cjs');
     await page.evaluate(() => { document.querySelector('#test-long select').disabled = true; });
     await page.waitForFunction(() => document.querySelector('#test-long .dd-trigger').disabled);
     // Défilement de la page pendant l’ouverture : la liste suit le bouton.
-    await page.evaluate(() => { document.querySelector('#test-long select').disabled = false; document.querySelector('#test-long').style.cssText = 'position:absolute;left:24px;top:600px;display:flex;gap:8px;align-items:center;z-index:5'; });
+    await page.evaluate(() => { document.querySelector('#test-long select').disabled = false; document.querySelector('#test-long').style.cssText = 'position:absolute;left:300px;top:600px;display:flex;gap:8px;align-items:center;z-index:5'; });
     await trigger.scrollIntoViewIfNeeded();
     await trigger.click();
     await settle(page);
@@ -159,7 +162,7 @@ const { start } = require('./demo.cjs');
   {
     const { page, context } = await open({ width: 1440, height: 900 }, 'sombre');
     await page.evaluate(() => { document.documentElement.dataset.theme = 'dark'; });
-    await page.click('#open-custom');
+    await dispose(page);
     const trigger = page.locator('#board [data-widget=taches]').getByRole('combobox', { name: 'Page' });
     await trigger.scrollIntoViewIfNeeded();
     await shot(page, 'sombre-ferme', await around(page, trigger));
@@ -172,16 +175,17 @@ const { start } = require('./demo.cjs');
     await context.close();
   }
 
-  // 4. Dans le dialogue Réglages : liste au-dessus du dialogue, Échap ferme la liste puis le dialogue.
+  // 4. Dans le menu du compte (verrou) : liste au-dessus du menu, dans le menu, Échap ferme la liste puis le menu.
   {
     const { page, context } = await open({ width: 1440, height: 900 }, 'reglages');
     const typeCode = async code => { await page.keyboard.type(code, { delay: 20 }); await page.waitForTimeout(500); };
-    await page.locator('#open-settings').click();
-    await page.locator('.lock-set').scrollIntoViewIfNeeded();
+    await openMe(page);
+    await page.locator('#menu .lock-set').scrollIntoViewIfNeeded();
     await page.getByRole('button', { name: 'Choisir un code' }).click();
     await typeCode('482915');
     await typeCode('482915');
     await page.waitForFunction(() => !document.querySelector('dialog.lock-setup[open]'));
+    if (!await page.locator('#menu').evaluate(n => n.matches(':popover-open'))) await openMe(page);
     const trigger = page.getByRole('combobox', { name: 'Verrouiller seul' });
     await trigger.scrollIntoViewIfNeeded();
     assert.equal(await trigger.textContent(), 'Jamais');
@@ -189,7 +193,7 @@ const { start } = require('./demo.cjs');
     assert.equal(await trigger.evaluate(n => n === document.activeElement), true, 'le libellé donne le focus au bouton');
     await trigger.click();
     await settle(page);
-    assert.equal(await list(page).evaluate(n => !!n.closest('dialog.settings')), true, 'la liste reste dans le dialogue (pas inerte)');
+    assert.equal(await list(page).evaluate(n => !!n.closest('#menu')), true, 'la liste reste dans le menu (un clic dessus ne le ferme pas)');
     const top = await page.evaluate(() => { const r = document.querySelector('.dd-opt:last-child').getBoundingClientRect(); return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.closest('.dd-opt')?.textContent; });
     assert.equal(top, 'Après 30 min sans activité', 'rien ne recouvre la liste');
     await shot(page, 'reglages-ouvert', await around(page, trigger));
@@ -200,23 +204,23 @@ const { start } = require('./demo.cjs');
     assert.match(saved, /"auto":15/, 'le réglage est enregistré comme avant');
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Escape');
-    assert.equal(await page.locator('dialog.settings').evaluate(n => n.open), true, 'Échap ferme la liste, pas le dialogue');
+    assert.equal(await page.locator('#menu').evaluate(n => n.matches(':popover-open')), true, 'Échap ferme la liste, pas le menu');
     await page.keyboard.press('Escape');
-    await page.waitForFunction(() => !document.querySelector('dialog.settings[open]'));
+    await page.waitForFunction(() => !document.querySelector('#menu').matches(':popover-open'));
     await context.close();
   }
 
   // 5. Téléphone tactile : la liste tient dans l’écran, cibles de 44 px, un toucher choisit.
   {
     const { page, context } = await open({ width: 390, height: 844 }, 'tel', { touch: true });
-    await page.locator('#open-custom').tap();
+    await dispose(page);
     const trigger = page.locator('#board [data-widget=taches]').getByRole('combobox', { name: 'Page' });
     await trigger.scrollIntoViewIfNeeded();
     await trigger.tap();
     await settle(page);
     const lb = await list(page).boundingBox();
     assert.ok(lb.x >= 8 && lb.x + lb.width <= 382, 'dans la largeur de l’écran');
-    assert.ok((await page.locator('.dd-opt').first().boundingBox()).height >= 44, 'cible tactile');
+    assert.ok(await page.locator('.dd-opt').first().evaluate(n => n.offsetHeight) >= 44, 'cible tactile');
     await shot(page, 'tel-ouvert');
     await page.getByRole('option', { name: 'Chill' }).tap();
     assert.equal(await isOpen(page), false);
@@ -227,7 +231,7 @@ const { start } = require('./demo.cjs');
   // 6. Mouvement réduit : aucune animation d’ouverture.
   {
     const { page, context } = await open({ width: 1440, height: 900 }, 'reduit', { reduced: true });
-    await page.click('#open-custom');
+    await dispose(page);
     const trigger = page.locator('#board [data-widget=taches]').getByRole('combobox', { name: 'Page' });
     await trigger.scrollIntoViewIfNeeded();
     await trigger.click();

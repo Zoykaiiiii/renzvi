@@ -1,8 +1,8 @@
-// Modes : la roue (OptionWheel, option-wheel.js) ouverte par un appui long ou par un bouton, la création d'un mode,
-// et le rail d'actions rapides. Un mode est une page de l'écran : ce fichier ne garde aucune donnée, il passe par ctx :
+// Modes : la roue (OptionWheel, option-wheel.js) ouverte par un appui long ou par le bouton « Changer de mode » du menu,
+// et la création d'un mode (partagée avec Personnaliser). Un mode est une page de l'écran : ce fichier ne garde aucune donnée, il passe par ctx :
 //   ctx.pages() → [{ id, name, icon?, accent? }], ctx.current() → id, ctx.show(id), ctx.canCreate() → bool,
 //   ctx.create({ name, icon, accent, wall }) → page, ctx.accents() → [{ id, name, hex }], ctx.wallName() → nom du fond,
-//   ctx.openCatalog(), ctx.customize(), ctx.blocked() → vrai si un autre geste ou le verrou a la main, ctx.say(texte).
+//   ctx.blocked() → vrai si un autre geste ou le verrou a la main, ctx.say(texte).
 (() => {
   const PRESS_MS = 550, MOVE_PX = 10;
   // Icônes 16×16 au trait, dans le style de la barre.
@@ -27,7 +27,7 @@
 
   // Une cible sûre pour l'appui long : le fond de l'écran, ou le fond d'un widget (son cadre, son en-tête, le vide de son corps).
   // Jamais un contrôle, un champ, un texte modifiable, un dessin, un lecteur, une poignée ni le contenu d'un widget.
-  const NEVER = 'button,a,input,textarea,select,label,option,summary,[contenteditable=""],[contenteditable=true],canvas,iframe,video,audio,svg,img,[role=slider],[role=listbox],[role=option],[role=button],[tabindex],.edit,.grip,.resize-handle,.custom,dialog,[popover],.topbar,.qrail,.option-wheel,.notes,.comet-dial,.drop-slot';
+  const NEVER = 'button,a,input,textarea,select,label,option,summary,[contenteditable=""],[contenteditable=true],canvas,iframe,video,audio,svg,img,[role=slider],[role=listbox],[role=option],[role=button],[tabindex],.edit,.grip,.resize-handle,.custom,dialog,[popover],.topbar,.option-wheel,.notes,.comet-dial,.drop-slot';
   function safeTarget(t) {
     if (!(t instanceof Element) || t.closest(NEVER)) return false;
     if (!t.closest('#app') && t !== document.body && t !== document.documentElement && t.id !== 'wall' && !t.closest('#wall')) return false;
@@ -258,47 +258,10 @@
       name.focus();
     }
 
-    // ---------- Rail d'actions rapides ----------
-    const rail = node('nav', 'qrail');
-    rail.ariaLabel = 'Actions rapides';
-    rail.hidden = true;
-    const railBtn = (label, body, onclick, cls = '') => {
-      const b = node('button', `qrail__btn ${cls}`);
-      b.type = 'button';
-      b.ariaLabel = label;
-      b.innerHTML = svg(body);
-      b.append(node('span', 'qrail__tip', label));
-      b.onclick = onclick;
-      return b;
-    };
-    const toggle = railBtn('Actions', '<circle cx="3.500" cy="8" r="1.200"/><circle cx="8" cy="8" r="1.200"/><circle cx="12.500" cy="8" r="1.200"/>', () => {
-      const on = rail.dataset.open !== 'true';
-      rail.dataset.open = on;
-      toggle.setAttribute('aria-expanded', on);
-    }, 'qrail__toggle');
-    toggle.setAttribute('aria-expanded', 'false');
-    const list = node('div', 'qrail__list');
-    const shut = () => { rail.dataset.open = 'false'; toggle.setAttribute('aria-expanded', 'false'); };
-    const wheelBtn = railBtn('Changer de mode', '<circle cx="8" cy="8" r="5.500"/><path d="M8 2.500v2M8 11.500v2M2.500 8h2M11.500 8h2"/>', e => {
-      shut();
-      const r = e.currentTarget.getBoundingClientRect();
-      open(e.detail ? r.left - 140 : null, e.detail ? r.top + r.height / 2 : null, e.currentTarget);
-    });
-    list.append(
-      railBtn('Ajouter un widget', '<rect x="2.500" y="2.500" width="4.500" height="4.500" rx="1.200"/><rect x="9" y="2.500" width="4.500" height="4.500" rx="1.200"/><rect x="2.500" y="9" width="4.500" height="4.500" rx="1.200"/><path d="M11.250 9v4.500M9 11.250h4.500"/>', () => { shut(); ctx.openCatalog(); }),
-      wheelBtn,
-      railBtn('Créer un mode', PLUS, () => { shut(); openCreate(); }),
-      railBtn('Disposer l’écran', '<path d="M2.500 2.500h4.500v6H2.500zM9 2.500h4.500v3.500H9zM9 8h4.500v5.500H9zM2.500 10.500h4.500v3H2.500z"/>', () => { shut(); ctx.customize(); }),
-    );
-    rail.append(toggle, list);
-    document.body.append(rail);
-    rail.addEventListener('keydown', e => { if (e.key === 'Escape' && rail.dataset.open === 'true') { shut(); toggle.focus(); } });
-
     return {
       open: (x, y, back) => open(x, y, back),
-      close: () => { cancelPress(); close(); if (cdlg.open) cdlg.close(); shut(); },
+      close: () => { cancelPress(); close(); if (cdlg.open) cdlg.close(); },
       openCreate,
-      showRail: on => { rail.hidden = !on; },
       iconSvg: page => (iconOf(page) ? svg(iconOf(page)) : null),
       icons: Object.keys(ICONS),
       isOpen: () => !!wheel || cdlg.open,

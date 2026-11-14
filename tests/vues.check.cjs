@@ -4,6 +4,7 @@
 // Lancement : NODE_PATH=~/pw/node_modules node tests/vues.check.cjs   (VIDEO=dossier pour filmer le parcours principal)
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
+const { dispose, goMode } = require('./menu.cjs');
 const { start } = require('./demo.cjs');
 
 (async () => {
@@ -91,10 +92,10 @@ const { start } = require('./demo.cjs');
     assert.match(await page.textContent('#custom-live'), /Heure : \d+ pixels/);
 
     // La page Chill reste en grille : le choix est par page, pas global.
-    await page.locator('#page-tabs').getByRole('button', { name: 'Chill' }).click();
+    await goMode(page, 'Chill');
     assert.equal(await page.getAttribute('#board', 'data-vue'), null, 'Chill en grille');
     assert.equal(await pick(page, 'Grille').getAttribute('aria-pressed'), 'true');
-    await page.locator('#page-tabs').getByRole('button', { name: 'Study' }).click();
+    await goMode(page, 'Study');
     assert.equal(await page.getAttribute('#board', 'data-vue'), 'libre', 'Study retrouve son tableau');
 
     // Ouvrir puis fermer pendant l'animation : l'état final est propre.
@@ -141,7 +142,7 @@ const { start } = require('./demo.cjs');
     assert.equal(await page.getAttribute('#board', 'data-vue'), null, 'la grille publique');
     await page.locator('#board [data-widget=taches] input').first().fill('Une tâche hors labo');
     await page.locator('#board [data-widget=taches] input').first().press('Enter');
-    await page.locator('#open-custom').click();
+    await dispose(page);
     await page.getByRole('group', { name: 'Taille de Tâches' }).getByRole('button', { name: 'Grand' }).click();
     await saved(page);
     assert.equal(db.rows.ecran.vues.page.study, 'libre', 'le choix du labo survit à un enregistrement public');

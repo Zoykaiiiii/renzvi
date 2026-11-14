@@ -127,29 +127,72 @@ a{color:inherit}
   :root{--glass:var(--glass-solid);--glass-wall:var(--glass-solid)}
 }
 
-/* La barre : le nom, les modes, les deux actions et le compte. Elle reste en haut de l'écran.
-   Son verre est dessiné par ::before : la barre elle-même ne doit pas retenir la rangée des modes, fixée en bas sur téléphone. */
-.topbar{position:sticky;top:12px;z-index:20;display:flex;align-items:center;gap:12px;height:56px;margin-top:12px;padding:0 10px 0 18px;border-radius:18px}
+/* Le menu, à gauche. Grand écran : une colonne qu'on replie en pastille (logo + bouton) ; la place libérée revient à l'écran.
+   Tablette et téléphone : une pastille en haut à gauche, qui ouvre un tiroir. Son verre est dessiné par ::before. */
+body{--side:0px;padding-left:var(--side)}
+.topbar{position:fixed;top:12px;left:12px;z-index:40;display:flex;flex-direction:column;gap:14px;padding:8px;border-radius:18px;color:var(--ink)}
 .topbar::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shine)}
-.mark{flex:none;display:inline-flex;align-items:center;gap:10px;min-height:44px;font-size:17px;font-weight:600;text-decoration:none}
-.mark svg{width:22px;height:22px}
-.modes{flex:1;display:flex;justify-content:center;min-width:0}
-.tools{flex:none;display:flex;align-items:center;gap:8px;margin-left:auto}
-/* Les modes : une piste, et une pastille blanche qui glisse sous le mode affiché. */
-.page-tabs{position:relative;display:flex;gap:2px;min-width:0;max-width:100%;padding:4px;border-radius:var(--pill);background:var(--tint);overflow-x:auto;scrollbar-width:none}
-.page-tabs::-webkit-scrollbar{display:none}
-.page-tabs button{position:relative;z-index:1;flex:none;height:32px;max-width:200px;padding:0 16px;border:0;border-radius:var(--pill);background:none;color:var(--slate);font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .2s}
-.page-tabs button[aria-pressed=true]{color:var(--ink)}
-.page-tabs button:focus-visible{outline-offset:-2px}
-.thumb{position:absolute;top:4px;left:0;width:var(--w,0);height:32px;border-radius:var(--pill);background:var(--paper);box-shadow:0 1px 2px rgba(23,25,28,.14);transform:translateX(var(--x,0));transition:transform .4s var(--ease),width .4s var(--ease)}
-.thumb.still{transition:none}
+.bar-top{display:flex;align-items:center;gap:6px}
+.mark{flex:1;min-width:0;display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 8px;border-radius:10px;font-size:17px;font-weight:600;text-decoration:none}
+.mark svg{flex:none;width:22px;height:22px}
+.bar-toggle{flex:none;display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:12px;background:none;color:var(--ink);transition:background-color .15s}
+.bar-toggle:hover{background:var(--tint)}
+.bar-toggle svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round}
+.bar-toggle .chev{transform-origin:9.600px 8px;transition:transform .25s var(--ease)}
+.bar-toggle[aria-expanded=false] .chev{transform:scaleX(-1)}
+.bar-nav{display:flex;flex:1;flex-direction:column;gap:18px;min-height:0}
+.bar-main,.bar-foot{display:flex;flex-direction:column;gap:4px}
+.bar-foot{margin-top:auto}
+.bar-btn{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:12px;background:none;color:var(--ink);font-size:14px;font-weight:500;text-align:left;transition:background-color .15s,transform .15s}
+.bar-btn:hover{background:var(--tint)}
+.bar-btn:active{transform:scale(.98)}
+.bar-btn svg{flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round}
+.bar-btn.primary{height:auto;padding:0 12px;border-radius:12px;background:var(--ink);color:var(--paper)}
+.bar-two{display:grid;min-width:0;line-height:1.25}
+.bar-two small{overflow:hidden;font-size:12px;font-weight:400;color:var(--slate);text-overflow:ellipsis;white-space:nowrap}
+.me-av{display:grid;place-items:center;flex:none;width:28px;height:28px;margin:0 -5px;border:1px solid var(--edge);border-radius:var(--pill);background:var(--field);font-size:13px;font-weight:600}
+.me-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Favoris : des raccourcis vers des widgets déjà sur l'écran. La liste défile seule : Personnaliser et le compte restent visibles. */
+.favs{display:flex;flex-direction:column;gap:4px;min-height:0}
+.favs-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 4px 0 12px}
+.favs-head h2{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:0;color:var(--slate)}
+.favs-edit{height:32px;padding:0 10px;border:0;border-radius:8px;background:none;color:var(--slate);font-size:12px;font-weight:500}
+.favs-edit:hover{background:var(--tint);color:var(--ink)}
+.favs-list{display:flex;flex-direction:column;gap:2px;min-height:0;margin:0;padding:0;overflow-y:auto;overscroll-behavior:contain;list-style:none;scrollbar-width:thin}
+.favs-list .bar-btn{min-height:38px;font-weight:400}
+.fav-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fav-where{margin-left:auto;padding-left:8px;font-size:12px;color:var(--slate);white-space:nowrap}
+.favs-empty{padding:0 12px;font-size:12px;line-height:1.45;color:var(--slate)}
+.favs-list:not(:empty) + .favs-empty{display:none}
+.bar-scrim{position:fixed;inset:0;z-index:39;background:var(--veil)}
+/* Le widget atteint depuis un favori se signale un instant. */
+.widget.is-found{box-shadow:var(--glass-shine),0 0 0 2px var(--accent);transition:box-shadow .3s}
+@keyframes bar-in{from{opacity:0;transform:translateX(-8px)}}
+.bar-anim .bar-nav{animation:bar-in .22s var(--ease)}
+.bar-anim{transition:padding-left .28s var(--ease)}
+@media (max-width:1023px){
+  body{padding-top:64px}
+  .bar-nav{display:none}
+  .drawer-open .topbar{top:0;bottom:0;left:0;width:min(300px,86vw);padding:12px 12px calc(12px + env(safe-area-inset-bottom));border-radius:0 18px 18px 0;--glass:var(--glass-solid);box-shadow:0 24px 64px rgba(0,0,0,.22)}
+  .drawer-open .bar-nav{display:flex}
+  .drawer-open .topbar{animation:bar-in .22s var(--ease)}
+}
+@media (min-width:1024px){
+  body{--side:268px}
+  body[data-menu=ferme]{--side:84px}
+  .topbar{bottom:12px;width:244px;padding:12px}
+  body[data-menu=ferme] .topbar{bottom:auto;width:auto;padding:8px}
+  body[data-menu=ferme] .bar-top{flex-direction:column}
+  body[data-menu=ferme] .mark{justify-content:center;padding:0;width:44px}
+  body[data-menu=ferme] .mark span,body[data-menu=ferme] .bar-nav,.bar-scrim{display:none}
+}
+@media (prefers-reduced-motion:reduce){.bar-anim,.bar-anim .bar-nav,.drawer-open .topbar,.bar-toggle,.bar-toggle .chev,.bar-btn,dialog.settings,#menu{transition:none;animation:none}}
 
-.me{flex:none;width:36px;height:36px;padding:0;border:1px solid var(--edge);border-radius:var(--pill);background:var(--field);font-size:14px;font-weight:600;transition:transform .2s var(--ease)}
-.me:active{transform:scale(.94)}
 /* Le menu sort du bouton de compte. */
-#menu{position:fixed;inset:76px max(16px,calc((100vw - 1100px)/2)) auto auto;margin:0;width:min(300px,100vw - 32px);padding:16px;border-radius:var(--r-panel);color:inherit;transform-origin:top right;transition:transform .25s var(--ease),opacity .18s,display .25s allow-discrete,overlay .25s allow-discrete;--glass:var(--glass-solid);box-shadow:inset 0 1px 0 var(--pop-shine),0 16px 40px rgba(23,25,28,.14)}
+#menu{position:fixed;inset:auto auto 12px 268px;margin:0;width:min(320px,100vw - 24px);max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain;padding:16px;border-radius:var(--r-panel);color:inherit;transform-origin:bottom left;transition:transform .25s var(--ease),opacity .18s,display .25s allow-discrete,overlay .25s allow-discrete;--glass:var(--glass-solid);box-shadow:inset 0 1px 0 var(--pop-shine),0 16px 40px rgba(23,25,28,.14)}
 #menu:not(:popover-open){opacity:0;transform:scale(.96) translateY(-6px)}
 @starting-style{#menu:popover-open{opacity:0;transform:scale(.96) translateY(-6px)}}
+@media (max-width:1023px){#menu{inset:auto 12px calc(12px + env(safe-area-inset-bottom)) 12px;width:auto;transform-origin:bottom center}}
 #who{font-size:14px;color:var(--slate);overflow-wrap:anywhere}
 .out{display:block;width:100%;height:44px;margin-top:12px;border:0;border-radius:var(--pill);background:var(--ink);color:var(--paper);font-weight:500;transition:transform .15s}
 .out:active{transform:scale(.98)}
@@ -324,15 +367,12 @@ input[type=range]:disabled{opacity:.5;cursor:default}
 #page-slot .add{margin-top:16px}
 #page-slot .desc{margin-top:8px}
 
-/* Personnaliser : un panneau en bas de l'écran (fond, couleur, page), l'écran reste visible au-dessus. */
-.custom{position:fixed;inset:auto 0 16px;z-index:30;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,3fr) minmax(0,3fr) auto;align-items:start;gap:12px 28px;width:min(1100px,100% - 32px);margin-inline:auto;padding:16px 16px 16px 20px;border-radius:var(--r-panel);--glass:var(--glass-solid);box-shadow:inset 0 1px 0 var(--pop-shine),0 16px 48px rgba(23,25,28,.2)} /* taste-skill-ignore : le panneau flotte au-dessus de l'écran */
-.customizing main{padding-bottom:var(--custom-h,220px)}
-.custom-part{min-width:0}
-.custom-label{font-size:12px;line-height:16px;color:var(--slate)}
-.custom-label b{font-weight:600;color:var(--ink)}
-.custom .tiles{display:flex;gap:8px;margin:8px -4px -4px;padding:4px;overflow-x:auto;scrollbar-width:thin}
-.custom .tile{flex:none;width:92px}
-.custom .tile span{padding:2px 8px;font-size:12px}
+/* Disposer : une barre en bas de l'écran, le temps de ranger les widgets de la page. */
+.custom{position:fixed;inset:auto 0 16px var(--side);z-index:30;display:flex;align-items:center;gap:12px 24px;width:min(720px,100% - var(--side) - 32px);margin-inline:auto;padding:12px 12px 12px 20px;border-radius:var(--r-panel);--glass:var(--glass-solid);box-shadow:inset 0 1px 0 var(--pop-shine),0 16px 48px rgba(23,25,28,.2)} /* taste-skill-ignore : le panneau flotte au-dessus de l'écran */
+.customizing main{padding-bottom:var(--custom-h,120px)}
+.custom-text{flex:1;min-width:0}
+.custom-text h2{font-size:15px;line-height:1.3}
+.custom-text .desc{margin-top:2px;font-size:13px}
 .swatches{display:flex;flex-wrap:wrap;margin:4px 0 0 -10px}
 .swatch{display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:var(--pill);background:none}
 .swatch i{display:block;width:24px;height:24px;border-radius:var(--pill);background:var(--c);transition:transform .15s}
@@ -346,8 +386,10 @@ input[type=range]:disabled{opacity:.5;cursor:default}
 .swatch-pick[aria-pressed=true] i{box-shadow:inset 0 0 0 6px var(--c)}
 .page-tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .custom-side{display:flex;align-items:center;gap:12px}
-.custom-tip{grid-column:1/-1;font-size:13px}
-.custom-hint{display:none;grid-column:1/-1;font-size:13px}
+@media (max-width:727px){
+  .custom{inset:auto 0 0;flex-wrap:wrap;width:100%;padding:12px 16px calc(16px + env(safe-area-inset-bottom));border-radius:var(--r-panel) var(--r-panel) 0 0}
+  .custom-side{margin-left:auto}
+}
 .edit{display:none;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
 .customizing .edit{display:flex}
 .edit .ghost{padding:0 12px;font-size:13px}
@@ -614,7 +656,6 @@ h2{font-family:var(--display);font-size:14px;line-height:20px;font-weight:var(--
 
 .icon{display:inline-flex;align-items:center;gap:6px}
 .icon svg{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round}
-.custom-tabs{display:none}
 /* Un widget qui arrive (ajout, changement de mode) : il se pose, sans rebond. */
 @keyframes arrive{from{opacity:0;transform:translateY(10px) scale(.985)}}
 .widget.arrive{animation:arrive .5s var(--ease) backwards}
@@ -633,7 +674,6 @@ h2{font-family:var(--display);font-size:14px;line-height:20px;font-weight:var(--
   .x{width:44px;height:44px}
   .days button{height:44px}
   .choices button{height:38px}
-  .me{width:44px;height:44px}
   .zoom{width:44px;height:44px;margin:-8px -12px -8px 0}
   .widget.zoomed{inset:0;border-radius:0}
   #board-empty{padding:36px 20px 32px}
@@ -649,32 +689,10 @@ h2{font-family:var(--display);font-size:14px;line-height:20px;font-weight:var(--
   .stage{min-height:220px;padding:16px}
 }
 @media (max-width:727px){
-  .custom-hint{display:block}
-  .topbar{gap:8px;padding:0 6px 0 14px}
-  #open-custom{width:44px;padding:0;justify-content:center}
-  #open-custom span{display:none}
-  /* Sur téléphone, la barre est pleine : les Réglages s'ouvrent depuis le menu du compte. */
-  #open-settings{display:none}
-  /* Les modes passent en bas de l'écran, sous le pouce. Pendant « Personnaliser », le panneau prend le bas : ils remontent sous la barre. */
-  .modes{position:fixed;inset:auto 12px calc(12px + env(safe-area-inset-bottom)) 12px;z-index:20;padding:4px;border:1px solid var(--glass-edge);border-radius:var(--pill);background:var(--glass-solid);box-shadow:0 8px 24px rgba(23,25,28,.16)} /* taste-skill-ignore : la rangée des modes flotte au-dessus de l'écran */
-  .modes .page-tabs{flex:1;padding:0;background:none}
-  .page-tabs button{flex:1 0 auto;height:44px}
-  .thumb{top:0;height:44px;background:var(--press);box-shadow:none}
-  .has-modes main{padding-bottom:84px}
-  .customizing .modes{inset:76px 12px auto 12px}
-  .customizing.has-modes .hello{margin-top:76px}
-  /* Le panneau devient une feuille en bas : un réglage à la fois. */
-  .custom{inset:auto 0 0;width:100%;grid-template-columns:minmax(0,1fr) auto;gap:12px;max-height:60dvh;padding:12px 16px calc(16px + env(safe-area-inset-bottom));border-radius:var(--r-panel) var(--r-panel) 0 0;overflow-y:auto}
-  .custom-tabs{display:flex;align-self:center}
-  .custom-part{grid-column:1/-1;display:none}
-  .custom[data-tab=fond] [data-part=fond],.custom[data-tab=couleur] [data-part=couleur],.custom[data-tab=page] [data-part=page]{display:block}
-  .custom-side{grid-area:1/2}
-  .custom-tip{display:none}
   .aide .ghost{margin-left:0}
 }
-@media (max-width:359px){.mark span{display:none}}
 @media (prefers-reduced-motion:reduce){
-  .drop-slot,.swatch i,.thumb,#wall i,.page-tabs button,.zoom{transition:none}
+  .drop-slot,.swatch i,#wall i,.zoom{transition:none}
   .cockpit,.flight-end,.hublot,.hublot-wing,.widget.arrive{animation:none}
   .breath{transition:none;transform:none}
   .ring .fill{transition:none}
@@ -741,11 +759,6 @@ dialog.settings::backdrop{background:transparent}
 .set-slider output{font-size:13px;color:var(--slate);font-variant-numeric:tabular-nums}
 .set-slider input{grid-column:1/-1;width:100%;margin:0}
 .settings .choices{align-self:center}
-.dock-pick h3{margin:0}
-.set-open{display:block;width:100%;margin-top:6px}
-/* Réglages : une icône dans la barre ; le libellé n'apparaît que dans le rail latéral, qui en a la place. */
-#open-settings{width:var(--control);padding:0;justify-content:center}
-#open-settings span{display:none}
 .set-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:18px}
 .set-foot .link{margin:0;color:var(--slate)}
 .set-foot .link:hover{color:var(--ink)}
@@ -760,58 +773,64 @@ dialog.settings::backdrop{background:transparent}
   .mini{height:72px}
 }
 
-/* Barre flottante (écrans larges) : un rail d'icônes sur un bord, qui s'ouvre au survol ou au clavier.
-   Sa place (gauche, haut, droite, bas) se choisit dans les Réglages et reste sur l'appareil.
-   Sous 1024 px (tablette, téléphone), rien ne change : le rail mangerait trop de largeur. */
-.dock-pick{display:none}
-.dock-row{display:flex}
-@media (min-width:1024px){
-  .dock-pick{display:block}
-  body[data-dock=left]{padding-left:88px}
-  body[data-dock=right]{padding-right:88px}
-  body:is([data-dock=left],[data-dock=right]) .topbar{position:fixed;top:12px;bottom:12px;left:12px;width:64px;height:auto;margin:0;padding:10px;flex-direction:column;align-items:stretch;gap:10px;overflow:hidden;transition:width .3s var(--ease)}
-  body[data-dock=right] .topbar{left:auto;right:12px}
-  /* Au clavier seulement (:focus-visible) : après un clic, le rail se referme dès que la souris le quitte. */
-  body:is([data-dock=left],[data-dock=right]) .topbar:is(:hover,:has(:focus-visible)){width:196px}
-  body:is([data-dock=left],[data-dock=right]) .mark{padding-left:11px;gap:14px;white-space:nowrap;overflow:hidden}
-  body:is([data-dock=left],[data-dock=right]) .mark svg{flex:none}
-  body:is([data-dock=left],[data-dock=right]) .modes{flex:none;justify-content:stretch}
-  body:is([data-dock=left],[data-dock=right]) .page-tabs{flex:1;flex-direction:column;padding:4px;border-radius:14px;overflow:hidden}
-  body:is([data-dock=left],[data-dock=right]) .page-tabs button{display:flex;align-items:center;gap:8px;width:100%;max-width:none;height:36px;padding:0;border-radius:10px;text-overflow:clip}
-  body:is([data-dock=left],[data-dock=right]) .page-tabs button::before{content:attr(data-i);content:attr(data-i) / "";flex:none;width:36px;text-align:center;font-weight:600;text-transform:uppercase}
-  body:is([data-dock=left],[data-dock=right]) .thumb{top:0;left:4px;width:calc(100% - 8px);height:36px;border-radius:10px;transform:translateY(var(--y,0))}
-  body:is([data-dock=left],[data-dock=right]) .tools{flex-direction:column;align-items:stretch;margin:auto 0 0}
-  body:is([data-dock=left],[data-dock=right]) .tools .icon{width:100%;height:44px;padding:0 14px;justify-content:flex-start;gap:14px;border-radius:12px;overflow:hidden;white-space:nowrap}
-  body:is([data-dock=left],[data-dock=right]) .tools #open-settings{width:100%;padding:0 14px;justify-content:flex-start}
-  body:is([data-dock=left],[data-dock=right]) #open-settings span{display:inline}
-  body:is([data-dock=left],[data-dock=right]) .me{align-self:flex-start;margin-left:4px}
-  body[data-dock=left] #menu{inset:auto auto 12px 88px;transform-origin:bottom left}
-  body[data-dock=right] #menu{inset:auto 88px 12px auto;transform-origin:bottom right}
-  body[data-dock=bottom] .topbar{position:fixed;top:auto;bottom:12px;left:0;right:0;margin:0 auto}
-  body[data-dock=bottom] main{padding-bottom:84px}
-  body[data-dock=bottom] #menu{inset:auto max(16px,calc((100vw - 1100px)/2)) 76px auto;transform-origin:bottom right}
-}
-@media (prefers-reduced-motion:reduce){.topbar{transition:none!important}}
+/* Personnaliser : quatre groupes dans le panneau de droite (fond, apparence, disposition, espace actuel). */
+.set-group{padding:24px 0}
+.set-group + .set-group{border-top:1px solid var(--rule)}
+.set-group > h3{font-size:17px;line-height:1.3;font-weight:600;letter-spacing:-.01em}
+.set-lead{margin:4px 0 14px;font-size:14px}
+.set-lead b{font-weight:600}
+.set-group .set-sec{padding:14px 0;border:0}
+.set-group .set-sec h4{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px;font-size:14px;line-height:20px;font-weight:600}
+.set-group .set-sec h4 span{font-weight:400;font-size:13px;color:var(--slate)}
+.settings .tiles{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:0}
+.settings .tile span{padding:2px 8px;font-size:12px}
+.settings .wall-zoom{max-width:none}
+.set-note{margin-top:10px;font-size:13px}
+.settings .page-tools{margin-top:0}
+/* Gérer les favoris. */
+.fav-edit h3{margin:18px 0 8px;font-size:14px;font-weight:600}
+.fav-rows{display:grid;gap:2px;margin:0;padding:0;list-style:none}
+.fav-rows li{display:flex;align-items:center;gap:4px;min-height:44px;padding:0 4px 0 12px;border-radius:12px;background:var(--tint)}
+.fav-row-name{flex:1;min-width:0;overflow:hidden;font-size:14px;text-overflow:ellipsis;white-space:nowrap}
+.fav-row-where{font-size:12px;color:var(--slate)}
+.fav-act{display:grid;place-items:center;flex:none;width:40px;height:40px;padding:0;border:0;border-radius:10px;background:none;color:var(--ink)}
+.fav-act:hover:not(:disabled){background:var(--press)}
+.fav-act:disabled{opacity:.3;cursor:default}
+.fav-act svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.600;stroke-linecap:round;stroke-linejoin:round}
+/* Verrou de l'appareil, dans le menu du compte. */
+#menu .lock-set{padding:0;border:0}
+#menu .lock-set h3{font-size:14px;line-height:20px;font-weight:600}
+#menu .lock-help{font-size:12px}
 </style>
 </head>
 <body>
 <script>
-// Place de la barre, lue tout de suite pour éviter un saut à l'affichage.
-try { document.body.dataset.dock = { left: 1, top: 1, right: 1, bottom: 1 }[localStorage.getItem('renzvi:dock')] ? localStorage.getItem('renzvi:dock') : 'left'; } catch { document.body.dataset.dock = 'left'; }
+// Menu latéral replié ou ouvert (grand écran seulement), lu tout de suite pour éviter un saut à l'affichage. Sur téléphone, le menu part fermé.
+try { document.body.dataset.menu = localStorage.getItem('renzvi:menu') === 'ferme' ? 'ferme' : 'ouvert'; } catch { document.body.dataset.menu = 'ouvert'; }
 </script>
 <div id="wall" aria-hidden="true"></div>
-<header class="col topbar" id="bar">
-  <a class="mark" href="./" aria-label="Renzvi, accueil"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="3" fill="currentColor"/><rect x="13" y="2" width="9" height="9" rx="3" fill="currentColor" opacity=".22"/><rect x="2" y="13" width="9" height="9" rx="3" fill="currentColor" opacity=".22"/><rect x="13" y="13" width="9" height="9" rx="3" fill="currentColor" opacity=".22"/></svg><span>Renzvi</span></a>
-  <nav class="modes" id="page-bar" aria-label="Modes et pages de ton écran" hidden>
-    <div class="page-tabs" id="page-tabs"></div>
-  </nav>
-  <div class="tools">
-    <button class="primary icon" id="open-add" type="button" aria-label="Ajouter un widget" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg><span>Ajouter</span></button>
-    <button class="ghost icon" id="open-custom" type="button" aria-label="Personnaliser" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5h5M11 5h3M2 11h2M8 11h6"/><circle cx="9" cy="5" r="2"/><circle cx="6" cy="11" r="2"/></svg><span>Personnaliser</span></button>
-    <button class="ghost icon" id="open-settings" type="button" aria-label="Réglages" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span>Réglages</span></button>
-    <button class="me" id="me" type="button" popovertarget="menu" aria-label="Mon compte" hidden></button>
+<header class="topbar" id="bar">
+  <div class="bar-top">
+    <a class="mark" href="./" aria-label="Renzvi, accueil"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="3" fill="currentColor"/><rect x="13" y="2" width="9" height="9" rx="3" fill="currentColor" opacity=".22"/><rect x="2" y="13" width="9" height="9" rx="3" fill="currentColor" opacity=".22"/><rect x="13" y="13" width="9" height="9" rx="3" fill="currentColor" opacity=".22"/></svg><span>Renzvi</span></a>
+    <button class="bar-toggle" id="bar-toggle" type="button" aria-controls="bar-nav" aria-expanded="true" aria-label="Masquer le menu"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2.500" width="12" height="11" rx="2.500"/><path d="M6 2.500v11"/><path class="chev" d="M10.500 6.200 8.700 8l1.800 1.800"/></svg></button>
   </div>
+  <nav class="bar-nav" id="bar-nav" aria-label="Menu de ton écran">
+    <div class="bar-main">
+      <button class="primary icon bar-btn" id="open-add" type="button" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg><span>Ajouter un widget</span></button>
+      <button class="bar-btn" id="open-modes" type="button" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.500"/><path d="M8 2.500v2M8 11.500v2M2.500 8h2M11.500 8h2"/></svg><span class="bar-two"><span>Changer de mode</span><small id="mode-now"></small></span></button>
+    </div>
+    <section class="favs" id="favs" aria-labelledby="favs-title" hidden>
+      <div class="favs-head"><h2 id="favs-title">Favoris</h2><button class="favs-edit" id="favs-edit" type="button" aria-label="Gérer les favoris">Gérer</button></div>
+      <ul class="favs-list" id="favs-list"></ul>
+      <p class="favs-empty" id="favs-empty">Garde ici tes widgets préférés pour y aller en un clic.</p>
+    </section>
+    <div class="bar-foot">
+      <button class="bar-btn" id="open-custom" type="button" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5h5M11 5h3M2 11h2M8 11h6"/><circle cx="9" cy="5" r="2"/><circle cx="6" cy="11" r="2"/></svg><span>Personnaliser</span></button>
+      <button class="bar-btn me" id="me" type="button" popovertarget="menu" hidden><span class="me-av" id="me-letter" aria-hidden="true"></span><span class="me-name">Mon compte</span></button>
+    </div>
+  </nav>
 </header>
+<div class="bar-scrim" id="bar-scrim" hidden></div>
 <div class="glass" id="menu" popover>
   <p id="who"></p>
   <div class="acct">
@@ -827,14 +846,11 @@ try { document.body.dataset.dock = { left: 1, top: 1, right: 1, bottom: 1 }[loca
     </div>
     <p class="desc" id="ref-info" role="status">Chargement…</p>
   </div>
-  <div class="acct">
-    <h2>Apparence</h2>
-    <button class="ghost set-open" id="menu-settings" type="button">Thème, couleurs et polices</button>
-  </div>
   <div class="acct" data-install-row>
     <h2>Application</h2>
     <button class="ghost ins-open ins-menu-btn" type="button" data-install><span>Installer l'app</span></button>
   </div>
+  <div class="acct" id="acct-lock"></div>
   <div class="acct">
     <h2>Aide</h2>
     <button class="link" id="aide-open" type="button">Revoir les premiers pas</button>
@@ -845,70 +861,74 @@ try { document.body.dataset.dock = { left: 1, top: 1, right: 1, bottom: 1 }[loca
 
 <dialog class="settings" id="settings" aria-labelledby="settings-title">
   <header class="set-head">
-    <h2 id="settings-title">Réglages</h2>
+    <h2 id="settings-title">Personnaliser</h2>
     <p id="set-saved" role="status"></p>
-    <button class="x" id="settings-close" type="button" aria-label="Fermer les réglages">×</button>
+    <button class="x" id="settings-close" type="button" aria-label="Fermer Personnaliser">×</button>
   </header>
   <div class="set-body">
-    <section class="set-sec" aria-labelledby="set-theme">
-      <h3 id="set-theme">Thème</h3>
-      <div class="themes" id="themes" role="group" aria-labelledby="set-theme">
-        <button class="theme-btn" type="button" data-value="light"><span class="mini" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="theme-name"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.8"/><path d="M8 1.5v1.4M8 13.1v1.4M1.5 8h1.4M13.1 8h1.4M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/></svg>Clair</span></button>
-        <button class="theme-btn" type="button" data-value="dark"><span class="mini dark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="theme-name"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.6A5.6 5.6 0 0 1 6.4 2.5a5.6 5.6 0 1 0 7.1 7.1z"/></svg>Sombre</span></button>
-      </div>
+    <section class="set-group" aria-labelledby="g-fond">
+      <h3 id="g-fond">Fond d'écran</h3>
+      <p class="desc set-lead">Pour le mode « <span class="page-name"></span> ».</p>
+      <div id="wall-slot"></div>
     </section>
-    <section class="set-sec">
-      <h3 id="accent-label">Couleur d'accent <span id="accent-name"></span></h3>
-      <div class="swatches" id="swatches" role="group" aria-labelledby="accent-label"></div>
-    </section>
-    <section class="set-sec">
-      <h3 id="set-titre">Police des titres <span id="titre-name"></span></h3>
-      <div class="fonts" id="fonts-titre" role="group" aria-labelledby="set-titre"></div>
-      <div class="pager" id="pager-titre"></div>
-    </section>
-    <section class="set-sec">
-      <h3 id="set-texte">Police du texte <span id="texte-name"></span></h3>
-      <div class="fonts" id="fonts-texte" role="group" aria-labelledby="set-texte"></div>
-      <div class="pager" id="pager-texte"></div>
-    </section>
-    <section class="set-sec" aria-labelledby="set-forme">
-      <h3 id="set-forme">Forme</h3>
-      <div class="set-row"><span id="set-coins">Coins</span><div class="choices" id="look-coins" role="group" aria-labelledby="set-coins"></div></div>
-      <div class="set-row"><span id="set-densite">Espacement</span><div class="choices" id="look-densite" role="group" aria-labelledby="set-densite"></div></div>
-    </section>
-    <section class="set-sec" aria-labelledby="set-verre">
-      <h3 id="set-verre">Verre des widgets</h3>
-      <div class="set-slider"><label for="look-flou">Flou</label><output id="flou-val" for="look-flou"></output><input type="range" id="look-flou" min="0" max="40" step="1"></div>
-      <div class="set-slider"><label for="look-opacite">Opacité</label><output id="opacite-val" for="look-opacite"></output><input type="range" id="look-opacite" min="0" max="100" step="5"></div>
-    </section>
-    <section class="set-sec dock-pick" aria-labelledby="set-dock">
-      <div class="set-row"><h3 id="set-dock">Place de la barre</h3>
-        <div class="choices dock-row" id="dock" role="group" aria-label="Place de la barre">
-          <button type="button" data-dock="left">Gauche</button><button type="button" data-dock="top">Haut</button><button type="button" data-dock="right">Droite</button><button type="button" data-dock="bottom">Bas</button>
+    <section class="set-group" aria-labelledby="g-look">
+      <h3 id="g-look">Apparence</h3>
+      <section class="set-sec" aria-labelledby="set-theme">
+        <h4 id="set-theme">Thème</h4>
+        <div class="themes" id="themes" role="group" aria-labelledby="set-theme">
+          <button class="theme-btn" type="button" data-value="light"><span class="mini" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="theme-name"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.8"/><path d="M8 1.5v1.4M8 13.1v1.4M1.5 8h1.4M13.1 8h1.4M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/></svg>Clair</span></button>
+          <button class="theme-btn" type="button" data-value="dark"><span class="mini dark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="theme-name"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.6A5.6 5.6 0 0 1 6.4 2.5a5.6 5.6 0 1 0 7.1 7.1z"/></svg>Sombre</span></button>
         </div>
+      </section>
+      <section class="set-sec">
+        <h4 id="accent-label">Couleur d'accent <span id="accent-name"></span></h4>
+        <div class="swatches" id="swatches" role="group" aria-labelledby="accent-label"></div>
+      </section>
+      <section class="set-sec">
+        <h4 id="set-titre">Police des titres <span id="titre-name"></span></h4>
+        <div class="fonts" id="fonts-titre" role="group" aria-labelledby="set-titre"></div>
+        <div class="pager" id="pager-titre"></div>
+      </section>
+      <section class="set-sec">
+        <h4 id="set-texte">Police du texte <span id="texte-name"></span></h4>
+        <div class="fonts" id="fonts-texte" role="group" aria-labelledby="set-texte"></div>
+        <div class="pager" id="pager-texte"></div>
+      </section>
+      <section class="set-sec" aria-labelledby="set-forme">
+        <h4 id="set-forme">Forme</h4>
+        <div class="set-row"><span id="set-coins">Coins</span><div class="choices" id="look-coins" role="group" aria-labelledby="set-coins"></div></div>
+        <div class="set-row"><span id="set-densite">Espacement</span><div class="choices" id="look-densite" role="group" aria-labelledby="set-densite"></div></div>
+      </section>
+      <section class="set-sec" aria-labelledby="set-verre">
+        <h4 id="set-verre">Verre des widgets</h4>
+        <div class="set-slider"><label for="look-flou">Flou</label><output id="flou-val" for="look-flou"></output><input type="range" id="look-flou" min="0" max="40" step="1"></div>
+        <div class="set-slider"><label for="look-opacite">Opacité</label><output id="opacite-val" for="look-opacite"></output><input type="range" id="look-opacite" min="0" max="100" step="5"></div>
+      </section>
+      <div class="set-foot">
+        <button class="link" id="look-reset" type="button">Revenir à l'apparence d'origine</button>
       </div>
     </section>
-    <div class="set-foot">
-      <button class="link" id="look-reset" type="button">Revenir aux réglages d'origine</button>
-    </div>
+    <section class="set-group" aria-labelledby="g-layout">
+      <h3 id="g-layout">Disposition</h3>
+      <p class="desc set-lead">Déplace, redimensionne, replie ou retire les widgets de « <span class="page-name"></span> ». Sur téléphone, ils prennent toute la largeur.</p>
+      <div class="page-tools">
+        <button class="primary" id="layout-edit" type="button">Disposer les widgets</button>
+        <button class="ghost" id="layout-reset" type="button">Réinitialiser la disposition</button>
+      </div>
+    </section>
+    <section class="set-group" aria-labelledby="g-space">
+      <h3 id="g-space">Espace actuel</h3>
+      <p class="set-lead">Mode affiché : <b id="page-current"></b></p>
+      <div class="page-tools">
+        <button class="ghost" id="page-new" type="button">Créer un mode</button>
+        <button class="ghost" id="page-rename" type="button">Renommer</button>
+        <button class="ghost" id="page-delete" type="button">Supprimer ce mode</button>
+      </div>
+      <p class="desc set-note" id="page-max" hidden>Six modes au maximum. Supprimes-en un pour en créer un autre.</p>
+    </section>
   </div>
 </dialog>
 
-<script>
-{
-  const pick = document.getElementById('dock');
-  const mark = () => { for (const b of pick.children) b.setAttribute('aria-pressed', b.dataset.dock === document.body.dataset.dock); };
-  pick.addEventListener('click', e => {
-    const d = e.target.dataset?.dock;
-    if (!d) return;
-    document.body.dataset.dock = d;
-    try { localStorage.setItem('renzvi:dock', d); } catch {}
-    mark();
-    dispatchEvent(new Event('resize')); // la pastille du mode se recale
-  });
-  mark();
-}
-</script>
 <main class="col" id="app" hidden>
   <section class="setup glass" id="setup" hidden></section>
   <div id="screen" hidden>
@@ -921,30 +941,14 @@ try { document.body.dataset.dock = { left: 1, top: 1, right: 1, bottom: 1 }[loca
     </div>
     <section class="aide glass" id="aide" aria-labelledby="aide-title" hidden></section>
     <p class="desc" id="page-note" role="status"></p>
-    <section class="custom glass" id="custom" aria-label="Personnaliser ton écran" data-tab="fond" hidden>
-      <div class="custom-tabs choices" id="custom-tabs" role="group" aria-label="Réglage affiché"></div>
-      <div class="custom-part" data-part="fond">
-        <p class="custom-label">Fond d'écran de cette page</p>
-        <div id="wall-slot"></div>
-      </div>
-      <div class="custom-part" data-part="couleur">
-        <p class="custom-label">Thème, couleur, polices et formes</p>
-        <div class="page-tools"><button class="ghost" id="custom-settings" type="button">Ouvrir les réglages</button></div>
-      </div>
-      <div class="custom-part" data-part="page">
-        <p class="custom-label">Page affichée : <b id="page-current"></b></p>
-        <div class="page-tools">
-          <button class="ghost" id="page-new" type="button">Nouvelle page</button>
-          <button class="ghost" id="page-rename" type="button">Renommer</button>
-          <button class="ghost" id="page-delete" type="button">Supprimer la page</button>
-          <button class="ghost" id="layout-reset" type="button">Réinitialiser la disposition</button>
-        </div>
+    <section class="custom glass" id="custom" aria-labelledby="custom-title" hidden>
+      <div class="custom-text">
+        <h2 id="custom-title">Disposer « <span class="page-name"></span> »</h2>
+        <p class="desc">Glisse la poignée pour déplacer un widget, choisis sa taille ou retire-le.</p>
       </div>
       <div class="custom-side" id="custom-side">
         <button class="primary" id="custom-done" type="button">Terminer</button>
       </div>
-      <p class="custom-tip desc">Sur chaque widget : glisse la poignée pour le déplacer, choisis sa taille ou retire-le.</p>
-      <p class="custom-hint desc" id="custom-hint">Sur téléphone, les widgets prennent toute la largeur. La taille choisie s'applique sur un écran plus large.</p>
     </section>
     <p class="sr" id="custom-live" role="status"></p>
     <div class="board" id="board"></div>
@@ -1134,7 +1138,7 @@ const LOOK_DEFAULT = { theme: 'light', titre: 'defaut', texte: 'systeme', coins:
 const FOND_MIN = 40; // zoom du fond d'écran, en % de la taille qui couvre l'écran
 const FLOU_MAX = 40, BOOST_MAX = .26;
 const SIZES = [{ id: 's', name: 'Petit' }, { id: 'm', name: 'Moyen' }, { id: 'l', name: 'Grand' }];
-const MAX_SCREEN_PAGES = 6, MAX_PAGE_NAME = 24, FIRST_PAGE = { id: 'p1', name: 'Mon écran' };
+const MAX_SCREEN_PAGES = 6, MAX_PAGE_NAME = 24, FAV_MAX = 8, FIRST_PAGE = { id: 'p1', name: 'Mon écran' };
 const MIN_FLIGHT = 5, MAX_FLIGHT = 180, FLIGHT_GRACE = 10000, CANCEL_CONFIRM = 3000;
 // Une durée donne une destination : plus le vol est long, plus on va loin. Ce sont des repères, pas de vrais horaires.
 const ROUTES = [
@@ -2577,7 +2581,7 @@ if (!sb) {
   let userId, saveTimer, saving = null, loaded = false, stored = {}, photoUrl = null, referral = null;
   // done reste faux tant que le premier lancement n'est pas terminé : on le reprend au retour.
   // widgets garde l'ordre de tous les widgets ; where dit sur quelle page chacun se trouve (sans entrée : la première).
-  const screen = { wallpaper: 'blanc', widgets: [], done: false, accent: DEFAULT_ACCENT, look: { ...LOOK_DEFAULT }, sizes: {}, spans: {}, heights: {}, collapsed: [], pages: [FIRST_PAGE], where: {}, vues: { v: VUES_VERSION, page: {}, places: {} } };
+  const screen = { wallpaper: 'blanc', widgets: [], done: false, accent: DEFAULT_ACCENT, look: { ...LOOK_DEFAULT }, sizes: {}, spans: {}, heights: {}, collapsed: [], favoris: [], pages: [FIRST_PAGE], where: {}, vues: { v: VUES_VERSION, page: {}, places: {} } };
   let currentPage = FIRST_PAGE.id;
   const pageOf = id => screen.where[id] ?? screen.pages[0].id;
   const onPage = () => screen.widgets.filter(id => pageOf(id) === currentPage);
@@ -2789,26 +2793,16 @@ if (!sb) {
   }
 
   // Masqués, pas retirés : le minuteur et les sons d'une autre page continuent de tourner.
+  // Les modes ne sont plus listés dans le menu : « Changer de mode » ouvre la roue et montre le mode affiché.
   function drawPages() {
-    const many = screen.pages.length > 1;
-    $('page-bar').hidden = !many;
-    document.body.classList.toggle('has-modes', many);
-    const tabs = $('page-tabs');
-    // La pastille reste en place d'un dessin à l'autre : la retirer de la page couperait son glissement.
-    if (!tabs.querySelector('.thumb')) tabs.append(el('span', 'thumb still'));
-    for (const old of tabs.querySelectorAll('button')) old.remove();
-    tabs.append(...screen.pages.map(page => {
-      const tab = button('', page.name, () => { showPage(page.id); focusTab(); });
-      tab.dataset.i = [...page.name.trim()][0] ?? '';
-      const ico = modes?.iconSvg(page);
-      if (ico) { tab.classList.add('has-ico'); tab.insertAdjacentHTML('afterbegin', `<span class="tab-ico">${ico}</span>`); }
-      tab.setAttribute('aria-pressed', page.id === currentPage);
-      return tab;
-    }));
-    moveThumb();
+    const many = screen.pages.length > 1, name = pageNow().name;
+    $('mode-now').textContent = `Mode : ${name}`;
+    $('open-modes').ariaLabel = `Changer de mode. Mode actuel : ${name}`;
+    for (const n of document.querySelectorAll('.page-name')) n.textContent = name;
     drawVuePick();
-    $('page-current').textContent = pageNow().name;
+    $('page-current').textContent = name;
     $('page-new').disabled = screen.pages.length >= MAX_SCREEN_PAGES;
+    $('page-max').hidden = !$('page-new').disabled;
     $('page-delete').hidden = !many;
     for (const [id, m] of mounted) {
       m.box.hidden = pageOf(id) !== currentPage;
@@ -2817,21 +2811,11 @@ if (!sb) {
       m.edit.page.value = pageOf(id);
     }
     refreshBoard();
+    drawFavs();
     applyVue();
   }
-  function moveThumb() {
-    const tabs = $('page-tabs'), tab = tabs.querySelector('[aria-pressed=true]'), thumb = tabs.querySelector('.thumb');
-    if (!tab || !thumb || !tab.offsetWidth) return;
-    thumb.style.setProperty('--x', `${tab.offsetLeft}px`);
-    thumb.style.setProperty('--w', `${tab.offsetWidth}px`);
-    thumb.style.setProperty('--y', `${tab.offsetTop}px`); // rail vertical
-    // Avec beaucoup de pages sur téléphone, la rangée défile jusqu'à l'onglet affiché.
-    if (tab.offsetLeft < tabs.scrollLeft || tab.offsetLeft + tab.offsetWidth > tabs.scrollLeft + tabs.clientWidth) tabs.scrollLeft = tab.offsetLeft - 16;
-    requestAnimationFrame(() => thumb.classList.remove('still'));
-  }
-  addEventListener('resize', moveThumb);
-  document.fonts?.ready.then(moveThumb);
-  const focusTab = () => $('page-tabs').querySelector('[aria-pressed=true]').focus();
+  // Après un changement de mode : le focus va sur le bouton du menu, ou sur celui qui l'ouvre s'il est replié.
+  const focusTab = () => { const b = $('open-modes'); (b.checkVisibility?.() ?? !!b.offsetParent) ? b.focus() : $('bar-toggle').focus(); };
   // Changer de mode : le fond passe en fondu, la pastille glisse, les widgets du mode se posent. Rien n'est rechargé ni perdu.
   function showPage(id) {
     const changed = id !== currentPage;
@@ -2942,14 +2926,13 @@ if (!sb) {
   function askPageName(title, value, done) {
     const { form, input } = addForm(value || `Page ${screen.pages.length + 1}`, MAX_PAGE_NAME, () => {});
     input.value = value;
-    input.ariaLabel = 'Nom de la page';
+    input.ariaLabel = 'Nom du mode';
     form.querySelector('button').textContent = 'Enregistrer';
     form.onsubmit = e => {
       e.preventDefault();
       done(input.value.trim() || input.placeholder);
       $('page-dialog').close();
       saveScreen();
-      focusTab();
     };
     const close = el('div', 'actions');
     close.append(button('ghost', 'Annuler', () => $('page-dialog').close()));
@@ -2964,7 +2947,7 @@ if (!sb) {
     const target = screen.pages[i - 1] ?? screen.pages[1];
     const count = onPage().length;
     const actions = el('div', 'actions');
-    actions.append(button('ghost', 'Annuler', () => $('page-dialog').close()), button('primary', 'Supprimer la page', () => {
+    actions.append(button('ghost', 'Annuler', () => $('page-dialog').close()), button('primary', 'Supprimer le mode', () => {
       const where = { ...screen.where };
       for (const id of Object.keys(where)) if (where[id] === page.id) where[id] = target.id;
       screen.where = where;
@@ -2972,10 +2955,9 @@ if (!sb) {
       $('page-dialog').close();
       showPage(target.id);
       saveScreen();
-      focusTab();
     }));
-    $('page-title').textContent = `Supprimer « ${page.name} » ?`;
-    $('page-slot').replaceChildren(el('p', 'desc', count ? `${plural(count, 'widget')} et leur contenu passeront sur « ${target.name} ». Rien n'est perdu.` : 'Cette page est vide.'), actions);
+    $('page-title').textContent = `Supprimer le mode « ${page.name} » ?`;
+    $('page-slot').replaceChildren(el('p', 'desc', `${count ? `${plural(count, 'widget')} et leur contenu passeront sur « ${target.name} ». Rien n'est perdu.` : 'Ce mode est vide.'} Le choix de fond de ce mode est oublié.`), actions);
     $('page-dialog').showModal();
   }
 
@@ -3298,18 +3280,20 @@ if (!sb) {
       saveScreen();
       dispatchEvent(new Event('resize'));
     };
-    const open = () => {
+    // « Personnaliser » ouvre directement ce panneau : fond, apparence, disposition, mode affiché.
+    $('open-custom').onclick = () => {
       if (document.body.classList.contains('customizing')) setCustomizing(false);
+      closeDrawer(false);
+      $('wall-slot').replaceChildren(wallpaperPicker());
       $('settings').showModal();
+      $('settings').querySelector('.set-body').scrollTop = 0;
       for (const key of ['titre', 'texte']) $(`fonts-${key}`).showChoice();
     };
-    $('open-settings').onclick = open;
-    $('custom-settings').onclick = open;
-    $('menu-settings').onclick = () => { $('menu').hidePopover(); open(); };
     $('settings-close').onclick = () => $('settings').close();
     // Un clic à côté du panneau le ferme : seul le fond invisible du dialogue reçoit ce clic.
     $('settings').onclick = e => { if (e.target === $('settings')) $('settings').close(); };
-    $('settings').onclose = () => ($('open-settings').offsetParent ? $('open-settings') : $('me')).focus();
+    // Retour au même endroit : le bouton Personnaliser, ou celui qui ouvre le menu s'il est replié.
+    $('settings').onclose = () => { if (!document.body.classList.contains('customizing')) (($('open-custom').checkVisibility?.() ?? true) ? $('open-custom') : $('bar-toggle')).focus(); };
     applyLook();
   }
   function drawSwatches() {
@@ -3329,21 +3313,155 @@ if (!sb) {
     }), pick);
     applyAccent();
   }
+  // ---------- Menu latéral : replier (grand écran) ou tiroir (tablette, téléphone) ----------
+  const narrow = matchMedia('(max-width:1023px)');
+  const drawerOpen = () => document.body.classList.contains('drawer-open');
+  const menuShown = () => (narrow.matches ? drawerOpen() : document.body.dataset.menu !== 'ferme');
+  function syncToggle() {
+    const on = menuShown(), t = $('bar-toggle');
+    t.setAttribute('aria-expanded', on);
+    t.ariaLabel = t.title = on ? 'Masquer le menu' : 'Afficher le menu';
+  }
+  function openDrawer() {
+    document.body.classList.add('drawer-open');
+    $('bar-scrim').hidden = false;
+    $('app').inert = true; // le reste de l'écran attend : un toucher sur le voile ferme le tiroir
+    syncToggle();
+  }
+  function closeDrawer(refocus = true) {
+    if (!drawerOpen()) return;
+    document.body.classList.remove('drawer-open');
+    $('bar-scrim').hidden = true;
+    $('app').inert = false;
+    if ($('menu').matches(':popover-open')) $('menu').hidePopover();
+    syncToggle();
+    if (refocus) $('bar-toggle').focus();
+  }
+  $('bar-toggle').onclick = () => {
+    if (narrow.matches) return drawerOpen() ? closeDrawer() : openDrawer();
+    const close = document.body.dataset.menu !== 'ferme';
+    // Le glissement de l'écran n'a lieu qu'au clic, jamais au chargement.
+    if (!REDUCED_MOTION()) {
+      document.body.classList.add('bar-anim');
+      clearTimeout(syncToggle.t);
+      syncToggle.t = setTimeout(() => { document.body.classList.remove('bar-anim'); dispatchEvent(new Event('resize')); }, 320);
+    }
+    document.body.dataset.menu = close ? 'ferme' : 'ouvert';
+    try { localStorage.setItem('renzvi:menu', document.body.dataset.menu); } catch {}
+    if ($('menu').matches(':popover-open')) $('menu').hidePopover();
+    syncToggle();
+    if (REDUCED_MOTION()) dispatchEvent(new Event('resize'));
+  };
+  $('bar-scrim').onclick = () => closeDrawer();
+  addEventListener('keydown', e => { if (e.key === 'Escape' && drawerOpen() && !document.querySelector('dialog[open]') && !$('menu').matches(':popover-open')) closeDrawer(); });
+  narrow.addEventListener('change', () => { closeDrawer(false); syncToggle(); });
+  syncToggle();
+  // Où rendre le focus après une fenêtre ouverte depuis le menu : le bouton s'il est encore visible, sinon celui qui ouvre le menu.
+  const visible = b => b.checkVisibility?.() ?? !!b.offsetParent;
+  const focusTarget = b => (narrow.matches ? $('bar-toggle') : b);
+  const focusMenu = b => (visible(b) ? b : $('bar-toggle')).focus();
+
+  // ---------- Favoris : un raccourci vers un widget déjà sur l'écran, jamais une copie ----------
+  const favIds = () => screen.favoris.filter(id => screen.widgets.includes(id) && mounted.has(id));
+  const titleOf = id => WIDGETS.find(w => w.id === id).title;
+  function drawFavs() {
+    const many = screen.pages.length > 1;
+    $('favs-list').replaceChildren(...favIds().map(id => {
+      const li = el('li');
+      const b = button('bar-btn', '', () => goFav(id));
+      b.append(el('span', 'fav-name', titleOf(id)));
+      if (many) b.append(el('span', 'fav-where', pageName(pageOf(id))));
+      b.ariaLabel = many ? `${titleOf(id)}, mode ${pageName(pageOf(id))}` : titleOf(id);
+      li.append(b);
+      return li;
+    }));
+  }
+  // Aller au widget : change de mode si besoin, le déplie s'il est replié, le montre et lui donne le focus.
+  function goFav(id) {
+    const m = mounted.get(id);
+    if (!m) return drawFavs();
+    closeDrawer(false);
+    if (pageOf(id) !== currentPage) showPage(pageOf(id));
+    else zoom(null);
+    if (screen.collapsed.includes(id)) {
+      layoutSet(id, { collapsed: false }, true);
+      layout.apply(m.box, id);
+      m.layout.markFold();
+    }
+    const box = m.box;
+    box.scrollIntoView({ block: 'center', behavior: REDUCED_MOTION() ? 'auto' : 'smooth' });
+    box.tabIndex = -1;
+    box.focus({ preventScroll: true });
+    box.addEventListener('blur', () => box.removeAttribute('tabindex'), { once: true });
+    box.classList.add('is-found');
+    setTimeout(() => box.classList.remove('is-found'), 1400);
+    $('custom-live').textContent = `${titleOf(id)}, mode ${pageName(pageOf(id))}`;
+  }
+  function editFavs() {
+    const box = el('div', 'fav-edit');
+    const setFavs = (list, focusKey) => {
+      screen.favoris = list;
+      saveScreen();
+      drawFavs();
+      draw();
+      (box.querySelector(`[data-k="${focusKey}"]:not(:disabled)`) ?? box.querySelector('[data-k]:not(:disabled)') ?? $('page-dialog').querySelector('.actions .primary'))?.focus();
+    };
+    const icon = (k, label, path, onclick, disabled) => {
+      const b = button('fav-act', '', onclick);
+      b.innerHTML = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="${path}"/></svg>`;
+      b.ariaLabel = b.title = label;
+      b.dataset.k = k;
+      b.disabled = disabled;
+      return b;
+    };
+    function draw() {
+      const favs = favIds(), others = screen.widgets.filter(id => mounted.has(id) && !favs.includes(id)), full = favs.length >= FAV_MAX;
+      const mine = el('ol', 'fav-rows');
+      favs.forEach((id, i) => {
+        const li = el('li');
+        const move = (to, key) => { const l = [...favs]; l.splice(i, 1); l.splice(to, 0, id); setFavs(l, key); };
+        li.append(el('span', 'fav-row-name', titleOf(id)),
+          icon(`up-${id}`, `Monter ${titleOf(id)}`, 'M8 12.500V3.500M4 7.500l4-4 4 4', () => move(i - 1, `up-${id}`), i === 0),
+          icon(`down-${id}`, `Descendre ${titleOf(id)}`, 'M8 3.500v9M4 8.500l4 4 4-4', () => move(i + 1, `down-${id}`), i === favs.length - 1),
+          icon(`del-${id}`, `Retirer ${titleOf(id)} des favoris`, 'M4 4l8 8M12 4l-8 8', () => setFavs(favs.filter(x => x !== id), `add-${id}`)));
+        mine.append(li);
+      });
+      const rest = el('ul', 'fav-rows');
+      for (const id of others) {
+        const li = el('li');
+        li.append(el('span', 'fav-row-name', titleOf(id)), el('span', 'fav-row-where', screen.pages.length > 1 ? pageName(pageOf(id)) : ''),
+          icon(`add-${id}`, `Ajouter ${titleOf(id)} aux favoris`, 'M8 3v10M3 8h10', () => setFavs([...favs, id], `del-${id}`), full));
+        rest.append(li);
+      }
+      box.replaceChildren(
+        el('h3', '', `Dans le menu (${favs.length} sur ${FAV_MAX})`),
+        favs.length ? mine : el('p', 'desc', 'Aucun favori pour l’instant.'),
+        el('h3', '', 'Widgets de ton écran'),
+        others.length ? rest : el('p', 'desc', screen.widgets.length ? 'Tous tes widgets sont déjà en favoris.' : 'Ajoute d’abord un widget à ton écran.'),
+        ...(full && others.length ? [el('p', 'desc', `${FAV_MAX} favoris au maximum : retires-en un pour en ajouter un autre.`)] : []),
+      );
+    }
+    draw();
+    const actions = el('div', 'actions');
+    actions.append(button('primary', 'Terminé', () => $('page-dialog').close()));
+    $('page-title').textContent = 'Favoris';
+    $('page-slot').replaceChildren(el('p', 'desc', 'Un favori t’emmène au widget, là où il est : rien n’est copié.'), box, actions);
+    closeDrawer(false);
+    $('page-dialog').showModal();
+    box.querySelector('[data-k]:not(:disabled)')?.focus();
+  }
+
   // L'état d'enregistrement suit le panneau : il reste visible même en bas d'un long écran.
   function setCustomizing(on) {
     zoom(null);
     document.body.classList.toggle('customizing', on);
     $('custom').hidden = !on;
-    $('custom-hint').hidden = !on;
-    $('open-custom').hidden = on;
-    if (on) {
-      $('wall-slot').replaceChildren(wallpaperPicker());
-      $('custom-side').prepend($('saved'));
-    } else $('today').parentNode.after($('saved'));
+    if (on) $('custom-side').prepend($('saved'));
+    else $('today').parentNode.after($('saved'));
     drawPages();
-    // L'écran garde, en bas, la place du panneau : le dernier widget reste atteignable.
+    // L'écran garde, en bas, la place de la barre : le dernier widget reste atteignable.
     document.documentElement.style.setProperty('--custom-h', on ? `${$('custom').offsetHeight + 40}px` : '');
-    (on ? $('custom-done') : $('open-custom')).focus();
+    if (on) $('custom-done').focus(); else focusMenu($('open-custom'));
   }
 
   // Le guide Study peut ajouter les widgets qui manquent sur la page courante, sans rien retirer ni déplacer.
@@ -3391,9 +3509,7 @@ if (!sb) {
     screenUser = user;
     $('setup').hidden = true;
     $('screen').hidden = false;
-    $('open-add').hidden = false;
-    $('open-custom').hidden = document.body.classList.contains('customizing');
-    $('open-settings').hidden = false;
+    for (const id of ['open-add', 'open-modes', 'favs', 'open-custom']) $(id).hidden = false;
     // Page vide : l'invitation reprend les carrés du logo, rangés comme un écran qui se remplit.
     $('board-empty').innerHTML = '<svg viewBox="0 0 264 148" aria-hidden="true"><rect class="tile-a" x="4" y="4" width="120" height="66" rx="14"/><path d="M22 26h50M22 40h76M22 54h36" fill="none" style="stroke:var(--on-accent)" stroke-opacity=".85" stroke-width="5" stroke-linecap="round"/><rect x="136" y="4" width="124" height="66" rx="14" fill="currentColor" opacity=".1"/><rect x="4" y="82" width="74" height="62" rx="14" fill="currentColor" opacity=".1"/><rect x="90" y="82" width="74" height="62" rx="14" fill="currentColor" opacity=".16"/><rect x="177" y="83" width="82" height="60" rx="13" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="1.500" stroke-dasharray="5 5"/><path d="M218 104v18M209 113h18" fill="none" stroke="currentColor" stroke-opacity=".6" stroke-width="1.800" stroke-linecap="round"/></svg><h2 id="empty-title"></h2><p>Choisis un premier widget dans le catalogue. Tu vois un aperçu avant de l\'ajouter, et tu peux le retirer quand tu veux.</p>';
     const start = el('div', 'actions');
@@ -3404,20 +3520,12 @@ if (!sb) {
     drawPages();
     drawToday();
     drawAide();
-    $('open-add').onclick = () => openCatalog(user);
+    $('open-add').onclick = () => { closeDrawer(false); openCatalog(user); };
     $('cat-search').oninput = () => drawCatalog(user);
     $('add-dialog').onclose = () => pickWidget(null, user);
-    $('open-custom').onclick = () => setCustomizing(true);
     $('custom-done').onclick = () => setCustomizing(false);
-    // Sur téléphone, le panneau montre un réglage à la fois.
-    $('custom-tabs').replaceChildren(...[['fond', 'Fond'], ['couleur', 'Style'], ['page', 'Page']].map(([id, name]) => {
-      const tab = button('', name, () => {
-        $('custom').dataset.tab = id;
-        for (const t of $('custom-tabs').children) t.setAttribute('aria-pressed', t === tab);
-      });
-      tab.setAttribute('aria-pressed', id === $('custom').dataset.tab);
-      return tab;
-    }));
+    $('layout-edit').onclick = () => { $('settings').close(); setCustomizing(true); };
+    $('favs-edit').onclick = editFavs;
     $('aide-open').onclick = () => {
       screen.aide = { add: screen.widgets.length > 0 };
       $('menu').hidePopover();
@@ -3438,23 +3546,18 @@ if (!sb) {
         },
         accents: () => ['vert', 'bleu', 'prune', 'terre', 'ambre', 'rose', 'sauge', 'encre'].map(id => ({ id, name: ACCENTS.find(a => a.id === id).name, hex: accentColor(id) })),
         wallName: () => { const w = wallNow(); return w === 'blanc' ? 'blanc' : w === 'perso' ? 'ta photo' : (WALLPAPERS.find(x => x.id === w)?.name ?? w).toLowerCase(); },
-        openCatalog: () => openCatalog(user),
-        customize: () => setCustomizing(true),
         // En mode Disposer, l'appui long laisse la main au glisser et aux poignées de taille.
         blocked: () => !!lock?.isLocked() || !!zoomed || $('screen').hidden || document.body.classList.contains('dragging') || document.body.classList.contains('customizing') || !!document.querySelector('dialog[open]'),
         say: text => { $('page-note').textContent = text; },
         afterCreate: () => $('board-empty').querySelector('.primary')?.focus(),
       });
-      modes.showRail(true);
       drawPages();
     }
-    // Création rapide (nom seul) dans Personnaliser ; la roue et le rail ouvrent la fenêtre complète (icône, couleur, fond).
-    $('page-new').onclick = () => askPageName('Nouvelle page', '', name => {
-      const page = { id: crypto.randomUUID(), name };
-      screen.pages = [...screen.pages, page];
-      showPage(page.id);
-    });
-    $('layout-reset').onclick = () => {
+    $('open-modes').onclick = e => { closeDrawer(false); modes.open(null, null, focusTarget(e.currentTarget)); };
+    // Une seule fenêtre de création, partagée avec la roue : nom, icône, couleur, fond de départ.
+    $('page-new').onclick = () => modes.openCreate();
+    $('layout-reset').onclick = () => confirmReset();
+    function resetLayout() {
       flip(() => {
         for (const id of onPage()) {
           const { [id]: _, ...sizes } = screen.sizes;
@@ -3466,10 +3569,18 @@ if (!sb) {
       });
       saveScreen();
       $('page-note').textContent = 'Disposition remise à zéro. Le contenu des widgets n’a pas changé.';
-    };
+    }
+    function confirmReset() {
+      const n = onPage().length;
+      const actions = el('div', 'actions');
+      actions.append(button('ghost', 'Annuler', () => $('page-dialog').close()), button('primary', 'Réinitialiser', () => { $('page-dialog').close(); resetLayout(); }));
+      $('page-title').textContent = `Réinitialiser la disposition de « ${pageNow().name} » ?`;
+      $('page-slot').replaceChildren(el('p', 'desc', n ? `Les tailles choisies et les replis de ${plural(n, 'widget')} reviennent à l'origine. L'ordre, le fond et le contenu des widgets ne changent pas.` : 'Ce mode est vide : il n’y a rien à remettre en place.'), actions);
+      $('page-dialog').showModal();
+    }
     $('page-rename').onclick = () => {
       const page = screen.pages.find(p => p.id === currentPage);
-      askPageName('Renommer la page', page.name, name => {
+      askPageName('Renommer le mode', page.name, name => {
         screen.pages = screen.pages.map(p => p === page ? { ...p, name } : p);
         drawPages();
       });
@@ -3616,6 +3727,7 @@ if (!sb) {
       stage.append(el('p', 'stage-none', `${w.title} est déjà ${here ? (screen.pages.length > 1 ? 'sur cette page' : 'sur ton écran') : `sur la page « ${pageName(pageOf(w.id))} »`}. Son contenu est gardé si tu le retires.`));
       const remove = button('ghost', 'Retirer', () => {
         screen.widgets = screen.widgets.filter(id => id !== w.id);
+        screen.favoris = screen.favoris.filter(id => id !== w.id); // un favori ne pointe jamais vers un widget retiré
         unmount(w.id);
         redraw();
         pickWidget(null, user);
@@ -3873,6 +3985,7 @@ if (!sb) {
     screen.spans = Object.fromEntries(Object.entries(saved.spans ?? {}).filter(([id, n]) => known(id) && Number.isInteger(n) && n >= 3 && n <= 12));
     screen.heights = Object.fromEntries(Object.entries(saved.heights ?? {}).filter(([id, n]) => known(id) && Number.isInteger(n) && n >= 140 && n <= 1200));
     screen.collapsed = [...new Set(listOf(saved.collapsed))].filter(known);
+    screen.favoris = [...new Set(listOf(saved.favoris))].filter(known).slice(0, FAV_MAX);
     // Une configuration abîmée ne doit pas empêcher d'ouvrir l'écran : on ne garde que ce qui est valide.
     const pages = listOf(saved.pages).filter(p => typeof p?.id === 'string' && p.id && p.id.length <= 64 && typeof p.name === 'string' && p.name.trim());
     const validWall = id => id === 'perso' || id === 'blanc' || WALLPAPERS.some(w => w.id === id);
@@ -3959,12 +4072,12 @@ if (!sb) {
         },
         say: text => { $('custom-live').textContent = text; },
       });
-      document.querySelector('#settings .set-foot').before(lock.settingsSection());
+      $('acct-lock').append(lock.settingsSection());
     }
     const first = firstName(user);
     $('hello').textContent = first ? `Bonjour ${first}.` : 'Bonjour.';
     $('who').textContent = user.email ?? '';
-    $('me').textContent = (first || user.email || '?')[0].toUpperCase();
+    $('me-letter').textContent = (first || user.email || '?')[0].toUpperCase();
     $('me').hidden = false;
     $('app').hidden = false;
     if (!loaded) { loadBoard(user); claimReferral(); }
