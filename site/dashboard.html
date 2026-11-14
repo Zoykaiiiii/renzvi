@@ -102,9 +102,13 @@ try { const l = JSON.parse(localStorage.getItem('renzvi:look') || '{}'); for (co
 body{font:400 16px/1.5 var(--sans);letter-spacing:-.008em;color:var(--ink);background:var(--ground);min-height:100dvh;-webkit-font-smoothing:antialiased}
 /* Le fond : une couche par photo, pour passer de l'une à l'autre en fondu quand on change de mode. */
 #wall{position:fixed;inset:0;z-index:-1;background:var(--ground);overflow:hidden}
-#wall i{position:absolute;inset:0;isolation:isolate;background:center/cover no-repeat;opacity:0;transition:opacity .7s ease}
-/* Fond dézoomé : la photo plus petite, posée sur une copie floue d'elle-même qui remplit les bords. */
-#wall i.recul::before{content:"";position:absolute;inset:-48px;z-index:-1;background-image:inherit;background-position:center;background-size:cover;filter:blur(32px) brightness(.9)}
+#wall i{position:absolute;inset:0;overflow:hidden;background:var(--img) center/cover no-repeat;opacity:0;transition:opacity .7s ease}
+/* Fond dézoomé : la photo plus petite (::after, nette), posée sur une copie floue d'elle-même qui remplit les bords (::before).
+   La couche elle-même n'a plus d'image : sinon la copie floue se peindrait par-dessus. */
+#wall i.recul{background:none}
+#wall i.recul::before,#wall i.recul::after{content:"";position:absolute;background:var(--img) center/cover no-repeat}
+#wall i.recul::before{inset:-48px;filter:blur(32px) brightness(.9)}
+#wall i.recul::after{inset:0;background-size:var(--size)}
 #wall i.on{opacity:1}
 /* Sur une photo (même noire), le verre garde 4,5:1 avec le gris secondaire et 3:1 avec l'accent, vérifié par tests/personnalisation.check.cjs. */
 body.has-wall{--glass:var(--glass-wall);--slate:var(--slate-wall)}
@@ -3689,7 +3693,7 @@ if (!sb) {
       const old = [...$('wall').children];
       if (url) {
         const layer = el('i', '');
-        layer.style.backgroundImage = url;
+        layer.style.setProperty('--img', url);
         layer.dataset.src = library ? `assets/${library.file}` : photoUrl;
         $('wall').append(layer);
         sizeWall();
@@ -3718,7 +3722,7 @@ if (!sb) {
         continue;
       }
       const s = dims ? Math.max(innerWidth / dims[0], innerHeight / dims[1]) * zoom / 100 : 0;
-      layer.style.backgroundSize = zoom < 100 && dims ? `${Math.round(dims[0] * s)}px ${Math.round(dims[1] * s)}px` : '';
+      layer.style.setProperty('--size', zoom < 100 && dims ? `${Math.round(dims[0] * s)}px ${Math.round(dims[1] * s)}px` : 'cover');
       layer.classList.toggle('recul', zoom < 100 && !!dims);
     }
   }

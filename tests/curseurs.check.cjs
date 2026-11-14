@@ -20,7 +20,7 @@ const { start } = require('./demo.cjs');
     return { page, context, db: srv.bac('plein', bac) };
   };
   const saved = page => page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré');
-  const wallSize = page => page.locator('#wall i.on').last().evaluate(l => l.style.backgroundSize);
+  const wallSize = page => page.locator('#wall i.on').last().evaluate(l => l.style.getPropertyValue('--size'));
 
   // 1. Zoom du fond, sur ordinateur.
   {
@@ -28,7 +28,7 @@ const { start } = require('./demo.cjs');
     await page.locator('#open-custom').click();
     const slider = page.getByRole('slider', { name: 'Zoom du fond' });
     assert.equal(await slider.getAttribute('aria-valuenow'), '100', '100 % par défaut');
-    assert.equal(await wallSize(page), '', 'la photo couvre l\'écran comme avant');
+    assert.equal(await wallSize(page), 'cover', 'la photo couvre l\'écran comme avant');
     await shot(page, 'zoom-100');
     // Glisser vers la gauche : la valeur suit pendant le geste, puis se pose sur un cran.
     const track = await page.locator('.islider').boundingBox();
