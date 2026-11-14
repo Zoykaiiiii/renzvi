@@ -1,6 +1,6 @@
 # Mémoire du projet Renzvi
 
-**Passation pour le prochain Claude. État vérifié le 6 novembre 2026, au commit `b4c256b`.**
+**Passation pour le prochain Claude. Remis à jour le 14 novembre 2026 (sections 1, 4, 5, 6, 16 à 18). Les sections 2 à 12 gardent leur date d'origine quand elles en ont une.**
 
 > **Complément de passation — Codex, 7 novembre 2026.** Les sections 1 à 11 conservent la mémoire du premier Claude Code/Codespace. Lire aussi la **section 12, signée Codex**, avant de choisir la prochaine tâche : elle consigne les échanges plus récents avec Damien, la priorité Study, le rôle de chacun et les sujets encore ouverts. Les vérifications du 6 novembre ci-dessous restent datées ; elles ne sont pas des tests réexécutés aujourd'hui.
 
@@ -12,9 +12,9 @@ Lis ce fichier en entier avant de travailler, puis `CLAUDE.md` (règles) et `IDE
 
 - **Le produit :** Renzvi, une seule app qui réunit tous les widgets du quotidien (study, chill, plus tard sport) sur un dashboard personnel qu'on compose comme un moodboard.
 - **Le fondateur :** Damien, non technique, pilote tout en français, en langage naturel.
-- **Où on en est (10 nov., commit `e83c671`) :** le dashboard fonctionne et il est en ligne et **gratuit**. Public : 15 widgets, modes, pages, connexion, et Study S1 à S3 (Cahier, Flashcards, Révisions). Caché : Study S6 à S8 (`?labo=1`), IA S4-S5 avec un fournisseur simulé, et 8 widgets Chill (`?chill=1`, section 13). Toutes les migrations sont passées en ligne. Le résumé complet, prêt pour Notion, est en haut d'`IDEES.md`.
-- **Ce qui bloque les premiers euros :** Damien n'a pas encore décidé ce qui est payant ni le prix. Le paiement Whop n'est pas branché et les pages légales n'existent pas.
-- **Ta prochaine action :** lire la section 12 et le backlog Study d'`IDEES.md`. La section 6 est l'ancien ordre recommandé, pas la priorité actuelle. Commence par `git fetch origin` et protège les modifications locales.
+- **Où on en est (14 nov.) :** le dashboard est en ligne et **gratuit**. Public : 15 widgets, modes (pages), roue des modes, menu latéral repliable avec favoris, panneau Personnaliser unique, minuteur à cadran, taille fine et repli des widgets, verrou de l'appareil, menus déroulants stylés, Study S1 à S3 (Cahier, Flashcards, Révisions). Caché : Study S6 à S8 et Nutrition (`?labo=1`), 8 widgets Chill (`?chill=1`), présentations (`?vues=1`), IA S4-S5 avec un fournisseur simulé. Une **nouvelle landing en Next.js** existe dans `prototype/` (section 18), pas encore en ligne. Les pages légales existent avec des champs à remplir.
+- **Ce qui bloque les premiers euros :** le prix n'est pas tranché (« on verra fin building »), **Whop n'est pas branché** (aucun code), les champs `[À remplir]` de `site/legal.html` sont vides, et la nouvelle landing n'est pas en ligne.
+- **Ta prochaine action :** Damien attaque **la landing (la remplir) puis Whop**. Lis la section 6 et la section 18. Commence par `git fetch origin` et protège les modifications locales.
 
 ## 2. Comment travailler avec Damien
 
@@ -27,6 +27,8 @@ Les règles complètes sont dans `CLAUDE.md`. Voici l'essentiel, avec ce que l'e
 - **Pousse seulement quand Damien dit « commit push »,** directement sur `main`, avec exactement `git push origin main`. Pas de PR. Commits petits, en français.
 - **Commence chaque tâche par `git fetch origin`.** Damien et Codex poussent sur `main` depuis ailleurs. Un fichier « introuvable » peut être dans un commit pas encore récupéré. S'il n'y a pas de conflit : `git pull --ff-only`.
 - **Pas de dépense cachée.** Avant toute API payante : coût par utilisateur, chaque appel compté et plafonné par utilisateur.
+- **Vérifications (règle du 14 nov.) :** toi, tu lances les suites de tests automatiques et tu répares celles qu'un changement casse. Pendant le travail, seulement les suites concernées ; la série complète une fois avant de dire « fini ». **Damien fait lui-même le visuel** (captures, « est-ce que ça rend bien », vrai téléphone) : pas de tours de captures ni de petits scripts pour vérifier un doute visuel. À la fin, donne-lui une courte liste (5-6 points) à regarder. Envoie des captures seulement s'il les demande.
+- **Ce fichier d'abord :** mets `memoire.md` à jour après chaque tâche et pousse-le avec le travail. Damien relance souvent ses sessions (quota hebdomadaire, claude-mem qui s'arrête) : c'est la vraie passation.
 - **Aucun secret dans le code ou le chat.** Indique à Damien quelle variable d'environnement remplir et où.
 - **Qui fait quoi (depuis le 4 nov.) :** Damien donne les idées, Codex (connecté au repo) écrit les prompts, Claude Code construit. Un prompt de Codex collé par Damien vaut un brief de Damien, mais lis le code et reste critique. S'il contredit une décision de Damien, signale-le au lieu de l'appliquer. Kimi tenait ce rôle juste avant, sans voir le code.
 - **Ses messages :** Damien écrit souvent vite et sans accents (« commit push », « dasgboard »). Comprends l'intention, et demande seulement si ça change vraiment ce que tu vas faire.
@@ -78,7 +80,7 @@ SVG viewBox 24×24, 4 carrés 9×9 à coins arrondis `rx=3` en grille 2×2 (x/y 
 ### Ce qui tourne
 - **En ligne :** https://renzvi-site.vercel.app (`/`, `/prototype.html`, `/login.html`, `/dashboard.html` répondent 200 le 6 nov., et le commit `b4c256b` y est bien). `renzvi.vercel.app` ne sert pas ce site.
 - **GitHub :** `Zoykaiiiii/renzvi`, branche `main`, repo public.
-- **Déploiement :** Vercel, réglé côté Vercel. Il n'y a ni `vercel.json` ni CI dans le repo.
+- **Déploiement :** Vercel, réglé côté Vercel, dossier racine `site`. `site/vercel.json` pose des en-têtes de sécurité (pas d'affichage dans un cadre, `nosniff`, referrer). Pas de CI. Pour la nouvelle landing, il faudra passer le dossier racine à `prototype` (section 18).
 
 ### ⚠️ La stack réelle n'est pas celle de `CLAUDE.md`
 `CLAUDE.md` prévoit Next.js. **Le site est en réalité en HTML/CSS/JS statique, sans build, avec Supabase appelé depuis le navigateur.** Aucune migration vers Next.js n'a été faite. Si le sujet revient, présente-le comme un choix avec coût et délai.
@@ -87,16 +89,20 @@ SVG viewBox 24×24, 4 carrés 9×9 à coins arrondis `rx=3` en grille 2×2 (x/y 
 
 | Fichier | Rôle |
 |---|---|
-| `site/dashboard.html` | Tout le dashboard (environ 2 700 lignes). Catalogue `WIDGETS` et `MODES` dedans |
+| `site/dashboard.html` | Tout le dashboard (environ 4 000 lignes). Catalogue `WIDGETS` et `MODES` dedans |
+| `site/dash/` | Composants du dashboard sans dépendance : cadran, minuteur, roue des modes, disposition, verrou, menus déroulants (sections 15 à 17) |
+| `site/legal.html` | Mentions légales, CGV, confidentialité (champs `[À remplir]`) |
+| `prototype/` | Nouvelle landing Next.js + Tailwind v4 + GSAP + React Bits (section 18), pas en ligne |
 | `site/login.html` | Connexion Google et code email, via Supabase |
 | `site/index.html` | Accueil : « Tes outils, au même endroit » (`noindex`) |
 | `site/prototype.html` | Redirige vers l'accueil, pour les liens déjà partagés |
 | `site/landing.js`, `landing.css` | Scripts et styles de l'accueil |
 | `site/lockin.js` | Scène du vol (hublot, WebGL) |
 | `site/install.js`, `install.css`, `manifest.webmanifest`, `sw.js` | Installation de l'app. `sw.js` ne met volontairement rien en cache |
-| `site/study/` | Study : `cahier.js` (S1, widget Cahier), `cartes.js` (S2, widget Flashcards, formulaire de carte partagé, moteur FSRS) et `revisions.js` (S3, widget Révisions du jour) |
-| `supabase/migrations/` | 10 migrations (3 pour Study) |
-| `tests/*.check.cjs` | 6 suites de tests dans un vrai Chromium (dont `cahier` et `cartes`) |
+| `site/study/` | Study : `cahier.js`, `cartes.js`, `revisions.js` (publics), `ia.js`, `quiz.js`, `schemas.js`, `guide.js` (labo) |
+| `site/chill/`, `site/nutrition/`, `site/vues/` | Chill (labo), Nutrition « Qu'est-ce qu'on mange ? » (labo), présentations (labo) |
+| `supabase/migrations/` | Migrations SQL. Damien les colle dans l'éditeur Supabase : `list_migrations` est incomplet, vérifie tables, buckets et contraintes |
+| `tests/*.check.cjs` | Suites de tests dans un vrai Chromium avec Supabase simulé (liste dans « Lancer les tests ») ; `tests/demo.cjs` (serveur de démo), `tests/menu.cjs` (aides pour le menu latéral) |
 | `maquette/` | Ancienne maquette |
 | `IDEES.md` | Toutes les idées. **Rien n'y est décidé tant que ce n'est pas dans `CLAUDE.md`** |
 | `HISTORIQUE_PROJETS.md` | Les autres projets de Damien (NoBR, Dating Photo AI) et ses leçons. Certaines références à `CLAUDE.md` sont périmées |
@@ -122,17 +128,18 @@ Ajoute une entrée dans `WIDGETS` (`site/dashboard.html`). **S'il enregistre des
 - **La clé dans `login.html` et `dashboard.html` est la clé publique,** prévue pour le navigateur. La sécurité repose sur la RLS. Aucune clé secrète dans le repo (recherche faite le 6 nov.) et pas de `.env`.
 
 ### Lancer les tests
-Le 6 nov., au commit `b4c256b`, **les 4 suites passent** : `install`, `login`, `personnalisation`, `landing`.
+Le 14 nov., ces 14 suites passent : `personnalisation`, `login`, `interactions`, `parcours`, `curseurs`, `vues`, `chill`, `selects`, `cahier`, `cartes`, `repas`, `install`, `landing`, `menu-lateral`. Comptez 20 à 25 min pour toutes. Aussi : `chill.test.cjs` et `repas.test.cjs` (logique), `ia.check.sh` et `rls.check.sh` (Docker).
 
 ```bash
 # Sur une nouvelle machine, une seule fois
 npm i --prefix ~/pw playwright@1.56.1 && npx --prefix ~/pw playwright install chromium
 sudo npx --prefix ~/pw playwright install-deps chromium
 
-# Pour lancer les tests
-export NODE_PATH=~/pw/node_modules
-for t in install login personnalisation landing; do node tests/$t.check.cjs; done
+# Une suite (captures en option : SHOTS=dossier pour les suites récentes, ou un dossier en argument pour les anciennes)
+NODE_PATH=~/pw/node_modules node tests/menu-lateral.check.cjs
 ```
+
+Instables connus : `curseurs` (roulement des chiffres du vol) et le minuteur de `login` échouent parfois d'une seconde ; relancer avant de chercher plus loin.
 
 **Limite importante :** ces tests utilisent une base Supabase simulée. Ils ne prouvent pas que tout marche sur un vrai compte.
 
@@ -154,9 +161,9 @@ Dernier résultat sur `prototype.html` : 1 erreur et 6 alertes (dégradé, verre
 
 **Manque ou imparfait :**
 - **Paiement :** aucune trace de Whop dans `site/`. Aucune limite gratuit/Pro. Le menu du compte dit « Renzvi est gratuit pour l'instant ».
-- **Légal :** mentions légales et confidentialité sont « en préparation ». **Indispensables avant le premier euro.**
+- **Légal :** `site/legal.html` existe (mentions, CGV avec rétractation, confidentialité), liée depuis le login. **Les champs `[À remplir]` sont vides** (nom, adresse, contact, TVA, médiateur, où se gère l'abonnement) : à remplir avant le premier euro. La page promet des choses faites à la main pour l'instant (suppression sous 30 jours, purge des comptes inactifs après 3 ans). Le checkout Whop devra montrer le lien vers `legal.html#cgv`.
 - **Images de la landing :** trop petites (736 px au mieux, `chat.webp` à 597 px) et **droits non vérifiés**, c'est un risque juridique une fois le site en vente. 736 px évoque Pinterest, mais ce n'est qu'une supposition. Reco faite à Damien : photos libres de droits (gratuit, environ 30 min), ou ses originaux en 1920 px, si les droits le permettent. Pas encore choisi. Les fonds du dashboard ont leurs sources dans `site/assets/credits.json`, et certaines licences exigent de citer l'auteur.
-- **Modes incomplets par rapport à la décision du 3 nov. :** cliquer sur un mode ne lance ni son ni playlist. Un widget ne peut être que sur une page, donc Study n'a ni musique ni ambiance. Reco déjà donnée : pas de lancement automatique du son.
+- **Modes incomplets par rapport à la décision du 3 nov. (toujours vrai le 14 nov.) :** cliquer sur un mode ne lance ni son ni playlist. Un widget ne peut être que sur une page, donc Study n'a ni musique ni ambiance. Reco déjà donnée : pas de lancement automatique du son.
 - **Pas de retour arrière** après « Installer Study et Chill ». Supprimer une page déplace ses widgets sur une page voisine.
 - **Temps de focus :** seul le dernier jour déjà enregistré est repris, donc le total peut sembler bas au début.
 - **Une seule photo perso par compte,** même si plusieurs pages l'utilisent.
@@ -164,6 +171,12 @@ Dernier résultat sur `prototype.html` : 1 erreur et 6 alertes (dégradé, verre
 - **`.taste-skill/` n'est pas ignoré :** il n'y a pas de `.gitignore`, donc n'utilise jamais `git add -A` ou `git add .`.
 
 ## 6. Prochaines étapes
+
+**Priorité de Damien au 14 nov. : remplir la landing (`prototype/`), puis brancher Whop.** Il a dit vouloir brancher Whop lui-même ; aide-le. Pour Whop : prix réglés **TVA incluse**, lien vers les CGV avant le paiement, et une limite gratuit/Pro qui n'existe pas encore dans le code (à décider avec lui). Aucune variable Whop n'est encore définie ; jamais de clé dans le code.
+
+Ensuite, d'après ses messages : sa journée de test complète (vrai compte, vrai téléphone), puis la refonte du design.
+
+**Ancien ordre, gardé pour l'historique :**
 
 Ordre historique recommandé à Damien le 6 nov. **Pas encore validé par Damien à cette date.** Conservé pour la passation du premier Claude ; la nouvelle priorité exprimée ensuite est Study, voir section 12. Ne pas lancer Whop ou une nouvelle refonte à la place du lot demandé par Damien.
 
@@ -382,7 +395,7 @@ Damien a confié à Codex la préparation technique des prompts pour pouvoir se 
 
 ## 14. Présentations de l'espace (labo) — Claude, 14 novembre 2026
 
-**Caché du public.** Accès : `dashboard.html?vues=1` (gardé sur l'appareil, `?vues=0` pour sortir). Brief de Damien (via Codex) : plusieurs présentations des mêmes outils (grille, arbre, constellation, tableau libre, carnet, bureau à fenêtres, pièce illustrée, orbite de focus, parcours), livrées par lots. **Lot 1 fait : le socle commun et le Tableau libre.** Rien n'est poussé.
+**Caché du public.** Accès : `dashboard.html?vues=1` (gardé sur l'appareil, `?vues=0` pour sortir). Brief de Damien (via Codex) : plusieurs présentations des mêmes outils (grille, arbre, constellation, tableau libre, carnet, bureau à fenêtres, pièce illustrée, orbite de focus, parcours), livrées par lots. **Lot 1 fait : le socle commun et le Tableau libre.** Poussé (`945d56d`).
 
 **Usage et présentation sont séparés.** Usage = la page (Study, Chill, pages perso) : onglets du rail. Présentation = sa disposition, choisie par page dans le sélecteur « Présentation » de l'en-tête. Exemple : Study en tableau libre, Chill en grille.
 
@@ -402,11 +415,11 @@ Damien a confié à Codex la préparation technique des prompts pour pouvoir se 
 
 **Limites connues :** l'ouverture agrandie écrase un instant le contenu pendant le zoom (effet « app qui s'ouvre »). Le tableau ne s'élargit pas : les places sont en pixels, ramenées dans la largeur de l'écran. Les places des widgets retirés restent enregistrées, ce qui est sans effet. Prochains lots : les autres présentations, à choisir par Damien.
 
-**Curseurs (14 nov., même session, pas poussé) :** les curseurs natifs (réglages Flou/Opacité, volumes d'Ambiance) prennent le style « piste fine + bouton blanc à halo » demandé par Damien, en CSS (`input[type=range]`, remplissage par `fillRange`). Nouveau réglage **Zoom du fond** (40 à 100 %, `screen.look.fond`) dans Personnaliser > Fond, avec un curseur « en ligne » (`inlineSlider`) : sous 100 %, la photo est moins agrandie et une copie floue remplit les bords. La durée du vol est un **compteur à trois chiffres** (`minuteDial`, +/− à maintenir, flèches, Page haut/bas, Début/Fin). Les composants React/Tailwind/shadcn fournis par Damien n'ont pas été installés : le dashboard est en HTML/JS sans React, donc ils ont été refaits en JS natif, avec le même comportement. Test : `tests/curseurs.check.cjs`.
+**Curseurs (14 nov., poussés avec `945d56d`) :** les curseurs natifs (réglages Flou/Opacité, volumes d'Ambiance) prennent le style « piste fine + bouton blanc à halo » demandé par Damien, en CSS (`input[type=range]`, remplissage par `fillRange`). Nouveau réglage **Zoom du fond** (40 à 100 %, `screen.look.fond`) dans Personnaliser > Fond, avec un curseur « en ligne » (`inlineSlider`) : sous 100 %, la photo est moins agrandie et une copie floue remplit les bords. La durée du vol est un **compteur à trois chiffres** (`minuteDial`, +/− à maintenir, flèches, Page haut/bas, Début/Fin). Les composants React/Tailwind/shadcn fournis par Damien n'ont pas été installés : le dashboard est en HTML/JS sans React, donc ils ont été refaits en JS natif, avec le même comportement. Test : `tests/curseurs.check.cjs`.
 
 ## 15. Interactions du dashboard — Claude, 14 novembre 2026
 
-**Brief de Damien (via Codex) : barres de défilement, minuteur à cadran, roue des modes à l'appui long, création de modes, rail d'actions, taille et repli des widgets, verrou par code.** Tout est public (pas de drapeau labo). **Rien n'est poussé** tant que Damien ne dit pas « commit push ».
+**Brief de Damien (via Codex) : barres de défilement, minuteur à cadran, roue des modes à l'appui long, création de modes, rail d'actions, taille et repli des widgets, verrou par code.** Tout est public (pas de drapeau labo). Poussé (`753bc38`). **Le rail d'actions de droite décrit ci-dessous a été retiré le 14 nov. au soir (section 17).**
 
 **Les quatre composants fournis** (React Bits et un curseur shadcn/Radix) sont en React + Tailwind/motion ; le dashboard est en HTML/JS sans build. Ils ont été **réécrits en JS natif, sans dépendance**, dans `site/dash/` (attribution React Bits en tête de chaque fichier) :
 
@@ -437,11 +450,48 @@ Damien a confié à Codex la préparation technique des prompts pour pouvoir se 
 
 ## 16. Menus déroulants — Claude, 14 novembre 2026
 
-**Demande de Damien : plus de fenêtre blanche du navigateur avec surlignage bleu dans les menus déroulants.** Un seul composant, `site/dash/select.js` (+ styles `.dd-*` en fin de `dash/dash.css`), sans dépendance. Pas encore poussé.
+**Demande de Damien : plus de fenêtre blanche du navigateur avec surlignage bleu dans les menus déroulants.** Un seul composant, `site/dash/select.js` (+ styles `.dd-*` en fin de `dash/dash.css`), sans dépendance. Poussé (`3eee39c`).
 
 - **Principe :** chaque `<select>` simple ajouté à la page est repéré automatiquement (observateur) et reçoit juste après lui un bouton `role=combobox` + une liste `role=listbox` (modèle WAI-ARIA « select-only combobox »). Le `<select>` natif reste la source de vérité, masqué (`.dd-native`, `aria-hidden`) : valeur, `onchange`, libellés, enregistrement et `selectOption` des tests marchent comme avant. Un `sel.value = …` du code met le bouton à jour. Sans le script, le menu natif reste.
 - **Liste :** dans la couche du dessus (`popover`), donc jamais coupée par un widget ; ajoutée dans le `<dialog>` quand le menu en fait partie (sinon inerte). S'ouvre au-dessus s'il manque de place dessous, 320 px max puis défilement, suit le défilement et le redimensionnement, se ferme au clic dehors, Échap (sans fermer le dialogue), Tab, perte du focus.
 - **Clavier :** flèches, Début/Fin, Page haut/bas, Entrée/Espace, saisie de lettres, Alt+flèche. Options désactivées sautées. Coche à l'accent sur l'option choisie, survol gris, focus clavier entouré à l'accent. Mouvement réduit : aucune animation.
 - **Style d'un menu :** le bouton ne reprend pas la classe du `<select>` (les tests et le code qui cherchent `.cahier-pick` trouveraient deux éléments). Pour styler : `.ma-classe + .dd-trigger` ou `.parent :is(select,.dd-trigger)`. Un `<select>` qui doit rester natif : attribut `data-native`.
-- **Menus concernés (10) :** page du widget (Disposer), verrou auto (Réglages), Cahier ×2, Flashcards, Révisions, Quiz, Schémas, Dessin, Repas ×3.
+- **Menus concernés (10) :** page du widget (Disposer), verrou auto (menu du compte depuis le 14 nov., section 17), Cahier ×2, Flashcards, Révisions, Quiz, Schémas, Dessin, Repas ×3.
 - **Tests :** `tests/selects.check.cjs` (nouveau, captures avec `SHOTS=dossier`) ; `tests/cahier.check.cjs` vérifie aussi le menu à groupes. Rien essayé sur un vrai iPhone ni sous Firefox/Safari.
+
+## 17. Menu latéral unique et Personnaliser direct — Claude, 14 novembre 2026
+
+**Brief de Damien (via Codex) : garder la barre de gauche, la rendre repliable, retirer la liste des modes, un seul parcours « Personnaliser », le compte sous le profil.** Poussé le 14 nov. (`5896964`).
+
+**Le menu (`#bar`, `site/dashboard.html`)** : logo + bouton « Masquer le menu » / « Afficher le menu » (`#bar-toggle`, `aria-expanded`), « Ajouter un widget » (le catalogue existant), « Changer de mode » avec « Mode : X » dessous (ouvre la roue ; l'appui long marche toujours), Favoris, puis en bas « Personnaliser » et « Mon compte ». **La liste des modes (Mon écran, Study, Chill…) n'est plus affichée** ; les pages, leurs fonds et leurs widgets ne bougent pas.
+- **Grand écran (≥ 1024 px)** : colonne de 244 px. Repliée : une pastille 60 px (logo + bouton), l'écran récupère la place (`--side` : 268 → 84 px). Choix gardé sur l'appareil (`renzvi:menu`). Glissement de 0,28 s au clic seulement, rien en mouvement réduit.
+- **Tablette et téléphone** : une pastille en haut à gauche (logo + bouton) ; le menu s'ouvre en **tiroir** (voile, Échap, toucher à côté), le reste de l'écran est inerte pendant ce temps. Toujours fermé au chargement. L'ancienne rangée des modes en bas de l'écran est supprimée.
+- **Supprimés** : le choix « Place de la barre » (gauche/haut/droite/bas) des Réglages, le rail d'actions de droite (`.qrail` dans `dash/modes.js`), le bouton « Réglages » séparé, « Ouvrir les réglages », le bandeau Personnaliser du bas et ses onglets téléphone.
+
+**Favoris** : `screen.favoris` (ligne `ecran`, sans migration), liste d'identifiants de widgets, 8 au maximum, validée au chargement (inconnus et doublons oubliés). « Gérer » ouvre une fenêtre : ajouter, monter/descendre, retirer. Un favori **ne copie rien** : il change de mode si besoin, déplie le widget s'il est replié, le fait défiler, lui donne le focus et l'entoure un instant. Retirer un widget du catalogue le retire des favoris. La liste défile seule : Personnaliser et le compte restent visibles.
+
+**Personnaliser** = le panneau de droite (`#settings`, titre « Personnaliser »), en quatre groupes : **Fond d'écran** (galerie, ta photo, zoom du fond), **Apparence** (thème clair/sombre, accent, polices, coins, espacement, verre ; pas de thème « système », il n'existait pas), **Disposition** (« Disposer les widgets » ferme le panneau et ouvre la petite barre « Disposer » du bas avec Terminer ; « Réinitialiser la disposition » demande maintenant confirmation et dit ce qui change), **Espace actuel** (mode affiché, « Créer un mode » = la même fenêtre que la roue, Renommer, Supprimer avec confirmation). La création rapide « nom seul » a disparu : un seul chemin de création. Enregistrement inchangé : automatique, curseurs enregistrés au lâcher, état honnête (« Enregistrement… », « Enregistré », « Pas encore enregistré. Nouvel essai… ») en haut du panneau.
+
+**Compte** (`#menu`) : e-mail, abonnement, parrainage, installer l'app, **verrouillage de l'écran** (déplacé depuis les Réglages), revoir les premiers pas, déconnexion. Le raccourci « Thème, couleurs et polices » est retiré (c'est dans Personnaliser).
+
+**Corrigé au passage** : avec 6 modes, la roue ne s'ouvrait plus du tout (erreur dans `dash/option-wheel.js`, deux classes passées d'un coup). Le panneau et le menu du compte respectent maintenant le mouvement réduit. La liste des menus déroulants (`dash/select.js`) se range dans un menu `popover` quand elle en fait partie (sinon un clic dedans fermait le menu).
+
+**Tests** : nouvelle suite `tests/menu-lateral.check.cjs` (captures avec `SHOTS=dossier`) ; aides communes dans `tests/menu.cjs` (ouvrir Personnaliser, Disposer, changer de mode par la roue au clavier, ouvrir le compte), utilisées par `personnalisation`, `login`, `interactions`, `parcours`, `curseurs`, `vues`, `chill`, `selects`. Rien essayé sur un vrai téléphone ni un vrai compte.
+
+**Limites connues** : sur téléphone, changer de mode demande un geste de plus qu'avant (ouvrir le tiroir, puis la roue) ; l'appui long reste le raccourci. Sur grand écran, la colonne de 1100 px garde sa largeur max : replier le menu recentre l'écran plus qu'il ne l'élargit au-delà de 1 400 px.
+
+## 18. Autres chantiers déjà poussés, jamais résumés ici (10-13 novembre 2026)
+
+**Nouvelle landing (`prototype/`, `7f624f8`, puis `58497fb`, `d902501`).** Décision de Damien (12-13 nov.) : refaire **seulement la landing** en Next.js + Tailwind v4 + GSAP + React Bits ; le dashboard reste en HTML statique dans `site/`. Sa consigne : « Use GSAP for all motion on this site: scroll-driven sections, text reveals on scroll, a pinned hero, smooth scrolling. The bar is gsap.com/showcase. »
+- `prototype/scripts/copy-site.mjs` copie `site/` dans `prototype/public/` avant le lancement et la construction (sans l'ancienne landing), donc `/dashboard`, `/login`, `/legal` gardent leurs adresses. Composants React Bits via `prototype/components.json`. Polices auto-hébergées (`next/font`).
+- Aperçu : `cd prototype && npm run build && npx next start -p 3100`.
+- **Mise en ligne :** dans Vercel, passer le dossier racine (Root Directory) de `site` à `prototype`. Pas encore fait.
+- Ouvert : il devait envoyer une image de référence pour la barre de navigation ; le vol (ticket) est retiré de cette landing seulement, portée jamais confirmée ; les illustrations sont des emplacements vides (`Slot` dans `prototype/components/Bits.tsx`) ; la phrase aux polices changeantes montre des polices qui ne sont pas toutes dans le choix de Personnaliser ; pas de bouton « Installer l'app » ; jamais essayée sur un vrai téléphone ni dans TikTok/Instagram. Son avis du 13 nov. : « pas mal ».
+
+**Pages légales (`1bbdb5c`)** : voir section 5. Police Hanken Grotesk hébergée sur le site (`1f030d2`) : plus d'appel à Google Fonts depuis le dashboard et le login.
+
+**Connexion (`9e0ac6b`)** : panneau photo et formulaire sombre, Instrument Serif italique hébergée.
+
+**Nutrition en labo (`9d5020f`, `6f56027`)** : widget `repas` « Qu'est-ce qu'on mange ? » (`?labo=1`), onglets Surprends-moi, Avec mon frigo, Chercher, Gardées. 1 020 recettes de fr.wikibooks (CC BY-SA 4.0), importées par `outils/recettes_wikibooks.py` dans `site/nutrition/recettes.json` ; chaque fiche garde le lien vers la source et la licence (obligatoire). Allergènes inconnus, c'est écrit sur chaque fiche. Migration `20261110000000_nutrition_repas.sql` passée en ligne. Un journal alimentaire ferait mentir la page de confidentialité (« pas de données de santé »). Ne pas commiter `outils/__pycache__`.
+
+**Refonte du dashboard (`5972f54`, `2cc6b9f`, `f8757de`, `a680c0b`)** : catalogue avec aperçu et exemples, premiers pas, vue agrandie, états vides en pointillés, Réglages (thème, accents, polices, verre). La « barre flottante » de `a680c0b` a été remplacée par le menu latéral (section 17, `5896964`).
