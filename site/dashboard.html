@@ -1725,6 +1725,12 @@ const WIDGETS = [
     render: guideWidget,
   },
   {
+    // Présentations des cours (Arbre d'abord), prévues pour le Pro : en labo tant que l'abonnement n'existe pas.
+    // N'enregistre rien dans widget_state : associations et notes ont leurs tables, les préférences restent sur l'appareil.
+    id: 'etude', title: 'Mon espace Study', labo: true, size: 'm', desc: 'Tes cours en arbre : chapitres, notes et flashcards reliés.',
+    render: ctx => chillLazy('study/etude.js', 'etudeWidget')(ctx),
+  },
+  {
     id: 'vol', title: 'Vol de focus', desc: 'Déchire ton ticket et décolle en plein écran.',
     render({ body, meta, data, save, user }) {
       const validLength = Number.isInteger(data?.length) && data.length >= MIN_FLIGHT && data.length <= MAX_FLIGHT;
@@ -2642,7 +2648,7 @@ if (!sb) {
   addEventListener('beforeunload', e => { if (pending.size || saving) e.preventDefault(); });
 
   // Ces widgets ont déjà leur propre grande vue.
-  const OWN_ZOOM = ['cahier', 'vol', 'jardin', 'dessin', 'coloriage', 'puzzle', 'tangram', 'fenetre'];
+  const OWN_ZOOM = ['cahier', 'etude', 'vol', 'jardin', 'dessin', 'coloriage', 'puzzle', 'tangram', 'fenetre'];
   function mount(w, user, arriving) {
     const box = el('section', 'widget glass');
     box.dataset.widget = w.id;
@@ -2667,7 +2673,7 @@ if (!sb) {
       head.append(entry.zoomBtn);
     }
     // Un widget qui plante ne doit pas emporter tout l'écran.
-    try { entry.cleanup = w.render({ body, meta, user, sb, data: stored[w.id], save: data => queueSave(w.id, data), focusLogs: () => [focusLog(stored.vol), focusLog(stored.minuteur)] }); }
+    try { entry.cleanup = w.render({ body, meta, user, sb, data: stored[w.id], save: data => queueSave(w.id, data), peer: id => stored[id], savePeer: (id, data) => queueSave(id, data), focusLogs: () => [focusLog(stored.vol), focusLog(stored.minuteur)] }); }
     catch (e) { console.error(w.id, e); body.replaceChildren(el('p', 'msg', "Ce widget n'a pas pu se charger.")); }
     $('board').append(box);
     mounted.set(w.id, entry);
@@ -3547,7 +3553,7 @@ if (!sb) {
         accents: () => ['vert', 'bleu', 'prune', 'terre', 'ambre', 'rose', 'sauge', 'encre'].map(id => ({ id, name: ACCENTS.find(a => a.id === id).name, hex: accentColor(id) })),
         wallName: () => { const w = wallNow(); return w === 'blanc' ? 'blanc' : w === 'perso' ? 'ta photo' : (WALLPAPERS.find(x => x.id === w)?.name ?? w).toLowerCase(); },
         // En mode Disposer, l'appui long laisse la main au glisser et aux poignées de taille.
-        blocked: () => !!lock?.isLocked() || !!zoomed || $('screen').hidden || document.body.classList.contains('dragging') || document.body.classList.contains('customizing') || !!document.querySelector('dialog[open]'),
+        blocked: () => !!lock?.isLocked() || !!zoomed || document.documentElement.classList.contains('zoom-lock') || $('screen').hidden || document.body.classList.contains('dragging') || document.body.classList.contains('customizing') || !!document.querySelector('dialog[open]'),
         say: text => { $('page-note').textContent = text; },
         afterCreate: () => $('board-empty').querySelector('.primary')?.focus(),
       });

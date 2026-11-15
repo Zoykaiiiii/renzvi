@@ -199,6 +199,44 @@ begin
   delete from storage.objects where bucket_id='dessins' and name = a||'/12.png'; get diagnostics n = row_count; r := array_append(r, ('A supprime son dessin: '||n)::text);
   reset role;
 
+  -- Présentations Study (etude.js) : associations chapitre ↔ paquet (study_links) et notes de chapitre (study_notes).
+  perform set_config('request.jwt.claims', json_build_object('sub',a,'role','authenticated')::text, true);
+  perform set_config('request.jwt.claim.sub', a::text, true);
+  set local role authenticated;
+  insert into study_links(course_id,chapter_id,deck) values (ca,'c0','D');
+  select count(*) into n from study_links where course_id=ca; r := array_append(r, ('A associe un paquet: '||n)::text);
+  begin
+    insert into study_links(course_id,chapter_id,deck) values (ca,'c0','D');
+    r := array_append(r, 'interdit association en double: 1');
+  exception when unique_violation then r := array_append(r, 'interdit association en double: refusé'); end;
+  -- Comme l'app (upsert qui ignore les doublons) : aucune erreur, aucune ligne en plus.
+  insert into study_links(course_id,chapter_id,deck) values (ca,'c0','D') on conflict (user_id,course_id,chapter_id,deck) do nothing;
+  select count(*) into n from study_links where course_id=ca; r := array_append(r, ('A garde une seule association: '||n)::text);
+  perform id,course_id,chapter_id,deck from study_links order by created_at;
+  insert into study_notes(user_id,course_id,chapter_id,body,updated_at) values (a,ca,'c0','note',now()) on conflict (user_id,course_id,chapter_id) do update set body=excluded.body, updated_at=excluded.updated_at;
+  insert into study_notes(user_id,course_id,chapter_id,body,updated_at) values (a,ca,'c0','note 2',now()) on conflict (user_id,course_id,chapter_id) do update set body=excluded.body, updated_at=excluded.updated_at;
+  select count(*) into n from study_notes where course_id=ca and body='note 2'; r := array_append(r, ('A écrit sa note de chapitre: '||n)::text);
+  perform set_config('request.jwt.claims', json_build_object('sub',b,'role','authenticated')::text, true);
+  perform set_config('request.jwt.claim.sub', b::text, true);
+  select count(*) into n from study_links; r := array_append(r, ('B lit les associations de A: '||n)::text);
+  select count(*) into n from study_notes; r := array_append(r, ('B lit les notes de A: '||n)::text);
+  begin
+    insert into study_links(course_id,chapter_id,deck) values (ca,'c0','X');
+    r := array_append(r, 'B associe un paquet au cours de A: 1');
+  exception when others then r := array_append(r, 'B associe un paquet au cours de A: refusé'); end;
+  begin
+    insert into study_notes(course_id,chapter_id,body) values (ca,'c1','x');
+    r := array_append(r, 'B écrit une note sur le cours de A: 1');
+  exception when others then r := array_append(r, 'B écrit une note sur le cours de A: refusé'); end;
+  delete from study_links where course_id=ca; get diagnostics n = row_count; r := array_append(r, ('B supprime les associations de A: '||n)::text);
+  update study_notes set body='vol' where course_id=ca; get diagnostics n = row_count; r := array_append(r, ('B modifie la note de A: '||n)::text);
+  perform set_config('request.jwt.claims', json_build_object('sub',a,'role','authenticated')::text, true);
+  perform set_config('request.jwt.claim.sub', a::text, true);
+  delete from study_links where course_id=ca; get diagnostics n = row_count; r := array_append(r, ('A retire son association: '||n)::text);
+  select count(*) into n from study_cards where id=cda; r := array_append(r, ('A garde sa carte après le retrait: '||n)::text);
+  delete from study_notes where course_id=ca and chapter_id='c0'; get diagnostics n = row_count; r := array_append(r, ('A supprime sa note: '||n)::text);
+  reset role;
+
   raise exception 'RAPPORT % (tout annulé) | %',
     case when exists (select 1 from unnest(r) x where (x ~ '^(B|anon|limite|interdit)' and x !~ '(: 0|refusé.*)$') or (x ~ '^(A|ok) ' and x !~ ': 1$')) then 'ECHEC' else 'OK' end,
     array_to_string(r, ' | ');

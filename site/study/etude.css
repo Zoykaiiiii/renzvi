@@ -1,0 +1,162 @@
+/* Mon espace Study (labo) : socle commun et présentation Arbre. Tout passe par des variables : le style changera. */
+.widget[data-widget=etude]{
+  --et-ground:#f3f0ea; --et-raise:#fbfaf7; --et-ink:#242424; --et-soft:#615d59; --et-line:rgba(36,36,36,.14); --et-press:rgba(36,36,36,.07);
+  --et-serif:"Source Serif 4",Georgia,serif;
+}
+:root[data-theme=dark] .widget[data-widget=etude]{
+  --et-ground:#1c1c1d; --et-raise:#262627; --et-ink:#ecebe8; --et-soft:#a8a6a2; --et-line:rgba(236,235,232,.16); --et-press:rgba(236,235,232,.09);
+}
+.etude-closed{display:grid;gap:12px;justify-items:start}
+.etude-sum{margin:0;color:var(--slate)}
+
+/* Ouvert : l'espace prend tout l'écran, sur un fond de papier plein (pas de verre ici, on lit et on travaille). */
+.widget.etude-open{position:fixed;inset:0;z-index:60;border-radius:0;padding:0;overflow:hidden;background:var(--et-ground);color:var(--et-ink);backdrop-filter:none;box-shadow:none;border:0}
+.widget.etude-open>.head,.widget.etude-open>.edit{display:none}
+.widget.etude-open>.body{height:100%;padding:0;margin:0;max-height:none;overflow:hidden}
+.etude-space{position:relative;height:100%;display:grid;grid-template-rows:auto 1fr;color:var(--et-ink)}
+.etude-space[hidden]{display:none}
+.etude-top{display:flex;align-items:center;gap:12px 20px;flex-wrap:wrap;padding:14px 20px;position:relative;z-index:3}
+.etude-name{margin:0;font-weight:600;font-size:17px}
+.etude-name span{font-weight:400;color:var(--et-soft)}
+.etude-tabs{display:flex;gap:4px;margin-left:auto}
+.etude-tabs button{height:32px;padding:0 14px;border:0;border-radius:var(--pill);background:none;color:var(--et-soft);font:inherit;font-size:14px;cursor:pointer}
+.etude-tabs button:hover{color:var(--et-ink)}
+.etude-tabs button[aria-pressed=true]{background:var(--et-press);color:var(--et-ink);font-weight:600}
+.etude-finder{position:relative;width:min(260px,100%)}
+.etude-search{width:100%;height:36px;padding:0 12px;border:1px solid var(--et-line);border-radius:var(--r-control);background:var(--et-raise);color:var(--et-ink);font:inherit;font-size:14px}
+.etude-search::placeholder{color:var(--et-soft)}
+.etude-results{position:absolute;top:calc(100% + 6px);left:0;right:0;margin:0;padding:6px;list-style:none;background:var(--et-raise);border:1px solid var(--et-line);border-radius:var(--r-control);box-shadow:0 12px 32px rgba(23,25,28,.16);max-height:min(360px,60dvh);overflow:auto} /* taste-skill-ignore : menu de résultats, il flotte */
+.etude-results button{display:grid;width:100%;gap:2px;padding:8px 10px;border:0;border-radius:8px;background:none;color:var(--et-ink);font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.etude-results button:hover,.etude-results button:focus-visible{background:var(--et-press)}
+.etude-results small,.etude-deck small,.etude-fold small,.etude-item small{color:var(--et-soft);font-size:12.5px}
+.etude-none{padding:8px 10px;color:var(--et-soft);font-size:14px}
+.etude-space :is(button,input,textarea,a):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.etude-stage{position:relative;overflow:hidden;min-height:0;touch-action:none;cursor:grab;user-select:none}
+.etude-stage.grabbing{cursor:grabbing}
+.etude-stage[data-vue=liste]{overflow:auto;touch-action:auto;cursor:auto;user-select:auto}
+.etude-stage>.empty{padding:40px 20px}
+.etude-empty{max-width:440px;margin:12dvh auto 0;padding:0 20px;display:grid;gap:12px;justify-items:start}
+.etude-empty h3{margin:0;font:400 30px/1.15 var(--et-serif)}
+.etude-empty p{margin:0;color:var(--et-soft);line-height:1.5}
+
+/* Panneau du chapitre : une carte posée en haut à droite ; en bas de l'écran sur téléphone. */
+.etude-panel{position:absolute;top:70px;right:20px;z-index:2;width:min(340px,calc(100% - 40px));max-height:calc(100% - 160px);overflow:auto;padding:18px 20px;display:grid;gap:10px;background:var(--et-raise);border:1px solid var(--et-line);border-radius:var(--r-panel)}
+.etude-panel h3{margin:0;font:400 24px/1.15 var(--et-serif)}
+.etude-panel h4{margin:8px 0 0;font-size:13px;font-weight:600;color:var(--et-soft)}
+.etude-crumb{margin:0;font-size:13px;color:var(--et-soft)}
+.etude-text{margin:0;font-size:14px;line-height:1.5;color:var(--et-soft)}
+.etude-text:empty{display:none}
+.etude-acts{display:flex;gap:8px;flex-wrap:wrap}
+.etude-space :is(.primary,.ghost){height:36px;padding:0 14px;border-radius:var(--r-control);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.etude-space .primary{border:0;background:var(--et-ink);color:var(--et-ground)}
+.etude-space .ghost{border:1px solid var(--et-line);background:none;color:var(--et-ink)}
+.etude-space .ghost:hover{background:var(--et-press)}
+.etude-space :is(.primary,.ghost):disabled{opacity:.45;cursor:default}
+.etude-space .link{padding:4px 0;border:0;background:none;color:var(--et-ink);font:inherit;font-size:13px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.etude-decks{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+.etude-decks li{display:grid;gap:2px}
+.etude-deck{display:grid;gap:1px;min-width:0}
+.etude-deck strong{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.etude-deckacts{display:flex;gap:14px}
+.etude-add{justify-self:start;margin-top:4px}
+
+/* Dock et messages */
+.etude-dock,.arbre-zoom{position:absolute;bottom:20px;z-index:2;display:flex;align-items:center;gap:6px}
+.etude-dock{left:20px}
+.arbre-zoom{right:20px}
+.etude-tool{height:36px;min-width:36px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--et-line);border-radius:var(--r-control);background:var(--et-raise);color:var(--et-ink);font:inherit;font-size:14px;font-variant-numeric:tabular-nums;cursor:pointer}
+.etude-tool:hover{background:var(--et-ground)}
+.etude-tool:disabled{opacity:.4;cursor:default}
+.etude-tool[aria-pressed=true]{background:var(--et-ink);color:var(--et-ground)}
+.etude-tool svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.etude-more{padding:0;margin-left:-2px}
+.etude-tool{gap:8px}
+.etude-play path{fill:currentColor}
+.arbre-level{min-width:52px;text-align:center;font-size:13px;color:var(--et-soft);font-variant-numeric:tabular-nums}
+.etude-live{position:absolute;left:50%;bottom:24px;z-index:4;transform:translateX(-50%);margin:0;max-width:min(520px,calc(100% - 40px));padding:10px 16px;border-radius:var(--r-control);background:var(--et-ink);color:var(--et-ground);font-size:14px}
+.etude-live:empty{display:none}
+.etude-live.bad{background:var(--error);color:#fff}
+
+/* Associer des flashcards */
+.etude-picker{width:min(480px,calc(100vw - 32px));max-height:min(640px,calc(100dvh - 32px));padding:22px;border:1px solid var(--et-line);border-radius:var(--r-panel);background:var(--et-raise);color:var(--et-ink);box-shadow:0 24px 64px rgba(23,25,28,.28)} /* taste-skill-ignore : fenêtre de dialogue */
+.etude-picker[open]{display:grid;gap:14px;grid-template-rows:auto auto minmax(0,1fr) auto auto}
+.etude-picker::backdrop{background:var(--veil)}
+.etude-pickhead{display:grid;gap:4px}
+.etude-pickhead h3{margin:0;font:400 24px/1.15 var(--et-serif)}
+.etude-picklist{margin:0;padding:0;list-style:none;overflow:auto;display:grid;gap:2px;align-content:start;min-height:80px}
+.etude-pick{display:flex;gap:12px;align-items:flex-start;padding:10px;border-radius:10px;cursor:pointer}
+.etude-pick:hover{background:var(--et-press)}
+.etude-pick input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--et-ink);flex:none}
+.etude-pickfoot{display:flex;gap:8px;flex-wrap:wrap}
+.etude-pickfoot .primary{margin-left:auto}
+.etude-status{margin:0;min-height:20px;font-size:13.5px;color:var(--et-soft)}
+.etude-status.bad{color:var(--error)}
+
+/* Feuilles : les outils existants (Cahier, Révisions, Flashcards) ouverts par-dessus l'espace. */
+.etude-sheets:empty{display:none}
+.etude-sheet{position:absolute;inset:0;z-index:5;margin:0;padding:16px max(20px,calc((100% - 860px)/2)) 24px;border:0;border-radius:0;overflow:auto;display:block;background:var(--et-ground);color:var(--ink);box-shadow:none;backdrop-filter:none;--glass:var(--et-raise)}
+.etude-sheet[inert]{visibility:hidden}
+.etude-sheethead{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.etude-sheethead h2{margin:0;font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.etude-sheethead .meta{margin:0 0 0 auto}
+.etude-sheet>.body{max-height:none;overflow:visible}
+.etude-sheet .cahier-text{max-height:calc(100dvh - 300px)}
+.etude-note{width:100%;min-height:min(420px,50dvh);padding:16px;border:1px solid var(--et-line);border-radius:var(--r-control);background:var(--et-raise);color:var(--et-ink);font:16px/1.6 var(--et-serif);resize:vertical}
+
+/* Liste */
+.etude-liste{max-width:560px;padding:8px 20px 120px;display:grid;gap:22px}
+.etude-liste section{display:grid;gap:6px}
+.etude-liste :is(h3,h4){margin:0}
+.etude-liste ul{margin:0 0 6px;padding:0 0 0 18px;list-style:none;display:grid;gap:2px}
+.etude-fold,.etude-item{display:flex;align-items:baseline;gap:10px;width:100%;min-height:36px;padding:4px 10px;border:0;border-radius:8px;background:none;color:var(--et-ink);font:inherit;text-align:left;cursor:pointer}
+.etude-fold:hover,.etude-item:hover{background:var(--et-press)}
+h3>.etude-fold{font:400 24px/1.2 var(--et-serif)}
+h4>.etude-fold{font-size:15px;font-weight:600}
+.etude-fold::before{content:"";flex:none;width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:translateY(-3px) rotate(45deg);opacity:.6}
+.etude-fold[aria-expanded=false]::before{transform:translateY(-1px) rotate(-45deg)}
+.etude-item{font-size:15px}
+.etude-item[aria-current]{background:var(--et-press);font-weight:600}
+
+/* Arbre */
+.arbre-world{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+.arbre-world.gliding{transition:transform .38s cubic-bezier(.22,1,.36,1)}
+.arbre-svg{position:absolute;overflow:visible;pointer-events:none}
+.arbre-wood{fill:var(--et-ink)}
+.arbre-fine{fill:none;stroke:var(--et-ink);stroke-width:1.1;stroke-linecap:round}
+.arbre-dot{fill:var(--et-ink)}
+.arbre-ring{fill:none;stroke:var(--et-ink);stroke-width:1.4}
+.arbre-label{position:absolute;margin:0;display:inline-flex;align-items:baseline;gap:8px;max-width:190px;padding:3px 8px;border:1px solid transparent;border-radius:8px;background:none;color:var(--et-ink);font:inherit;font-size:14.5px;line-height:1.3;white-space:nowrap;cursor:pointer;transform:translateY(-50%)}
+.arbre-label[data-side=g]{transform:translate(-100%,-50%);flex-direction:row-reverse}
+.arbre-label span{overflow:hidden;text-overflow:ellipsis}
+.arbre-label small{flex:none;font:400 12.5px var(--sans);color:var(--et-soft)}
+.arbre-label:hover{background:var(--et-press)}
+.arbre-chapitre[aria-current]{background:var(--et-raise);border-color:var(--et-ink);font-weight:600}
+.arbre-matiere,.arbre-big,.arbre-titre{font:400 25px/1.2 var(--et-serif);max-width:260px}
+.arbre-cours{font-weight:600;font-size:15px;max-width:176px}
+.arbre-cours,.arbre-matiere{flex-direction:column;align-items:flex-start;gap:0}
+.arbre-cours[data-side=g],.arbre-matiere[data-side=g]{flex-direction:column;align-items:flex-end}
+.arbre-cours span,.arbre-matiere span{max-width:100%}
+.arbre-titre{cursor:default;color:var(--et-soft)}
+.arbre-due{flex:none;align-self:center;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.etude-stage[data-lod=loin] .arbre-chapitre{visibility:hidden}
+.etude-stage[data-lod=loin] .arbre-dot{opacity:.5}
+
+@media (max-width:727px){
+  .etude-top{padding:10px 14px;gap:8px 10px}
+  .etude-name span{display:none}
+  .etude-tabs{margin-left:0}
+  .etude-finder{order:5;width:100%}
+  .etude-close{margin-left:auto}
+  .etude-panel{top:auto;right:0;left:0;bottom:0;width:auto;max-height:46%;border-radius:var(--r-panel) var(--r-panel) 0 0;border-width:1px 0 0;padding-bottom:max(18px,env(safe-area-inset-bottom))}
+  .etude-dock{left:14px;bottom:calc(46% + 12px)}
+  .arbre-zoom{right:14px;bottom:auto;top:8px}
+  .etude-live{bottom:calc(46% + 12px)}
+  .etude-sheet{padding:12px 14px 20px}
+}
+@media (pointer:coarse){
+  .etude-tool,.etude-space :is(.primary,.ghost),.etude-tabs button{min-height:44px}
+  .etude-tool{min-width:44px}
+  .etude-space .link{padding:10px 0}
+}
+@media (prefers-reduced-motion:reduce){.arbre-world.gliding{transition:none}}

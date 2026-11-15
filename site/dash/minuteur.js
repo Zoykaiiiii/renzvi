@@ -160,6 +160,9 @@
       persist();
       draw();
     }
+    // Pour le dock de l'espace Study : le même moteur, lu et piloté de l'extérieur, sans second minuteur.
+    const liveApi = () => ({ state, ms: remaining(), toggle });
+    window.renzviMinuteurLive = liveApi;
     const onVisible = () => { if (!document.hidden) tick(); };
     document.addEventListener('visibilitychange', onVisible);
 
@@ -167,6 +170,6 @@
     body.append(choices, dial.el, time, bar, manual, ctrl);
     if (state === 'run') { if (endAt <= Date.now()) finish(); else startTicker(); }
     draw();
-    return () => { stop(); dial.destroy(); document.removeEventListener('visibilitychange', onVisible); };
+    return () => { stop(); dial.destroy(); document.removeEventListener('visibilitychange', onVisible); if (window.renzviMinuteurLive === liveApi) window.renzviMinuteurLive = null; };
   };
 })();

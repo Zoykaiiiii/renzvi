@@ -12,7 +12,7 @@ Lis ce fichier en entier avant de travailler, puis `CLAUDE.md` (règles) et `IDE
 
 - **Le produit :** Renzvi, une seule app qui réunit tous les widgets du quotidien (study, chill, plus tard sport) sur un dashboard personnel qu'on compose comme un moodboard.
 - **Le fondateur :** Damien, non technique, pilote tout en français, en langage naturel.
-- **Où on en est (14 nov.) :** le dashboard est en ligne et **gratuit**. Public : 15 widgets, modes (pages), roue des modes, menu latéral repliable avec favoris, panneau Personnaliser unique, minuteur à cadran, taille fine et repli des widgets, verrou de l'appareil, menus déroulants stylés, Study S1 à S3 (Cahier, Flashcards, Révisions). Caché : Study S6 à S8 et Nutrition (`?labo=1`), 8 widgets Chill (`?chill=1`), présentations (`?vues=1`), IA S4-S5 avec un fournisseur simulé. Une **nouvelle landing en Next.js** existe dans `prototype/` (section 18), pas encore en ligne. Les pages légales existent avec des champs à remplir.
+- **Où on en est (14 nov.) :** le dashboard est en ligne et **gratuit**. Public : 15 widgets, modes (pages), roue des modes, menu latéral repliable avec favoris, panneau Personnaliser unique, minuteur à cadran, taille fine et repli des widgets, verrou de l'appareil, menus déroulants stylés, Study S1 à S3 (Cahier, Flashcards, Révisions). Caché : Study S6 à S8 et Nutrition (`?labo=1`), 8 widgets Chill (`?chill=1`), présentations (`?vues=1`), IA S4-S5 avec un fournisseur simulé, **Mon espace Study** en arbre (`?labo=1`, section 19). Une **nouvelle landing en Next.js** existe dans `prototype/` (section 18), pas encore en ligne. Les pages légales existent avec des champs à remplir.
 - **Ce qui bloque les premiers euros :** le prix n'est pas tranché (« on verra fin building »), **Whop n'est pas branché** (aucun code), les champs `[À remplir]` de `site/legal.html` sont vides, et la nouvelle landing n'est pas en ligne.
 - **Ta prochaine action :** Damien attaque **la landing (la remplir) puis Whop**. Lis la section 6 et la section 18. Commence par `git fetch origin` et protège les modifications locales.
 
@@ -171,6 +171,8 @@ Dernier résultat sur `prototype.html` : 1 erreur et 6 alertes (dégradé, verre
 - **`.taste-skill/` n'est pas ignoré :** il n'y a pas de `.gitignore`, donc n'utilise jamais `git add -A` ou `git add .`.
 
 ## 6. Prochaines étapes
+
+**Mise à jour du 15 nov. :** Damien branche **Whop lui-même** maintenant. Il réfléchit avec Codex au partage gratuit/Pro (aujourd'hui, le seul payant envisagé est Study). Ensuite : sa session de test de Study (fichier de test `.taste-skill/cours-test-biologie.txt`, non commité), puis brancher l'IA via Fal, puis l'import par photo des notes papier. Détails en section 19.
 
 **Priorité de Damien au 14 nov. : remplir la landing (`prototype/`), puis brancher Whop.** Il a dit vouloir brancher Whop lui-même ; aide-le. Pour Whop : prix réglés **TVA incluse**, lien vers les CGV avant le paiement, et une limite gratuit/Pro qui n'existe pas encore dans le code (à décider avec lui). Aucune variable Whop n'est encore définie ; jamais de clé dans le code.
 
@@ -495,3 +497,18 @@ Damien a confié à Codex la préparation technique des prompts pour pouvoir se 
 **Nutrition en labo (`9d5020f`, `6f56027`)** : widget `repas` « Qu'est-ce qu'on mange ? » (`?labo=1`), onglets Surprends-moi, Avec mon frigo, Chercher, Gardées. 1 020 recettes de fr.wikibooks (CC BY-SA 4.0), importées par `outils/recettes_wikibooks.py` dans `site/nutrition/recettes.json` ; chaque fiche garde le lien vers la source et la licence (obligatoire). Allergènes inconnus, c'est écrit sur chaque fiche. Migration `20261110000000_nutrition_repas.sql` passée en ligne. Un journal alimentaire ferait mentir la page de confidentialité (« pas de données de santé »). Ne pas commiter `outils/__pycache__`.
 
 **Refonte du dashboard (`5972f54`, `2cc6b9f`, `f8757de`, `a680c0b`)** : catalogue avec aperçu et exemples, premiers pas, vue agrandie, états vides en pointillés, Réglages (thème, accents, polices, verre). La « barre flottante » de `a680c0b` a été remplacée par le menu latéral (section 17, `5896964`).
+
+## 19. Mon espace Study (Arbre) et décisions IA — Claude, 14-15 novembre 2026
+
+**Widget `etude` « Mon espace Study »** (`labo: true`, visible avec `?labo=1`) : prévu pour le Pro, caché tant que l'abonnement n'existe pas. Fichiers : `site/study/etude.js` (le hub plein écran : chapitres, flashcards associées, notes, lecture de l'extrait, dock avec minuteur), `site/study/arbre.js` (l'arbre dessiné depuis les vrais cours : une grosse branche par matière, un libellé par chapitre, déplacement, zoom, « Voir tout », clavier), `site/study/etude.css`. Le dock pilote le minuteur existant via `window.renzviMinuteurLive` (`site/dash/minuteur.js`) : pas de second minuteur. `dashboard.html` passe aussi `peer` et `savePeer` aux widgets.
+- **Base** : migration `20261114000000_study_liens.sql`, tables `study_links` (chapitre relié à un paquet de flashcards, par référence, aucune carte copiée) et `study_notes` (une note par chapitre). **Passée en ligne par Damien le 15 nov.**, vérifiée : RLS active, 3 et 4 règles. Tests RLS ajoutés dans `tests/rls.check.sql`. Sans la migration, le widget marche en mode dégradé (testé).
+- **Tests** : `NODE_PATH=~/pw/node_modules node tests/arbre.check.cjs`. Le 15 nov. : arbre, menu latéral, interactions, Cahier, Flashcards, vues, menus déroulants, personnalisation, parcours et Chill passent tous.
+- **Jamais essayé par Damien** : ni Study en entier (Cahier, Flashcards, Révisions), ni l'arbre, ni sur téléphone. C'est le prochain test.
+
+**IA : décisions et faits du 15 nov.**
+- Damien a du crédit sur **Fal**. Fal donne accès aux modèles de texte (Claude, GPT, Gemini) via `openrouter/router`, et à la vision via `openrouter/router/vision`. La variante « sans entraînement sur les données » (`any-llm/enterprise`) est abandonnée chez Fal : le cours passe par Fal, OpenRouter et le fabricant du modèle, à écrire dans la page confidentialité.
+- Aujourd'hui `supabase/functions/ia/fournisseur.ts` n'a que le fournisseur `simule` : une clé seule ne sert à rien. À faire : un fournisseur `fal` (environ une demi-journée), secrets Supabase `FAL_KEY` et `IA_FOURNISSEUR=fal` remplis par Damien, jamais dans le chat. Vérifier prix et modèles sur Fal avant, avec un coût par utilisateur.
+- **Cours numérique (PDF avec texte, .txt, copier-coller) : pas d'IA**, le Cahier lit et découpe déjà. **Notes papier (photo, scan) : IA vision obligatoire**, l'OCR gratuit est mauvais sur l'écriture manuscrite. Reco Claude : c'est sans doute l'argument de vente n°1 de Study, à mettre en Pro avec un plafond de pages par mois et un petit crédit d'essai.
+- **Ordre recommandé** : test de Study sans IA, puis Fal, puis import photo. Ne pas mélanger, sinon on ne sait pas d'où vient une panne.
+- **Gratuit/Pro (hypothèse de Claude, non tranchée)** : gratuit = dashboard, widgets, import numérique, flashcards à la main, révisions ; Pro = import photo, cartes par l'IA, espace Study en arbre, plus de cours. Le payant doit se voir dans le gratuit (cadenas et aperçu), sans faux compteurs ni faux prix barrés.
+
