@@ -6,6 +6,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
+const { showMenu } = require('./menu.cjs');
 
 const ROOT = path.join(__dirname, '..', 'site');
 const SHOTS = process.argv[2];
@@ -63,7 +64,7 @@ const shot = (page, name, opts) => SHOTS && page.screenshot({ path: path.join(SH
     requests.length = 0;
     const { page, errors, context } = await openBoard(browser, base, { options: desk, rows: board(['repas', 'notes']), query: '?labo=0' });
     assert.equal(await page.locator('#board [data-widget=repas]').count(), 0, 'widget caché du public');
-    await page.click('#open-add');
+    await showMenu(page); await page.click('#open-add');
     assert.ok(!(await page.textContent('#catalog')).includes("Qu'est-ce qu'on mange"), 'absent du catalogue public');
     assert.ok(!requests.some(u => /nutrition\//.test(u)), 'aucun fichier nutrition téléchargé');
     assert.deepEqual(errors, []);

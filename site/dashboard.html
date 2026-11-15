@@ -128,8 +128,8 @@ a{color:inherit}
   :root{--glass:var(--glass-solid);--glass-wall:var(--glass-solid)}
 }
 
-/* Le menu, à gauche. Grand écran : une colonne qu'on replie en pastille (logo + bouton) ; la place libérée revient à l'écran.
-   Tablette et téléphone : une pastille en haut à gauche, qui ouvre un tiroir. Son verre est dessiné par ::before. */
+/* Le menu, à gauche. Toujours une pastille (logo + bouton) au départ ; le menu complet s'ouvre par-dessus l'écran, sans rien déplacer.
+   Grand écran : au survol de la pastille ou du bord gauche, ou au clic/clavier. Tablette et téléphone : un tiroir, au toucher. Son verre est dessiné par ::before. */
 body{--side:0px;padding-left:var(--side)}
 .topbar{position:fixed;top:12px;left:12px;z-index:40;display:flex;flex-direction:column;gap:14px;padding:8px;border-radius:18px;color:var(--ink)}
 .topbar::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shine)}
@@ -169,8 +169,7 @@ body{--side:0px;padding-left:var(--side)}
 /* Le widget atteint depuis un favori se signale un instant. */
 .widget.is-found{box-shadow:var(--glass-shine),0 0 0 2px var(--accent);transition:box-shadow .3s}
 @keyframes bar-in{from{opacity:0;transform:translateX(-8px)}}
-.bar-anim .bar-nav{animation:bar-in .22s var(--ease)}
-.bar-anim{transition:padding-left .28s var(--ease)}
+.bar-edge{display:none}
 @media (max-width:1023px){
   body{padding-top:64px}
   .bar-nav{display:none}
@@ -179,15 +178,24 @@ body{--side:0px;padding-left:var(--side)}
   .drawer-open .topbar{animation:bar-in .22s var(--ease)}
 }
 @media (min-width:1024px){
-  body{--side:268px}
-  body[data-menu=ferme]{--side:84px}
-  .topbar{bottom:12px;width:244px;padding:12px}
-  body[data-menu=ferme] .topbar{bottom:auto;width:auto;padding:8px}
-  body[data-menu=ferme] .bar-top{flex-direction:column}
-  body[data-menu=ferme] .mark{justify-content:center;padding:0;width:44px}
-  body[data-menu=ferme] .mark span,body[data-menu=ferme] .bar-nav,.bar-scrim{display:none}
+  body{--side:84px}
+  .topbar{width:60px;height:110px;padding:8px;overflow:hidden;transition:width .24s var(--ease),height .24s var(--ease),padding .24s var(--ease),box-shadow .24s}
+  .bar-top{flex-direction:column}
+  .mark{justify-content:center;padding:0;width:44px;white-space:nowrap}
+  .mark span,.bar-nav{display:none}
+  /* Ouvert par-dessus l'écran. Le contenu est posé à sa largeur finale : le panneau qui s'élargit le découvre, rien ne se recompose. */
+  :is(.bar-peek,.drawer-open) .topbar{width:244px;height:calc(100dvh - 24px);padding:12px;--glass:var(--glass-solid);box-shadow:0 24px 64px rgba(0,0,0,.18)}
+  :is(.bar-peek,.drawer-open) .bar-top{flex-direction:row;min-width:220px}
+  :is(.bar-peek,.drawer-open) .mark{justify-content:flex-start;padding:0 8px;width:auto}
+  :is(.bar-peek,.drawer-open) .mark span{display:inline}
+  :is(.bar-peek,.drawer-open) .bar-nav{display:flex;min-width:220px;animation:bar-in .22s var(--ease)}
+  .bar-scrim{background:none}
 }
-@media (prefers-reduced-motion:reduce){.bar-anim,.bar-anim .bar-nav,.drawer-open .topbar,.bar-toggle,.bar-toggle .chev,.bar-btn,dialog.settings,#menu{transition:none;animation:none}}
+/* Bord gauche étroit qui ouvre le menu au survol, seulement avec une souris. 12 px : il ne recouvre aucun widget. */
+@media (min-width:1024px) and (hover:hover) and (pointer:fine){
+  .bar-edge{display:block;position:fixed;top:0;bottom:0;left:0;z-index:39;width:12px}
+}
+@media (prefers-reduced-motion:reduce){.topbar,.topbar .bar-nav,.drawer-open .topbar,.bar-toggle,.bar-toggle .chev,.bar-btn,dialog.settings,#menu{transition:none;animation:none}}
 
 /* Le menu sort du bouton de compte. */
 #menu{position:fixed;inset:auto auto 12px 268px;margin:0;width:min(320px,100vw - 24px);max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain;padding:16px;border-radius:var(--r-panel);color:inherit;transform-origin:bottom left;transition:transform .25s var(--ease),opacity .18s,display .25s allow-discrete,overlay .25s allow-discrete;--glass:var(--glass-solid);box-shadow:inset 0 1px 0 var(--pop-shine),0 16px 40px rgba(23,25,28,.14)}
@@ -852,15 +860,11 @@ dialog.settings::backdrop{background:transparent}
 </style>
 </head>
 <body>
-<script>
-// Menu latéral replié ou ouvert (grand écran seulement), lu tout de suite pour éviter un saut à l'affichage. Sur téléphone, le menu part fermé.
-try { document.body.dataset.menu = localStorage.getItem('renzvi:menu') === 'ferme' ? 'ferme' : 'ouvert'; } catch { document.body.dataset.menu = 'ouvert'; }
-</script>
 <div id="wall" aria-hidden="true"></div>
 <header class="topbar" id="bar">
   <div class="bar-top">
     <a class="mark" href="./" aria-label="Renzvi, accueil"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="3" fill="currentColor"/><rect x="13" y="2" width="9" height="9" rx="3" fill="currentColor" opacity=".22"/><rect x="2" y="13" width="9" height="9" rx="3" fill="currentColor" opacity=".22"/><rect x="13" y="13" width="9" height="9" rx="3" fill="currentColor" opacity=".22"/></svg><span>Renzvi</span></a>
-    <button class="bar-toggle" id="bar-toggle" type="button" aria-controls="bar-nav" aria-expanded="true" aria-label="Masquer le menu"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2.500" width="12" height="11" rx="2.500"/><path d="M6 2.500v11"/><path class="chev" d="M10.500 6.200 8.700 8l1.800 1.800"/></svg></button>
+    <button class="bar-toggle" id="bar-toggle" type="button" aria-controls="bar-nav" aria-expanded="false" aria-label="Afficher le menu"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2.500" width="12" height="11" rx="2.500"/><path d="M6 2.500v11"/><path class="chev" d="M10.500 6.200 8.700 8l1.800 1.800"/></svg></button>
   </div>
   <nav class="bar-nav" id="bar-nav" aria-label="Menu de ton écran">
     <div class="bar-main">
@@ -878,6 +882,7 @@ try { document.body.dataset.menu = localStorage.getItem('renzvi:menu') === 'ferm
     </div>
   </nav>
 </header>
+<div class="bar-edge" id="bar-edge" aria-hidden="true"></div>
 <div class="bar-scrim" id="bar-scrim" hidden></div>
 <div class="glass" id="menu" popover>
   <p id="who"></p>
@@ -3562,52 +3567,83 @@ if (!sb) {
     }), pick);
     applyAccent();
   }
-  // ---------- Menu latéral : replier (grand écran) ou tiroir (tablette, téléphone) ----------
+  // ---------- Menu latéral : une pastille, le menu complet s'ouvre par-dessus l'écran ----------
+  // Deux façons d'ouvrir : au survol sur grand écran (bar-peek, se referme quand la souris s'en va),
+  // ou exprès, au clic, au toucher ou au clavier (drawer-open : voile qui avale le toucher à côté, Échap, reste de l'écran inerte).
   const narrow = matchMedia('(max-width:1023px)');
+  const canHover = matchMedia('(hover:hover) and (pointer:fine)');
   const drawerOpen = () => document.body.classList.contains('drawer-open');
-  const menuShown = () => (narrow.matches ? drawerOpen() : document.body.dataset.menu !== 'ferme');
+  const peeked = () => document.body.classList.contains('bar-peek');
+  const menuShown = () => drawerOpen() || peeked();
   function syncToggle() {
     const on = menuShown(), t = $('bar-toggle');
     t.setAttribute('aria-expanded', on);
     t.ariaLabel = t.title = on ? 'Masquer le menu' : 'Afficher le menu';
   }
   function openDrawer() {
+    document.body.classList.remove('bar-peek');
     document.body.classList.add('drawer-open');
     $('bar-scrim').hidden = false;
-    $('app').inert = true; // le reste de l'écran attend : un toucher sur le voile ferme le tiroir
+    $('app').inert = true; // le reste de l'écran attend : un toucher sur le voile ferme le menu sans rien activer dessous
     syncToggle();
   }
-  function closeDrawer(refocus = true) {
-    if (!drawerOpen()) return;
-    document.body.classList.remove('drawer-open');
+  // Fermer, quelle que soit la façon dont il a été ouvert. Après une fermeture voulue avec la souris dessus, le survol ne le rouvre
+  // qu'une fois la souris sortie de la place qu'occupait le menu, puis revenue (sinon il se rouvrirait sous le pointeur).
+  let hush = null, peekT = 0;
+  const zones = [$('bar'), $('bar-edge'), $('menu')];
+  const inZone = () => zones.some(z => z.matches(':hover'));
+  // explicit : fermé par le bouton, Échap ou un clic à côté (pas par le choix d'une action du menu).
+  function closeDrawer(refocus = true, explicit = refocus) {
+    clearTimeout(peekT);
+    if (!menuShown()) return;
+    hush = explicit && inZone() ? $('bar').getBoundingClientRect() : null;
+    document.body.classList.remove('bar-peek', 'drawer-open');
     $('bar-scrim').hidden = true;
     $('app').inert = false;
     if ($('menu').matches(':popover-open')) $('menu').hidePopover();
     syncToggle();
     if (refocus) $('bar-toggle').focus();
   }
-  $('bar-toggle').onclick = () => {
-    if (narrow.matches) return drawerOpen() ? closeDrawer() : openDrawer();
-    const close = document.body.dataset.menu !== 'ferme';
-    // Le glissement de l'écran n'a lieu qu'au clic, jamais au chargement.
-    if (!REDUCED_MOTION()) {
-      document.body.classList.add('bar-anim');
-      clearTimeout(syncToggle.t);
-      syncToggle.t = setTimeout(() => { document.body.classList.remove('bar-anim'); dispatchEvent(new Event('resize')); }, 320);
-    }
-    document.body.dataset.menu = close ? 'ferme' : 'ouvert';
-    try { localStorage.setItem('renzvi:menu', document.body.dataset.menu); } catch {}
-    if ($('menu').matches(':popover-open')) $('menu').hidePopover();
-    syncToggle();
-    if (REDUCED_MOTION()) dispatchEvent(new Event('resize'));
-  };
+  $('bar-toggle').onclick = () => (menuShown() ? closeDrawer(!peeked(), true) : openDrawer());
   $('bar-scrim').onclick = () => closeDrawer();
-  addEventListener('keydown', e => { if (e.key === 'Escape' && drawerOpen() && !document.querySelector('dialog[open]') && !$('menu').matches(':popover-open')) closeDrawer(); });
-  narrow.addEventListener('change', () => { closeDrawer(false); syncToggle(); });
+  // Échap : seulement si aucune fenêtre ni le menu du compte ne l'a pris pour lui.
+  addEventListener('keydown', e => { if (e.key === 'Escape' && menuShown() && !e.defaultPrevented && !document.querySelector('dialog[open]') && !$('menu').matches(':popover-open')) closeDrawer(drawerOpen() || $('bar').contains(document.activeElement), true); });
+  narrow.addEventListener('change', () => { closeDrawer(false); hush = null; syncToggle(); });
+  addEventListener('pointermove', e => { if (hush && (e.clientX > hush.right + 8 || e.clientY > hush.bottom + 8)) hush = null; }, { passive: true });
+
+  // Survol (souris, grand écran) : la pastille, le bord gauche et le menu du compte forment une seule zone.
+  // On reste ouvert tant que la souris y est, que le focus clavier est dans le menu ou que le menu du compte est ouvert ;
+  // on ferme après un court délai pour qu'un passage de la pastille au menu ne le fasse pas clignoter.
+  // Un geste en cours (glisser ou redimensionner un widget, glisser vers un bord de page) garde la priorité : bouton enfoncé = pas d'ouverture.
+  const busy = e => !!e.buttons || document.body.classList.contains('dragging') || !!document.querySelector('.resizing');
+  const keep = () => inZone() || $('menu').matches(':popover-open') || ($('bar').contains(document.activeElement) && document.activeElement.matches(':focus-visible'));
+  function peekLater() {
+    clearTimeout(peekT);
+    peekT = setTimeout(() => {
+      if (peeked() && !keep()) { document.body.classList.remove('bar-peek'); syncToggle(); }
+    }, 300);
+  }
+  for (const z of zones) {
+    z.addEventListener('pointerenter', e => {
+      if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
+      clearTimeout(peekT);
+      if (hush || peeked() || drawerOpen() || narrow.matches || !canHover.matches || busy(e) || $('bar').inert) return;
+      if (z === $('menu')) return; // le menu du compte garde ouvert, il n'ouvre pas
+      document.body.classList.add('bar-peek');
+      syncToggle();
+    });
+    z.addEventListener('pointerleave', e => {
+      if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
+      peekLater();
+    });
+  }
+  $('bar').addEventListener('focusout', () => { if (peeked()) peekLater(); });
+  $('menu').addEventListener('toggle', e => { if (e.newState === 'closed' && peeked()) peekLater(); });
   syncToggle();
   // Où rendre le focus après une fenêtre ouverte depuis le menu : le bouton s'il est encore visible, sinon celui qui ouvre le menu.
+  // Le menu se referme dès qu'on choisit une action : c'est donc presque toujours le bouton de la pastille.
   const visible = b => b.checkVisibility?.() ?? !!b.offsetParent;
-  const focusTarget = b => (narrow.matches ? $('bar-toggle') : b);
+  const focusTarget = () => $('bar-toggle');
   const focusMenu = b => (visible(b) ? b : $('bar-toggle')).focus();
 
   // ---------- Favoris : un raccourci vers un widget déjà sur l'écran, jamais une copie ----------

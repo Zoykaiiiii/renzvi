@@ -5,7 +5,7 @@
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const { start } = require('./demo.cjs');
-const { custom, dispose, openMe, modeNow, options } = require('./menu.cjs');
+const { custom, dispose, openMe, modeNow, options, showMenu } = require('./menu.cjs');
 
 (async () => {
   const srv = await start();
@@ -128,6 +128,7 @@ const { custom, dispose, openMe, modeNow, options } = require('./menu.cjs');
     assert.equal(await wheelOpen(page), false, 'trop court');
     await press(page, 750, { dx: 30 });
     assert.equal(await wheelOpen(page), false, 'le doigt a bougé');
+    await showMenu(page);
     await press(page, 750, { target: '#open-add' });
     assert.equal(await wheelOpen(page), false, 'sur un bouton');
     // Un appui long sur un bouton reste un clic normal (ici, le catalogue s'ouvre) : on le referme.
@@ -161,16 +162,21 @@ const { custom, dispose, openMe, modeNow, options } = require('./menu.cjs');
     await page.waitForFunction(() => !document.querySelector('dialog.mode-wheel[open]'));
     assert.equal(await modeNow(page), 'Chill');
     // Le bouton « Changer de mode » du menu fait la même chose, au clavier.
+    await page.mouse.move(720, 450); // la souris quitte le bord gauche, qui ouvre le menu au survol
+    await page.waitForFunction(() => !document.body.classList.contains('bar-peek'));
+    await page.locator('#bar-toggle').focus();
+    await page.keyboard.press('Enter');
     await page.getByRole('button', { name: 'Changer de mode' }).focus();
     await page.keyboard.press('Enter');
     assert.equal(await wheelOpen(page), true, 'bouton du menu');
     await page.locator('.mode-wheel [role=option]').first().click();
     await page.waitForFunction(() => !document.querySelector('dialog.mode-wheel[open]'));
     assert.equal(await modeNow(page), 'Study');
-    assert.equal(await page.evaluate(() => document.activeElement?.id), 'open-modes', 'le focus revient');
+    assert.equal(await page.evaluate(() => document.activeElement?.id), 'bar-toggle', 'le focus revient au bouton de la pastille');
     // Changements de mode rapides, minuteur en cours : il continue, rien n'est remonté.
     await timer(page).getByRole('button', { name: 'Démarrer' }).click();
     for (let i = 0; i < 4; i++) {
+      await showMenu(page);
       await page.getByRole('button', { name: 'Changer de mode' }).click();
       await page.locator('.mode-wheel [role=option]').nth(i % 2 ? 0 : 1).click();
     }
@@ -209,6 +215,7 @@ const { custom, dispose, openMe, modeNow, options } = require('./menu.cjs');
     await page.reload();
     await page.waitForSelector('#board .widget:not([hidden]), #board-empty:not([hidden])');
     assert.equal(await modeNow(page), 'Sport');
+    await showMenu(page);
     await page.getByRole('button', { name: 'Changer de mode' }).click();
     assert.ok((await page.locator('.mode-wheel [role=option]').allInnerTexts()).some(t => /Sport/.test(t)));
     await page.keyboard.press('Escape');
@@ -362,6 +369,7 @@ const { custom, dispose, openMe, modeNow, options } = require('./menu.cjs');
     await page.getByRole('button', { name: 'Afficher le menu' }).click();
     assert.equal(await page.locator('#bar-nav').isVisible(), true);
     await shot(page, 'telephone-menu');
+    await showMenu(page);
     await page.getByRole('button', { name: 'Changer de mode' }).click();
     assert.equal(await wheelOpen(page), true);
     await page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running'));

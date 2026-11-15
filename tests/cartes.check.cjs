@@ -9,6 +9,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { chromium } = require('playwright');
+const { showMenu } = require('./menu.cjs');
 
 const ROOT = path.join(__dirname, '..', 'site');
 const SHOTS = process.argv[2];
@@ -719,7 +720,7 @@ const select = (page, word) => page.evaluate(w => {
       const pub = await openBoard(browser, base, dbq);
       await pub.page.waitForSelector('[data-widget=cahier]');
       assert.strictEqual(await pub.page.locator('[data-widget=quiz]').count(), 0, 'caché sur le site public');
-      await pub.page.click('#open-add');
+      await showMenu(pub.page); await pub.page.click('#open-add');
       assert.ok(!(await pub.page.locator('#catalog').innerText()).includes('Quiz'), 'absent du catalogue public');
       assert.deepStrictEqual(pub.errors, []);
       await pub.context.close();

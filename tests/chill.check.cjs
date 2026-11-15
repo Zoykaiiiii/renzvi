@@ -6,7 +6,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
-const { dispose, options } = require('./menu.cjs');
+const { dispose, options, showMenu } = require('./menu.cjs');
 const G = require('../site/chill/jeux.js');
 // Catalogue : on choisit le widget dans la liste, puis on confirme dans l'aperçu.
 const catClick = async (page, name) => {
@@ -126,7 +126,7 @@ async function stroke(page, canvas, from = [.3, .5], to = [.7, .5]) {
     const { page, errors, context } = await openBoard(browser, base, { options: desk, rows: board(['jardin', 'dessin', 'respiration', 'ambiance']), query: '' });
     assert.equal(await page.locator('#board .widget').count(), 2, 'seuls les widgets publics sont affichés');
     assert.equal(await page.locator('#chill-labo').count(), 0, 'pas de bouton Labo Chill');
-    await page.click('#open-add');
+    await showMenu(page); await page.click('#open-add');
     const catalog = await page.textContent('#catalog');
     for (const t of TITLES) assert.ok(!catalog.includes(t), `catalogue public sans « ${t} »`);
     assert.ok(catalog.includes('Respiration guidée') && catalog.includes('Ambiance sonore'));
@@ -137,13 +137,13 @@ async function stroke(page, canvas, from = [.3, .5], to = [.7, .5]) {
   // Le labo Study (?labo=1) n'ouvre pas le labo Chill, et inversement.
   {
     const { page, errors, context } = await openBoard(browser, base, { options: desk, rows: board([]), query: '?labo=1' });
-    await page.click('#open-add');
+    await showMenu(page); await page.click('#open-add');
     const catalog = await page.textContent('#catalog');
     assert.ok(catalog.includes('Quiz'), 'labo Study visible');
     for (const t of TITLES) assert.ok(!catalog.includes(t), `?labo=1 ne montre pas « ${t} »`);
     assert.equal(await page.locator('#chill-labo').count(), 0);
     await page.goto(`${base}/dashboard.html?labo=0&chill=1`);
-    await page.click('#open-add');
+    await showMenu(page); await page.click('#open-add');
     const chill = await page.textContent('#catalog');
     for (const t of TITLES) assert.ok(chill.includes(t), `?chill=1 montre « ${t} »`);
     assert.ok(!chill.includes('Quiz'), '?chill=1 ne montre pas les widgets Study en préparation');
@@ -461,7 +461,7 @@ async function stroke(page, canvas, from = [.3, .5], to = [.7, .5]) {
     await w.getByRole('button', { name: 'Lecture' }).click();
     assert.ok(await moving(), 'relancée');
     await shot(page, 'fenetre');
-    await page.click('#open-add');
+    await showMenu(page); await page.click('#open-add');
     await catClick(page, "Retirer : Fenêtre d'ambiance");
     assert.ok(await frames() <= 1, 'widget retiré : la boucle s\'arrête');
     assert.deepEqual(errors, []);

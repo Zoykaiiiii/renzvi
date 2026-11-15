@@ -5,7 +5,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
-const { custom, closeCustom, openMe, modeNames, goMode, modeNow } = require('./menu.cjs');
+const { custom, closeCustom, openMe, modeNames, goMode, modeNow, showMenu } = require('./menu.cjs');
 // Catalogue : on choisit le widget dans la liste, puis on confirme dans l'aperçu.
 const catClick = async (page, name) => {
   const title = name.split(' : ')[1];
@@ -247,7 +247,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.goto(`${base}/dashboard.html`);
     await page.waitForSelector('.widget');
     const wall = () => page.evaluate(() => document.documentElement.style.getPropertyValue('--wall'));
-    await page.click('#open-add');
+    await showMenu(page); await page.click('#open-add');
     await page.getByRole('button', { name: 'Installer : Study et Chill' }).click();
     assert.deepEqual(await modeNames(page), ['Mon écran', 'Study', 'Chill']);
     assert.equal(await page.locator('.widget:visible').count(), 9);
@@ -274,7 +274,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.waitForSelector('.widget:visible');
     assert.equal(await modeNow(page), 'Chill');
     assert.match(await wall(), /sossusvlei/);
-    await page.click('#open-add');
+    await showMenu(page); await page.click('#open-add');
     assert.equal(await page.getByRole('button', { name: /^Installer/ }).count(), 0);
     assert.deepEqual(errors, []);
     await context.close();
@@ -284,7 +284,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     const { context, page } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ecran: { wallpaper: 'blanc', widgets: ['taches'], done: true } });
     await page.goto(`${base}/dashboard.html`);
     await page.waitForSelector('.widget');
-    await page.click('#open-add');
+    await showMenu(page); await page.click('#open-add');
     await page.getByRole('button', { name: 'Installer : Study et Chill' }).click();
     assert.deepEqual(await modeNames(page), ['Study', 'Chill']);
     await context.close();
@@ -292,7 +292,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     const crowded = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ecran: { wallpaper: 'blanc', widgets: ['taches'], done: true, pages } });
     await crowded.page.goto(`${base}/dashboard.html`);
     await crowded.page.waitForSelector('.widget');
-    await crowded.page.click('#open-add');
+    await showMenu(crowded.page); await crowded.page.click('#open-add');
     assert.ok(await crowded.page.getByRole('button', { name: 'Installer : Study et Chill' }).isDisabled());
     assert.match(await crowded.page.locator('#catalog li').first().textContent(), /supprimes-en 1 page/);
     await crowded.context.close();
@@ -302,7 +302,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     const pages = [{ id: 'a', name: 'Une', wall: 'perso' }, { id: 'b', name: 'Deux', wall: 'perso' }, { id: 'c', name: 'Trois', wall: 'lac' }];
     const { context, page, db } = await openDashboard(browser, base, { viewport: { width: 1440, height: 900 } }, { ecran: { wallpaper: 'blanc', widgets: ['taches'], done: true, pages, where: { taches: 'c' } } }, d => { d.photo = Buffer.from('x'); });
     await page.goto(`${base}/dashboard.html`);
-    await page.waitForSelector('#open-modes:not([hidden])');
+    await page.waitForSelector('#open-modes:not([hidden])', { state: 'attached' });
     await custom(page);
     await page.locator('#wall-slot [data-wall=dune]').click();
     await closeCustom(page);
@@ -384,7 +384,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.getByRole('textbox', { name: 'Nouvelle tâche' }).press('Enter');
     await page.getByRole('button', { name: 'Démarrer' }).click();
     assert.match(await page.title(), /— Renzvi$/);
-    await page.click('#open-add');
+    await showMenu(page); await page.click('#open-add');
     await shot(page, 'ajouter-widget');
     await catClick(page, 'Retirer : Tâches');
     await catClick(page, 'Retirer : Minuteur focus');
@@ -864,7 +864,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     assert.equal(await w.locator('.note').isVisible(), true);
     await shot(page, 'detente-ambiance');
     // Retirer le widget ferme le son.
-    await page.click('#open-add');
+    await showMenu(page); await page.click('#open-add');
     await catClick(page, 'Retirer : Ambiance sonore');
     await page.waitForFunction(() => window.__ctxs[0].state === 'closed');
     assert.deepEqual(errors, []);

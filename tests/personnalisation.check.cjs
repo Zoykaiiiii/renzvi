@@ -222,7 +222,7 @@ async function photo(browser, kind) {
     assert.deepEqual(db.rows.taches, CONTENT.taches, 'le contenu des widgets n\'est pas touché');
     await page.click('#custom-done');
     assert.equal(await page.isVisible('.grip'), false);
-    assert.equal(await page.evaluate(() => document.activeElement.id), 'open-custom');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'bar-toggle', 'menu refermé : retour au bouton de la pastille');
     await context.close();
   }
 
@@ -400,7 +400,7 @@ async function photo(browser, kind) {
   // Un widget retiré puis remis retrouve sa taille et revient à la fin.
   {
     const { page, db, context } = await openBoard(browser, base, desk, few({ sizes: { notes: 'l' } }));
-    await page.click('#open-add');
+    await showMenu(page); await page.click('#open-add');
     await catClick(page, 'Retirer : Notes');
     await catClick(page, 'Ajouter : Notes');
     await page.locator('#add-dialog .primary').click();
@@ -675,7 +675,7 @@ async function photo(browser, kind) {
     await goMode(page, 'Mon écran');
     assert.deepEqual(await visible(page), ['minuteur', 'heure', 'taches']);
     // Le catalogue dit où est un widget ; ajouté, il arrive sur le mode affiché.
-    await page.click('#open-add');
+    await showMenu(page); await page.click('#open-add');
     assert.match(await page.locator('#catalog li', { hasText: 'Notes' }).first().textContent(), /Sur la page « Détente »/);
     await catClick(page, 'Ajouter : Habitudes');
     await page.locator('#add-dialog .primary').click();

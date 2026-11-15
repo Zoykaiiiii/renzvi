@@ -83,7 +83,7 @@ const { start } = require('./demo.cjs');
     await page.getByRole('button', { name: 'Revoir les premiers pas' }).click();
     assert.ok(await page.isVisible('#aide'), 'on peut la revoir depuis le menu');
     // Retirer : la page redevient vide, avec la même invitation.
-    await page.click('#open-add');
+    await showMenu(page); await page.click('#open-add');
     await page.locator('#catalog [data-widget=ambiance]').click();
     await page.getByRole('button', { name: 'Retirer : Ambiance sonore', exact: true }).click();
     await page.keyboard.press('Escape');
@@ -117,7 +117,9 @@ const { start } = require('./demo.cjs');
     await goMode(page, 'Chill');
     await reload();
     assert.equal(await pressed(), 'Chill', 'le mode affiché est retrouvé au rechargement');
-    // Clavier : les modes se changent sans souris.
+    // Clavier : les modes se changent sans souris (ouvrir le menu par son bouton, puis « Changer de mode »).
+    await page.locator('#bar-toggle').focus();
+    await page.keyboard.press('Enter');
     await page.locator('#open-modes').focus();
     await page.keyboard.press('Enter');
     await page.waitForSelector('dialog.mode-wheel[open]');
@@ -125,7 +127,7 @@ const { start } = require('./demo.cjs');
     await page.keyboard.press('Enter');
     await wheelShut(page);
     assert.equal(await pressed(), 'Study');
-    assert.equal(await page.evaluate(() => document.activeElement.id), 'open-modes', 'le focus revient sur « Changer de mode »');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'bar-toggle', 'menu refermé : le focus revient au bouton de la pastille');
 
     // Vue agrandie : le même widget, au premier plan ; Échap la referme et rend le focus.
     await page.getByRole('button', { name: 'Agrandir Notes' }).click();
@@ -149,7 +151,7 @@ const { start } = require('./demo.cjs');
     assert.ok((await page.locator('#bar-toggle').boundingBox()).height >= 44, 'cible de 44 px');
     await showMenu(page);
     assert.ok((await page.locator('#open-modes').boundingBox()).height >= 44, 'cibles de 44 px');
-    await page.click('#open-add');
+    await showMenu(page); await page.click('#open-add');
     assert.ok(await page.isVisible('#catalog'));
     assert.equal(await page.isVisible('#cat-view'), false, "d'abord la liste");
     await page.locator('#catalog [data-widget=habitudes]').click();
