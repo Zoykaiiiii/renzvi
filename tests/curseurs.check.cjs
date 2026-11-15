@@ -73,8 +73,8 @@ const { start } = require('./demo.cjs');
     assert.equal(await dial.getAttribute('aria-valuenow'), '25');
     assert.deepEqual(await dial.locator('.dial-d').allTextContents(), ['0', '2', '5']);
     await page.getByRole('button', { name: 'Ajouter 5 minutes' }).click();
-    await page.waitForTimeout(300);
-    await page.waitForTimeout(900);
+    // L'ancien chiffre part à la fin de son animation : sur une machine lente (paysage du vol rendu sans carte graphique), on attend la fin, pas un délai fixe.
+    await page.waitForFunction(() => [...document.querySelectorAll('[aria-label="Durée du vol, en minutes"] .dial-d')].map(d => d.textContent).join('') === '030', null, { timeout: 8000 }).catch(() => {});
     assert.deepEqual(await dial.locator('.dial-d').allTextContents(), ['0', '3', '0'], 'les chiffres ont roulé');
     assert.equal(await page.locator('.vol-time output').textContent(), '30 min');
     // Maintenir + fait défiler.

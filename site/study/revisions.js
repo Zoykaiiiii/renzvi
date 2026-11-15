@@ -25,11 +25,14 @@ function revisionsTomorrow(cards, now = new Date()) {
   return cards.filter(c => c.fsrs && c.due && new Date(c.due) >= start && new Date(c.due) < end).length;
 }
 
+// data.libre : entraînement libre. Toutes les cartes du paquet, dans l'ordre, retournées sans note : rien n'est envoyé
+// à la base, le planning FSRS ne bouge pas. C'est dit à l'écran, pour ne pas le confondre avec la révision du jour.
 function revisionsWidget({ body, meta, data, save, sb }) {
   const box = body.closest('.widget');
+  const libre = data?.libre === true;
   let cards = [], state = 'loading', deck = typeof data?.deck === 'string' ? data.deck : '';
   let queue = [], revealed = false, busy = false, gone = false, extra = 0, day = dayKey(new Date());
-  let tally = { 1: 0, 2: 0, 3: 0, 4: 0 }, hard = [];
+  let tally = { 1: 0, 2: 0, 3: 0, 4: 0 }, hard = [], seen = 0;
 
   const bar = el('div', 'cahier-bar');
   const pick = Object.assign(el('select', 'cahier-pick'), { ariaLabel: 'Paquet à réviser' });
@@ -41,7 +44,11 @@ function revisionsWidget({ body, meta, data, save, sb }) {
   const say = (text, bad = false) => { note.textContent = text; note.classList.toggle('msg', bad); };
   const inDeck = () => cards.filter(c => !deck || c.deck === deck);
   const resetSession = () => { tally = { 1: 0, 2: 0, 3: 0, 4: 0 }; hard = []; };
-  const rebuild = () => { queue = revisionsQueue(inDeck(), new Date(), extra).ids; revealed = false; };
+  const rebuild = () => {
+    queue = libre ? inDeck().sort((a, b) => a.created_at.localeCompare(b.created_at)).map(c => c.id) : revisionsQueue(inDeck(), new Date(), extra).ids;
+    revealed = false;
+  };
+  if (libre) say('Entraînement libre : tes réponses ne sont pas enregistrées et ne changent pas tes révisions.');
 
   async function load() {
     state = 'loading';
@@ -68,7 +75,7 @@ function revisionsWidget({ body, meta, data, save, sb }) {
     if (!cards.length) return view.replaceChildren(el('p', 'empty cartes-start', 'Crée des cartes dans le widget Flashcards ou depuis le Cahier : celles à revoir arrivent ici chaque jour.'));
     const card = cards.find(c => c.id === queue[0]);
     if (!card) return drawDone();
-    meta.textContent = `${queue.length} aujourd'hui`;
+    meta.textContent = libre ? `Entraînement · ${plural(queue.length, 'carte')} restante${queue.length > 1 ? 's' : ''}` : `${queue.length} aujourd'hui`;
     const face = cartesFace(card, revealed);
     if (!card.fsrs) face.prepend(el('p', 'revisions-new', 'Nouvelle carte'));
     else if (new Date(card.due) < new Date(new Date().setHours(0, 0, 0, 0))) face.prepend(el('p', 'revisions-new', `En retard depuis le ${new Date(card.due).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`));
@@ -77,6 +84,9 @@ function revisionsWidget({ body, meta, data, save, sb }) {
       const show = button('primary', 'Voir la réponse', () => { revealed = true; draw(); view.querySelector('.cartes-rate button')?.focus(); });
       show.setAttribute('aria-keyshortcuts', 'Space');
       actions.append(show);
+    } else if (libre) {
+      const nextBtn = button('primary', queue.length > 1 ? 'Carte suivante' : 'Terminer', () => { queue.shift(); seen++; revealed = false; draw(); view.querySelector('.cartes-rate button')?.focus(); });
+      actions.append(nextBtn);
     } else {
       // Chaque bouton dit quand la carte reviendra : c'est le calcul FSRS, pas une promesse de réussite.
       const now = new Date();
@@ -95,6 +105,12 @@ function revisionsWidget({ body, meta, data, save, sb }) {
 
   function drawDone() {
     const done = el('div', 'cartes-done');
+    if (libre) {
+      done.append(el('p', 'cartes-face', seen ? 'Tour terminé.' : 'Ce paquet est vide.'));
+      if (seen) done.append(el('p', 'zone', `${plural(seen, 'carte')} revue${seen > 1 ? 's' : ''}, rien d'enregistré : tes révisions restent telles quelles.`),
+        button('ghost', 'Recommencer', () => { seen = 0; rebuild(); draw(); }));
+      return view.replaceChildren(done);
+    }
     const total = tally[1] + tally[2] + tally[3] + tally[4];
     const left = revisionsQueue(inDeck(), new Date(), extra);
     done.append(el('p', 'cartes-face', total ? 'Séance terminée.' : "Rien à revoir aujourd'hui."));
@@ -147,14 +163,14 @@ function revisionsWidget({ body, meta, data, save, sb }) {
     const card = cards.find(c => c.id === queue[0]);
     if (!card) return;
     if (!revealed && (e.key === ' ' || e.key === 'Enter') && !e.target.closest('button,a')) { e.preventDefault(); revealed = true; draw(); view.querySelector('.cartes-rate button')?.focus(); }
-    else if (revealed && /^[1-4]$/.test(e.key)) { e.preventDefault(); rate(card, Number(e.key)); }
+    else if (revealed && !libre && /^[1-4]$/.test(e.key)) { e.preventDefault(); rate(card, Number(e.key)); }
   };
   // Une réponse donnée dans Flashcards déplace aussi l'échéance ici. Après minuit, la file du nouveau jour se reconstruit.
   const onAnswer = e => {
     const c = cards.find(x => x.id === e.detail.id && x.version === e.detail.version);
     if (!c) return;
     Object.assign(c, e.detail.fields);
-    if (c.id !== queue[0] && !revisionsDue(c, revisionsDayEnd())) queue = queue.filter(id => id !== c.id);
+    if (!libre && c.id !== queue[0] && !revisionsDue(c, revisionsDayEnd())) queue = queue.filter(id => id !== c.id);
     if (!busy) draw();
   };
   const onWake = () => {

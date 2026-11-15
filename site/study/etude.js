@@ -18,21 +18,26 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
     document.head.append(link);
   }
   const box = body.closest('.widget');
-  const VUES = [{ id: 'arbre', name: 'Arbre', src: 'study/arbre.js' }, { id: 'liste', name: 'Liste' }];
+  const VUES = [{ id: 'arbre', name: 'Arbre', src: 'study/arbre.js' }, { id: 'constellations', name: 'Constellations', src: 'study/constellations.js' }, { id: 'liste', name: 'Liste' }];
+  const TABS = [['lire', 'Lire'], ['notes', 'Notes'], ['reviser', 'Réviser']];
   let courses = [], cards = [], links = [], noted = new Set(), decks = new Map();
   let state = 'loading', linksOk = true, gone = false, open = false, vue = null, vueId = null, query = '';
   let inerted = [], opener = null, ticker = null, saveTimer = null;
   const sheets = [], texts = new Map();
 
   // Préférences : sur cet appareil seulement. Une valeur abîmée revient au départ, sans rien casser.
-  const prefs = { v: 1, vue: 'arbre', fold: {}, sel: null, view: null };
+  // views : le cadrage de chaque présentation (l'Arbre et le ciel n'ont pas la même géométrie) ; tab : l'onglet du panneau.
+  const prefs = { v: 1, vue: 'arbre', fold: {}, sel: null, views: {}, tab: 'lire' };
+  const viewOk = v => [v?.x, v?.y, v?.k].every(Number.isFinite);
   try {
     const p = JSON.parse(localStorage.getItem(ETUDE.prefs) || 'null');
     if (p?.v === 1) {
       if (VUES.some(v => v.id === p.vue)) prefs.vue = p.vue;
       if (p.fold && typeof p.fold === 'object') for (const [k, v] of Object.entries(p.fold).slice(0, 400)) if (typeof v === 'boolean') prefs.fold[k] = v;
       if (typeof p.sel?.course === 'string' && typeof p.sel?.chapter === 'string') prefs.sel = { course: p.sel.course, chapter: p.sel.chapter };
-      if ([p.view?.x, p.view?.y, p.view?.k].every(Number.isFinite)) prefs.view = { x: p.view.x, y: p.view.y, k: p.view.k };
+      if (viewOk(p.view)) prefs.views.arbre = { x: p.view.x, y: p.view.y, k: p.view.k }; // ancien format : un seul cadrage, celui de l'Arbre
+      for (const v of VUES) if (viewOk(p.views?.[v.id])) prefs.views[v.id] = { x: p.views[v.id].x, y: p.views[v.id].y, k: p.views[v.id].k };
+      if (TABS.some(([id]) => id === p.tab)) prefs.tab = p.tab;
     }
   } catch {}
   const keep = () => {
@@ -157,7 +162,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
       for (let n = box; n.parentElement; n = n.parentElement) for (const s of n.parentElement.children) if (s !== n && !s.inert && !['SCRIPT', 'STYLE', 'LINK'].includes(s.tagName)) { s.inert = true; inerted.push(s); }
       ticker = setInterval(drawDock, 500);
       draw();
-      (panel.querySelector('button') ?? closeBtn).focus({ preventScroll: true });
+      (panel.querySelector('[aria-selected=true]') ?? panel.querySelector('button') ?? closeBtn).focus({ preventScroll: true });
     } else {
       while (sheets.length) closeSheet(false);
       for (const s of inerted) s.inert = false;
@@ -177,7 +182,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
     if (vueId === id && vue) return vue.update();
     leaveVue();
     vueId = id;
-    stage.dataset.vue = id;
+    stage.dataset.vue = box.dataset.etudeVue = id;
     if (!courses.length) return drawEmpty();
     const def = VUES.find(v => v.id === id);
     try {
@@ -190,7 +195,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
       // La présentation n'a pas pu se charger : la liste garde tout accessible.
       say(`La présentation « ${def.name} » n'a pas pu se charger. Voici la liste.`, true);
       vueId = 'liste';
-      stage.dataset.vue = 'liste';
+      stage.dataset.vue = box.dataset.etudeVue = 'liste';
       for (const [k, b] of tabOf) b.setAttribute('aria-pressed', k === 'liste');
       vue = listeVue(vueCtx());
     }
@@ -203,14 +208,17 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
     select: (course, chapter) => select(course, chapter),
     due: dueOf,
     linked: (course, chapter) => linksOf(course, chapter).length,
-    view: () => prefs.view,
-    setView: v => { prefs.view = v; keep(); },
+    view: () => prefs.views[vueId] ?? null,
+    setView: v => { prefs.views[vueId] = v; keep(); },
   });
 
   function drawEmpty() {
     const empty = el('div', 'etude-empty');
-    empty.append(el('h3', '', 'Ton arbre pousse avec tes cours'),
-      el('p', '', 'Importe un premier cours : ses chapitres deviennent des branches, et tes flashcards s’y rattachent.'),
+    const [h, p] = prefs.vue === 'constellations'
+      ? ['Ton ciel s’allume avec tes cours', 'Importe un premier cours : chaque chapitre devient une étoile, et tes flashcards s’y rattachent.']
+      : ['Ton arbre pousse avec tes cours', 'Importe un premier cours : ses chapitres deviennent des branches, et tes flashcards s’y rattachent.'];
+    box.dataset.etudeVue = stage.dataset.vue = prefs.vue;
+    empty.append(el('h3', '', h), el('p', '', p),
       button('primary', 'Importer un premier cours', e => openReader(null, null, e.currentTarget)));
     stage.replaceChildren(empty);
   }
@@ -246,7 +254,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
     if (!found.length) return results.replaceChildren(el('li', 'etude-none', `Rien trouvé pour « ${query.trim()} ».`));
     results.replaceChildren(...found.map(f => {
       const li = el('li');
-      const b = button('', '', () => { query = search.value = ''; drawResults(); select(f.c.id, f.ch.id, { reveal: true }); panel.querySelector('button')?.focus(); });
+      const b = button('', '', () => { query = search.value = ''; drawResults(); select(f.c.id, f.ch.id, { reveal: true }); (panel.querySelector('[aria-selected=true]') ?? panel.querySelector('button'))?.focus(); });
       b.append(el('span', '', f.ch.title), el('small', '', `${f.s.name} / ${f.c.title}`));
       li.append(b);
       return li;
@@ -281,45 +289,110 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
   }
   const keyed = (node, key) => { node.dataset.key = key; return node; };
 
+  // Le panneau : fil d'Ariane, titre, où l'on en est, puis trois onglets qui montrent chacun leur contenu.
+  // Lire : l'extrait et la reprise ; Notes : la note du chapitre ; Réviser : les paquets associés (cartes et cartes dues).
+  const notesOf = new Map(); // texte des notes déjà lues, par chapitre
   function drawPanel() {
     panel.hidden = !courses.length;
     const sel = prefs.sel, c = courseOf(sel?.course), ch = chapterOf(sel);
     const had = document.activeElement?.closest?.('.etude-panel') ? document.activeElement.dataset.key : null;
+    panel.classList.toggle('etude-panel-idle', !c || !ch);
     if (!c || !ch) {
       // Rien de choisi : les paquets qui ne sont rattachés à aucun chapitre restent à portée de main.
       const free = [...decks.values()].filter(d => !links.some(l => l.deck === d.name)).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
       panel.replaceChildren(el('h3', '', 'Choisis un chapitre'), el('p', 'etude-text', 'Ses actions s’affichent ici : lire, prendre des notes, réviser.'));
-      if (free.length) {
-        panel.append(el('h4', '', 'Paquets sans chapitre'), deckList(free.map(d => ({ deck: d.name })), false));
-      }
+      if (free.length) panel.append(el('h4', '', 'Paquets sans chapitre'), deckList(free.map(d => ({ deck: d.name })), false));
       return;
     }
-    const crumb = el('p', 'etude-crumb', `${c.subject} / ${c.title}`);
-    const title = el('h3', '', ch.title);
-    const text = el('p', 'etude-text');
-    const here = peer('cahier')?.at?.[c.id]?.chapter === ch.id;
-    text.textContent = here ? 'Ta dernière lecture de ce cours s’est arrêtée ici.' : '';
-    textOf(c).then(pages => {
-      if (gone || prefs.sel !== sel || !pages) return;
-      const ex = excerptOf(pages, ch, c.chapters[c.chapters.indexOf(ch) + 1]);
-      if (ex) text.textContent = here ? `${ex} — Ta dernière lecture s’est arrêtée ici.` : ex;
+    const head = el('div', 'etude-phead');
+    const x = keyed(button('etude-x', '', () => {
+      prefs.sel = null;
+      keep();
+      drawPanel();
+      vue?.update();
+      (stage.querySelector(`[data-key="${CSS.escape(`${c.id}/${ch.id}`)}"]`) ?? panel.querySelector('button') ?? closeBtn).focus({ preventScroll: true });
+    }), 'fermer');
+    x.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
+    x.ariaLabel = x.title = 'Fermer le chapitre';
+    head.append(el('p', 'etude-crumb', `${c.subject} / ${c.title}`), x);
+    const idx = c.chapters.indexOf(ch), here = peer('cahier')?.at?.[c.id]?.chapter === ch.id;
+    const where = el('p', 'etude-where', `Chapitre ${idx + 1} sur ${c.chapters.length}${here ? ' · ta lecture s’est arrêtée ici' : ''}`);
+
+    const tabbar = el('div', 'etude-ptabs');
+    tabbar.setAttribute('role', 'tablist');
+    tabbar.ariaLabel = `Actions pour ${ch.title}`;
+    const pane = el('div', 'etude-pbody');
+    pane.setAttribute('role', 'tabpanel');
+    pane.id = 'etude-pane';
+    const tabBtns = TABS.map(([id, label]) => {
+      const t = keyed(button('', label, () => { prefs.tab = id; keep(); drawPanel(); panel.querySelector(`[data-key="tab:${id}"]`)?.focus(); }), `tab:${id}`);
+      t.setAttribute('role', 'tab');
+      t.id = `etude-tab-${id}`;
+      t.setAttribute('aria-controls', pane.id);
+      t.setAttribute('aria-selected', id === prefs.tab);
+      t.tabIndex = id === prefs.tab ? 0 : -1;
+      return t;
     });
+    // Flèches gauche/droite d'un onglet à l'autre (modèle WAI-ARIA des onglets).
+    tabbar.onkeydown = e => {
+      const i = TABS.findIndex(([id]) => id === prefs.tab), d = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+      if (!d) return;
+      e.preventDefault();
+      tabBtns[(i + d + TABS.length) % TABS.length].click();
+    };
+    tabbar.append(...tabBtns);
+    pane.setAttribute('aria-labelledby', `etude-tab-${prefs.tab}`);
+
     const mine = linksOf(c.id, ch.id);
-    const first = mine.find(l => decks.get(l.deck)?.due) ?? mine.find(l => decks.has(l.deck));
-    const acts = el('div', 'etude-acts');
-    const read = keyed(button('primary', 'Lire', e => openReader(c, ch, e.currentTarget)), 'lire');
-    const notes = keyed(button('ghost', noted.has(`${c.id}/${ch.id}`) ? 'Notes (1)' : 'Notes', e => openNote(c, ch, e.currentTarget)), 'notes');
-    const review = keyed(button('ghost', 'Réviser', e => openReview(first.deck, e.currentTarget)), 'reviser');
-    review.disabled = !first;
-    if (!first) review.title = 'Associe d’abord un paquet de flashcards à ce chapitre';
-    acts.append(read, notes, review);
-    const sub = el('h4', '', 'Révisions associées');
-    const none = el('p', 'etude-text', 'Aucun paquet associé à ce chapitre pour l’instant.');
-    // Les cartes créées depuis ce chapitre dans le Cahier : une information réelle, pas une association.
-    const born = cards.filter(x => x.course_id === c.id && c.chapters[cahierChapterAt(c.chapters, x.src_page ?? 0, x.src_offset ?? 0)]?.id === ch.id);
-    const bornLine = born.length ? el('p', 'etude-text', `${plural(born.length, 'carte')} ${born.length > 1 ? 'viennent' : 'vient'} de ce chapitre (${[...new Set(born.map(x => x.deck))].join(', ')}).`) : null;
-    const add = keyed(button('ghost etude-add', 'Associer des flashcards', e => openPicker(c, ch, e.currentTarget)), 'associer');
-    panel.replaceChildren(crumb, title, text, acts, sub, mine.length ? deckList(mine, true) : none, ...(bornLine ? [bornLine] : []), add);
+    if (prefs.tab === 'lire') {
+      const quote = el('blockquote', 'etude-quote');
+      quote.append(el('p', 'etude-text', 'Chargement de l’extrait…'));
+      textOf(c).then(pages => {
+        if (gone || prefs.sel !== sel || prefs.tab !== 'lire') return;
+        const ex = pages && excerptOf(pages, ch, c.chapters[idx + 1]);
+        quote.replaceChildren(el('p', 'etude-qlabel', 'Début du chapitre'), el('p', 'etude-text', ex || 'L’extrait n’est pas disponible : ouvre le chapitre pour le lire.'));
+      });
+      const read = keyed(button('primary', here ? 'Reprendre la lecture' : 'Lire le chapitre', e => openReader(c, ch, e.currentTarget)), 'lire');
+      pane.append(quote, read);
+    } else if (prefs.tab === 'notes') {
+      const k = `${c.id}/${ch.id}`, has = noted.has(k);
+      const text = el('p', 'etude-notetext', has ? (notesOf.get(k) ?? 'Chargement de ta note…') : 'Aucune note pour ce chapitre.');
+      if (has && !notesOf.has(k)) sb.from('study_notes').select('body').match({ course_id: c.id, chapter_id: ch.id }).maybeSingle().then(({ data, error }) => {
+        if (gone) return;
+        if (error) { text.textContent = 'Ta note n’a pas pu se charger.'; return; }
+        notesOf.set(k, data?.body ?? '');
+        if (prefs.sel === sel && prefs.tab === 'notes') text.textContent = notesOf.get(k) || 'Aucune note pour ce chapitre.';
+      });
+      pane.append(text, keyed(button(has ? 'ghost' : 'primary', has ? 'Modifier la note' : 'Écrire une note', e => openNote(c, ch, e.currentTarget)), 'notes'));
+    } else {
+      const known = mine.map(l => decks.get(l.deck)).filter(Boolean);
+      const total = known.reduce((n, d) => n + d.total, 0), due = known.reduce((n, d) => n + d.due, 0);
+      const next = mine.find(l => decks.get(l.deck)?.due) ?? mine.find(l => decks.get(l.deck)?.fresh) ?? null;
+      if (mine.length) {
+        const card = el('div', 'etude-flash');
+        const info = el('div', 'etude-deck');
+        info.append(el('strong', '', 'Flashcards du chapitre'), el('small', '', `${plural(total, 'carte')} · ${due ? `${due} à revoir` : 'rien à revoir aujourd’hui'}`));
+        card.append(info);
+        // La révision planifiée (elle enregistre les réponses) et l'entraînement libre (il n'enregistre rien) sont deux boutons distincts.
+        if (next) card.append(keyed(button('primary', 'Réviser mes cartes', e => openReview(next.deck, e.currentTarget)), 'reviser'));
+        else if (known.length) card.append(keyed(button('ghost', 'S’entraîner', e => openReview(known[0].name, e.currentTarget, true)), 'libre'));
+        pane.append(card);
+        if (next && known.length) {
+          const free = keyed(button('link', 'S’entraîner sans changer le planning', e => openReview(next.deck, e.currentTarget, true)), 'libre');
+          pane.append(free);
+        }
+        pane.append(el('h4', '', mine.length > 1 ? 'Paquets associés' : 'Paquet associé'), deckList(mine, true));
+      } else {
+        pane.append(el('p', 'etude-text', 'Aucun paquet associé à ce chapitre pour l’instant.'));
+      }
+      // Les cartes créées depuis ce chapitre dans le Cahier : une information réelle, pas une association.
+      const born = cards.filter(x => x.course_id === c.id && c.chapters[cahierChapterAt(c.chapters, x.src_page ?? 0, x.src_offset ?? 0)]?.id === ch.id);
+      if (born.length) pane.append(el('p', 'etude-text', `${plural(born.length, 'carte')} ${born.length > 1 ? 'viennent' : 'vient'} de ce chapitre (${[...new Set(born.map(x => x.deck))].join(', ')}).`));
+      const add = keyed(button('ghost etude-add', '+ Associer un paquet', e => openPicker(c, ch, e.currentTarget)), 'associer');
+      add.ariaLabel = 'Associer un paquet de flashcards';
+      pane.append(add);
+    }
+    panel.replaceChildren(head, el('h3', '', ch.title), where, tabbar, pane);
     if (had) panel.querySelector(`[data-key="${CSS.escape(had)}"]`)?.focus({ preventScroll: true });
   }
 
@@ -364,7 +437,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
   function openPicker(c, ch, from, preset = []) {
     const dialog = el('dialog', 'etude-picker');
     const head = el('div', 'etude-pickhead');
-    head.append(el('h3', '', 'Associer des flashcards'), el('p', 'etude-crumb', `${c.subject} / ${c.title} / ${ch.title}`));
+    head.append(el('h3', '', 'Associer un paquet'), el('p', 'etude-crumb', `${c.subject} / ${c.title} / ${ch.title}`));
     dialog.setAttribute('aria-labelledby', head.firstChild.id = `etude-pick-${crypto.randomUUID().slice(0, 8)}`);
     const find = Object.assign(el('input', 'etude-search'), { type: 'search', placeholder: 'Chercher un paquet', ariaLabel: 'Chercher un paquet', autocomplete: 'off', maxLength: 60 });
     const list = el('ul', 'etude-picklist');
@@ -494,7 +567,8 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
   }
   // Réviser : les révisions du jour existantes, limitées au paquet. Ouvrir la feuille n'écrit rien ; chaque réponse
   // passe par study_answer, une seule fois, comme partout ailleurs.
-  const openReview = (deck, from) => openSheet(`Réviser · ${deck}`, ({ body: b, meta: m }) => revisionsWidget({ body: b, meta: m, sb, data: { deck }, save() {} }), from);
+  // S'entraîner (libre = true) : les mêmes cartes, retournées sans rien enregistrer ; le planning ne bouge pas.
+  const openReview = (deck, from, libre = false) => openSheet(`${libre ? 'S’entraîner' : 'Réviser'} · ${deck}`, ({ body: b, meta: m }) => revisionsWidget({ body: b, meta: m, sb, data: { deck, libre }, save() {} }), from);
   const openDeck = (deck, from) => openSheet(`Paquet · ${deck}`, ({ body: b, meta: m }) => cartesWidget({ body: b, meta: m, sb, data: { deck }, save() {} }), from);
 
   // Notes : une note par chapitre, enregistrée à la demande et en quittant la feuille.
@@ -515,6 +589,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
           : await sb.from('study_notes').delete().match(key);
         if (error) { status.classList.add('bad'); status.textContent = 'Pas encore enregistré. Vérifie ta connexion, puis appuie sur Enregistrer.'; return; }
         saved = text;
+        notesOf.set(`${c.id}/${ch.id}`, text);
         text ? noted.add(`${c.id}/${ch.id}`) : noted.delete(`${c.id}/${ch.id}`);
         if (!dead) status.textContent = text ? 'Enregistré' : 'Note vide : rien à garder.';
       })().finally(() => { busy = null; });

@@ -118,6 +118,82 @@ h4>.etude-fold{font-size:15px;font-weight:600}
 .etude-item{font-size:15px}
 .etude-item[aria-current]{background:var(--et-press);font-weight:600}
 
+/* Panneau en onglets : Lire, Notes, Réviser */
+.etude-phead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.etude-x{flex:none;display:grid;place-items:center;width:32px;height:32px;margin:-6px -8px 0 0;padding:0;border:0;border-radius:8px;background:none;color:var(--et-soft);cursor:pointer}
+.etude-x:hover{background:var(--et-press);color:var(--et-ink)}
+.etude-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+.etude-where{margin:-4px 0 0;font-size:13.5px;color:var(--et-soft)}
+.etude-ptabs{display:flex;gap:22px;margin-top:4px}
+.etude-ptabs button{position:relative;height:38px;padding:0;border:0;background:none;color:var(--et-soft);font:inherit;font-size:14.5px;cursor:pointer}
+.etude-ptabs button:hover{color:var(--et-ink)}
+.etude-ptabs button[aria-selected=true]{color:var(--et-ink);font-weight:600}
+.etude-ptabs button[aria-selected=true]::after{content:"";position:absolute;left:0;right:0;bottom:2px;height:2px;border-radius:2px;background:var(--et-ink)}
+.etude-pbody{display:grid;gap:12px;padding-top:4px}
+.etude-pbody>:is(.primary,.ghost,.link){justify-self:start;margin:0}
+.etude-quote{margin:0;padding:2px 0 2px 14px;border-left:2px solid var(--et-ink);display:grid;gap:4px}
+.etude-qlabel{margin:0;font:400 16px/1.3 var(--et-serif);color:var(--et-ink)}
+.etude-notetext{margin:0;font:15px/1.55 var(--et-serif);white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;color:var(--et-ink)}
+.etude-flash{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;border:1px solid var(--et-line);border-radius:var(--r-control);background:var(--et-press)}
+.etude-flash .primary{flex:none}
+.etude-panel-idle{gap:8px}
+
+/* Constellations : un ciel de nuit, quel que soit le thème. Les feuilles (lire, réviser, notes) restent sur papier. */
+.widget[data-widget=etude][data-etude-vue=constellations]{
+  --et-ground:#0d1016; --et-raise:#151922; --et-ink:#ebe8df; --et-soft:#a3a6ae; --et-line:rgba(235,232,223,.15); --et-press:rgba(235,232,223,.08);
+}
+.widget[data-widget=etude][data-etude-vue=constellations] .etude-sheets{
+  --et-ground:#f3f0ea; --et-raise:#fbfaf7; --et-ink:#242424; --et-soft:#615d59; --et-line:rgba(36,36,36,.14); --et-press:rgba(36,36,36,.07);
+}
+:root[data-theme=dark] .widget[data-widget=etude][data-etude-vue=constellations] .etude-sheets{
+  --et-ground:#1c1c1d; --et-raise:#262627; --et-ink:#ecebe8; --et-soft:#a8a6a2; --et-line:rgba(236,235,232,.16); --et-press:rgba(236,235,232,.09);
+}
+.widget[data-etude-vue=constellations] .etude-space :is(.etude-panel,.etude-tool,.etude-search,.etude-results,.etude-picker){color-scheme:dark}
+#screen .widget[data-etude-vue=constellations] .etude-space .primary{background:var(--et-ink);color:var(--et-ground)}
+.cst-sky,.cst-hills{position:absolute;left:0;width:100%;pointer-events:none}
+.cst-sky{top:0;height:100%}
+.cst-hills{bottom:0;height:14%;min-height:70px}
+.cst-hills path{fill:#0a0c11}
+.cst-hills path.far{fill:#07080c}
+.cst-world{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+.cst-world.gliding{transition:transform .42s cubic-bezier(.22,1,.36,1)}
+.cst-svg{position:absolute;overflow:visible;pointer-events:none}
+.cst-line{fill:none;stroke:rgba(225,228,238,.42);stroke-width:1;stroke-linejoin:round}
+.cst-star{fill:#f6f2e6}
+.cst-star.big{fill:#fff8e6}
+.cst-halo{fill:rgba(246,242,230,.1)}
+.cst-ring{fill:none;stroke:#f6f2e6;stroke-width:1.2}
+.cst-labels{position:absolute;left:0;top:0}
+/* Une étoile de contenu : une cible de 44 px centrée sur l'étoile, et son nom posé du côté libre. */
+/* Le bouton est posé sur l'étoile ; sa cible (44 px à l'écran, quel que soit le zoom) et son nom partent tous deux de ce point. */
+.cst-chap{--hit:max(44px,calc(44px / var(--cst-k,1)));position:absolute;width:1px;height:1px;margin:0;padding:0;border:0;background:none;color:var(--et-ink);font:inherit;cursor:pointer} /* taste-skill-ignore : un bouton d'un pixel posé sur l'étoile, pas un trait */
+.cst-hit{position:absolute;left:calc(var(--hit) / -2);top:calc(var(--hit) / -2);width:var(--hit);height:var(--hit);border-radius:50%}
+.cst-chap .cst-txt{position:absolute;top:0;left:10px;transform:translateY(-50%)}
+.cst-chap.cst-g .cst-txt{left:auto;right:10px}
+.cst-chap.cst-h .cst-txt{left:0;transform:translate(-50%,calc(-100% - 10px))}
+.cst-chap.cst-b .cst-txt{left:0;transform:translate(-50%,10px)}
+.cst-chap:hover .cst-hit{background:rgba(246,242,230,.08)}
+.cst-txt{display:inline-flex;align-items:center;gap:8px;max-width:240px;padding:2px 6px;border-radius:6px;font:400 16px/1.3 var(--et-serif);white-space:nowrap}
+.cst-name{overflow:hidden;text-overflow:ellipsis}
+.cst-chap:hover .cst-name{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--et-soft)}
+.cst-chap[aria-current] .cst-txt{font-weight:600}
+/* Pas de place libre pour le nom : il n'apparaît qu'à la demande, par-dessus les autres. */
+.cst-quiet .cst-txt{visibility:hidden}
+.cst-quiet:is(:hover,:focus-visible,[aria-current]) .cst-txt{visibility:visible;z-index:2;background:var(--et-ground)}
+.cst-due{flex:none;font-family:var(--sans);padding:1px 8px;border-radius:var(--pill);background:rgba(235,232,223,.14);color:var(--et-ink);font-size:12px;font-weight:500;font-variant-numeric:tabular-nums}
+.cst-chap:focus-visible{outline:none}
+.cst-chap:focus-visible .cst-hit{outline:2px solid var(--et-ink);outline-offset:-6px}
+.cst-label{position:absolute;margin:0;display:inline-flex;flex-direction:column;align-items:flex-start;max-width:300px;padding:2px 8px;border:0;border-radius:8px;background:none;color:var(--et-ink);font:inherit;text-align:left;white-space:nowrap;cursor:pointer;transform:translateY(-50%)}
+.cst-label.tl{transform:none}
+.cst-label span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.cst-label small{font:400 12.5px var(--sans);color:var(--et-soft)}
+.cst-label:hover{background:var(--et-press)}
+.cst-matiere{font:italic 400 30px/1.15 var(--et-serif);letter-spacing:-.005em}
+.cst-cours{max-width:240px;font-size:15px;color:var(--et-soft)}
+.cst-cours:hover{color:var(--et-ink)}
+.etude-stage[data-lod=loin] .cst-txt{visibility:hidden}
+.etude-stage[data-vue=constellations]{background:var(--et-ground)}
+
 /* Arbre */
 .arbre-world{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
 .arbre-world.gliding{transition:transform .38s cubic-bezier(.22,1,.36,1)}
@@ -159,4 +235,4 @@ h4>.etude-fold{font-size:15px;font-weight:600}
   .etude-tool{min-width:44px}
   .etude-space .link{padding:10px 0}
 }
-@media (prefers-reduced-motion:reduce){.arbre-world.gliding{transition:none}}
+@media (prefers-reduced-motion:reduce){.arbre-world.gliding,.cst-world.gliding{transition:none}}
