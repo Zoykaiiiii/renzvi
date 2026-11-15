@@ -1472,13 +1472,13 @@ function boardCabin(ticket) {
 
 // L'ambiance du vol suit l'heure du départ : matin, jour, coucher de soleil ou nuit. Toujours au-dessus des nuages.
 // sun : hauteur du soleil (ou de la lune) ; glow : lumière rasante dorée sur les nuages ; night : étoiles et lune.
-const AMBIANCES = {
+const VOL_CIELS = {
   matin: { zenith: [.36, .5, .72], horizon: [.98, .8, .66], lit: [1, .92, .82], shade: [.62, .6, .7], sun: .64, glow: .7, night: 0 },
   jour: { zenith: [.3, .5, .74], horizon: [.82, .87, .92], lit: [.98, .98, .98], shade: [.56, .65, .76], sun: .8, glow: 0, night: 0 },
   coucher: { zenith: [.34, .38, .56], horizon: [.99, .71, .47], lit: [1, .83, .71], shade: [.5, .42, .52], sun: .655, glow: 1, night: 0 },
   nuit: { zenith: [.03, .05, .12], horizon: [.13, .17, .3], lit: [.5, .55, .7], shade: [.09, .12, .21], sun: .78, glow: 0, night: 1 },
 };
-const ambianceNow = (hour = new Date().getHours()) => AMBIANCES[hour >= 21 || hour < 5 ? 'nuit' : hour < 9 ? 'matin' : hour < 17 ? 'jour' : 'coucher'];
+const ambianceNow = (hour = new Date().getHours()) => VOL_CIELS[hour >= 21 || hour < 5 ? 'nuit' : hour < 9 ? 'matin' : hour < 17 ? 'jour' : 'coucher'];
 const LANDSCAPE_SHADER = `precision highp float;
 uniform vec2 size; uniform float t, sun, glow, night; uniform vec3 zenith, horizon, lit, shade;
 float hash(vec2 p){ vec3 q = fract(p.xyx * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
