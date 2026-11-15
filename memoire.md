@@ -583,3 +583,15 @@ Damien a confié à Codex la préparation technique des prompts pour pouvoir se 
 - **Pro** : comme l'Arbre, labo seulement (`?labo=1`) ; aucun droit Pro n'existe encore dans le code (Whop pas branché). À brancher : montrer les présentations Pro aux abonnés, garder Liste (et le Cahier, les Flashcards) pour tous si l'abonnement s'arrête.
 - **Tests** : `tests/constellations.check.cjs` ; base commune extraite dans `tests/etude-harness.cjs` (utilisée aussi par `tests/arbre.check.cjs`, adapté aux onglets). `tests/curseurs.check.cjs` attend maintenant la fin réelle du roulement des chiffres (il échouait sur cette machine, paysage du vol rendu sans carte graphique, sans bug visible).
 - **Limites** : pas de compte à rebours dans le dock (il n'existe pas ailleurs) ; les liens entre chapitres de cours différents n'existent pas dans les données, donc pas dessinés ; jamais essayé sur un vrai téléphone ni par Damien.
+
+## 24. Plans d'abonnement (sans paiement) — Claude, 15 novembre 2026
+
+**Décision de Damien (15 nov.) : deux plans payants, Pro 9,99 € et Worker 17,99 € TTC par mois. « Pour l'instant, créer que les plans. »** Le prix de Worker reste à justifier par de vraies fonctions ; le partage des fonctions entre Gratuit, Pro et Worker n'est pas décidé.
+- **Migration `supabase/migrations/20261115000000_abonnements.sql`** — **passée en ligne par Damien le 15 nov.** :
+  - `plans` : `gratuit` (0), `pro` (999 centimes), `worker` (1799 centimes), **TTC**, mensuels ; `whop_plan_id` vide (à remplir quand Whop sera branché). Lecture pour les comptes connectés, aucune écriture.
+  - `abonnements` : une ligne par compte payant (`plan`, `statut` actif/essai/annule/expire, `fin`, `source` manuel/whop, `whop_membership_id`). Le navigateur lit **seulement sa ligne** et ne peut **rien écrire** : seul le serveur (plus tard le webhook Whop, clé de service) écrit. Pas de ligne = Gratuit.
+  - `renzvi_plan()` : le plan en vigueur du compte connecté (un abonnement résilié vaut jusqu'à sa fin).
+  - Testé par `tests/rls.check.sh` (Docker) : RAPPORT OK (personne ne se donne un plan, ne change un prix, ne lit l'abonnement d'un autre).
+- **App** : « Mon compte » affiche le plan (« Pro · 9,99 € TTC par mois · résilié, actif jusqu'au … »). Sans la migration ou en panne : « Gratuit ». **Rien n'est verrouillé par le plan** (labo inchangé). Serveur de démo et `tests/menu-lateral.check.cjs` (5 bis) couvrent l'affichage.
+- **Pas fait** : paiement Whop, prix annuels, page de choix d'un plan, réservation de fonctions à un plan.
+- **Migration nutrition reconstituée** : `20261110000000_nutrition_repas.sql` ne contenait qu'un « s » (commité vide le 10 nov., la vraie avait été passée à la main en ligne), ce qui cassait `tests/rls.check.sh`. Reconstituée (ajout de `repas` aux widgets autorisés). **Vérifiée par Damien le 15 nov. sur la base en ligne : mêmes 26 widgets, même ordre.** Ne pas la repasser en ligne.

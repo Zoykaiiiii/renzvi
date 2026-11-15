@@ -888,8 +888,8 @@ dialog.settings::backdrop{background:transparent}
   <p id="who"></p>
   <div class="acct">
     <h2>Abonnement</h2>
-    <p>Gratuit</p>
-    <p class="desc">Renzvi est gratuit pour l'instant.</p>
+    <p id="plan-nom">Gratuit</p>
+    <p class="desc" id="plan-info">Renzvi est gratuit pour l'instant.</p>
   </div>
   <div class="acct">
     <h2>Parrainage</h2>
@@ -4339,7 +4339,23 @@ if (!sb) {
     $('ref-row').hidden = false;
     $('ref-info').textContent = `Ton code : ${referral.referral_code} · ${plural(referral.referral_count, 'filleul')}`;
   }
-  $('menu').addEventListener('toggle', e => { if (e.newState === 'open') loadReferral(); });
+  // Le plan du compte (supabase/migrations/20261115000000_abonnements.sql) : Gratuit, Pro ou Worker, lu à l'ouverture du
+  // menu. Aucun paiement n'est branché et rien n'est encore réservé à un plan. Sans la migration, ou en panne : Gratuit.
+  let planLu = false;
+  async function loadPlan() {
+    if (planLu) return;
+    const [p, a, l] = await Promise.all([sb.rpc('renzvi_plan'), sb.from('abonnements').select('plan,statut,fin').maybeSingle(), sb.from('plans').select('id,nom,prix_mensuel_ttc_centimes')]);
+    if (p.error || l.error || !Array.isArray(l.data)) return;
+    planLu = true;
+    const plan = l.data.find(x => x.id === p.data);
+    if (!plan || plan.id === 'gratuit') return;
+    $('plan-nom').textContent = plan.nom;
+    const prix = (plan.prix_mensuel_ttc_centimes / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+    const ab = a.error ? null : a.data, fin = ab?.fin ? new Date(ab.fin).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    const quand = !fin ? '' : ab.statut === 'annule' ? ` · résilié, actif jusqu'au ${fin}` : ab.statut === 'essai' ? ` · essai jusqu'au ${fin}` : ` · renouvellement le ${fin}`;
+    $('plan-info').textContent = `${prix} TTC par mois${quand}.`;
+  }
+  $('menu').addEventListener('toggle', e => { if (e.newState === 'open') { loadReferral(); loadPlan(); } });
   $('ref-copy').onclick = async () => {
     try {
       await navigator.clipboard.writeText($('ref-link').value);

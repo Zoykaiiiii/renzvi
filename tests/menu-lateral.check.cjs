@@ -291,10 +291,21 @@ const { custom, closeCustom, dispose, openMe, goMode, modeNow, showMenu } = requ
     await page.waitForSelector('#ref-row:not([hidden])');
     for (const text of ['Abonnement', 'Parrainage', 'Verrouillage de l’écran', 'Se déconnecter']) assert.ok(await menu.getByText(text, { exact: true }).isVisible(), text);
     assert.equal(await menu.getByText('Thème, couleurs et polices').count(), 0);
+    assert.equal(await page.textContent('#plan-nom'), 'Gratuit', 'sans abonnement : Gratuit');
     const r = await menu.boundingBox();
     assert.ok(r.x >= 0 && r.y >= 0 && r.y + r.height <= 900, 'le menu tient dans l’écran');
     await shot(page, 'compte');
     await page.keyboard.press('Escape');
+    await context.close();
+  }
+  // 5 bis. Plan payant : le nom, le prix TTC et l'échéance, tels que la base les donne.
+  {
+    srv.bac('plein', 'comptepro').abonnement = { plan: 'pro', statut: 'annule', fin: '2099-12-15T12:00:00Z' };
+    const { page, context } = await open({ width: 1440, height: 900 }, 'comptepro');
+    await openMe(page);
+    await page.waitForFunction(() => document.getElementById('plan-nom').textContent === 'Pro');
+    assert.equal((await page.textContent('#plan-info')).replace(/\s/g, ' '), "9,99 € TTC par mois · résilié, actif jusqu'au 15 décembre 2099.");
+    await shot(page, 'compte-pro');
     await context.close();
   }
 

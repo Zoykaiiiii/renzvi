@@ -91,6 +91,11 @@ function start(port = 0) {
           return json(res, 201, []);
         }
         if (table === 'rpc/get_my_referral') return json(res, 200, [{ referral_code: 'K7M2PQ9D', referral_count: 0 }]);
+        // Plans et abonnement (supabase/migrations/20261115000000_abonnements.sql). Un test règle b.abonnement ;
+        // la règle « en vigueur » est simplifiée ici : la vraie est testée par tests/rls.check.sql.
+        if (table.startsWith('plans')) return json(res, 200, [{ id: 'gratuit', nom: 'Gratuit', prix_mensuel_ttc_centimes: 0 }, { id: 'pro', nom: 'Pro', prix_mensuel_ttc_centimes: 999 }, { id: 'worker', nom: 'Worker', prix_mensuel_ttc_centimes: 1799 }]);
+        if (table === 'rpc/renzvi_plan') return json(res, 200, b.abonnement && (!b.abonnement.fin || new Date(b.abonnement.fin) > new Date()) ? b.abonnement.plan : 'gratuit');
+        if (table.startsWith('abonnements')) return json(res, 200, b.abonnement ? [b.abonnement] : []);
         // Les tables Study et IA sont vides ici : les widgets montrent leur état de départ.
         return json(res, req.method === 'POST' ? 201 : 200, [], { 'content-range': '*/0' });
       }

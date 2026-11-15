@@ -235,6 +235,25 @@ begin
   delete from study_links where course_id=ca; get diagnostics n = row_count; r := array_append(r, ('A retire son association: '||n)::text);
   select count(*) into n from study_cards where id=cda; r := array_append(r, ('A garde sa carte après le retrait: '||n)::text);
   delete from study_notes where course_id=ca and chapter_id='c0'; get diagnostics n = row_count; r := array_append(r, ('A supprime sa note: '||n)::text);
+
+  -- Abonnements : chacun lit son plan, personne ne s'en donne un ; sans ligne, c'est Gratuit.
+  select count(*) into n from plans; r := array_append(r, ('A lit les 3 plans: '||(n=3)::int)::text);
+  select renzvi_plan() into s; r := array_append(r, ('A sans abonnement est gratuit: '||(s='gratuit')::int)::text);
+  begin insert into abonnements(user_id,plan,statut) values (a,'worker','actif'); r := array_append(r, 'interdit: A se donne Worker ACCEPTE'); exception when others then r := array_append(r, 'interdit: A se donne Worker refusé'); end;
+  begin update plans set prix_mensuel_ttc_centimes=0 where id='worker'; get diagnostics n = row_count; r := array_append(r, ('interdit: A change un prix: '||n)::text); exception when others then r := array_append(r, 'interdit: A change un prix refusé'); end;
+  reset role;
+  insert into abonnements(user_id,plan,statut,fin) values (a,'pro','actif',now()+interval '30 days'), (b,'worker','annule',now()-interval '1 day');
+  set local role authenticated;
+  select renzvi_plan() into s; r := array_append(r, ('A abonné Pro est pro: '||(s='pro')::int)::text);
+  select count(*) into n from abonnements; r := array_append(r, ('A ne voit que son abonnement: '||(n=1)::int)::text);
+  begin update abonnements set plan='worker' where user_id=a; get diagnostics n = row_count; r := array_append(r, ('interdit: A passe Worker lui-même: '||n)::text); exception when others then r := array_append(r, 'interdit: A passe Worker lui-même refusé'); end;
+  perform set_config('request.jwt.claims', json_build_object('sub',b,'role','authenticated')::text, true);
+  perform set_config('request.jwt.claim.sub', b::text, true);
+  select renzvi_plan() into s; r := array_append(r, ('B résilié et échu garde un plan payant: '||(case when s='gratuit' then 0 else 1 end))::text);
+  select count(*) into n from abonnements where user_id=a; r := array_append(r, ('B lit l''abonnement de A: '||n)::text);
+  reset role;
+  set local role anon;
+  begin select count(*) into n from abonnements; r := array_append(r, ('anon lit les abonnements: '||n)::text); exception when others then r := array_append(r, 'anon lit les abonnements: refusé'); end;
   reset role;
 
   raise exception 'RAPPORT % (tout annulé) | %',
