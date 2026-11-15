@@ -512,3 +512,17 @@ Damien a confié à Codex la préparation technique des prompts pour pouvoir se 
 - **Ordre recommandé** : test de Study sans IA, puis Fal, puis import photo. Ne pas mélanger, sinon on ne sait pas d'où vient une panne.
 - **Gratuit/Pro (hypothèse de Claude, non tranchée)** : gratuit = dashboard, widgets, import numérique, flashcards à la main, révisions ; Pro = import photo, cartes par l'IA, espace Study en arbre, plus de cours. Le payant doit se voir dans le gratuit (cadenas et aperçu), sans faux compteurs ni faux prix barrés.
 
+
+## 20. Vol de focus interactif — Claude, 15 novembre 2026
+
+**Décision de Damien (avec Codex) : le Vol de focus passera en Pro**, à retravailler. Pas encore de limite gratuit/Pro dans le code : le vol reste public pour l'instant.
+
+**Fait le 15 nov. (`site/dashboard.html`)** :
+- Après le billet déchiré, **choix de la place vue de haut** (`pickSeat`, `#flight-seats`) : carlingue, ailes, places prises avec la tête du passager, places libres seulement côté hublot (A et F), cabine tirée de la durée (même durée, même cabine). Juste pour le geste : toutes les places mènent au hublot. Zoom vers la place choisie, puis le hublot. « Ne pas partir » ramène au dashboard sans rien compter. Le compteur ne démarre qu'après le choix. La place s'affiche : « Paris → Lyon · place 17A ».
+- **Hublot plus grand** : `--hublot-size` passe à 88vw (téléphone) et presque toute la hauteur (écran large).
+- **Paysages variés** dans le shader : champs et rivière au départ, puis îles et lagons, montagnes enneigées, désert de dunes, mer de nuages, dans un ordre tiré au sort (`LANDS`, `landscapeAt`). Changement à travers les nuages (ils se referment puis se rouvrent), au moins 4 paysages même sur 5 min, 3 min chacun au plus. Le décollage commence dans les nuages. La lumière suit toujours le vol (jour puis coucher de soleil).
+- Tests : `tests/login.check.cjs` choisit une place à chaque vol, vérifie le focus, la place affichée et « Ne pas partir ».
+
+**Reporté à la demande de Damien** : travailler avec le vol sur un deuxième écran ou quitter la page sans perdre le vol (aujourd'hui, sortir du plein écran ou de l'onglet annule le vol au bout de 10 s). À trancher avec lui : un réglage « mode deuxième écran » qui ne surveille pas le plein écran.
+
+**Idées validées pour le Pro, pas construites** : fonds d'écran vidéo et GIF (à la Discord), avec taille plafonnée, pause en « réduire les animations », réglage de flou. La **constellation** (2e présentation de l'espace Study) vient après le test de l'arbre ; redemander son image de référence à Damien.
