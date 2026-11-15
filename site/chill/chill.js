@@ -374,7 +374,7 @@ const chillLazy = (src, name) => ctx => {
 function chillAgrandir(title, content, onClose) {
   const dialog = el('dialog', 'glass chill-big');
   const head = el('div', 'chill-big-head');
-  const close = button('ghost', 'Fermer', () => dialog.close());
+  const close = button('ghost', 'Retour au tableau', () => dialog.close());
   head.append(el('h2', '', title), close);
   const home = content.parentNode, next = content.nextSibling;
   dialog.append(head, content);

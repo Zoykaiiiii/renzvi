@@ -6,7 +6,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
-const { dispose } = require('./menu.cjs');
+const { dispose, options } = require('./menu.cjs');
 const G = require('../site/chill/jeux.js');
 // Catalogue : on choisit le widget dans la liste, puis on confirme dans l'aperçu.
 const catClick = async (page, name) => {
@@ -242,6 +242,7 @@ async function stroke(page, canvas, from = [.3, .5], to = [.7, .5]) {
     const before = await hash(canvas);
     await dispose(page);
     for (const size of ['Grand', 'Petit', 'Moyen']) {
+      await options(page, 'Atelier de dessin');
       await page.getByRole('group', { name: 'Taille de Atelier de dessin' }).getByRole('button', { name: size, exact: true }).click();
       assert.equal(await hash(canvas), before, `dessin intact en taille ${size}`);
     }
@@ -326,7 +327,7 @@ async function stroke(page, canvas, from = [.3, .5], to = [.7, .5]) {
     assert.equal(await page.locator('dialog.chill-big canvas.atelier-paper').isVisible(), true);
     assert.ok((await pixel(page.locator('dialog.chill-big canvas'), 800, 600))[0] < 100, 'même dessin en grand');
     await shot(page, 'dessin-agrandi-mobile');
-    await page.locator('dialog.chill-big').getByRole('button', { name: 'Fermer' }).click();
+    await page.locator('dialog.chill-big').getByRole('button', { name: 'Retour au tableau' }).click();
     await W(page, 'dessin').locator('canvas').waitFor({ timeout: 2000 });
     assert.ok((await pixel(W(page, 'dessin').locator('canvas'), 800, 600))[0] < 100, 'le dessin revient dans le widget');
     assert.deepEqual(errors, []);

@@ -1,0 +1,50 @@
+/* Pages (labo ?vues=1). Les variables sont posées par vues/pages.js et retirées quand on quitte la présentation.
+   Le tableau devient une rangée de pages qui défile à l'horizontale, aimantée page par page. */
+.board[data-vue=pages]{
+  /* La colonne vide de largeur nulle à la fin ajoute l'espace qui suit la dernière colonne : la rangée fait pile N pages,
+     et la dernière page peut s'aligner comme les autres. */
+  grid-template-columns:repeat(var(--pg-cols),var(--pg-cw)) 0px;grid-template-rows:repeat(6,var(--pg-ch));
+  height:var(--pg-h);overflow-x:auto;overflow-y:hidden;
+  scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none
+}
+.board[data-vue=pages]::-webkit-scrollbar{display:none}
+/* Chaque widget prend exactement ses cases ; son contenu défile à l'intérieur s'il dépasse. */
+.board[data-vue=pages]>.widget,.board[data-vue=pages]>.widget[data-h]:not([data-collapsed]){height:auto;min-height:0;overflow:hidden;-webkit-touch-callout:none}
+.board[data-vue=pages]>.widget>.body{overflow:auto;overscroll-behavior:contain}
+.board[data-vue=pages]>.widget[data-collapsed]{align-self:start}
+.pg-snap{grid-row:1/-1;scroll-snap-align:start;pointer-events:none}
+
+/* Points de pagination, sous la page : un par page, le point actif plus long. */
+.pg-dots{display:flex;align-items:center;justify-content:center;width:fit-content;margin:10px auto 0;padding:2px 6px;border-radius:var(--pill);background:var(--glass);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)} /* taste-skill-ignore : verre du dashboard (décision du 2 nov.), les points restent lisibles sur une photo */
+.pg-dots[hidden]{display:none}
+.pg-dot{display:grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:none;cursor:pointer}
+.pg-dot i{display:block;width:7px;height:7px;border-radius:4px;background:color-mix(in srgb,var(--ink) 30%,transparent);transition:width .25s var(--ease),background-color .25s}
+.pg-dot[aria-current=page] i{width:18px;background:var(--ink)}
+.pg-dot:hover i{background:color-mix(in srgb,var(--ink) 60%,transparent)}
+.pg-step{width:32px;height:32px;padding:0;border:0;border-radius:50%;background:none;font-size:18px;color:var(--ink);cursor:pointer}
+.pg-step:disabled{opacity:.35;cursor:default}
+.pg-where{padding:0 6px;font-size:13px;font-variant-numeric:tabular-nums}
+@media (max-width:727px){.pg-dots{margin-bottom:env(safe-area-inset-bottom)}}
+
+/* Édition : le contenu ne répond plus, le widget entier se prend à la main ; deux poignées apparaissent. */
+.pages-editing .board[data-vue=pages]>.widget{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 45%,transparent)} /* taste-skill-ignore : le contour dit qu'on peut prendre le widget */
+.pages-editing .board[data-vue=pages]>.widget>:not(.pg-move):not(.pg-size){pointer-events:none}
+.pages-editing.dragging .board[data-vue=pages]>.widget{cursor:grabbing}
+.pg-move,.pg-size{display:none}
+.pages-editing .pg-move,.pages-editing .pg-size{position:absolute;z-index:5;display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:10px;background:var(--glass-solid);color:var(--ink);touch-action:none}
+.pages-editing .pg-move{top:6px;left:6px;cursor:grab}
+.pages-editing .pg-size{right:6px;bottom:6px;cursor:nwse-resize}
+.pg-move svg{width:12px;height:12px;fill:currentColor}
+.pg-size svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.pg-move:hover,.pg-size:hover,.resizing .pg-size{background:var(--accent);color:var(--on-accent)}
+@media (pointer:coarse){.pages-editing .pg-move,.pages-editing .pg-size{width:44px;height:44px}}
+.pg-cell{border-radius:12px;background:color-mix(in srgb,var(--glass) 45%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink) 8%,transparent);pointer-events:none} /* taste-skill-ignore : repère de case, seulement pendant l'édition */
+.pg-drop{z-index:3;display:grid;place-items:center;border:2px dashed var(--accent);border-radius:var(--r-panel);background:color-mix(in srgb,var(--accent) 12%,transparent);font-size:13px;font-weight:600;color:var(--accent);pointer-events:none}
+.pg-drop.bad{border-color:var(--error);background:color-mix(in srgb,var(--error) 12%,transparent);color:var(--error)}
+.pg-drop[hidden]{display:none}
+/* La barre d'édition : en haut, pour ne jamais couvrir les poignées du bas des widgets. */
+.pg-bar{position:fixed;top:12px;left:50%;z-index:40;display:flex;align-items:center;gap:16px;width:max-content;max-width:calc(100vw - 32px);padding:8px 8px 8px 18px;border-radius:var(--r-panel);background:var(--glass-solid);transform:translateX(-50%);box-shadow:0 1px 2px rgba(23,25,28,.08),0 10px 30px rgba(23,25,28,.16)} /* taste-skill-ignore : la barre flotte au-dessus de l'écran, le temps de disposer */
+.pg-bar[hidden]{display:none}
+.pg-hint{font-size:13px;color:var(--slate)}
+@media (max-width:727px){.pg-hint{display:none}}
+@media (prefers-reduced-motion:reduce){.pg-dot i{transition:none}}

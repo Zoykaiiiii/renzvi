@@ -5,7 +5,7 @@
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const { start } = require('./demo.cjs');
-const { dispose, openMe, goMode } = require('./menu.cjs');
+const { dispose, openMe, goMode, options } = require('./menu.cjs');
 
 (async () => {
   const srv = await start();
@@ -37,6 +37,7 @@ const { dispose, openMe, goMode } = require('./menu.cjs');
     const { page, context } = await open({ width: 1440, height: 900 }, 'page');
     await dispose(page);
     const box = page.locator('#board [data-widget=taches]');
+    await options(page, 'Tâches');
     const trigger = box.getByRole('combobox', { name: 'Page' });
     const native = box.locator('select');
     await trigger.scrollIntoViewIfNeeded();
@@ -63,7 +64,8 @@ const { dispose, openMe, goMode } = require('./menu.cjs');
     assert.equal(await isOpen(page), false, 'clic dehors ferme');
     assert.equal(await native.inputValue(), 'study');
 
-    // Clavier : Échap ferme sans quitter le mode Disposer, le focus revient au bouton.
+    // Clavier : Échap ferme sans quitter le mode Disposer, le focus revient au bouton. (Le clic dehors a aussi refermé « Options ».)
+    await options(page, 'Tâches');
     await trigger.focus();
     await page.keyboard.press('ArrowDown');
     assert.equal(await isOpen(page), true, 'flèche bas ouvre');
@@ -89,6 +91,7 @@ const { dispose, openMe, goMode } = require('./menu.cjs');
     await page.click('#custom-done');
     await goMode(page, 'Chill');
     await dispose(page);
+    await options(page, 'Tâches');
     await native.selectOption('study');
     assert.equal(await box.locator('.dd-trigger').textContent(), 'Study', 'le bouton suit une valeur posée par le code');
     await context.close();
@@ -163,6 +166,7 @@ const { dispose, openMe, goMode } = require('./menu.cjs');
     const { page, context } = await open({ width: 1440, height: 900 }, 'sombre');
     await page.evaluate(() => { document.documentElement.dataset.theme = 'dark'; });
     await dispose(page);
+    await options(page, 'Tâches');
     const trigger = page.locator('#board [data-widget=taches]').getByRole('combobox', { name: 'Page' });
     await trigger.scrollIntoViewIfNeeded();
     await shot(page, 'sombre-ferme', await around(page, trigger));
@@ -214,6 +218,7 @@ const { dispose, openMe, goMode } = require('./menu.cjs');
   {
     const { page, context } = await open({ width: 390, height: 844 }, 'tel', { touch: true });
     await dispose(page);
+    await options(page, 'Tâches');
     const trigger = page.locator('#board [data-widget=taches]').getByRole('combobox', { name: 'Page' });
     await trigger.scrollIntoViewIfNeeded();
     await trigger.tap();
@@ -232,6 +237,7 @@ const { dispose, openMe, goMode } = require('./menu.cjs');
   {
     const { page, context } = await open({ width: 1440, height: 900 }, 'reduit', { reduced: true });
     await dispose(page);
+    await options(page, 'Tâches');
     const trigger = page.locator('#board [data-widget=taches]').getByRole('combobox', { name: 'Page' });
     await trigger.scrollIntoViewIfNeeded();
     await trigger.click();

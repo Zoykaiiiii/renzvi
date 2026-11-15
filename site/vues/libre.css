@@ -6,7 +6,7 @@
 .board[data-vue=libre] .head{cursor:grab;touch-action:none}
 .board[data-vue=libre] .head :is(button,a,input,select){cursor:pointer}
 /* Avant/Après et la poignée de la grille n'ont pas de sens ici : la poignée du tableau les remplace. */
-.board[data-vue=libre] .edit>.grip,.board[data-vue=libre] .edit>.ghost{display:none}
+.board[data-vue=libre] .edit>.grip,.board[data-vue=libre] .edit-panel>.ghost{display:none}
 .vue-grip{display:none}
 /* La poignée ne prend pas de place dans l'en-tête : elle apparaît dans la marge, au survol ou au clavier. */
 .board[data-vue=libre] .vue-grip{position:absolute;top:calc(var(--pad) - 2px);left:2px;display:grid;place-items:center;width:18px;height:32px;padding:0;border:0;border-radius:6px;background:none;color:var(--slate);cursor:grab;transition:opacity .15s,background-color .18s}

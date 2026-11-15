@@ -3,7 +3,7 @@
 // vue agrandie, clavier et téléphone. Lancement : NODE_PATH=~/pw/node_modules node tests/parcours.check.cjs
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
-const { showMenu, custom, closeCustom, dispose, openMe, goMode, modeNow, wheelShut } = require('./menu.cjs');
+const { showMenu, custom, closeCustom, dispose, openMe, goMode, modeNow, wheelShut, options } = require('./menu.cjs');
 const { start } = require('./demo.cjs');
 
 (async () => {
@@ -61,6 +61,7 @@ const { start } = require('./demo.cjs');
     assert.ok(await page.isVisible('#aide'));
     assert.deepEqual(await page.locator('#aide li').evaluateAll(l => l.map(x => x.classList.contains('fait'))), [true, false, false]);
     await dispose(page);
+    await options(page, 'Ambiance sonore');
     await page.getByRole('group', { name: 'Taille de Ambiance sonore' }).getByRole('button', { name: 'Moyen' }).click();
     await page.click('#custom-done');
     await custom(page);

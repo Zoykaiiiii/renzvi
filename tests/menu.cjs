@@ -28,4 +28,9 @@ const goMode = async (page, name) => {
   await wheelShut(page);
 };
 const modeNow = async page => (await page.textContent('#mode-now')).replace(/^Mode : /, '');
-module.exports = { showMenu, custom, closeCustom, dispose, openMe, openWheel, modeNames, goMode, modeNow, wheelShut };
+// En mode Disposer, l'ordre, la taille et la page d'un widget sont dans son panneau « Options », ouvert à la demande.
+const options = async (page, title) => {
+  const b = page.getByRole('button', { name: `Options de ${title} : ordre, taille, page` });
+  if (await b.getAttribute('aria-expanded') !== 'true') await b.click();
+};
+module.exports = { showMenu, custom, closeCustom, dispose, openMe, openWheel, modeNames, goMode, modeNow, wheelShut, options };

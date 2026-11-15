@@ -33,8 +33,8 @@
     if (!t.closest('#app') && t !== document.body && t !== document.documentElement && t.id !== 'wall' && !t.closest('#wall')) return false;
     const box = t.closest('.widget');
     if (!box) return true;
-    // Tableau libre (labo) : l'en-tête d'un widget sert à le déplacer.
-    if (box.closest('[data-vue^=libre]')) return false;
+    // Tableau libre (labo) : l'en-tête d'un widget sert à le déplacer. Pages (labo) : l'appui long sur un widget l'édite.
+    if (box.closest('[data-vue^=libre], [data-vue=pages]')) return false;
     return t === box || t.classList.contains('head') || t.classList.contains('body') || t.classList.contains('meta') || t.matches('.head > h2');
   }
 

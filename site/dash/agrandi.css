@@ -1,0 +1,69 @@
+/* Vue agrandie d'un widget : le même widget (rien n'est rechargé, un minuteur continue), posé sur tout l'espace de l'appli.
+   Ce n'est pas le plein écran du navigateur : les onglets et la barre d'adresse restent. Le menu et les autres widgets
+   sont couverts et inactifs (inert, posé par zoom() dans dashboard.html).
+   La taille enregistrée au tableau (colonnes, hauteur, repli) ne s'applique pas ici et n'est jamais modifiée :
+   en fermant, le widget retrouve exactement sa place. */
+.board .widget.zoomed,.board .widget.zoomed[data-h]:not([data-collapsed]),.board[data-vue] .widget.zoomed{
+  position:fixed;inset:16px;z-index:60;width:auto;height:auto;max-height:none;margin:0;
+  padding:clamp(20px,2.4vw,36px);overflow:hidden;
+  /* Le contenu se compose avec la vraie place disponible, en largeur et en hauteur. */
+  container:widget/size;
+}
+.widget.zoomed .head{flex:none;min-height:44px}
+.widget.zoomed h2{font-size:18px;line-height:24px}
+.widget.zoomed .zoom{display:none}
+.zoom-back{display:none}
+.widget.zoomed .zoom-back{display:inline-flex;align-items:center;height:40px;margin-left:8px;padding:0 16px;font-size:14px}
+/* Un widget replié s'ouvre quand même en entier ; ses outils de disposition n'ont rien à faire ici. */
+.widget.zoomed[data-collapsed] .body{display:flex}
+.widget.zoomed :is(.fold,.resize-handle,.resize-badge,.edit){display:none}
+/* Le contenu : une colonne lisible au centre, qui défile seule si elle dépasse. */
+.board .widget.zoomed .body,.board .widget.zoomed[data-h]:not([data-collapsed]) .body{
+  flex:1;min-height:0;width:min(100%,960px);margin:24px auto 0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:auto
+}
+.widget.zoomed .rows{max-height:none}
+@media (max-width:727px){
+  .board .widget.zoomed,.board .widget.zoomed[data-h]:not([data-collapsed]),.board[data-vue] .widget.zoomed{
+    inset:0;border-radius:0;
+    padding:calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))
+  }
+  .widget.zoomed .zoom-back{padding:0 12px}
+  .board .widget.zoomed .body{margin-top:16px}
+}
+
+/* ---------- Composition par widget ---------- */
+
+/* Heure : l'heure au centre, grande, la date dessous. */
+.widget.zoomed[data-widget=heure] .body{flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center}
+.widget.zoomed[data-widget=heure] .time{font-size:min(22cqi,38cqh);line-height:1;letter-spacing:-.04em}
+.widget.zoomed[data-widget=heure] .zone{margin:0;font-size:clamp(16px,2.6cqi,28px)}
+
+/* Minuteur : le cadran grand au centre, les réglages dessous (ou à côté sur un écran large). */
+.widget.zoomed[data-widget=minuteur] .body{align-content:center}
+.widget.zoomed[data-widget=minuteur] .timer-dial{width:min(100%,58cqh,440px);max-width:none}
+@container widget (min-width:760px){
+  /* Le cadran à gauche, les réglages en colonne à droite, le tout centré dans la page. */
+  .widget.zoomed[data-widget=minuteur] .body{grid-template-columns:auto minmax(0,320px);grid-template-rows:repeat(3,auto);justify-content:center;align-content:center;align-items:center;column-gap:64px;row-gap:20px}
+  .widget.zoomed[data-widget=minuteur] .timer-dial{grid-row:1/4;width:min(440px,64cqh)}
+}
+
+/* Notes : un vrai éditeur, une colonne de lecture confortable. */
+.widget.zoomed[data-widget=notes] .body{width:min(100%,760px)}
+.widget.zoomed[data-widget=notes] .notes{flex:1;min-height:0;height:100%;font-size:17px;line-height:1.6}
+
+/* Respiration : le cercle prend la place. */
+.widget.zoomed[data-widget=respiration] .body{justify-content:center}
+.widget.zoomed[data-widget=respiration] .breath-stage{height:min(60cqh,460px)}
+.widget.zoomed[data-widget=respiration] .breath{width:min(54cqh,420px);height:min(54cqh,420px)}
+
+/* Temps de focus : le total en grand, les barres de la semaine sur une vraie hauteur. */
+.widget.zoomed[data-widget=semaine] .body{justify-content:center}
+.widget.zoomed[data-widget=semaine] .week-total{font-size:clamp(40px,6cqi,72px)}
+.widget.zoomed[data-widget=semaine] .week{gap:12px;margin-top:32px;font-size:14px}
+.widget.zoomed[data-widget=semaine] .week-bar{height:min(44cqh,360px)}
+
+/* Un widget encore vide : l'emplacement en pointillés reste à taille humaine, au milieu de la place. */
+.widget.zoomed .body>.empty,.widget.zoomed .body .empty{flex:0 0 auto;min-height:220px;margin-block:auto;font-size:15px}
+
+/* Le Cahier a sa propre grande vue (study/cahier.css) : la hauteur enregistrée au tableau ne doit pas l'écraser non plus. */
+.board .widget.cahier-open[data-h]:not([data-collapsed]){height:auto}

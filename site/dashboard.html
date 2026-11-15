@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="study/cahier.css">
 <link rel="stylesheet" href="study/cartes.css">
 <link rel="stylesheet" href="dash/dash.css">
+<link rel="stylesheet" href="dash/agrandi.css">
 <script src="install.js" defer></script>
 <style>@font-face{font-family:"Hanken Grotesk";src:url(fonts/hanken-grotesk-latin.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
 /* Polices au choix (Réglages) : le navigateur ne télécharge que celle qui est utilisée. */
@@ -392,6 +393,17 @@ input[type=range]:disabled{opacity:.5;cursor:default}
 }
 .edit{display:none;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
 .customizing .edit{display:flex}
+/* La barre d'édition se pose par-dessus le contenu, sous le titre : elle ne change pas la taille du widget.
+   Ce qu'on voit en disposant est donc la taille qui restera après « Terminer ». */
+.customizing .widget>.edit{position:absolute;top:calc(var(--pad) - 4px);right:calc(var(--pad) - 8px);z-index:4;flex-wrap:nowrap;gap:6px;margin:0;padding:0;border:0}
+.customizing .widget[data-size=s]>.edit{top:calc(var(--pad) - 8px)}
+.customizing .widget .head :is(.meta,.fold){visibility:hidden}
+/* Compacte à la souris seulement : au doigt, poignée et « Options » gardent 44 px. */
+@media (pointer:fine){.edit .edit-more{height:32px;padding:0 12px;font-size:13px}.edit .grip{width:32px;height:32px}}
+.edit-panel{display:none}
+.edit-panel.open{position:absolute;top:calc(100% + 6px);right:0;z-index:6;display:flex;flex-wrap:wrap;align-items:center;gap:8px;width:min(340px,calc(100cqi - 8px));padding:10px;border-radius:calc(var(--r-panel) - 6px);background:var(--glass-solid);box-shadow:0 1px 2px rgba(23,25,28,.08),0 10px 28px rgba(23,25,28,.16)} /* taste-skill-ignore : le panneau d'options flotte, le temps de le régler */
+.widget.edit-open{z-index:7}
+.edit-panel .choices,.edit-panel .edit-page{flex:1 1 100%;margin:0}
 .edit .ghost{padding:0 12px;font-size:13px}
 .edit .ghost:disabled{color:var(--slate);opacity:.55;cursor:default}
 .edit .choices{flex:1 1 auto;align-self:auto;width:auto}
@@ -2760,6 +2772,7 @@ const VUES_LABO = (() => {
 const VUES = [
   { id: 'grille', name: 'Grille' },
   { id: 'libre', name: 'Tableau libre', script: 'vues/libre.js', style: 'vues/libre.css', make: 'vueLibre' },
+  { id: 'pages', name: 'Pages', script: 'vues/pages.js', style: 'vues/pages.css', make: 'vuePages' },
 ];
 const VUES_VERSION = 1, VUE_MAX = 20000;
 // Nutrition (labo, ?labo=1) : recettes Wikibooks en CC BY-SA, chargées seulement quand le widget s'affiche.
@@ -2867,7 +2880,9 @@ if (!sb) {
       entry.zoomBtn.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.500 2.500h4v4M13.500 2.500 9 7M6.500 13.500h-4v-4M2.500 13.500 7 9"/></svg>';
       entry.zoomBtn.ariaLabel = `Agrandir ${w.title}`;
       entry.zoomBtn.setAttribute('aria-pressed', 'false');
-      head.append(entry.zoomBtn);
+      // Visible seulement dans la vue agrandie : une sortie évidente, en plus d'Échap et du bouton réduire.
+      entry.backBtn = button('ghost zoom-back', 'Retour au tableau', () => zoom(null));
+      head.append(entry.zoomBtn, entry.backBtn);
     }
     // Un widget qui plante ne doit pas emporter tout l'écran.
     try { entry.cleanup = w.render({ body, meta, user, sb, data: stored[w.id], save: data => queueSave(w.id, data), peer: id => stored[id], savePeer: (id, data) => queueSave(id, data), focusLogs: () => [focusLog(stored.vol), focusLog(stored.minuteur)] }); }
@@ -2888,7 +2903,7 @@ if (!sb) {
   veil.hidden = true;
   veil.onclick = () => zoom(null);
   document.body.append(veil);
-  let zoomed = null;
+  let zoomed = null, holder = null, zoomScroll = 0;
   // Continuité : une boîte qui change de place part visuellement de l'ancienne (transform seulement, rien n'est recréé).
   // Un nouveau changement interrompt proprement le précédent ; en mouvement réduit, la boîte est tout de suite à sa place.
   const flips = new WeakMap();
@@ -2909,6 +2924,18 @@ if (!sb) {
     const prev = zoomed;
     zoomed = next === prev ? null : next;
     const from = new Map([prev, zoomed].filter(Boolean).map(m => [m.box, m.box.getBoundingClientRect()]));
+    // Pendant la vue agrandie, un emplacement vide de la même taille garde sa place dans la grille : rien ne bouge derrière,
+    // la page ne raccourcit pas (sinon le navigateur remonte et on ne revient pas au même endroit).
+    holder?.remove();
+    holder = null;
+    if (zoomed && !$('board').dataset.vue && getComputedStyle($('board')).display === 'grid') {
+      holder = el('div', 'zoom-holder');
+      holder.ariaHidden = 'true';
+      holder.style.gridColumn = getComputedStyle(zoomed.box).gridColumn;
+      holder.style.height = `${from.get(zoomed.box).height}px`;
+      zoomed.box.before(holder);
+    }
+    if (zoomed && !prev) zoomScroll = scrollY;
     prev?.box.classList.remove('zoomed');
     prev?.zoomBtn.setAttribute('aria-pressed', 'false');
     zoomed?.box.classList.add('zoomed');
@@ -2917,8 +2944,10 @@ if (!sb) {
     if (zoomed) zoomed.zoomBtn.ariaLabel = zoomed.zoomBtn.ariaLabel.replace('Agrandir', 'Réduire');
     veil.hidden = !zoomed;
     document.documentElement.classList.toggle('zoom-lock', !!zoomed);
-    for (const n of [$('bar'), $('aide'), $('board-empty'), ...[...mounted.values()].map(m => m.box)]) n.inert = !!zoomed && n !== zoomed.box;
-    if (zoomed || prev) (zoomed ?? prev).zoomBtn.focus();
+    for (const n of [$('bar'), $('aide'), $('board-empty'), ...document.querySelectorAll('[data-zoom-inert]'), ...[...mounted.values()].map(m => m.box)]) n.inert = !!zoomed && n !== zoomed.box;
+    // On entre par « Retour au tableau » ; en sortant, le focus revient sur le bouton qui avait ouvert la vue.
+    if (!zoomed && Math.abs(scrollY - zoomScroll) > 1) scrollTo(scrollX, zoomScroll);
+    if (zoomed) zoomed.backBtn.focus(); else prev?.zoomBtn.focus({ preventScroll: true });
     for (const [box, rect] of from) {
       // Celui qui se referme reste au-dessus des autres le temps de rejoindre sa place.
       if (box !== zoomed?.box) box.classList.add('settling');
@@ -2927,7 +2956,8 @@ if (!sb) {
       else box.classList.remove('settling');
     }
   }
-  addEventListener('keydown', e => { if (e.key === 'Escape' && zoomed && !document.querySelector('dialog[open]')) zoom(null); });
+  // Échap ferme la vue agrandie, sauf si une fenêtre ou un menu ouvert dans le widget l'a déjà pris pour lui.
+  addEventListener('keydown', e => { if (e.key === 'Escape' && zoomed && !e.defaultPrevented && !document.querySelector('dialog[open]')) zoom(null); });
   // Les widgets qui arrivent (ajout, changement de mode) se posent l'un après l'autre.
   function arrive(ids) {
     ids.forEach((id, i) => {
@@ -3205,8 +3235,24 @@ if (!sb) {
       focusTab();
     };
     pageField.append(page);
-    bar.append(grip, before, after, sizes, pageField);
-    return { bar, before, after, page, pageField };
+    // Compact : seules la poignée et « Options » restent dans l'en-tête ; le reste s'ouvre à la demande, par-dessus le contenu.
+    const more = button('ghost edit-more', 'Options', () => openMore(!panel.classList.contains('open')));
+    more.ariaLabel = `Options de ${w.title} : ordre, taille, page`;
+    more.setAttribute('aria-expanded', 'false');
+    const panel = el('div', 'edit-panel');
+    panel.id = `edit-${w.id}`;
+    more.setAttribute('aria-controls', panel.id);
+    panel.append(before, after, sizes, pageField);
+    function openMore(open) {
+      panel.classList.toggle('open', open);
+      more.setAttribute('aria-expanded', open);
+      box.classList.toggle('edit-open', open);
+      if (open) for (const other of document.querySelectorAll('.edit-panel.open')) if (other !== panel) other.closest('.widget').querySelector('.edit-more').click();
+    }
+    panel.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); openMore(false); more.focus(); } });
+    document.addEventListener('pointerdown', e => { if (panel.classList.contains('open') && !box.querySelector('.edit').contains(e.target)) openMore(false); });
+    bar.append(grip, more, panel);
+    return { bar, before, after, page, pageField, close: () => openMore(false) };
   }
 
   // Les autres widgets glissent de leur ancienne place à la nouvelle.
@@ -3727,7 +3773,7 @@ if (!sb) {
     $('cat-search').oninput = () => drawCatalog(user);
     $('add-dialog').onclose = () => pickWidget(null, user);
     $('custom-done').onclick = () => setCustomizing(false);
-    $('layout-edit').onclick = () => { $('settings').close(); setCustomizing(true); };
+    $('layout-edit').onclick = () => { $('settings').close(); if (vue.edit) vue.edit(true); else setCustomizing(true); };
     $('favs-edit').onclick = editFavs;
     $('aide-open').onclick = () => {
       screen.aide = { add: screen.widgets.length > 0 };
@@ -3750,7 +3796,7 @@ if (!sb) {
         accents: () => ['vert', 'bleu', 'prune', 'terre', 'ambre', 'rose', 'sauge', 'encre'].map(id => ({ id, name: ACCENTS.find(a => a.id === id).name, hex: accentColor(id) })),
         wallName: () => { const w = wallNow(); return w === 'blanc' ? 'blanc' : w === 'perso' ? 'ta photo' : (WALLPAPERS.find(x => x.id === w)?.name ?? w).toLowerCase(); },
         // En mode Disposer, l'appui long laisse la main au glisser et aux poignées de taille.
-        blocked: () => !!lock?.isLocked() || !!zoomed || document.documentElement.classList.contains('zoom-lock') || $('screen').hidden || document.body.classList.contains('dragging') || document.body.classList.contains('customizing') || !!document.querySelector('dialog[open]'),
+        blocked: () => !!lock?.isLocked() || !!zoomed || document.documentElement.classList.contains('zoom-lock') || $('screen').hidden || document.body.classList.contains('dragging') || document.body.classList.contains('customizing') || document.body.classList.contains('pages-editing') || !!document.querySelector('dialog[open]'),
         say: text => { $('page-note').textContent = text; },
         afterCreate: () => $('board-empty').querySelector('.primary')?.focus(),
       });
@@ -4217,7 +4263,14 @@ if (!sb) {
     const pageOk = id => screen.pages.some(p => p.id === id);
     const num = n => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= VUE_MAX;
     for (const [page, id] of Object.entries(v.page ?? {})) if (pageOk(page) && VUES.some(x => x.id === id)) out.page[page] = id;
+    const cell = n => Number.isInteger(n) && n >= 0 && n <= 99;
+    for (const [page, raw] of Object.entries(v.places?.pages ?? {})) {
+      if (!pageOk(page) || !raw || typeof raw !== 'object') continue;
+      const ok = Object.entries(raw.d ?? {}).filter(([id, q]) => known(id) && q && [q.p, q.c, q.r, q.w, q.h].every(cell) && q.w > 0 && q.h > 0);
+      (out.places.pages ??= {})[page] = { n: Number.isInteger(raw.n) && raw.n >= 1 && raw.n <= 99 ? raw.n : 1, d: Object.fromEntries(ok.map(([id, q]) => [id, { p: q.p, c: q.c, r: q.r, w: q.w, h: q.h }])) };
+    }
     for (const vue of VUES) {
+      if (vue.id === 'pages') continue;
       for (const [page, list] of Object.entries(v.places?.[vue.id] ?? {})) {
         if (!pageOk(page) || !list || typeof list !== 'object') continue;
         const ok = Object.entries(list).filter(([id, p]) => known(id) && num(p?.x) && num(p?.y) && Number.isInteger(p?.z) && num(p.z));

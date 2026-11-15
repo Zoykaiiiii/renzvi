@@ -4,7 +4,7 @@
 // Lancement : NODE_PATH=~/pw/node_modules node tests/vues.check.cjs   (VIDEO=dossier pour filmer le parcours principal)
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
-const { dispose, goMode } = require('./menu.cjs');
+const { dispose, goMode, options } = require('./menu.cjs');
 const { start } = require('./demo.cjs');
 
 (async () => {
@@ -143,6 +143,7 @@ const { start } = require('./demo.cjs');
     await page.locator('#board [data-widget=taches] input').first().fill('Une tâche hors labo');
     await page.locator('#board [data-widget=taches] input').first().press('Enter');
     await dispose(page);
+    await options(page, 'Tâches');
     await page.getByRole('group', { name: 'Taille de Tâches' }).getByRole('button', { name: 'Grand' }).click();
     await saved(page);
     assert.equal(db.rows.ecran.vues.page.study, 'libre', 'le choix du labo survit à un enregistrement public');

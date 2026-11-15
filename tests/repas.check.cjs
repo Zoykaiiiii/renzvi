@@ -97,7 +97,7 @@ const shot = (page, name, opts) => SHOTS && page.screenshot({ path: path.join(SH
     assert.ok(liens.some(h => h.startsWith('https://fr.wikibooks.org/w/index.php?oldid=')), 'version source citée');
     assert.ok(liens.some(h => h.includes('creativecommons.org/licenses/by-sa/4.0')), 'licence citée');
     await shot(page, 'fiche');
-    await dlg.getByRole('button', { name: 'Fermer' }).click();
+    await dlg.getByRole('button', { name: 'Retour au tableau' }).click();
     await w.getByRole('button', { name: /Gardées \(1\)/ }).click();
     assert.equal(await w.locator('.repas-favoris .row').count(), 1);
     assert.deepEqual(errors, []);

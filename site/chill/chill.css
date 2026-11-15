@@ -11,7 +11,9 @@
 .chill-lab-tools .ghost{height:32px;padding:0 10px;font-size:13px}
 
 /* Vue agrandie */
-dialog.chill-big{width:min(1100px,100vw - 16px);max-height:96dvh;padding:16px}
+/* Comme la vue agrandie des autres widgets : tout l'espace de l'appli, 16 px de marge (bord à bord sur téléphone). */
+dialog.chill-big{width:calc(100vw - 32px);height:calc(100dvh - 32px);max-width:none;max-height:none;padding:clamp(16px,2.4vw,32px);overflow:auto}
+@media (max-width:727px){dialog.chill-big{width:100vw;height:100dvh;margin:0;border-radius:0;padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom))}}
 .chill-big-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
 .chill-big-head h2{font-size:16px}
 
@@ -51,9 +53,9 @@ dialog.chill-big{width:min(1100px,100vw - 16px);max-height:96dvh;padding:16px}
 .atelier-veil{position:absolute;inset:0;display:grid;place-content:center;gap:8px;padding:16px;text-align:center;border-radius:var(--chill-radius);background:rgba(255,255,255,.75)}
 .atelier-open{margin-top:8px;align-self:flex-start}
 .chill-big .atelier-open{display:none}
-.chill-big .atelier-paper{width:min(100%,calc((96dvh - 330px) * 4 / 3));margin-inline:auto}
+.chill-big .atelier-paper{width:min(100%,calc((100dvh - 360px) * 4 / 3));margin-inline:auto}
 .coloriage-stage svg{display:block;width:100%;height:auto;margin-top:8px;border-radius:var(--chill-radius);touch-action:manipulation}
-.chill-big .coloriage-stage svg{width:min(100%,calc((96dvh - 280px) * 4 / 3));margin-inline:auto}
+.chill-big .coloriage-stage svg{width:min(100%,calc((100dvh - 310px) * 4 / 3));margin-inline:auto}
 .coloriage-stage [data-z]{cursor:pointer}
 .coloriage-stage [data-z]:focus{outline:none}
 .coloriage-stage [data-z]:focus-visible{stroke:var(--accent);stroke-width:6}

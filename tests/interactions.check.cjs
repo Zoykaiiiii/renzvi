@@ -5,7 +5,7 @@
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const { start } = require('./demo.cjs');
-const { custom, dispose, openMe, modeNow } = require('./menu.cjs');
+const { custom, dispose, openMe, modeNow, options } = require('./menu.cjs');
 
 (async () => {
   const srv = await start();
@@ -249,6 +249,7 @@ const { custom, dispose, openMe, modeNow } = require('./menu.cjs');
     await page.keyboard.press('ArrowDown');
     await until(() => db.rows.ecran.spans.notes === spans.notes + 1 && db.rows.ecran.heights.notes === heights.notes + 32, `taille au clavier enregistrée (attendu ${spans.notes + 1}/${heights.notes + 32}, reçu ${JSON.stringify([db.rows.ecran.spans, db.rows.ecran.heights])}, écran ${await notes.getAttribute('data-span')}/${await notes.getAttribute('data-h')}, focus ${await page.evaluate(() => document.activeElement.className)})`);
     // Un préréglage remplace la taille fine.
+    await options(page, 'Notes');
     await notes.locator('.edit').getByRole('button', { name: 'Petit' }).click();
     await saved(page);
     assert.equal(db.rows.ecran.spans.notes, undefined);
