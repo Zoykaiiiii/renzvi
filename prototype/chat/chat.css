@@ -1,0 +1,36 @@
+/* Styles de l'îlot de chat : Tailwind limité aux classes de l'îlot et du composant, sans la remise à zéro générale
+   (le dashboard a ses propres styles). Les couches @layer sont retirées à la construction (scripts/build-chat.mjs) :
+   sinon les règles du dashboard, hors couche, passeraient devant celles du composant. */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@import "tw-animate-css";
+@source "../components/ui/ai-prompt-box.tsx";
+@source "./ChatIA.tsx";
+
+/* Remise à zéro limitée à l'îlot et aux bulles d'aide du composant (portées dans <body>), au plus bas niveau de priorité. */
+:where(#renzvi-chat, [data-radix-popper-content-wrapper]) :where(*, ::before, ::after) { box-sizing: border-box; border: 0 solid; margin: 0; padding: 0; }
+:where(#renzvi-chat) :where(button, textarea) { background: none; font: inherit; color: inherit; }
+:where(#renzvi-chat) :where(ol) { list-style: none; }
+:where(#renzvi-chat) :where(h2) { font-family: inherit; letter-spacing: 0; }
+
+/* Place : le personnage en bas à droite, le panneau au-dessus de lui. */
+.chat-ia-launch { position: fixed; right: calc(16px + env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 35; width: 52px; height: 52px; }
+.chat-ia-panel { position: fixed; right: calc(16px + env(safe-area-inset-right)); bottom: calc(80px + env(safe-area-inset-bottom)); z-index: 45; width: min(400px, 100vw - 32px); height: min(600px, 100dvh - 112px); transform-origin: bottom right; transition: opacity .18s cubic-bezier(.2,.8,.2,1), transform .18s cubic-bezier(.2,.8,.2,1); }
+.chat-ia-panel[hidden] { display: none; }
+@starting-style { .chat-ia-panel { opacity: 0; transform: translateY(8px) scale(.98); } }
+.chat-ia-compose textarea { max-height: 160px; }
+
+/* Jamais par-dessus le verrou, la vue agrandie, le tiroir du menu, ni pendant qu'on dispose les widgets. */
+:is(.locked, .customizing, .pages-editing, .drawer-open, .zoom-lock) #renzvi-chat { display: none; }
+/* De la place sous le dernier widget pour que le personnage ne le cache pas en fin de défilement. */
+body:has(#renzvi-chat) #app { padding-bottom: 76px; }
+
+/* Téléphone : une feuille sur presque toute la hauteur visible, qui suit le clavier ; le fond ne défile plus. */
+@media (max-width: 727px) {
+  .chat-ia-panel { top: calc(var(--chat-top, 0px) + 8px + env(safe-area-inset-top)); right: 0; bottom: auto; left: 0; width: auto; height: calc(var(--chat-h, 100dvh) - 8px - env(safe-area-inset-top)); border-radius: 24px 24px 0 0; }
+  .chat-ia-compose { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .chat-ouvert, .chat-ouvert body { overflow: hidden; }
+  .chat-ouvert .chat-ia-launch { display: none; }
+  .chat-ia-compose textarea { font-size: 16px; } /* iOS ne zoome pas la page en tapant */
+}
+@media (prefers-reduced-motion: reduce) { .chat-ia-panel, .chat-ia-launch { transition: none; } }

@@ -3806,6 +3806,12 @@ if (!sb) {
     drawToday();
     drawAide();
     $('open-add').onclick = () => { closeDrawer(false); openCatalog(user); };
+    // Chat (labo seulement tant qu'aucun assistant n'est branché) : un îlot React construit depuis prototype/chat
+    // (node scripts/build-chat.mjs), chargé à la demande pour ne rien coûter aux autres.
+    if (LABO && !$('chat-ia-js')) {
+      document.head.append(Object.assign(document.createElement('link'), { rel: 'stylesheet', href: 'dash/chat-ia.css' }));
+      document.body.append(Object.assign(document.createElement('script'), { id: 'chat-ia-js', src: 'dash/chat-ia.js', defer: true }));
+    }
     $('cat-search').oninput = () => drawCatalog(user);
     $('add-dialog').onclose = () => pickWidget(null, user);
     $('custom-done').onclick = () => setCustomizing(false);
