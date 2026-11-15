@@ -648,34 +648,40 @@ h2{font-family:var(--display);font-size:14px;line-height:20px;font-weight:var(--
   #flight{--hublot-size:calc((100dvh - 32px)*.72)}
   .cockpit{padding:16px}
 }
-/* Le choix de la place : la cabine vue de haut, nez en haut. Les places prises montrent la tête du passager. */
-.seats{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px 16px;overflow-y:auto;text-align:center;animation:flight-in .5s ease-out}
+/* Le billet à déchirer : le talon se prend à la main. */
+.stub{pointer-events:auto;cursor:grab;touch-action:none}
+.stub:active{cursor:grabbing}
+.seats.tear{justify-content:flex-end;padding-bottom:48px;pointer-events:none}
+.seats.tear .board-actions{pointer-events:auto}
+.tear-hint{font-size:18px;font-weight:500}
+.board-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+/* La cabine vue de haut, en perspective : nez au loin, quatre places par rangée, le numéro dans l'allée. */
+.seats{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:12px;padding:24px 16px;overflow-y:auto;text-align:center}
 .seats h2{font-size:32px;line-height:1.15;font-weight:500}
-.seats-lead{margin-bottom:10px;color:var(--flight-muted)}
-.seats .ghost{margin-top:10px;flex:none}
-.plane{position:relative;flex:none;isolation:isolate;--seat:44px;--aisle:30px;--hull:#e9e5dc}
-.plane-wings{position:absolute;left:50%;top:46%;z-index:-1;width:280%;height:auto;transform:translate(-50%,-50%);fill:#c9c4b8}
-.fuselage{position:relative;padding:76px 22px 44px;border-radius:50% 50% 34% 34%/120px 120px 52px 52px;background:var(--hull)}
-.cabin{display:grid;gap:8px}
-.seat-row{position:relative;display:grid;grid-template-columns:repeat(3,var(--seat)) var(--aisle) repeat(3,var(--seat));gap:5px;align-items:center}
-/* Les petits hublots de la carlingue, un par rangée de chaque côté. */
-.seat-row::before,.seat-row::after{content:"";position:absolute;top:50%;width:5px;height:12px;border-radius:3px;background:#3d4f63;transform:translateY(-50%)}
-.seat-row::before{left:-14px}
-.seat-row::after{right:-14px}
-.seat-num{font-size:12px;font-weight:600;color:#7d7668;font-variant-numeric:tabular-nums}
-.seat{position:relative;display:block;width:var(--seat);height:var(--seat);padding:0;border:0;border-bottom:8px solid #1f2a37;border-radius:11px 11px 7px 7px;background:#33475c;transition:transform var(--t-press,140ms) var(--ease),background-color .18s,border-color .18s}
-.seat.taken::after{content:"";position:absolute;left:50%;top:44%;width:52%;aspect-ratio:1;border-radius:50%;background:var(--hair,#3b2a20);transform:translate(-50%,-50%)}
-button.seat{cursor:pointer}
-button.seat:hover,button.seat:focus-visible{background:#9cc3e6;border-bottom-color:#5d8db8;transform:scale(1.06)}
-button.seat:active{transform:scale(.96)}
-button.seat.chosen{background:#fff;border-bottom-color:#b8c7d6;transform:scale(1.1)}
-#flight button.seat:focus-visible{outline:2px solid #fff;outline-offset:3px}
-@media (max-width:420px){.plane{--seat:40px;--aisle:26px}.fuselage{padding:64px 18px 36px}}
-@media (max-height:560px){
-  .seats{justify-content:flex-start;gap:6px;padding:16px}
+.cabin-stage{flex:none;perspective:1400px;perspective-origin:50% 10%}
+.plane{position:relative;isolation:isolate;padding:120px 28px 40px;border-radius:50% 50% 0 0/180px 180px 0 0;background:#1a1e25;box-shadow:inset 0 0 0 2px #313844;-webkit-mask-image:linear-gradient(#000 72%,transparent);mask-image:linear-gradient(#000 72%,transparent);transform:rotateX(38deg) translateY(calc(var(--row,0) * -40px));transform-origin:50% 40%;transition:transform .9s cubic-bezier(.22,1,.36,1);--seat:48px} /* taste-skill-ignore : la carlingue est un dessin, son bord clair et son fondu font la forme */
+.plane.flat{transform:none;transition:none}
+.plane-wings{position:absolute;left:50%;top:58%;z-index:-1;width:300%;height:auto;transform:translate(-50%,-50%);fill:#14181e}
+.cabin{display:grid;gap:10px}
+.seat-row{display:grid;grid-template-columns:var(--seat) var(--seat) 40px var(--seat) var(--seat);gap:8px;align-items:center;justify-items:center}
+.seat-letters span,.seat-num{font-size:13px;font-weight:600;color:#7a818d;font-variant-numeric:tabular-nums}
+.seat{display:block;width:var(--seat);height:var(--seat);padding:0;border:0;border-bottom:7px solid #3a3f48;border-radius:12px 12px 8px 8px;background:#525862;cursor:pointer;transition:background-color .2s,border-color .2s,box-shadow .3s}
+.seat:hover{background:#6d737e}
+.seat.chosen{background:#f4f3ef;border-bottom-color:#c4c3bd;box-shadow:0 0 30px 4px rgba(255,255,255,.3)} /* taste-skill-ignore : la place choisie s'allume, c'est le retour du geste */
+#flight .seat:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.seats-panel{position:relative;z-index:1;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:12px 16px;max-width:560px}
+.seats-route{flex:1 0 100%}
+.seats-route{font-size:18px;font-weight:500}
+.seats-time{display:flex;align-items:center;gap:14px;color:var(--flight-muted)}
+#flight .dial{--field:rgba(255,255,255,.06);--paper:#1d222a;--edge:rgba(255,255,255,.14);color:#fff}
+#flight .dial-pm button{color:#fff}
+#flight .primary:disabled{opacity:.4;cursor:default}
+.seats-panel{margin-top:-24px}
+@media (max-width:420px){.plane{--seat:44px;padding:100px 20px 32px}.seat-row{gap:6px;grid-template-columns:var(--seat) var(--seat) 32px var(--seat) var(--seat)}}
+@media (max-height:640px){
+  .seats{justify-content:flex-start;gap:8px;padding:16px}
   .seats h2{font-size:24px}
-  .seats-lead{margin-bottom:4px}
-  .fuselage{padding:40px 18px 24px;border-radius:50% 50% 30% 30%/64px 64px 32px 32px}
+  .plane{padding-top:70px}
 }
 #flight .ghost{background:none;border-color:rgba(255,255,255,.4);color:#fff;height:44px}
 #flight .primary{background:#fff;color:var(--ink);height:44px}
@@ -722,8 +728,8 @@ button.seat.chosen{background:#fff;border-bottom-color:#b8c7d6;transform:scale(1
 }
 @media (prefers-reduced-motion:reduce){
   .drop-slot,.swatch i,#wall i,.zoom{transition:none}
-  .cockpit,.flight-end,.hublot,.hublot-wing,.seats,.widget.arrive{animation:none}
-  .seat{transition:none}
+  .cockpit,.flight-end,.hublot,.hublot-wing,.widget.arrive{animation:none}
+  .seat,.plane{transition:none}
   .breath{transition:none;transform:none}
   .ring .fill{transition:none}
   .me,.out,#menu,.ghost,.primary{transition:none}
@@ -1249,9 +1255,8 @@ function boardingPass(ticket) {
   return pass;
 }
 
-// Déchirure 3D : deux copies du même ticket, découpées le long de la même ligne irrégulière, qui partent chacune de leur côté.
-async function tearAnimation(ticket) {
-  const scene = $('flight-scene');
+// Le billet en deux copies du même papier, découpées le long de la même ligne irrégulière : le corps et le talon.
+function ticketPieces(ticket) {
   const wrap = el('div', 'scene-ticket');
   const jag = [];
   for (let y = 0; y <= 100; y += 4) jag.push(`${72 + (y % 8 ? 0.7 : -0.7) * (0.5 + Math.random())}% ${y}%`);
@@ -1260,27 +1265,21 @@ async function tearAnimation(ticket) {
     const paper = boardingPass(ticket);
     paper.style.clipPath = `polygon(${polygon})`;
     p.append(paper);
+    p.style.transformOrigin = '72% 50%';
     return p;
   };
   const main = piece(['0 0', ...jag, '0 100%'].join(','));
   const stub = piece(['100% 0', ...jag, '100% 100%'].join(','));
-  main.style.transformOrigin = '72% 50%';
-  stub.style.transformOrigin = '72% 50%';
+  stub.classList.add('stub');
   wrap.append(main, stub);
-  scene.replaceChildren(wrap);
-  const play = (node, frames, options) => node.animate(frames, { fill: 'forwards', ...options }).finished;
+  return { wrap, main, stub };
+}
+const play = (node, frames, options) => node.animate(frames, { fill: 'forwards', ...options }).finished;
 
-  await play(wrap, [
-    { transform: 'translateY(50px) rotateX(38deg) rotateY(-24deg) scale(.7)', opacity: 0 },
-    { transform: 'rotateX(10deg) rotateY(-8deg) scale(1)', opacity: 1 },
-  ], { duration: 750, easing: 'cubic-bezier(.2,1.2,.3,1)' });
-  // On tire : le papier résiste et vibre avant de céder.
-  await Promise.all([
-    play(main, [{ transform: 'none' }, { transform: 'translateX(-2px) rotateZ(-.5deg)' }, { transform: 'translateX(-3px) rotateZ(.2deg)' }, { transform: 'translateX(-7px) rotateZ(-1.2deg) rotateY(-5deg)' }], { duration: 420, easing: 'ease-in' }),
-    play(stub, [{ transform: 'none' }, { transform: 'translateX(2px) rotateZ(.6deg)' }, { transform: 'translateX(3px) rotateZ(-.2deg)' }, { transform: 'translateX(9px) rotateZ(1.6deg) rotateY(7deg)' }], { duration: 420, easing: 'ease-in' }),
-  ]);
+// Le papier cède : des fibres volent, le talon tombe, le billet file vers le passager.
+async function ticketFlies({ wrap, main, stub }) {
   const rect = wrap.getBoundingClientRect();
-  const shards = Array.from({ length: 18 }, () => {
+  const shards = Array.from({ length: 22 }, () => {
     const s = el('i', 'shard');
     s.style.left = '72%';
     s.style.top = `${Math.random() * 100}%`;
@@ -1292,26 +1291,179 @@ async function tearAnimation(ticket) {
     ], { duration: 700 + Math.random() * 500, easing: 'cubic-bezier(.3,.1,.7,1)' });
   });
   await Promise.all([
-    // Le talon tombe, le billet file vers le passager.
-    play(stub, [{ transform: 'translateX(9px) rotateZ(1.6deg) rotateY(7deg)', opacity: 1 }, { transform: 'translate3d(170px,560px,-320px) rotateX(-75deg) rotateY(48deg) rotateZ(32deg)', opacity: 0 }], { duration: 1050, easing: 'cubic-bezier(.45,.05,.8,.5)' }),
-    play(main, [{ transform: 'translateX(-7px) rotateZ(-1.2deg) rotateY(-5deg)', opacity: 1 }, { opacity: 1, offset: .55 }, { transform: 'translate3d(-50px,-190px,980px) rotateX(-24deg) rotateY(10deg)', opacity: 0 }], { duration: 1050, easing: 'cubic-bezier(.5,0,.8,.4)' }),
+    play(stub, [{ transform: stub.style.transform || 'none', opacity: 1 }, { transform: 'translate3d(170px,560px,-320px) rotateX(-75deg) rotateY(48deg) rotateZ(32deg)', opacity: 0 }], { duration: 950, easing: 'cubic-bezier(.45,.05,.8,.5)' }),
+    play(main, [{ transform: main.style.transform || 'none', opacity: 1 }, { opacity: 1, offset: .5 }, { transform: 'translate3d(-50px,-190px,980px) rotateX(-24deg) rotateY(10deg)', opacity: 0 }], { duration: 950, easing: 'cubic-bezier(.5,0,.8,.4)' }),
     ...shards,
   ]);
-  scene.replaceChildren();
 }
 
-// La lumière du vol, du décollage à l'atterrissage : on part en plein jour et on arrive au coucher du soleil.
-const SKY = [
-  { zenith: [.30, .50, .74], horizon: [.82, .87, .92], lit: [.98, .98, .98], shade: [.56, .65, .76] },
-  { zenith: [.34, .48, .68], horizon: [.93, .85, .76], lit: [.99, .95, .89], shade: [.57, .60, .68] },
-  { zenith: [.34, .38, .56], horizon: [.99, .71, .47], lit: [1, .83, .71], shade: [.50, .42, .52] },
-];
-const skyAt = progress => {
-  const p = Math.min(Math.max(progress, 0), 1) * (SKY.length - 1), i = Math.min(Math.floor(p), SKY.length - 2), f = p - i;
-  return Object.fromEntries(Object.keys(SKY[0]).map(k => [k, SKY[i][k].map((v, c) => v + (SKY[i + 1][k][c] - v) * f)]));
+// Étape 1 : on déchire le billet soi-même, en tirant le talon vers la droite ou vers le bas jusqu'à ce qu'il cède.
+// Le bouton « Déchirer le billet » (souris, clavier) le déchire d'un geste. Renvoie false si on renonce.
+function tearTicket(ticket) {
+  return new Promise(resolve => {
+    const scene = $('flight-scene'), board = $('flight-seats'), still = REDUCED_MOTION();
+    const pieces = ticketPieces(ticket), { wrap, main, stub } = pieces;
+    scene.replaceChildren(wrap);
+    if (!still) wrap.animate([{ transform: 'translateY(50px) rotateX(38deg) rotateY(-24deg) scale(.7)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 750, easing: 'cubic-bezier(.2,1.2,.3,1)' });
+    let pull = 0, from = null, torn = false;
+    // p de 0 (intact) à 1 (sur le point de céder) ; le papier tremble quand il résiste.
+    const pose = p => {
+      const shake = p > .55 && !still ? (Math.random() - .5) * p * 2 : 0;
+      stub.style.transform = `translate(${p * 26 + shake}px,${p * 12}px) rotateZ(${p * 9}deg) rotateY(${p * 14}deg)`;
+      main.style.transform = `translateX(${-p * 7}px) rotateZ(${-p * 1.2 + shake * .2}deg)`;
+    };
+    const finish = value => { board.hidden = true; board.replaceChildren(); resolve(value); };
+    async function rip() {
+      if (torn) return;
+      torn = true;
+      from = null;
+      navigator.vibrate?.(30);
+      for (const b of board.querySelectorAll('button')) b.disabled = true;
+      // Une animation peut rester figée dans un onglet caché : le vol ne doit pas en dépendre.
+      if (!still) await Promise.race([ticketFlies(pieces).catch(() => {}), new Promise(r => setTimeout(r, 2500))]);
+      scene.replaceChildren();
+      finish(true);
+    }
+    stub.onpointerdown = e => {
+      if (torn || e.button !== 0) return;
+      e.preventDefault();
+      from = { x: e.clientX, y: e.clientY };
+      stub.setPointerCapture(e.pointerId);
+    };
+    stub.onpointermove = e => {
+      if (!from) return;
+      pull = Math.min(Math.max(e.clientX - from.x, (e.clientY - from.y) * .8, 0) / 170, 1);
+      pose(pull);
+      if (pull >= 1) rip();
+    };
+    stub.onpointerup = stub.onpointercancel = () => {
+      if (!from || torn) return;
+      from = null;
+      // Pas assez tiré : le papier revient en place.
+      const was = [stub.style.transform, main.style.transform];
+      pull = 0;
+      pose(0);
+      if (!still) {
+        stub.animate([{ transform: was[0] }, { transform: stub.style.transform }], { duration: 420, easing: 'cubic-bezier(.3,1.5,.5,1)' });
+        main.animate([{ transform: was[1] }, { transform: main.style.transform }], { duration: 420, easing: 'cubic-bezier(.3,1.5,.5,1)' });
+      }
+    };
+    const tearNow = button('primary', 'Déchirer le billet', async () => {
+      if (torn) return;
+      if (!still) {
+        // Le même geste, joué tout seul : le papier se tend, tremble, puis cède.
+        await Promise.race([new Promise(done => {
+          const t0 = performance.now();
+          const step = now => { const p = Math.min((now - t0) / 480, 1); pose(p * p); if (p < 1) requestAnimationFrame(step); else done(); };
+          requestAnimationFrame(step);
+        }), new Promise(r => setTimeout(r, 900))]);
+      }
+      rip();
+    });
+    const actions = el('div', 'board-actions');
+    actions.append(tearNow, button('ghost', 'Ne pas partir', () => { if (!torn) { scene.replaceChildren(); finish(false); } }));
+    board.className = 'seats tear';
+    board.replaceChildren(el('p', 'tear-hint', 'Tire le talon pour embarquer'), actions);
+    board.hidden = false;
+    tearNow.focus();
+  });
+}
+
+// Étape 2 : la cabine vue de haut, en perspective, nez au loin. On touche une place, la caméra glisse jusqu'à sa rangée ;
+// on règle la durée avec le même compteur que le widget ; on décolle. Renvoie { seat, minutes }, ou null si on renonce.
+function boardCabin(ticket) {
+  return new Promise(resolve => {
+    const board = $('flight-seats'), still = REDUCED_MOTION();
+    const rows = innerHeight < 640 ? 4 : innerHeight < 860 ? 6 : 7;
+    let minutes = ticket.minutes, chosen = null;
+    const title = el('h2', '', 'Choisis ta place');
+    title.id = 'seats-title';
+    const stage = el('div', 'cabin-stage'), plane = el('div', 'plane'), cabin = el('div', 'cabin');
+    cabin.setAttribute('role', 'group');
+    cabin.setAttribute('aria-labelledby', 'seats-title');
+    const letters = el('div', 'seat-row seat-letters');
+    letters.ariaHidden = 'true';
+    for (const l of ['A', 'C', '', 'D', 'F']) letters.append(el('span', '', l));
+    cabin.append(letters);
+    const seats = [];
+    for (let r = 1; r <= rows; r++) {
+      const row = el('div', 'seat-row');
+      for (const l of ['A', 'C', '', 'D', 'F']) {
+        if (!l) { row.append(Object.assign(el('span', 'seat-num', String(r)), { ariaHidden: 'true' })); continue; }
+        const name = `${r}${l}`, b = button('seat', '', () => pick(b, name, r));
+        b.ariaLabel = `Place ${name}${l === 'A' || l === 'F' ? ', côté hublot' : ''}`;
+        b.setAttribute('aria-pressed', 'false');
+        seats.push(b);
+        row.append(b);
+      }
+      cabin.append(row);
+    }
+    plane.innerHTML = '<svg class="plane-wings" viewBox="0 0 280 90" aria-hidden="true"><path d="M140 6 279 70 279 84 140 52 1 84 1 70z"/></svg>';
+    plane.append(cabin);
+    stage.append(plane);
+
+    const route = el('p', 'seats-route');
+    const showRoute = () => { route.textContent = `Paris → ${ROUTES.find(r => minutes <= r.upTo).city} · ${durationLabel(minutes)}`; };
+    const time = el('div', 'seats-time');
+    time.append(el('span', '', 'Durée du vol'), minuteDial({ value: minutes, min: MIN_FLIGHT, max: MAX_FLIGHT, step: 5, label: 'Durée du vol, en minutes', onInput: v => { minutes = v; showRoute(); }, onCommit: () => {} }));
+    const go = button('primary', 'Décoller', () => takeOff());
+    go.disabled = true;
+    const actions = el('div', 'board-actions');
+    actions.append(go, button('ghost', 'Ne pas partir', () => finish(null)));
+    const panel = el('div', 'seats-panel');
+    panel.append(route, time, actions);
+    showRoute();
+
+    function pick(b, name, row) {
+      if (chosen?.b === b) return;
+      if (chosen) { chosen.b.classList.remove('chosen'); chosen.b.setAttribute('aria-pressed', 'false'); }
+      chosen = { b, name };
+      b.classList.add('chosen');
+      b.setAttribute('aria-pressed', 'true');
+      if (!still) b.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.22)', offset: .45 }, { transform: 'scale(1.08)' }], { duration: 420, easing: 'cubic-bezier(.3,1.4,.5,1)' });
+      // La caméra glisse le long de la cabine jusqu'à la rangée choisie.
+      plane.style.setProperty('--row', String(row - (rows + 1) / 2));
+      go.disabled = false;
+    }
+    async function takeOff() {
+      for (const b of board.querySelectorAll('button')) b.disabled = true;
+      if (!still) {
+        // On plonge vers la place choisie, puis le hublot apparaît. Une animation figée (onglet caché) ne bloque pas le vol.
+        const p = stage.getBoundingClientRect(), s = chosen.b.getBoundingClientRect();
+        stage.style.transformOrigin = `${s.left + s.width / 2 - p.left}px ${s.top + s.height / 2 - p.top}px`;
+        const fade = panel.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' });
+        const dive = play(stage, [{ transform: 'none', opacity: 1 }, { transform: 'scale(3.4)', opacity: 0 }], { duration: 800, easing: 'cubic-bezier(.55,0,.75,.35)' });
+        title.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' });
+        await Promise.race([Promise.all([dive, fade.finished]).catch(() => {}), new Promise(r => setTimeout(r, 1300))]);
+      }
+      finish({ seat: chosen.name, minutes });
+    }
+    const finish = value => { board.hidden = true; board.replaceChildren(); resolve(value); };
+
+    board.className = 'seats';
+    board.replaceChildren(title, stage, panel);
+    board.hidden = false;
+    if (!still) {
+      // L'arrivée dans la cabine : on la voit d'abord à plat et de près, puis la caméra recule et l'incline.
+      plane.classList.add('flat');
+      stage.animate([{ transform: 'scale(1.5)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 900, easing: 'cubic-bezier(.22,1,.36,1)' });
+      requestAnimationFrame(() => requestAnimationFrame(() => plane.classList.remove('flat')));
+    }
+    seats[0].focus();
+  });
+}
+
+// L'ambiance du vol suit l'heure du départ : matin, jour, coucher de soleil ou nuit. Toujours au-dessus des nuages.
+// sun : hauteur du soleil (ou de la lune) ; glow : lumière rasante dorée sur les nuages ; night : étoiles et lune.
+const AMBIANCES = {
+  matin: { zenith: [.36, .5, .72], horizon: [.98, .8, .66], lit: [1, .92, .82], shade: [.62, .6, .7], sun: .64, glow: .7, night: 0 },
+  jour: { zenith: [.3, .5, .74], horizon: [.82, .87, .92], lit: [.98, .98, .98], shade: [.56, .65, .76], sun: .8, glow: 0, night: 0 },
+  coucher: { zenith: [.34, .38, .56], horizon: [.99, .71, .47], lit: [1, .83, .71], shade: [.5, .42, .52], sun: .655, glow: 1, night: 0 },
+  nuit: { zenith: [.03, .05, .12], horizon: [.13, .17, .3], lit: [.5, .55, .7], shade: [.09, .12, .21], sun: .78, glow: 0, night: 1 },
 };
+const ambianceNow = (hour = new Date().getHours()) => AMBIANCES[hour >= 21 || hour < 5 ? 'nuit' : hour < 9 ? 'matin' : hour < 17 ? 'jour' : 'coucher'];
 const LANDSCAPE_SHADER = `precision highp float;
-uniform vec2 size; uniform float t, day, biome, cover; uniform vec3 zenith, horizon, lit, shade;
+uniform vec2 size; uniform float t, sun, glow, night; uniform vec3 zenith, horizon, lit, shade;
 float hash(vec2 p){ vec3 q = fract(p.xyx * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
 float noise(vec2 p){
   vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
@@ -1328,111 +1480,58 @@ float tops(vec2 p){
   }
   return v * .7;
 }
-float fbm(vec2 p){
-  float a = .5, v = 0.;
-  for (int i = 0; i < 4; i++) { v += a * noise(p); p = p * 2.03 + vec2(5.3, 1.7); a *= .5; }
-  return v;
-}
-// Des crêtes : la forme des chaînes de montagnes et de leurs vallées.
-float ridge(vec2 p){
-  float a = .5, v = 0.;
-  for (int i = 0; i < 4; i++) { v += a * (1. - abs(2. * noise(p) - 1.)); p = p * 2.1 + vec2(3.1, 7.7); a *= .5; }
-  return v;
-}
-// Le sol vu d'avion. 0 : îles et lagons, 1 : montagnes enneigées, 2 : désert de dunes, 3 : champs et rivière.
-vec3 ground(vec2 g){
-  if (biome < .5) {
-    float h = fbm(g * .8);
-    vec3 c = mix(vec3(.06, .25, .42), vec3(.2, .64, .69), smoothstep(.5, .6, h));
-    if (h > .6) c = vec3(.9, .84, .66);
-    if (h > .615) c = mix(vec3(.14, .36, .19), vec3(.3, .46, .22), noise(g * 9.)) * (.8 + (h - .615) * 2.);
-    return c;
-  }
-  if (biome < 1.5) {
-    float r = ridge(g * .7), light = clamp(.8 + (r - ridge(g * .7 - vec2(.025, 0.))) * 12., .4, 1.3);
-    vec3 c = mix(vec3(.26, .36, .21), vec3(.46, .43, .39), smoothstep(.45, .6, r));
-    return mix(c, vec3(.94, .95, .97), smoothstep(.73, .79, r)) * light;
-  }
-  if (biome < 2.5) {
-    float w = fbm(g * .5);
-    return mix(vec3(.72, .48, .29), vec3(.9, .7, .46), w) * (.82 + sin(g.x * 5. + g.y * 2. + w * 9.) * .16);
-  }
-  vec2 cell = g * 2.2 + noise(g * 1.3) * .6, f = fract(cell);
-  float k = hash(floor(cell));
-  vec3 c = k < .35 ? vec3(.36, .48, .22) : k < .6 ? vec3(.62, .58, .3) : k < .8 ? vec3(.47, .38, .24) : vec3(.26, .4, .2);
-  c *= .9 + noise(g * 20.) * .15;
-  c = mix(vec3(.16, .24, .13), c, smoothstep(0., .05, min(min(f.x, 1. - f.x), min(f.y, 1. - f.y))));
-  return mix(vec3(.25, .38, .48), c, smoothstep(.03, .07, abs(g.y - sin(g.x * .7) * 1.2 - fbm(g * .6) * 1.5 + .3)));
-}
 void main(){
   vec2 uv = gl_FragCoord.xy / size;
   float aspect = size.x / size.y, line = .56, x = (uv.x - .5) * aspect;
-  vec2 sun2d = vec2(-.12, mix(.80, .655, day));
+  vec2 sun2d = vec2(-.12, sun);
   float toSun = length(vec2(x, uv.y) - sun2d);
   vec3 sky = mix(horizon, zenith, smoothstep(0., .4, uv.y - line));
-  sky = mix(sky, lit, clamp(exp(-toSun * 7.) * .55 + exp(-toSun * 40.), 0., 1.));
+  // Le soleil, ou la nuit la lune : un disque plus net et un halo plus discret.
+  sky = mix(sky, lit, clamp(exp(-toSun * 7.) * .55 * (1. - night * .75) + exp(-toSun * (40. + night * 50.)), 0., 1.));
+  // Les étoiles, la nuit seulement, plus nombreuses en haut du ciel.
+  sky += step(.9965, hash(floor(gl_FragCoord.xy / 1.5))) * night * smoothstep(line + .03, line + .3, uv.y) * .8;
   vec3 color = sky;
   if (uv.y < line + .02) {
-    // On descend tranche par tranche le long du regard. Un nuage touché est dessiné ; sinon le regard passe entre les nuages jusqu'au sol.
+    // On descend tranche par tranche le long du regard jusqu'au sommet du premier nuage, puis on affine le point touché.
     vec3 ray = normalize(vec3(x * 1.1, (uv.y - line) * 1.25 - .012, 1.));
-    vec3 from = vec3(t * .035, 1., 0.);
-    // cover à 1 : une mer de nuages sans trou ; vers 0 : quelques nuages isolés.
-    float slope = max(-ray.y, .012), off = mix(.42, -.2, cover), dist = .3 / slope, stepBy = .042 / slope, before = dist, hit = 0.;
+    // La vitesse : les nuages proches filent, les lointains glissent.
+    vec3 from = vec3(t * .16, 1., 0.);
+    float slope = max(-ray.y, .012), dist = .34 / slope, stepBy = .042 / slope, before = dist, hit = 0.;
     for (int i = 0; i < 12; i++) {
       vec3 p = from + ray * dist;
-      if (p.y < tops(p.xz * 1.5) - off) { hit = 1.; break; }
+      if (p.y < tops(p.xz * 1.5)) { hit = 1.; break; }
       before = dist;
       dist += stepBy;
     }
-    vec3 surface;
-    if (hit > .5) {
-      for (int i = 0; i < 3; i++) {
-        float middle = (before + dist) * .5;
-        vec3 p = from + ray * middle;
-        if (p.y < tops(p.xz * 1.5) - off) dist = middle; else before = middle;
-      }
-      vec2 q = (from + ray * dist).xz * 1.5;
-      float height = tops(q);
-      // Le côté tourné vers le soleil est clair, le creux entre deux nuages tombe dans une ombre douce.
-      float towards = clamp((height - tops(q + vec2(-.14, .1))) * 6.5 + .5 + (noise(q * 7.) - .5) * .16, 0., 1.);
-      // Un nuage isolé est éclairé d'après sa propre épaisseur : son pied reste dans l'ombre.
-      vec3 cloud = mix(shade, lit, clamp(towards * .62 + smoothstep(.2, .48, height - max(off, 0.)) * .6, 0., 1.));
-      cloud = mix(cloud, lit, exp(-length(vec2(x, uv.y - line) - vec2(sun2d.x, -.03)) * 4.) * .3 * day);
-      surface = mix(cloud, horizon, 1. - exp(-dist * dist * .014));
-    } else {
-      float far = 1. / slope;
-      vec2 at = (from + ray * far).xz;
-      vec3 land = ground(at * 1.2);
-      // L'ombre du nuage qui passe au-dessus, puis la lumière du moment : blanche à midi, dorée au coucher du soleil.
-      land *= 1. - .38 * smoothstep(.2, .3, tops((at + vec2(-.25, 0.)) * 1.5) - off);
-      land *= mix(vec3(1.), lit * 1.05, .5);
-      surface = mix(land, horizon, 1. - exp(-far * far * .006));
+    for (int i = 0; i < 3; i++) {
+      float middle = (before + dist) * .5;
+      vec3 p = from + ray * middle;
+      if (p.y < tops(p.xz * 1.5)) dist = middle; else before = middle;
     }
-    color = mix(surface, sky, smoothstep(line - .004, line + .012, uv.y));
+    vec2 q = (from + ray * dist).xz * 1.5;
+    float height = tops(q);
+    // Le côté tourné vers le soleil est clair, le creux entre deux nuages tombe dans une ombre douce.
+    float towards = clamp((height - tops(q + vec2(-.14, .1))) * 6.5 + .5 + (noise(q * 7.) - .5) * .16, 0., 1.);
+    float tall = smoothstep(.2, .48, height);
+    vec3 cloud = mix(shade, lit, clamp(towards * .62 + tall * .6, 0., 1.));
+    cloud = mix(cloud, lit, exp(-length(vec2(x, uv.y - line) - vec2(sun2d.x, -.03)) * 4.) * .3 * glow);
+    float haze = 1. - exp(-dist * dist * .014);
+    color = mix(mix(shade, cloud, hit), horizon, haze);
+    color = mix(color, sky, smoothstep(line - .004, line + .012, uv.y));
   }
   // Un grain très fin : plus de bandes dans les dégradés, et la texture d'une vraie vitre.
   color += (hash(gl_FragCoord.xy + fract(t) * 91.) - .5) * .022;
   gl_FragColor = vec4(color, 1.);
 }`;
 const REDUCED_MOTION = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-// Ce qu'on survole : des champs au départ, puis les autres dans un ordre tiré au sort, en boucle. cover : part du ciel couverte.
-const LANDS = { champs: { id: 3, cover: .3 }, iles: { id: 0, cover: .2 }, montagnes: { id: 1, cover: .32 }, desert: { id: 2, cover: .08 }, nuages: { id: 3, cover: 1 } };
-const smooth = (a, b, v) => { const k = Math.min(Math.max((v - a) / (b - a), 0), 1); return k * k * (3 - 2 * k); };
-function landscapeAt(order, segment, seconds) {
-  const land = LANDS[order[Math.floor(seconds / segment) % order.length]];
-  // On change de paysage à travers les nuages : ils se referment avant le changement et se rouvrent après (et au décollage).
-  const edge = Math.min(seconds % segment, segment - seconds % segment);
-  return { id: land.id, cover: Math.max(land.cover, 1 - smooth(0, 16, edge)) };
-}
 
 // Démarre le paysage et renvoie la fonction qui l'arrête. Rien ici ne touche au compteur : si le dessin échoue, le vol continue devant le ciel de secours.
-function startWindowView(view, progressOf, totalMs) {
+function startWindowView(view, ambiance) {
   const canvas = el('canvas');
   const gl = canvas.getContext('webgl', { alpha: false, antialias: false, powerPreference: 'low-power' });
-  const paintGlow = () => { const [r, g, b] = skyAt(progressOf()).horizon; $('flight-window').style.setProperty('--glow', `rgb(${r * 255} ${g * 255} ${b * 255})`); };
-  paintGlow();
-  const glowTimer = setInterval(paintGlow, 15000);
-  const stopGlow = () => { clearInterval(glowTimer); $('flight-window').style.removeProperty('--glow'); };
+  const [r, g, b] = ambiance.horizon;
+  $('flight-window').style.setProperty('--glow', `rgb(${r * 255} ${g * 255} ${b * 255})`);
+  const stopGlow = () => $('flight-window').style.removeProperty('--glow');
   if (!gl) return stopGlow;
   const compile = (type, source) => { const s = gl.createShader(type); gl.shaderSource(s, source); gl.compileShader(s); return s; };
   const program = gl.createProgram();
@@ -1446,13 +1545,13 @@ function startWindowView(view, progressOf, totalMs) {
   const corner = gl.getAttribLocation(program, 'p');
   gl.enableVertexAttribArray(corner);
   gl.vertexAttribPointer(corner, 2, gl.FLOAT, false, 0, 0);
-  const uniform = Object.fromEntries(['size', 't', 'day', 'biome', 'cover', ...Object.keys(SKY[0])].map(name => [name, gl.getUniformLocation(program, name)]));
+  const uniform = name => gl.getUniformLocation(program, name);
+  for (const name of ['zenith', 'horizon', 'lit', 'shade']) gl.uniform3fv(uniform(name), ambiance[name]);
+  for (const name of ['sun', 'glow', 'night']) gl.uniform1f(uniform(name), ambiance[name]);
+  const sizeAt = uniform('size'), timeAt = uniform('t');
 
   // Les nuages sont flous : une image basse définition suffit et ménage la batterie sur un vol de 3 h.
-  const MAX_WIDTH = 600;
-  // Quatre paysages au moins, même sur un vol de 5 min ; 3 min chacun au plus sur un long vol.
-  const order = ['champs', ...['iles', 'montagnes', 'desert', 'nuages'].sort(() => Math.random() - .5)];
-  const segment = Math.min(Math.max(totalMs / 4000, 60), 180);
+  const MAX_WIDTH = 560;
   let scale = 1;
   const fit = () => {
     const width = Math.min(view.clientWidth * Math.min(devicePixelRatio, 2), MAX_WIDTH) * scale;
@@ -1463,25 +1562,20 @@ function startWindowView(view, progressOf, totalMs) {
   };
   const still = REDUCED_MOTION();
   const seed = Math.random() * 100;
-  let interval = still ? 30000 : 1000 / 20, last = -Infinity, late = 0, raf;
+  // 30 images par seconde : les nuages défilent vite, il faut que ça reste fluide.
+  let interval = still ? 30000 : 1000 / 30, last = -Infinity, late = 0, raf;
   function draw(now) {
     raf = requestAnimationFrame(draw);
     if (now - last < interval) return;
-    // Téléphone trop lent : on baisse la définition, puis on laisse le paysage presque immobile plutôt que de le faire chauffer.
+    // Téléphone trop lent : on baisse la définition, puis la cadence, puis on laisse le paysage presque immobile plutôt que de le faire chauffer.
     late = last > 0 && now - last > interval * 2 ? late + 1 : Math.max(0, late - 1);
     if (late > 20) {
       late = 0;
-      if (scale > .5) { scale = .5; fit(); } else interval = 2000;
+      if (scale > .5) { scale = .5; fit(); } else if (interval < 50) interval = 1000 / 20; else interval = 2000;
     }
     last = now;
-    const progress = progressOf(), sky = skyAt(progress);
-    gl.uniform2f(uniform.size, canvas.width, canvas.height);
-    gl.uniform1f(uniform.t, seed + (still ? 0 : now / 1000));
-    gl.uniform1f(uniform.day, Math.min(Math.max(progress, 0), 1));
-    const land = landscapeAt(order, segment, Math.max(progress, 0) * totalMs / 1000);
-    gl.uniform1f(uniform.biome, land.id);
-    gl.uniform1f(uniform.cover, land.cover);
-    for (const name of Object.keys(sky)) gl.uniform3fv(uniform[name], sky[name]);
+    gl.uniform2f(sizeAt, canvas.width, canvas.height);
+    gl.uniform1f(timeAt, seed + (still ? 0 : now / 1000));
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
   const watcher = new ResizeObserver(fit);
@@ -1498,69 +1592,14 @@ function startWindowView(view, progressOf, totalMs) {
   };
 }
 
-// Le choix de la place, vu de haut : pour le plaisir du geste, toutes les places mènent au hublot. Les places du milieu
-// sont prises ; côté hublot, la plupart sont libres. Tirées de la durée : la même durée donne la même cabine.
-// Renvoie la place choisie (« 14A »), ou null si on renonce.
-function pickSeat(ticket) {
-  return new Promise(resolve => {
-    const box = $('flight-seats');
-    const rows = Math.min(Math.max(Math.floor((innerHeight - 260) / 48), 3), 9), firstRow = 10 + ticket.minutes % 9;
-    let seed = ticket.minutes * 7919 + 13;
-    const rand = () => (seed = seed * 16807 % 2147483647) / 2147483647;
-    const HAIR = ['#2a1d16', '#4a3222', '#6e4b2c', '#16120f', '#a07a4a', '#8a8278'];
-    const title = el('h2', '', 'Choisis ta place');
-    title.id = 'seats-title';
-    const plane = el('div', 'plane'), hull = el('div', 'fuselage'), cabin = el('div', 'cabin');
-    cabin.setAttribute('role', 'group');
-    cabin.setAttribute('aria-labelledby', 'seats-title');
-    const free = [];
-    const seatButton = name => {
-      const b = button('seat', '', () => choose(b, name));
-      b.ariaLabel = `Place ${name}, côté hublot`;
-      free.push(b);
-      return b;
-    };
-    for (let r = 0; r < rows; r++) {
-      const row = el('div', 'seat-row'), number = firstRow + r;
-      for (const letter of 'ABCDEF') {
-        // Le numéro de rangée se lit dans l'allée.
-        if (letter === 'D') row.append(Object.assign(el('span', 'seat-num', String(number)), { ariaHidden: 'true' }));
-        if ((letter === 'A' || letter === 'F') && rand() > .3) { row.append(seatButton(`${number}${letter}`)); continue; }
-        const taken = Object.assign(el('span', 'seat taken'), { ariaHidden: 'true' });
-        taken.style.setProperty('--hair', HAIR[Math.floor(rand() * HAIR.length)]);
-        row.append(taken);
-      }
-      cabin.append(row);
-    }
-    // Jamais une cabine pleine : au besoin, la première place côté hublot se libère.
-    if (!free.length) cabin.firstChild.firstChild.replaceWith(seatButton(`${firstRow}A`));
-    plane.innerHTML = '<svg class="plane-wings" viewBox="0 0 280 90" aria-hidden="true"><path d="M140 6 279 70 279 84 140 52 1 84 1 70z"/></svg>';
-    hull.append(cabin);
-    plane.append(hull);
-    const done = seat => { box.hidden = true; box.replaceChildren(); resolve(seat); };
-    async function choose(b, seat) {
-      for (const s of free) s.disabled = true;
-      b.classList.add('chosen');
-      if (!REDUCED_MOTION()) {
-        // On plonge vers la place choisie, puis le hublot apparaît. Une animation figée (onglet caché) ne bloque pas le vol.
-        const p = plane.getBoundingClientRect(), s = b.getBoundingClientRect();
-        plane.style.transformOrigin = `${s.left + s.width / 2 - p.left}px ${s.top + s.height / 2 - p.top}px`;
-        const dive = plane.animate([{ transform: 'none', opacity: 1 }, { transform: 'scale(3.2)', opacity: 0 }], { duration: 750, easing: 'cubic-bezier(.55,0,.75,.35)', fill: 'forwards' }).finished;
-        await Promise.race([dive.catch(() => {}), new Promise(r => setTimeout(r, 1200))]);
-      }
-      done(seat);
-    }
-    box.replaceChildren(title, el('p', 'seats-lead', 'Les places côté hublot sont libres.'), plane, button('ghost', 'Ne pas partir', () => done(null)));
-    box.hidden = false;
-    free[0].focus();
-  });
-}
-
-function startFlight(ticket, onLanded, returnFocus) {
+// Le vol : on déchire le billet, on choisit sa place et sa durée dans la cabine, puis le hublot et le compte à rebours.
+// onLanded(minutes) à l'atterrissage ; onDuration(minutes) si la durée a changé dans la cabine.
+function startFlight(ticket, onLanded, returnFocus, onDuration) {
   const box = $('flight');
   const pageTitle = document.title;
   const page = [document.querySelector('header'), $('app')];
-  let endAt, total = ticket.minutes * 60000, leftAt = null, ticker, wakeLock = null, fullscreen = false, flying = false, confirmTimer, stopView = null;
+  let minutes = ticket.minutes, route = ticket.route, total = minutes * 60000;
+  let endAt, leftAt = null, ticker, wakeLock = null, fullscreen = false, flying = false, confirmTimer, stopView = null;
   const keepAwake = () => navigator.wakeLock?.request('screen').then(lock => { wakeLock = lock; }, () => {});
 
   const show = part => {
@@ -1585,7 +1624,7 @@ function startFlight(ticket, onLanded, returnFocus) {
     const remaining = endAt - now;
     if (remaining <= 0) return finish(true);
     $('flight-clock').textContent = clockLabel(remaining);
-    document.title = `${clockLabel(remaining)} — ${ticket.route.city}`;
+    document.title = `${clockLabel(remaining)} — ${route.city}`;
     // Le téléphone rend ce verrou dès qu'on quitte l'onglet : sans ça, l'écran s'éteint au retour et le vol s'annule tout seul.
     if (!document.hidden && wakeLock?.released) { wakeLock = null; keepAwake(); }
   }
@@ -1597,15 +1636,18 @@ function startFlight(ticket, onLanded, returnFocus) {
     document.removeEventListener('fullscreenchange', tick);
     wakeLock?.release().catch(() => {});
     document.title = pageTitle;
-    $('flight-end-title').textContent = landed ? `Atterri à ${ticket.route.city}` : 'Vol annulé';
-    $('flight-end-text').textContent = landed ? `${durationLabel(ticket.minutes)} de focus. Bien joué.` : "Ce vol ne compte pas dans ta journée.";
+    $('flight-end-title').textContent = landed ? `Atterri à ${route.city}` : 'Vol annulé';
+    $('flight-end-text').textContent = landed ? `${durationLabel(minutes)} de focus. Bien joué.` : "Ce vol ne compte pas dans ta journée.";
     show('flight-end');
     $('flight-close').focus();
-    if (landed) onLanded();
+    if (landed) onLanded(minutes);
   }
   function close() {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    wakeLock?.release().catch(() => {});
     stopView?.();
+    $('flight-scene').replaceChildren();
+    $('flight-seats').hidden = true;
     $('flight-window').hidden = true;
     box.hidden = true;
     for (const part of page) part.inert = false;
@@ -1631,17 +1673,17 @@ function startFlight(ticket, onLanded, returnFocus) {
     // shortcut: l'iPhone ne propose pas le plein écran aux pages web : l'écran y est couvert et seule la sortie de l'appli annule le vol.
     fullscreen = await entered;
     keepAwake();
-    if (!REDUCED_MOTION()) {
-      // Une animation peut rester figée dans un onglet caché : le vol ne doit pas en dépendre.
-      await Promise.race([tearAnimation(ticket).catch(() => {}), new Promise(resolve => setTimeout(resolve, 4000))]);
-      $('flight-scene').replaceChildren();
-    }
-    const seat = await pickSeat(ticket);
-    if (!seat) return close();
+    if (!await tearTicket(ticket)) return close();
+    const choice = await boardCabin(ticket);
+    if (!choice) return close();
+    minutes = choice.minutes;
+    route = ROUTES.find(r => minutes <= r.upTo);
+    total = minutes * 60000;
+    if (minutes !== ticket.minutes) onDuration?.(minutes);
     endAt = Date.now() + total;
     $('flight-window').hidden = false;
-    try { stopView = startWindowView($('flight-view'), () => 1 - (endAt - Date.now()) / total, total); } catch { /* le paysage est un décor : le vol continue sans lui */ }
-    $('flight-route').textContent = `Paris → ${ticket.route.city} · place ${seat}`;
+    try { stopView = startWindowView($('flight-view'), ambianceNow()); } catch { /* le paysage est un décor : le vol continue sans lui */ }
+    $('flight-route').textContent = `Paris → ${route.city} · place ${choice.seat}`;
     $('flight-eta').textContent = `Arrivée à ${new Date(endAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
     flying = true;
     show('flight-run');
@@ -1911,10 +1953,11 @@ const WIDGETS = [
         slot.replaceChildren(boardingPass(ticket()));
         meta.textContent = `Aujourd'hui : ${plural(flights, 'vol')} · ${minutes} min`;
       }
-      label.append(title, minuteDial({ value: length, min: MIN_FLIGHT, max: MAX_FLIGHT, step: 5, label: 'Durée du vol, en minutes', onInput: v => { length = v; draw(); }, onCommit: persist }));
+      const makeDial = () => minuteDial({ value: length, min: MIN_FLIGHT, max: MAX_FLIGHT, step: 5, label: 'Durée du vol, en minutes', onInput: v => { length = v; draw(); }, onCommit: persist });
+      let dial = makeDial();
+      label.append(title, dial);
       const go = button('primary vol-go', 'Déchirer et décoller', () => {
-        const flightMinutes = length;
-        startFlight(ticket(), () => {
+        startFlight(ticket(), flightMinutes => {
           const today = dayKey(new Date());
           if (today !== day) { day = today; minutes = 0; flights = 0; }
           minutes += flightMinutes;
@@ -1922,7 +1965,7 @@ const WIDGETS = [
           log = { ...log, [today]: (log[today] ?? 0) + flightMinutes };
           persist();
           draw();
-        }, go);
+        }, go, chosen => { length = chosen; dial.replaceWith(dial = makeDial()); persist(); draw(); });
       });
       draw();
       body.append(slot, label, go);

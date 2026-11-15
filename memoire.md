@@ -517,11 +517,12 @@ Damien a confié à Codex la préparation technique des prompts pour pouvoir se 
 
 **Décision de Damien (avec Codex) : le Vol de focus passera en Pro**, à retravailler. Pas encore de limite gratuit/Pro dans le code : le vol reste public pour l'instant.
 
-**Fait le 15 nov. (`site/dashboard.html`)** :
-- Après le billet déchiré, **choix de la place vue de haut** (`pickSeat`, `#flight-seats`) : carlingue, ailes, places prises avec la tête du passager, places libres seulement côté hublot (A et F), cabine tirée de la durée (même durée, même cabine). Juste pour le geste : toutes les places mènent au hublot. Zoom vers la place choisie, puis le hublot. « Ne pas partir » ramène au dashboard sans rien compter. Le compteur ne démarre qu'après le choix. La place s'affiche : « Paris → Lyon · place 17A ».
-- **Hublot plus grand** : `--hublot-size` passe à 88vw (téléphone) et presque toute la hauteur (écran large).
-- **Paysages variés** dans le shader : champs et rivière au départ, puis îles et lagons, montagnes enneigées, désert de dunes, mer de nuages, dans un ordre tiré au sort (`LANDS`, `landscapeAt`). Changement à travers les nuages (ils se referment puis se rouvrent), au moins 4 paysages même sur 5 min, 3 min chacun au plus. Le décollage commence dans les nuages. La lumière suit toujours le vol (jour puis coucher de soleil).
-- Tests : `tests/login.check.cjs` choisit une place à chaque vol, vérifie le focus, la place affichée et « Ne pas partir ».
+**Fait le 15 nov. (`site/dashboard.html`), deuxième version après son retour (image de référence d'une appli de focus : inspiration, pas copie)** :
+- Déroulé : « Déchirer et décoller » → plein écran → **on déchire le billet soi-même** (`tearTicket` : tirer le talon vers la droite ou le bas ; un petit coup ne suffit pas, le papier revient ; le bouton « Déchirer le billet » le fait d'un geste pour le clavier) → **la cabine en perspective** (`boardCabin` : nez au loin, 2 + 2 places A C | D F, numéro de rangée dans l'allée, place choisie qui s'allume, caméra qui glisse jusqu'à la rangée) avec **le même compteur à 3 chiffres** que le widget pour la durée (la destination suit) → « Décoller » : plongée vers la place, puis le hublot. « Ne pas partir » sur les deux écrans. La durée choisie dans la cabine revient dans le widget.
+- **Hublot plus grand** : `--hublot-size` 88vw (téléphone), presque toute la hauteur (écran large).
+- **Paysages au sol retirés** (Damien n'aimait pas) : seulement la mer de nuages, qui défile vite (vitesse ×4,5, 30 images/s). **Ambiance selon l'heure du départ** (`AMBIANCES`, `ambianceNow`) : matin (5-9 h), jour (9-17 h), coucher de soleil (17-21 h), nuit avec étoiles et lune (21-5 h). Le choix de l'ambiance par l'utilisateur n'existe pas.
+- `site/lockin.js` (landing) garde son ancienne copie du vol, non modifiée.
+- Tests : `tests/login.check.cjs` (déchirure à la souris, demi-déchirure qui revient, places, compteur de la cabine, durée renvoyée au widget, « Ne pas partir »).
 
 **Reporté à la demande de Damien** : travailler avec le vol sur un deuxième écran ou quitter la page sans perdre le vol (aujourd'hui, sortir du plein écran ou de l'onglet annule le vol au bout de 10 s). À trancher avec lui : un réglage « mode deuxième écran » qui ne surveille pas le plein écran.
 

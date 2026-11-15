@@ -98,6 +98,12 @@ async function openDashboard(browser, base, options, rows, prepare) {
   const base = `http://127.0.0.1:${server.address().port}`;
   const browser = await chromium.launch({ args: ['--no-sandbox', '--disable-gpu'] });
   const shot = async (page, name) => { if (SHOTS) await page.screenshot({ path: path.join(SHOTS, name + '.png') }); };
+  // Embarquer sans s'attarder : déchirer le billet d'un geste, prendre la première place, décoller.
+  const board = async page => {
+    await page.getByRole('button', { name: 'Déchirer le billet' }).click();
+    await page.locator('#flight-seats button.seat').first().click();
+    await page.getByRole('button', { name: 'Décoller', exact: true }).click();
+  };
 
   // Parcours complet : email invalide, trop de demandes, panne réseau, envoi, mauvais code, bon code, déconnexion.
   {
@@ -505,26 +511,50 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.waitForSelector('.scene-ticket');
     assert.ok(await page.evaluate(() => document.fullscreenElement?.id === 'flight'), 'plein écran demandé');
     assert.equal(await page.locator('.piece').count(), 2, 'le ticket est bien en deux morceaux');
-    if (SHOTS) {
-      for (const [ms, name] of [[500, 'vol-1-arrivee'], [650, 'vol-2-tension'], [450, 'vol-3-dechirure'], [300, 'vol-4-envol']]) {
-        await page.waitForTimeout(ms);
-        await shot(page, name);
-      }
-    }
-    // La place : la cabine vue de haut apparaît après la déchirure ; le focus est déjà sur une place libre côté hublot.
-    await page.waitForSelector('#flight-seats:not([hidden])', { timeout: 6000 });
+    // Déchirer à la main : un petit coup ne suffit pas, le papier revient ; tirer le talon jusqu'au bout le déchire.
+    await page.waitForTimeout(800);
+    await shot(page, 'vol-1-billet');
+    assert.ok(await page.getByRole('button', { name: 'Déchirer le billet' }).evaluate(b => b === document.activeElement), 'le focus est sur « Déchirer le billet »');
+    const paper = await page.locator('.scene-ticket').boundingBox();
+    const grip = { x: paper.x + paper.width * .86, y: paper.y + paper.height / 2 };
+    await page.mouse.move(grip.x, grip.y);
+    await page.mouse.down();
+    await page.mouse.move(grip.x + 60, grip.y, { steps: 5 });
+    await page.mouse.up();
+    await page.waitForTimeout(500);
+    assert.equal(await page.locator('.scene-ticket').count(), 1, 'tiré à moitié, le billet tient');
+    await page.mouse.move(grip.x, grip.y);
+    await page.mouse.down();
+    await page.mouse.move(grip.x + 110, grip.y + 10, { steps: 6 });
+    await shot(page, 'vol-2-tension');
+    await page.mouse.move(grip.x + 220, grip.y + 20, { steps: 6 });
+    await page.mouse.up();
+    // La cabine : on choisit sa place, la durée se règle avec le même compteur que le widget.
+    await page.waitForSelector('#flight-seats:not(.tear):not([hidden])', { timeout: 6000 });
     assert.equal(await page.locator('.scene-ticket').count(), 0);
-    const seat = page.locator('#flight-seats button.seat').first();
-    assert.match(await seat.getAttribute('aria-label'), /^Place \d+[AF], côté hublot$/);
-    assert.ok(await seat.evaluate(b => b === document.activeElement), 'le focus est sur la première place libre');
-    assert.ok(await page.locator('#flight-seats .seat.taken').count() > 0, 'des places sont déjà prises');
-    await shot(page, 'vol-4b-place');
-    const seatName = (await seat.getAttribute('aria-label')).match(/\d+[AF]/)[0];
-    await page.keyboard.press('Enter');
+    assert.equal(await page.getByRole('button', { name: 'Décoller', exact: true }).isDisabled(), true, 'pas de décollage sans place');
+    const seat = page.getByRole('button', { name: 'Place 3A, côté hublot' });
+    await seat.click();
+    assert.equal(await seat.getAttribute('aria-pressed'), 'true');
+    await page.getByRole('button', { name: 'Place 2D' }).click();
+    assert.equal(await seat.getAttribute('aria-pressed'), 'false', 'une seule place à la fois');
+    await seat.click();
+    const cabinDial = page.locator('#flight-seats').getByRole('spinbutton', { name: 'Durée du vol, en minutes' });
+    assert.equal(await cabinDial.getAttribute('aria-valuenow'), '25');
+    await cabinDial.press('ArrowUp');
+    assert.equal(await page.textContent('.seats-route'), 'Paris → Lyon · 30 min');
+    await cabinDial.press('PageUp');
+    assert.equal(await page.textContent('.seats-route'), 'Paris → Rome · 1 h');
+    await cabinDial.press('PageDown');
+    await page.waitForTimeout(900);
+    await shot(page, 'vol-3-cabine');
+    await page.getByRole('button', { name: 'Décoller', exact: true }).click();
     await page.waitForSelector('#flight-run:not([hidden])', { timeout: 6000 });
     assert.equal(await page.isVisible('#flight-seats'), false);
-    assert.equal(await page.textContent('#flight-route'), `Paris → Lyon · place ${seatName}`);
-    assert.match(await page.textContent('#flight-clock'), /^2[45]:\d\d$/);
+    assert.equal(await page.textContent('#flight-route'), 'Paris → Lyon · place 3A');
+    assert.match(await page.textContent('#flight-clock'), /^(30:00|29:\d\d)$/);
+    assert.equal(await page.locator('.vol-time output').textContent(), '30 min', 'la durée choisie dans la cabine revient dans le widget');
+
     assert.match(await page.textContent('#flight-eta'), /^Arrivée à \d\d:\d\d$/);
     // Le hublot : le paysage est bien dessiné (pas une image uniforme) et l'heure, en gras, est en plein milieu de l'écran.
     assert.equal(await page.locator('#flight-view canvas').count(), 1);
@@ -552,7 +582,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.waitForSelector('.boarding');
     await page.locator('.vol-time .dial').press('End');
     await page.getByRole('button', { name: 'Déchirer et décoller' }).click();
-    await page.locator('#flight-seats button.seat').first().click();
+    await board(page);
     await page.waitForSelector('#flight-run:not([hidden])');
     assert.match(await page.textContent('#flight-clock'), /^[23]:\d\d:\d\d$/);
     const view = await page.locator('#flight-view').boundingBox();
@@ -575,7 +605,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.waitForSelector('.boarding');
     await page.locator('.vol-time .dial').press('Home');
     await page.getByRole('button', { name: 'Déchirer et décoller' }).click();
-    await page.locator('#flight-seats button.seat').first().click();
+    await board(page);
     await page.waitForSelector('#flight-run:not([hidden])');
     assert.equal(await page.locator('#flight-view canvas').count(), 0);
     assert.equal(await page.isVisible('.hublot-frame'), true, 'le hublot reste affiché devant le ciel de secours');
@@ -597,7 +627,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.goto(`${base}/dashboard.html`);
     await page.waitForSelector('.boarding');
     await page.getByRole('button', { name: 'Déchirer et décoller' }).click();
-    await page.locator('#flight-seats button.seat').first().click();
+    await board(page);
     await page.waitForSelector('#flight-run:not([hidden])');
     await page.waitForFunction(() => window.locks.length === 1);
     // L'écran reste allumé après un aller-retour : le navigateur a rendu le verrou, le vol le redemande.
@@ -630,7 +660,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     assert.equal(await page.getByRole('button', { name: 'Retirer 5 minutes' }).isDisabled(), true, 'pas sous 5 minutes');
     const go = page.getByRole('button', { name: 'Déchirer et décoller' });
     await go.click();
-    await page.locator('#flight-seats button.seat').first().click();
+    await board(page);
     await page.waitForSelector('#flight-run:not([hidden])');
     assert.equal(await page.textContent('#flight-clock'), '05:00');
     assert.match(await page.title(), /05:00 — Nantes/);
@@ -664,7 +694,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
 
     // Annulation volontaire : deux clics, rien n'est compté.
     await go.click();
-    await page.locator('#flight-seats button.seat').first().click();
+    await board(page);
     await page.waitForSelector('#flight-run:not([hidden])');
     await page.getByRole('button', { name: 'Annuler le vol' }).click();
     await page.getByRole('button', { name: 'Vraiment annuler ?' }).click();
@@ -683,7 +713,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.waitForSelector('.boarding');
     const go = page.getByRole('button', { name: 'Déchirer et décoller' });
     await go.click();
-    await page.locator('#flight-seats button.seat').first().click();
+    await board(page);
     await page.waitForSelector('#flight-run:not([hidden])');
 
     await page.evaluate(() => document.exitFullscreen());
@@ -705,7 +735,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
 
     await go.click();
 
-    await page.locator('#flight-seats button.seat').first().click();
+    await board(page);
     await page.waitForSelector('#flight-run:not([hidden])');
     await hide(page, true);
     await page.clock.setSystemTime(Date.now() + 60000); // l'onglet dort : aucune minuterie ne tourne
@@ -725,7 +755,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.waitForSelector('.boarding');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0);
     await page.getByRole('button', { name: 'Déchirer et décoller' }).click();
-    await page.locator('#flight-seats button.seat').first().click();
+    await board(page);
     await page.waitForSelector('#flight-run:not([hidden])');
     const cover = await page.locator('#flight').boundingBox();
     assert.deepEqual([cover.x, cover.y, cover.width, cover.height], [0, 0, 390, 844]);
