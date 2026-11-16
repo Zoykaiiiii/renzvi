@@ -50,7 +50,7 @@ const everything = (extra = {}) => ({ ecran: { wallpaper: 'blanc', widgets: ALL_
 
 async function openBoard(browser, base, options, rows, prepare) {
   const context = await browser.newContext(options);
-  await context.addInitScript(session => localStorage.setItem('sb-xjkmztfsyyccveaeyzov-auth-token', session), JSON.stringify({ access_token: JWT, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: USER }));
+  await context.addInitScript(session => (localStorage.setItem('sb-xjkmztfsyyccveaeyzov-auth-token', session), localStorage.setItem('renzvi:vue-defaut', 'grille')), JSON.stringify({ access_token: JWT, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: USER }));
   const db = { rows, failSave: false, saves: 0, photo: null };
   await context.route(`${SUPABASE}/rest/v1/widget_state*`, route => {
     const req = route.request();
@@ -481,13 +481,13 @@ async function photo(browser, kind) {
       assert.ok(contrast(acc, [42, 42, 45]) >= 3, `${name} : accent visible en sombre`);
     }
     // Polices en pages de six : les flèches tournent les pages, un choix d'une autre page reste atteignable.
-    assert.equal(await page.locator('#fonts-titre .font-page').count(), 4);
-    assert.equal(await page.locator('#fonts-titre .font-opt').count(), 24);
-    assert.equal(await page.locator('#fonts-texte .font-page').count(), 3);
+    assert.equal(await page.locator('#fonts-titre .font-page').count(), 5);
+    assert.equal(await page.locator('#fonts-titre .font-opt').count(), 25);
+    assert.equal(await page.locator('#fonts-texte .font-page').count(), 4);
     const pagerT = page.locator('#pager-titre');
     assert.equal(await pagerT.getByRole('button', { name: 'Page précédente' }).isDisabled(), true);
     await pagerT.getByRole('button', { name: 'Page suivante' }).click();
-    await page.waitForFunction(() => document.querySelector('#pager-titre [aria-label="Page 2 sur 4"]').getAttribute('aria-current') === 'true');
+    await page.waitForFunction(() => document.querySelector('#pager-titre [aria-label="Page 2 sur 5"]').getAttribute('aria-current') === 'true');
     await page.getByRole('button', { name: 'Gochi Hand', exact: true }).click();
     assert.match(await page.evaluate(() => getComputedStyle(document.getElementById('hello')).fontFamily), /^"Gochi Hand"/);
     // Couleur libre : même un jaune très clair reste lisible, assombri en clair ou gardé clair en sombre, et enregistré tel quel.

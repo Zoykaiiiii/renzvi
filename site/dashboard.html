@@ -19,6 +19,7 @@
 <link rel="stylesheet" href="dash/dash.css">
 <link rel="stylesheet" href="dash/agrandi.css">
 <link rel="stylesheet" href="dash/spotlight.css">
+<link rel="stylesheet" href="dash/pixelcard.css">
 <script src="install.js" defer></script>
 <style>@font-face{font-family:"Hanken Grotesk";src:url(fonts/hanken-grotesk-latin.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
 /* Polices au choix (Réglages) : le navigateur ne télécharge que celle qui est utilisée. */
@@ -76,6 +77,9 @@ try { const l = JSON.parse(localStorage.getItem('renzvi:look') || '{}'); for (co
   --glass-shine:inset 0 1px 0 rgba(255,255,255,.7),0 2px 8px rgba(23,25,28,.06);
   --sans:-apple-system,BlinkMacSystemFont,"Hanken Grotesk",ui-sans-serif,system-ui,sans-serif;
   --display:var(--sans); --display-weight:600;
+  /* Police de l'interface fixe : le nom « Renzvi » et le panneau Personnaliser la gardent, quelle que soit la police choisie.
+     Une police importée illisible ne peut donc jamais cacher « Annuler » ni « Police par défaut ». */
+  --marque:-apple-system,BlinkMacSystemFont,"Hanken Grotesk",ui-sans-serif,system-ui,sans-serif;
   /* Surfaces pleines (champs, pastille du mode) et fonds des contrôles : le mode sombre les remplace. */
   --paper:#fff; --field:rgba(255,255,255,.72); --press:rgba(23,25,28,.09); --field-hover:#fff; --veil:rgba(23,25,28,.36); --pop-shine:rgba(255,255,255,.95);
   --r-panel:20px; --r-control:12px; --pill:9999px;
@@ -136,7 +140,7 @@ body{--side:0px;padding-left:var(--side)}
 .topbar{position:fixed;top:12px;left:12px;z-index:40;display:flex;flex-direction:column;gap:14px;padding:8px;border-radius:18px;color:var(--ink)}
 .topbar::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shine)}
 .bar-top{display:flex;align-items:center;gap:6px}
-.mark{flex:1;min-width:0;display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 8px;border-radius:10px;font-size:17px;font-weight:600;text-decoration:none}
+.mark{flex:1;min-width:0;display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 8px;border-radius:10px;font-family:var(--marque);font-size:17px;font-weight:600;text-decoration:none}
 .mark svg{flex:none;width:22px;height:22px}
 .bar-toggle{flex:none;display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:12px;background:none;color:var(--ink);transition:background-color .15s}
 .bar-toggle:hover{background:var(--tint)}
@@ -212,7 +216,8 @@ body{--side:0px;padding-left:var(--side)}
 #menu .acct-name{display:-webkit-box;margin-top:14px;overflow:hidden;font-family:var(--sans);font-size:20px;line-height:26px;font-weight:600;letter-spacing:-.015em;overflow-wrap:anywhere;-webkit-box-orient:vertical;-webkit-line-clamp:2}
 #who{margin-top:2px;font-size:14px;line-height:20px;color:var(--slate);overflow-wrap:anywhere}
 .acct-plan{margin-top:12px}
-#plan-nom{display:inline-block;padding:3px 10px;border-radius:var(--pill);background:var(--tint);font-size:12px;line-height:18px;font-weight:600}
+#plan-nom{display:inline-block;min-height:24px;padding:3px 10px;border:0;border-radius:var(--pill);background:var(--tint);color:inherit;font:inherit;font-size:12px;line-height:18px;font-weight:600;cursor:pointer}
+#plan-nom:hover{background:var(--accent);color:var(--on-accent)}
 .acct-list{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 8px 4px}
 .acct-row > summary,.acct-btn,.acct-note{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:var(--r-control);background:none;color:var(--ink);font-size:14px;font-weight:500;text-align:left;list-style:none;cursor:pointer;transition:background-color .15s}
 .acct-row > summary::-webkit-details-marker{display:none}
@@ -294,6 +299,27 @@ dialog h2{font-size:18px;line-height:1.3}
 dialog .actions{justify-content:flex-end}
 
 /* Le catalogue : la liste rangée par catégories à gauche, l'aperçu à droite. Rien n'est ajouté sans le bouton de l'aperçu. */
+/* Paywall : les trois plans, chacun sur une PixelCard (dash/pixelcard.js). Ouvert par le badge du plan ou un cadenas. */
+dialog.pw{width:min(980px,100vw - 24px);max-height:calc(100dvh - 24px)}
+.pw-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:20px}
+.pw-head > div{flex:1}
+.pw-head p{margin-top:4px;color:var(--slate);font-size:14px;line-height:20px}
+.pw-plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:760px){.pw-plans{grid-template-columns:1fr}}
+.pw-card.pixel-card{display:flex;flex-direction:column;align-items:stretch;place-items:stretch;width:auto;height:auto;padding:24px;user-select:auto;-webkit-user-select:auto}
+.pw-card.pw-pro{box-shadow:var(--pixel-card-shadow),0 0 0 2px var(--accent)}
+.pw-card h3{font-size:16px;line-height:22px}
+.pw-tag{margin-top:2px;color:var(--slate);font-size:13px;line-height:18px}
+.pw-prix{margin-top:16px;font-size:32px;line-height:36px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.pw-prix small{margin-left:4px;color:var(--slate);font-size:13px;font-weight:500;letter-spacing:0}
+.pw-card ul{flex:1;display:grid;align-content:start;gap:8px;margin:20px 0 24px;padding:0;list-style:none;font-size:14px;line-height:20px}
+.pw-card li{display:flex;gap:8px}
+.pw-card li svg{flex:none;width:16px;height:20px;fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pw-card .primary,.pw-card .ghost,.pw-now{width:100%;min-height:44px}
+.pw-now{display:grid;place-items:center;border-radius:var(--r-control);background:var(--tint);font-size:14px;font-weight:600}
+.pw-note{margin-top:16px;color:var(--slate);font-size:13px;line-height:18px;text-align:center}
+.cat-lock{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:1px 8px;border-radius:var(--pill);background:var(--tint);font-size:11px;line-height:16px;font-weight:600;vertical-align:2px}
+.cat-lock svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:2.2}
 dialog.cat{width:min(980px,100vw - 24px);height:min(720px,100dvh - 24px);max-height:none;padding:0;overflow:hidden}
 dialog.cat[open]{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr)}
 .cat-list{display:flex;flex-direction:column;min-height:0;padding:20px 12px 0 20px;border-right:1px solid var(--rule)}
@@ -853,11 +879,44 @@ dialog.settings::backdrop{background:transparent}
 .font-opt b{font-family:var(--f);font-weight:var(--fw,500);font-size:21px;line-height:1.25;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .font-opt span{font-size:12px;color:var(--slate);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .font-opt[aria-pressed=true]{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.font-add{border-style:dashed;background:none}
+.font-add b{display:flex;align-items:center;height:26px}
+.font-add svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 .set-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;min-height:44px}
 .set-row + .set-row{margin-top:6px}
 .set-row > span{font-size:14px}
 .set-slider{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 12px}
 .set-slider + .set-slider{margin-top:10px}
+dialog.settings,dialog.settings :is(h2,h3,h4){font-family:var(--marque)}
+/* Mes polices : une ligne par police importée, puis l'aperçu avant de l'appliquer. Les noms restent dans la police de l'interface : rien n'est téléchargé pour une police qu'on ne regarde pas. */
+.mp-list{display:grid;gap:6px;margin:0 0 12px;padding:0;list-style:none}
+.mp-list:empty{display:none}
+.mp-row{display:flex;align-items:center;gap:2px;min-width:0;padding:4px;border:1px solid var(--edge);border-radius:var(--r-control);background:var(--field)}
+.mp-row.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.mp-pick{flex:1;min-width:0;display:grid;gap:1px;padding:6px 8px;border:0;border-radius:max(4px,calc(var(--r-control) - 4px));background:none;text-align:left;transition:background-color .15s}
+.mp-pick:hover{background:var(--tint)}
+.mp-pick b{overflow:hidden;font-size:14px;line-height:20px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+.mp-pick span{overflow:hidden;font-size:12px;line-height:16px;color:var(--slate);text-overflow:ellipsis;white-space:nowrap}
+.mp-act{flex:none;height:32px;padding:0 10px;border:0;border-radius:var(--pill);background:none;color:var(--slate);font-size:13px;font-weight:500;transition:background-color .15s,color .15s}
+.mp-act:hover{background:var(--tint);color:var(--ink)}
+.mp-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
+.mp-tools .link{margin:0}
+.mp-rules{margin-top:10px;font-size:13px;line-height:1.45}
+.mp-msg{margin-top:8px;font-size:13px;line-height:1.45}
+.mp-msg:empty{display:none}
+.mp-msg.bad{color:var(--error)}
+.mp-preview{margin-top:14px;padding:14px;border-radius:var(--r-control);background:var(--tint)}
+.mp-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px;line-height:20px}
+.mp-head b{min-width:0;overflow:hidden;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+.mp-head span{flex:none;font-size:12px;color:var(--slate)}
+.mp-head:focus{outline:none}
+.mp-sample{margin:10px 0 12px;padding:14px 16px;border-radius:max(4px,calc(var(--r-control) - 2px));background:var(--paper);overflow-wrap:anywhere}
+.mp-s-title{font-size:24px;line-height:1.2;letter-spacing:-.015em}
+.mp-s-text{margin-top:6px;font-size:16px;line-height:1.5}
+.mp-facts{display:grid;gap:4px;margin:0 0 12px;padding:0;list-style:none;font-size:13px;line-height:1.45;color:var(--slate)}
+.mp-note{margin-bottom:12px;font-size:13px;line-height:1.45}
+.mp-preview .set-row{margin-bottom:12px}
+.mp-preview .page-tools{margin-top:0}
 .set-slider label{font-size:14px}
 .set-slider output{font-size:13px;color:var(--slate);font-variant-numeric:tabular-nums}
 .set-slider input{grid-column:1/-1;width:100%;margin:0}
@@ -944,12 +1003,12 @@ dialog.settings::backdrop{background:transparent}
     <span class="acct-av" id="acct-av" aria-hidden="true"></span>
     <h2 class="acct-name" id="acct-name">Mon compte</h2>
     <p id="who"></p>
-    <p class="acct-plan"><span class="visually-hidden">Abonnement : </span><span id="plan-nom">Gratuit</span></p>
+    <p class="acct-plan"><span class="visually-hidden">Abonnement : </span><button type="button" id="plan-nom" aria-describedby="plan-voir">Gratuit</button><span class="visually-hidden" id="plan-voir">Voir les plans</span></p>
   </div>
   <div class="acct-list" id="acct-list">
     <details class="acct-row" name="acct">
       <summary><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3.500" width="12" height="9" rx="1.500"/><path d="M2 6.500h12"/></svg><span>Abonnement</span><svg class="acct-chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></summary>
-      <div class="acct-more"><p class="desc" id="plan-info">Renzvi est gratuit pour l'instant.</p></div>
+      <div class="acct-more"><p class="desc" id="plan-info">Tu es en Gratuit.</p><button class="ghost" id="plan-plans" type="button">Voir les plans</button></div>
     </details>
     <details class="acct-row" name="acct">
       <summary><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="6.500" cy="5.500" r="2.500"/><path d="M2 13c.6-2.300 2.400-3.500 4.500-3.500s3.900 1.200 4.500 3.500M12.500 5v4M10.500 7h4"/></svg><span>Parrainage</span><small id="ref-count"></small><svg class="acct-chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></summary>
@@ -1004,16 +1063,6 @@ dialog.settings::backdrop{background:transparent}
         <h4 id="accent-label">Couleur d'accent <span id="accent-name"></span></h4>
         <div class="swatches" id="swatches" role="group" aria-labelledby="accent-label"></div>
       </section>
-      <section class="set-sec">
-        <h4 id="set-titre">Police des titres <span id="titre-name"></span></h4>
-        <div class="fonts" id="fonts-titre" role="group" aria-labelledby="set-titre"></div>
-        <div class="pager" id="pager-titre"></div>
-      </section>
-      <section class="set-sec">
-        <h4 id="set-texte">Police du texte <span id="texte-name"></span></h4>
-        <div class="fonts" id="fonts-texte" role="group" aria-labelledby="set-texte"></div>
-        <div class="pager" id="pager-texte"></div>
-      </section>
       <section class="set-sec" aria-labelledby="set-forme">
         <h4 id="set-forme">Forme</h4>
         <div class="set-row"><span id="set-coins">Coins</span><div class="choices" id="look-coins" role="group" aria-labelledby="set-coins"></div></div>
@@ -1027,6 +1076,31 @@ dialog.settings::backdrop{background:transparent}
       <div class="set-foot">
         <button class="link" id="look-reset" type="button">Revenir à l'apparence d'origine</button>
       </div>
+    </section>
+    <section class="set-group" aria-labelledby="g-typo">
+      <h3 id="g-typo">Typographie</h3>
+      <section class="set-sec">
+        <h4 id="set-titre">Police des titres <span id="titre-name"></span></h4>
+        <div class="fonts" id="fonts-titre" role="group" aria-labelledby="set-titre"></div>
+        <div class="pager" id="pager-titre"></div>
+      </section>
+      <section class="set-sec">
+        <h4 id="set-texte">Police du texte <span id="texte-name"></span></h4>
+        <div class="fonts" id="fonts-texte" role="group" aria-labelledby="set-texte"></div>
+        <div class="pager" id="pager-texte"></div>
+      </section>
+      <section class="set-sec" aria-labelledby="set-mes">
+        <h4 id="set-mes">Mes polices <span id="mp-count"></span></h4>
+        <ul class="mp-list" id="mp-list"></ul>
+        <div class="mp-tools">
+          <button class="ghost" id="mp-import" type="button" aria-describedby="mp-rules">Importer une police</button>
+          <button class="link" id="mp-default" type="button">Police par défaut</button>
+          <input type="file" id="mp-file" accept=".woff2,.woff,.ttf,.otf" tabindex="-1" aria-hidden="true" hidden>
+        </div>
+        <p class="desc mp-rules" id="mp-rules">WOFF2, WOFF, TTF ou OTF, 3 Mo maximum, 10 polices au plus. Importe seulement des polices que tu as le droit d’utiliser.</p>
+        <p class="mp-msg" id="mp-msg" role="status"></p>
+        <div class="mp-preview" id="mp-preview" hidden></div>
+      </section>
     </section>
     <section class="set-group" aria-labelledby="g-layout">
       <h3 id="g-layout">Disposition</h3>
@@ -1045,6 +1119,14 @@ dialog.settings::backdrop{background:transparent}
         <button class="ghost" id="page-delete" type="button">Supprimer ce mode</button>
       </div>
       <p class="desc set-note" id="page-max" hidden>Six modes au maximum. Supprimes-en un pour en créer un autre.</p>
+      <section class="set-sec" id="lp-sec" aria-labelledby="lp-title" hidden>
+        <h4 id="lp-title">Pages de ce mode <span id="lp-now"></span></h4>
+        <div class="page-tools">
+          <button class="ghost" id="lp-add" type="button">Ajouter une page</button>
+          <button class="ghost" id="lp-rename" type="button">Renommer la page</button>
+          <button class="ghost" id="lp-delete" type="button">Supprimer la page</button>
+        </div>
+      </section>
     </section>
   </div>
 </dialog>
@@ -1138,6 +1220,17 @@ dialog.settings::backdrop{background:transparent}
   </div>
   <section class="cat-view" id="cat-view" aria-label="Aperçu du widget choisi"></section>
 </dialog>
+<dialog class="glass pw" id="paywall" aria-labelledby="pw-title">
+  <div class="pw-head">
+    <div>
+      <h2 id="pw-title">Choisis ton plan</h2>
+      <p id="pw-why">Prix TTC, par mois, sans engagement.</p>
+    </div>
+    <form method="dialog"><button class="x" aria-label="Fermer les plans">×</button></form>
+  </div>
+  <div class="pw-plans" id="pw-plans"></div>
+  <p class="pw-note" id="pw-note" role="status"></p>
+</dialog>
 <p class="col msg blocked" id="blocked" role="alert" hidden></p>
 <noscript><p class="col msg blocked">Active JavaScript pour ouvrir ton écran.</p></noscript>
 
@@ -1159,7 +1252,9 @@ dialog.settings::backdrop{background:transparent}
 <script src="dash/code-slots.js"></script>
 <script src="dash/lock.js"></script>
 <script src="dash/spotlight.js"></script>
+<script src="dash/pixelcard.js"></script>
 <script src="dash/select.js"></script>
+<script src="dash/polices.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>
 <script>
 // Clé publique par conception : ce sont les règles de sécurité de la base qui protègent les données.
@@ -2929,11 +3024,34 @@ const VUES = [
   { id: 'pages', name: 'Pages', script: 'vues/pages.js', style: 'vues/pages.css', make: 'vuePages' },
 ];
 const VUES_VERSION = 1, VUE_MAX = 20000;
+// Disposition par défaut : « pages ». renzvi:vue-defaut = grille (réglage de l'appareil) remet l'ancienne grille :
+// secours si les pages posaient problème à quelqu'un, et pour les tests écrits pour la grille.
+const VUE_DEFAUT = (() => { try { return localStorage.getItem('renzvi:vue-defaut') === 'grille' ? 'grille' : 'pages'; } catch { return 'pages'; } })();
 // Nutrition (labo, ?labo=1) : recettes Wikibooks en CC BY-SA, chargées seulement quand le widget s'affiche.
 WIDGETS.push({ id: 'dictee', labo: true, title: 'Dictée', desc: 'Appuie sur le micro et parle : ton texte s’écrit dans une note.', render: chillLazy('dash/dictee.js', 'dicteeWidget') });
 WIDGETS.push({ id: 'repas', labo: true, title: "Qu'est-ce qu'on mange ?", desc: 'Une recette tirée au sort, ou ce que tu peux cuisiner avec ton frigo.', render: chillLazy('nutrition/repas.js', 'repasWidget') });
-for (let i = WIDGETS.length - 1; i >= 0; i--) if (WIDGETS[i].labo === 'chill' ? !CHILL_LABO : WIDGETS[i].labo && !LABO) WIDGETS.splice(i, 1);
-for (const m of MODES) m.widgets = m.widgets.filter(id => WIDGETS.some(w => w.id === id));
+// Widgets payants (Pro et Worker) : visibles par tous dans le catalogue, avec un cadenas ; jamais dans un mode par défaut sans le labo.
+const PAYANT = new Set(['quiz', 'schemas', 'etude', 'dictee', 'jardin', 'dessin', 'coloriage', 'puzzle', 'tangram', 'fenetre', 'ambiances', 'cinq']);
+// Les plans (prix TTC en centimes : repris de la table plans au chargement). Aucun paiement n'est branché (Whop à venir).
+// shortcut: les cadenas sont côté navigateur seulement ; l'IA est déjà protégée par les crédits du serveur, le reste est cosmétique.
+// À vérifier côté serveur (renzvi_plan) avant d'ouvrir le paiement.
+const PLANS = {
+  gratuit: { nom: 'Gratuit', prix: 0, tag: 'Ton espace, sans payer.', inclus: ['Les widgets de base : minuteur, tâches, notes, habitudes…', 'Cahier, Flashcards et Révisions du jour', 'Modes, pages et fonds d’écran'] },
+  pro: { nom: 'Pro', prix: 999, tag: 'Pour réviser avec l’IA.', inclus: ['Tout Gratuit', 'L’IA sur tes cours : cartes, quiz et résumés', 'Quiz, Schémas et Mon espace Study', 'Dictée et les widgets Chill', 'Tes propres polices'] },
+  worker: { nom: 'Worker', prix: 1799, tag: 'Pour les gros volumes de cours.', inclus: ['Tout Pro', '4 fois plus d’IA que Pro', 'PDF jusqu’à 300 pages (60 avec Pro)', 'Le chat IA sur tous tes cours'] },
+};
+let planActuel = 'gratuit';
+// Le labo (?labo=1, ?chill=1) sert aux essais : il ouvre tout, comme avant.
+const debloque = () => planActuel !== 'gratuit' || LABO || CHILL_LABO;
+const verrouille = id => PAYANT.has(id) && !debloque();
+function lockChip() {
+  const chip = document.createElement('span');
+  chip.className = 'cat-lock';
+  chip.innerHTML = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="5.500" width="8" height="5.500" rx="1.200"/><path d="M4 5.500V4a2 2 0 0 1 4 0v1.500"/></svg>Pro';
+  return chip;
+}
+for (let i = WIDGETS.length - 1; i >= 0; i--) if (!PAYANT.has(WIDGETS[i].id) && (WIDGETS[i].labo === 'chill' ? !CHILL_LABO : WIDGETS[i].labo && !LABO)) WIDGETS.splice(i, 1);
+for (const m of MODES) m.widgets = m.widgets.filter(id => WIDGETS.some(w => w.id === id) && (LABO || !PAYANT.has(id)));
 
 function block(text) {
   $('app').hidden = true;
@@ -2950,12 +3068,15 @@ if (!sb) {
   const pending = new Map();
   const mounted = new Map();
   let userId, saveTimer, saving = null, loaded = false, stored = {}, photoUrl = null, referral = null;
+  // Polices personnelles : l'aperçu en cours (rien d'enregistré), les fichiers déjà chargés, ceux qui ont échoué.
+  let fontPreview = null, fontToken = 0, fontImportFor = null; // fontImportFor : carte « + » des titres ou du texte
+  const fontFaces = new Map(), fontFailed = new Set();
   // done reste faux tant que le premier lancement n'est pas terminé : on le reprend au retour.
   // widgets garde l'ordre de tous les widgets ; where dit sur quelle page chacun se trouve (sans entrée : la première).
-  const screen = { wallpaper: 'blanc', widgets: [], done: false, accent: DEFAULT_ACCENT, look: { ...LOOK_DEFAULT }, sizes: {}, spans: {}, heights: {}, collapsed: [], favoris: [], pages: [FIRST_PAGE], where: {}, vues: { v: VUES_VERSION, page: {}, places: {} } };
+  const screen = { wallpaper: 'blanc', widgets: [], done: false, accent: DEFAULT_ACCENT, look: { ...LOOK_DEFAULT }, sizes: {}, spans: {}, heights: {}, collapsed: [], favoris: [], pages: [FIRST_PAGE], where: {}, vues: { v: VUES_VERSION, page: {}, places: {} }, polices: [] };
   let currentPage = FIRST_PAGE.id;
   const pageOf = id => screen.where[id] ?? screen.pages[0].id;
-  const onPage = () => screen.widgets.filter(id => pageOf(id) === currentPage);
+  const onPage = () => screen.widgets.filter(id => pageOf(id) === currentPage && mounted.has(id)); // un widget payant non affiché (compte Gratuit) ne compte pas
   const saveScreen = () => queueSave('ecran', { ...screen });
   // Modules d'interaction (dossier dash/) : roue des modes, disposition fine, verrou de l'appareil.
   let modes = null, lock = null;
@@ -3015,6 +3136,9 @@ if (!sb) {
   // Ces widgets ont déjà leur propre grande vue.
   const OWN_ZOOM = ['cahier', 'etude', 'vol', 'jardin', 'dessin', 'coloriage', 'puzzle', 'tangram', 'fenetre'];
   function mount(w, user, arriving) {
+    // Widget payant gardé à l'écran d'un compte Gratuit : pas affiché, mais jamais retiré de la liste (rien n'est perdu
+    // si le plan Pro tarde à se charger ; loadPlan l'affiche ensuite).
+    if (verrouille(w.id)) return;
     const box = el('section', 'widget glass');
     box.dataset.widget = w.id;
     box.dataset.size = screen.sizes[w.id] ?? w.size ?? DEFAULT_SIZE;
@@ -3188,6 +3312,7 @@ if (!sb) {
     $('open-modes').ariaLabel = `Changer de mode. Mode actuel : ${name}`;
     for (const n of document.querySelectorAll('.page-name')) n.textContent = name;
     drawVuePick();
+    drawLayoutPages();
     $('page-current').textContent = name;
     $('page-new').disabled = screen.pages.length >= MAX_SCREEN_PAGES;
     $('page-max').hidden = !$('page-new').disabled;
@@ -3219,8 +3344,9 @@ if (!sb) {
   // Présentations. Contrat d'un fichier de présentation : window[make](ctx) rend { relayout(), leave() }.
   // ctx donne les boîtes déjà montées de la page, leur place d'avant (pour que rien ne saute), la disposition enregistrée
   // et de quoi l'enregistrer. relayout() est rappelé à chaque changement de la page ; leave() doit tout remettre comme avant.
-  let vue = { key: 'grille', leave() {} }, vueTurn = 0;
-  const vueOf = page => (VUES_LABO && VUES.find(v => v.id === screen.vues.page[page])) || VUES[0];
+  let vue = { key: 'grille', leave() {} }, vueTurn = 0, wantReveal = null;
+  // Pages (horizontales, comme un téléphone) pour tout le monde depuis le 16 nov. Le labo garde le choix de la présentation.
+  const vueOf = page => (VUES_LABO && VUES.find(v => v.id === screen.vues.page[page])) || VUES.find(v => v.id === VUE_DEFAUT);
   const vueFiles = v => Promise.all([chillScript(v.script), new Promise((ok, ko) => {
     if (document.querySelector(`link[href="${v.style}"]`)) return ok();
     const link = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: v.style });
@@ -3265,9 +3391,15 @@ if (!sb) {
           save: places => {
             screen.vues = { ...screen.vues, places: { ...screen.vues.places, [want.id]: { ...screen.vues.places[want.id], [page]: places } } };
             saveScreen();
+            drawLayoutPages();
           },
           say: text => { $('custom-live').textContent = text; },
+          mode: page,
+          addWidget: () => screenUser && openCatalog(screenUser),
         }) };
+        if (wantReveal && vue.reveal) vue.reveal(wantReveal);
+        wantReveal = null;
+        drawLayoutPages();
       } catch (e) {
         console.error(e);
         vue = { key: 'grille', leave() {} };
@@ -3276,6 +3408,29 @@ if (!sb) {
     }
     // Même page, autre présentation : chaque widget glisse de son ancienne place à la nouvelle.
     if (animate) for (const [id, b] of before) morph(mounted.get(id).box, b.rect, 520);
+  }
+  // Pages du mode affiché (présentation Pages) : leur gestion dans Personnaliser → Espace actuel.
+  function drawLayoutPages() {
+    const list = vue.pages?.();
+    $('lp-sec').hidden = !list;
+    if (!list) return;
+    const i = vue.current();
+    $('lp-now').textContent = `${list[i]?.name ?? ''} · ${i + 1} sur ${list.length}`;
+    $('lp-add').disabled = list.length >= vue.max;
+    $('lp-delete').hidden = list.length < 2;
+  }
+  function askDeleteLayoutPage() {
+    const list = vue.pages(), i = vue.current(), here = list[i], to = list[vue.destination(i)];
+    const actions = el('div', 'actions');
+    actions.append(button('ghost', 'Annuler', () => $('page-dialog').close()), button('primary', 'Supprimer la page', () => {
+      $('page-dialog').close();
+      const done = vue.remove(i);
+      drawLayoutPages();
+      if (done) $('page-note').textContent = done.moved ? `« ${here.name} » est supprimée. ${plural(done.moved, 'widget')} ${done.moved > 1 ? 'sont passés' : 'est passé'} sur « ${to.name} »${done.spilled ? ' et la page suivante, faute de place' : ''}.` : `« ${here.name} » est supprimée.`;
+    }));
+    $('page-title').textContent = `Supprimer « ${here.name} » ?`;
+    $('page-slot').replaceChildren(el('p', 'desc', here.count ? `${plural(here.count, 'widget')} et leur contenu passeront sur « ${to.name} ». S’il n’y a pas assez de place, la suite va sur la page d’après. Rien n’est perdu.` : 'Cette page est vide : rien ne bouge.'), actions);
+    $('page-dialog').showModal();
   }
   function drawVuePick() {
     const pick = $('vue-pick');
@@ -3311,10 +3466,10 @@ if (!sb) {
   // « Revoir dans le cours » depuis une carte : si le Cahier est sur une autre page, on y va (il fait le reste).
   document.addEventListener('renzvi:revoir', () => { if (mounted.has('cahier') && pageOf('cahier') !== currentPage) showPage(pageOf('cahier')); });
   document.addEventListener('renzvi:schema', () => { if (mounted.has('schemas') && pageOf('schemas') !== currentPage) showPage(pageOf('schemas')); });
-  function askPageName(title, value, done) {
-    const { form, input } = addForm(value || `Page ${screen.pages.length + 1}`, MAX_PAGE_NAME, () => {});
+  function askPageName(title, value, done, { label = 'Nom du mode', max = MAX_PAGE_NAME } = {}) {
+    const { form, input } = addForm(value || `Page ${screen.pages.length + 1}`, max, () => {});
     input.value = value;
-    input.ariaLabel = 'Nom du mode';
+    input.ariaLabel = label;
     form.querySelector('button').textContent = 'Enregistrer';
     form.onsubmit = e => {
       e.preventDefault();
@@ -3577,17 +3732,19 @@ if (!sb) {
     rememberLook();
   }
   // Copie sur l'appareil, relue avant l'affichage au prochain chargement (pas de flash clair en mode sombre).
-  const lookVars = () => {
-    const [, , display, weight] = LOOK.titre.find(o => o[0] === screen.look.titre);
+  // Police affichée : celle de l'aperçu en cours s'il y en a un, sinon celle enregistrée.
+  const shownLook = () => fontPreview ? { ...screen.look, ...fontPreview.look } : screen.look;
+  const lookVars = (look = shownLook()) => {
+    const [, , display, weight] = fontChoice('titre', look.titre);
     return {
-      '--display': display, '--display-weight': String(weight), '--sans': LOOK.texte.find(o => o[0] === screen.look.texte)[2],
+      '--display': display, '--display-weight': String(weight), '--sans': fontChoice('texte', look.texte)[2],
       '--accent': accentColor(accentNow()), '--on-accent': screen.look.theme === 'dark' ? '#141414' : '#ffffff',
       '--glass-blur': screen.look.flou == null ? null : screen.look.flou ? `blur(${screen.look.flou}px) saturate(1.6)` : 'none',
       '--boost': String(Math.round(screen.look.opacite / 100 * BOOST_MAX * 1000) / 1000),
     };
   };
   function rememberLook() {
-    try { localStorage.setItem('renzvi:look', JSON.stringify({ ...screen.look, accent: screen.accent, vars: lookVars() })); } catch {}
+    try { localStorage.setItem('renzvi:look', JSON.stringify({ ...screen.look, accent: screen.accent, vars: lookVars(screen.look) })); } catch {}
   }
   function applyLook() {
     const root = document.documentElement;
@@ -3603,27 +3760,281 @@ if (!sb) {
     $('opacite-val').textContent = screen.look.opacite === 0 ? 'Givré' : screen.look.opacite === 100 ? 'Plein' : `${screen.look.opacite} %`;
     document.querySelector('meta[name=theme-color]').content = screen.look.theme === 'dark' ? '#111112' : '#ffffff';
     for (const b of $('themes').children) b.setAttribute('aria-pressed', b.dataset.value === screen.look.theme);
+    const shown = shownLook();
     for (const key of ['titre', 'texte']) {
-      $(`${key}-name`).textContent = LOOK[key].find(o => o[0] === screen.look[key])[1];
-      for (const b of $(`fonts-${key}`).querySelectorAll('.font-opt')) b.setAttribute('aria-pressed', b.dataset.value === screen.look[key]);
+      $(`${key}-name`).textContent = fontChoice(key, shown[key])[1];
+      for (const b of $(`fonts-${key}`).querySelectorAll('.font-opt')) b.setAttribute('aria-pressed', b.dataset.value === shown[key]);
     }
+    loadUsedFonts();
+    drawMyFonts();
     for (const key of ['coins', 'densite']) for (const b of $(`look-${key}`).children) b.setAttribute('aria-pressed', b.dataset.value === screen.look[key]);
     rememberLook();
   }
   function setLook(key, value) {
+    endFontPreview();
     if (screen.look[key] === value) return;
     screen.look = { ...screen.look, [key]: value };
     applyLook();
     saveScreen();
     dispatchEvent(new Event('resize')); // la pastille du mode suit les nouvelles tailles
   }
+  // ——— Mes polices (Personnaliser → Typographie) ———
+  // Fichier privé dans le bucket « polices », sous <compte>/<emplacement 1 à 10>. L'écran garde la liste (nom, format,
+  // graisses lues dans le fichier) et le choix « p-<empreinte> » dans look.titre / look.texte, jamais une adresse temporaire.
+  const P = window.renzviPolices;
+  const fontPath = slot => `${userId}/${slot}`;
+  const FONT_ID = /^p-([0-9a-f]{16})$/;
+  function cleanFonts(list) {
+    const slots = new Set(), ids = new Set();
+    const poids = v => Array.isArray(v) && v.length === 2 && v.every(n => Number.isInteger(n) && n >= 1 && n <= 1000) && v[0] <= v[1] ? [v[0], v[1]] : null;
+    return listOf(list).filter(f => f && /^[0-9a-f]{16}$/.test(f.id) && !ids.has(f.id) && Number.isInteger(f.slot) && f.slot >= 1 && f.slot <= P.MAX_FONTS && !slots.has(f.slot)
+      && typeof f.nom === 'string' && P.cleanName(f.nom) && P.FORMATS[f.format] && ids.add(f.id) && slots.add(f.slot))
+      .slice(0, P.MAX_FONTS)
+      .map(f => ({ id: f.id, slot: f.slot, nom: P.cleanName(f.nom), format: f.format, poids: poids(f.poids), italique: typeof f.italique === 'boolean' ? f.italique : null, variable: f.variable === true, ital: f.ital === true }));
+  }
+  const savedFont = value => screen.polices.find(f => f.id === FONT_ID.exec(value ?? '')?.[1]) ?? null;
+  // Une police de l'aperçu n'est pas encore dans la liste : on la trouve quand même.
+  const anyFont = value => fontPreview && value === `p-${fontPreview.font.id}` ? fontPreview.font : savedFont(value);
+  function fontChoice(key, value) {
+    const builtIn = LOOK[key].find(o => o[0] === value);
+    if (builtIn) return builtIn;
+    const f = anyFont(value);
+    if (!f) return LOOK[key][0];
+    return key === 'titre' ? [value, f.nom, `"${P.family(f.id)}",var(--sans)`, P.titleWeight(f)] : [value, f.nom, `"${P.family(f.id)}",${P.SYSTEM}`];
+  }
+  // Télécharge et charge une police une seule fois par visite ; la police système reste affichée en attendant.
+  function fontFace(f) {
+    if (!fontFaces.has(f.id)) fontFaces.set(f.id, (async () => {
+      const { data, error } = await sb.storage.from('polices').download(fontPath(f.slot));
+      if (error) throw error;
+      return P.load(f, await data.arrayBuffer());
+    })());
+    return fontFaces.get(f.id);
+  }
+  // Seules les polices utilisées sont téléchargées au démarrage.
+  function loadUsedFonts() {
+    for (const key of ['titre', 'texte']) {
+      const f = savedFont(screen.look[key]);
+      if (!f || fontFailed.has(f.id)) continue;
+      fontFace(f).catch(() => {
+        if (fontFailed.has(f.id)) return;
+        fontFailed.add(f.id);
+        fontFaces.delete(f.id);
+        showSaved(`La police « ${f.nom} » n’a pas pu se charger. Le texte reste en police système.`, true);
+      });
+    }
+  }
+  const fontMsg = (text, bad = false) => { $('mp-msg').textContent = text; $('mp-msg').classList.toggle('bad', bad); };
+  // Ce que la police habille, pour la liste et le libellé « Active ».
+  function fontUse(f) {
+    const v = `p-${f.id}`, t = screen.look.titre === v || (screen.look.titre === 'defaut' && screen.look.texte === v), x = screen.look.texte === v;
+    return t && x ? 'Titres et texte' : t ? 'Titres' : x ? 'Texte' : '';
+  }
+  function drawMyFonts() {
+    const list = $('mp-list');
+    if (!list) return;
+    $('mp-count').textContent = screen.polices.length ? `${screen.polices.length} sur ${P.MAX_FONTS}` : '';
+    list.replaceChildren(...screen.polices.map(f => {
+      const use = fontUse(f), row = el('li', `mp-row${use ? ' on' : ''}`);
+      const pick = button('mp-pick', '', () => openSavedFont(f));
+      pick.dataset.font = f.id;
+      pick.setAttribute('aria-pressed', !!use);
+      pick.append(el('b', '', f.nom), el('span', '', use ? `Active · ${use}` : f.format.toUpperCase()));
+      const rename = button('mp-act', 'Renommer', () => askPageName('Renommer la police', f.nom, nom => renameFont(f, nom), { label: 'Nom de la police', max: P.MAX_NAME }));
+      const remove = button('mp-act', 'Retirer', () => askRemoveFont(f));
+      rename.ariaLabel = `Renommer ${f.nom}`;
+      remove.ariaLabel = `Retirer ${f.nom}`;
+      row.append(pick, rename, remove);
+      return row;
+    }));
+    const full = screen.polices.length >= P.MAX_FONTS;
+    $('mp-import').disabled = full;
+    $('mp-default').disabled = screen.look.titre === 'defaut' && screen.look.texte === 'systeme' && !fontPreview;
+  }
+  function drawMyFontTools() {
+    $('mp-import').onclick = () => { if (verrou('Tes propres polices')) return; fontImportFor = null; $('mp-file').click(); };
+    $('mp-file').onchange = () => { const file = $('mp-file').files[0]; $('mp-file').value = ''; if (file) importFont(file); };
+    $('mp-default').onclick = () => {
+      endFontPreview();
+      screen.look = { ...screen.look, titre: 'defaut', texte: 'systeme' };
+      applyLook();
+      saveScreen();
+      dispatchEvent(new Event('resize'));
+      fontMsg('Police par défaut rétablie.');
+    };
+  }
+  async function importFont(file) {
+    const token = ++fontToken;
+    endFontPreview();
+    fontMsg('Lecture de la police…');
+    let found;
+    try {
+      found = await P.inspect(file);
+      const twin = screen.polices.find(f => f.id === found.font.id);
+      if (twin) {
+        if (token !== fontToken) return;
+        return openSavedFont(twin, `Cette police est déjà dans Mes polices, sous le nom « ${twin.nom} ».`);
+      }
+      if (screen.polices.length >= P.MAX_FONTS) throw Object.assign(new Error('Dix polices au maximum : retires-en une pour en importer une autre.'), { lisible: true });
+      const face = await P.load(found.font, found.buffer);
+      const cover = P.coverage(found.font);
+      if (!cover.lettres) {
+        document.fonts.delete(face);
+        throw Object.assign(new Error('Cette police n’a pas toutes les lettres de a à z : elle ne peut pas servir au texte.'), { lisible: true });
+      }
+      if (token !== fontToken) { document.fonts.delete(face); return; }
+      // Même nom qu'une police déjà là (deux fichiers d'une famille sans nom de style) : on numérote.
+      let nom = found.font.nom, n = 2;
+      while (screen.polices.some(f => f.nom === nom)) nom = `${found.font.nom.slice(0, P.MAX_NAME - 3)} ${n++}`;
+      fontMsg('');
+      startFontPreview({ ...found.font, nom }, { face, cover, buffer: found.buffer, octets: found.octets, neuve: true });
+    } catch (e) {
+      if (token === fontToken) fontMsg(e.lisible ? e.message : 'Ce fichier n’a pas pu être lu.', true);
+    }
+  }
+  async function openSavedFont(f, note = '') {
+    const token = ++fontToken;
+    endFontPreview();
+    fontMsg(`Chargement de « ${f.nom} »…`);
+    fontFailed.delete(f.id);
+    try {
+      const face = await fontFace(f);
+      if (token !== fontToken) return;
+      fontMsg(note);
+      startFontPreview(f, { face, cover: P.coverage(f), neuve: false });
+    } catch {
+      fontFaces.delete(f.id);
+      if (token === fontToken) fontMsg(`« ${f.nom} » n’a pas pu se charger. Rien n’a changé, réessaie plus tard.`, true);
+    }
+  }
+  const fontTarget = (cible, id) => cible === 'titres' ? { titre: `p-${id}` } : cible === 'texte' ? { texte: `p-${id}` } : { titre: 'defaut', texte: `p-${id}` };
+  // L'aperçu change l'écran derrière le panneau, sans rien enregistrer.
+  function startFontPreview(font, extra) {
+    const v = `p-${font.id}`;
+    const cible = extra.neuve && fontImportFor ? (fontImportFor === 'titre' ? 'titres' : 'texte') : screen.look.titre === v && screen.look.texte !== v ? 'titres' : screen.look.texte === v && screen.look.titre !== 'defaut' ? 'texte' : 'tout';
+    fontPreview = { font, cible, look: fontTarget(cible, font.id), ...extra };
+    const box = $('mp-preview');
+    const head = el('p', 'mp-head');
+    head.tabIndex = -1;
+    head.append(el('b', '', font.nom), el('span', '', `${font.format.toUpperCase()}${extra.octets ? ` · ${P.size(extra.octets)}` : ''}`));
+    const sample = el('div', 'mp-sample');
+    sample.style.fontFamily = `"${P.family(font.id)}",${P.SYSTEM}`;
+    const title = el('p', 'mp-s-title', 'Bonjour, Léa. Prête ?');
+    title.style.fontWeight = P.titleWeight(font);
+    sample.append(title, el('p', 'mp-s-text', 'Où en est l’œuvre ? Déjà 12 h 45 — « Ça avance ! » Révisions : 3/4 faites, 0123456789 €.'));
+    const facts = el('ul', 'mp-facts');
+    facts.append(...P.facts(font, extra.cover).map(t => el('li', '', t)));
+    const row = el('div', 'set-row');
+    const label = el('span', '', 'Appliquer à');
+    label.id = 'mp-cible-l';
+    const choices = el('div', 'choices');
+    choices.setAttribute('role', 'group');
+    choices.setAttribute('aria-labelledby', 'mp-cible-l');
+    for (const [id, name] of [['tout', 'Tout'], ['titres', 'Titres'], ['texte', 'Texte']]) {
+      const b = button('', name, () => {
+        fontPreview.cible = id;
+        fontPreview.look = fontTarget(id, font.id);
+        for (const c of choices.children) c.setAttribute('aria-pressed', c === b);
+        applyLook();
+      });
+      b.setAttribute('aria-pressed', id === cible);
+      choices.append(b);
+    }
+    row.append(label, choices);
+    const tools = el('div', 'page-tools');
+    const apply = button('primary', 'Appliquer', () => applyFontPreview(apply));
+    tools.append(apply, button('ghost', 'Annuler', () => { endFontPreview(); $('mp-import').focus(); }));
+    box.replaceChildren(head, sample, facts, el('p', 'desc mp-note', 'Aperçu sur ton écran. Rien n’est enregistré avant « Appliquer ».'), row, tools);
+    box.hidden = false;
+    applyLook();
+    head.focus();
+    tools.scrollIntoView({ block: 'nearest', behavior: smooth() });
+  }
+  // Annuler, fermer le panneau ou choisir une autre police : l'écran revient à la police enregistrée.
+  function endFontPreview() {
+    if (!fontPreview) return;
+    const { neuve, face } = fontPreview;
+    fontPreview = null;
+    if (neuve) document.fonts.delete(face);
+    $('mp-preview').hidden = true;
+    $('mp-preview').replaceChildren();
+    applyLook();
+  }
+  async function applyFontPreview(btn) {
+    const pv = fontPreview;
+    if (!pv) return;
+    btn.disabled = true;
+    const font = { ...pv.font };
+    if (pv.neuve) {
+      const used = new Set(screen.polices.map(f => f.slot));
+      font.slot = Array.from({ length: P.MAX_FONTS }, (_, i) => i + 1).find(n => !used.has(n));
+      if (!font.slot) { endFontPreview(); return fontMsg('Dix polices au maximum : retires-en une pour en importer une autre.', true); }
+      btn.textContent = 'Envoi…';
+      const type = P.FORMATS[font.format];
+      const { error } = await sb.storage.from('polices').upload(fontPath(font.slot), pv.buffer, { upsert: true, contentType: type, cacheControl: '3600' });
+      if (fontPreview !== pv) return;
+      if (error) {
+        endFontPreview();
+        return fontMsg('L’envoi de la police a échoué. Rien n’a changé : réessaie.', true);
+      }
+      fontFaces.set(font.id, Promise.resolve(pv.face));
+      screen.polices = [...screen.polices, cleanFonts([font])[0]];
+    }
+    fontPreview = null;
+    screen.look = { ...screen.look, ...pv.look };
+    $('mp-preview').hidden = true;
+    $('mp-preview').replaceChildren();
+    applyLook();
+    saveScreen();
+    dispatchEvent(new Event('resize'));
+    fontMsg(`« ${font.nom} » est appliquée.`);
+    $('mp-list').querySelector(`[data-font="${font.id}"]`)?.focus();
+  }
+  function renameFont(f, nom) {
+    nom = P.cleanName(nom);
+    if (!nom) return;
+    screen.polices = screen.polices.map(x => x.id === f.id ? { ...x, nom } : x);
+    applyLook();
+  }
+  function askRemoveFont(f) {
+    const use = fontUse(f);
+    const actions = el('div', 'actions');
+    actions.append(button('ghost', 'Annuler', () => $('page-dialog').close()), button('primary', 'Retirer la police', () => {
+      $('page-dialog').close();
+      if (fontPreview?.font.id === f.id) endFontPreview();
+      const v = `p-${f.id}`;
+      screen.polices = screen.polices.filter(x => x.id !== f.id);
+      // Police active retirée : retour à la police par défaut, jamais à un fichier manquant.
+      screen.look = { ...screen.look, ...(screen.look.titre === v && { titre: 'defaut' }), ...(screen.look.texte === v && { texte: 'systeme' }) };
+      applyLook();
+      saveScreen();
+      dispatchEvent(new Event('resize'));
+      fontFaces.get(f.id)?.then(face => document.fonts.delete(face), () => {});
+      fontFaces.delete(f.id);
+      // shortcut: si la suppression du fichier échoue, il reste orphelin dans son emplacement et sera écrasé par la prochaine importation.
+      sb.storage.from('polices').remove([fontPath(f.slot)]);
+      fontMsg(`« ${f.nom} » est retirée.${use ? ' Retour à la police par défaut.' : ''}`);
+      $('mp-import').focus();
+    }));
+    $('page-title').textContent = `Retirer « ${f.nom} » ?`;
+    $('page-slot').replaceChildren(el('p', 'desc', `Le fichier est supprimé de ton compte.${use ? ' Elle est utilisée en ce moment : l’écran reviendra à la police par défaut.' : ''}`), actions);
+    $('page-dialog').showModal();
+  }
   // Polices rangées par pages de six, qu'on fait glisser (doigt, trackpad), ou qu'on tourne avec les flèches et les points.
   const PER_PAGE = 6;
   const smooth = () => matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
   function drawFonts(key) {
     const track = $(`fonts-${key}`);
-    const pages = [];
-    LOOK[key].forEach(([id, name, family, weight], i) => {
+    // Première carte : « + » pour importer sa propre police, déjà ciblée sur les titres ou le texte.
+    const add = button('font-opt font-add', '', () => { if (verrou('Tes propres polices')) return; fontImportFor = key; $('mp-file').click(); });
+    add.ariaLabel = `Importer ta police pour ${key === 'titre' ? 'les titres' : 'le texte'}`;
+    add.setAttribute('aria-describedby', 'mp-rules');
+    add.append(el('b'), el('span', '', 'Ta police'));
+    add.firstChild.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+    const pages = [el('div', 'font-page')];
+    pages[0].append(add);
+    LOOK[key].forEach(([id, name, family, weight], j) => {
+      const i = j + 1; // la carte « + » occupe la première place
       if (i % PER_PAGE === 0) pages.push(el('div', 'font-page'));
       const b = button('font-opt', '', () => setLook(key, id));
       b.dataset.value = id;
@@ -3658,11 +4069,12 @@ if (!sb) {
     track.onscroll = () => requestAnimationFrame(mark);
     mark();
     // À l'ouverture, la page du choix en cours.
-    track.showChoice = () => { go(Math.floor(LOOK[key].findIndex(o => o[0] === screen.look[key]) / PER_PAGE), 'auto'); mark(); };
+    track.showChoice = () => { go(Math.floor((LOOK[key].findIndex(o => o[0] === screen.look[key]) + 1) / PER_PAGE), 'auto'); mark(); };
   }
   function drawSettings() {
     for (const b of $('themes').children) b.onclick = () => setLook('theme', b.dataset.value);
     for (const key of ['titre', 'texte']) drawFonts(key);
+    drawMyFontTools();
     // Curseurs : l'écran suit en direct, l'enregistrement part quand on lâche.
     for (const [key, max] of [['flou', FLOU_MAX], ['opacite', 100]]) {
       const input = $(`look-${key}`);
@@ -3677,6 +4089,7 @@ if (!sb) {
       }));
     }
     $('look-reset').onclick = () => {
+      endFontPreview();
       screen.look = { ...LOOK_DEFAULT };
       screen.accent = DEFAULT_ACCENT;
       applyAccent();
@@ -3692,12 +4105,13 @@ if (!sb) {
       $('settings').showModal();
       $('settings').querySelector('.set-body').scrollTop = 0;
       for (const key of ['titre', 'texte']) $(`fonts-${key}`).showChoice();
+      drawLayoutPages();
     };
     $('settings-close').onclick = () => $('settings').close();
     // Un clic à côté du panneau le ferme : seul le fond invisible du dialogue reçoit ce clic.
     $('settings').onclick = e => { if (e.target === $('settings')) $('settings').close(); };
     // Retour au même endroit : le bouton Personnaliser, ou celui qui ouvre le menu s'il est replié.
-    $('settings').onclose = () => { if (!document.body.classList.contains('customizing')) (($('open-custom').checkVisibility?.() ?? true) ? $('open-custom') : $('bar-toggle')).focus(); };
+    $('settings').onclose = () => { endFontPreview(); if (!document.body.classList.contains('customizing')) (($('open-custom').checkVisibility?.() ?? true) ? $('open-custom') : $('bar-toggle')).focus(); };
     applyLook();
   }
   function drawSwatches() {
@@ -3816,8 +4230,8 @@ if (!sb) {
     const m = mounted.get(id);
     if (!m) return drawFavs();
     closeDrawer(false);
-    if (pageOf(id) !== currentPage) showPage(pageOf(id));
-    else zoom(null);
+    if (pageOf(id) !== currentPage) { wantReveal = id; showPage(pageOf(id)); }
+    else { zoom(null); vue.reveal?.(id); }
     if (screen.collapsed.includes(id)) {
       layoutSet(id, { collapsed: false }, true);
       layout.apply(m.box, id);
@@ -4008,6 +4422,7 @@ if (!sb) {
           if (m) { m.box.dataset.size = WIDGETS.find(w => w.id === id).size ?? DEFAULT_SIZE; layout.apply(m.box, id); m.layout.markFold(); }
         }
       });
+      vue.reset?.();
       saveScreen();
       $('page-note').textContent = 'Disposition remise à zéro. Le contenu des widgets n’a pas changé.';
     }
@@ -4027,6 +4442,12 @@ if (!sb) {
       });
     };
     $('page-delete').onclick = askDeletePage;
+    $('lp-add').onclick = () => { vue.add?.(); drawLayoutPages(); };
+    $('lp-rename').onclick = () => {
+      const i = vue.current(), here = vue.pages()[i];
+      askPageName('Renommer la page', here.name, text => { vue.rename(i, text); drawLayoutPages(); }, { label: 'Nom de la page' });
+    };
+    $('lp-delete').onclick = askDeleteLayoutPage;
     if (CHILL_LABO && !$('chill-labo')) {
       // Accès de test au chantier Chill : visible seulement avec ?chill=1 sur cet appareil.
       const open = button('ghost', 'Labo Chill', async () => {
@@ -4079,7 +4500,7 @@ if (!sb) {
   }
   // Le catalogue : une liste rangée par catégories, une recherche, et un aperçu. Rien n'est ajouté sans le bouton de l'aperçu.
   const CATEGORIES = [...MODES.map(m => m.name), 'Quotidien', 'En préparation'];
-  const categoryOf = w => w.labo ? 'En préparation' : MODES.find(m => m.widgets.includes(w.id))?.name ?? 'Quotidien';
+  const categoryOf = w => w.labo && !PAYANT.has(w.id) ? 'En préparation' : MODES.find(m => m.widgets.includes(w.id))?.name ?? (w.labo === 'chill' ? 'Chill' : ['quiz', 'schemas', 'etude'].includes(w.id) ? 'Study' : 'Quotidien');
   const plain = text => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const STAGE_WIDTH = { s: '263px', m: '356px', l: '728px' };
   let picked = null, pickedSize = DEFAULT_SIZE, previewCleanup = null;
@@ -4121,6 +4542,7 @@ if (!sb) {
         item.dataset.widget = w.id;
         item.setAttribute('aria-pressed', w.id === picked);
         item.append(el('b', '', w.title), el('span', 'desc', w.desc));
+        if (verrouille(w.id)) item.firstChild.append(lockChip());
         if (screen.widgets.includes(w.id)) item.append(el('span', 'cat-where', pageOf(w.id) === currentPage ? (screen.pages.length > 1 ? 'Sur cette page' : 'Sur ton écran') : `Sur la page « ${pageName(pageOf(w.id))} »`));
         const li = el('li');
         li.append(item);
@@ -4206,7 +4628,13 @@ if (!sb) {
       b.setAttribute('aria-pressed', size.id === pickedSize);
       sizes.append(b);
     }
-    pick.append(sizes, el('p', '', `${EXAMPLES[w.id] || w.id === 'semaine' ? 'Aperçu avec des exemples' : 'Aperçu'} : rien ne joue et rien n'est enregistré. ${screen.pages.length > 1 ? `Sera ajouté sur « ${pageName(currentPage)} ».` : 'Sera ajouté sur ton écran.'}`));
+    pick.append(sizes, el('p', '', `${EXAMPLES[w.id] || w.id === 'semaine' ? 'Aperçu avec des exemples' : 'Aperçu'} : rien ne joue et rien n'est enregistré. ${vue.pages ? `Sera ajouté sur « ${vue.pages()[vue.current()]?.name} »${screen.pages.length > 1 ? ` du mode ${pageName(currentPage)}` : ''}.` : screen.pages.length > 1 ? `Sera ajouté sur « ${pageName(currentPage)} ».` : 'Sera ajouté sur ton écran.'}`));
+    if (verrouille(w.id)) {
+      const open = button('primary', 'Débloquer avec Pro', () => openPaywall(w.title));
+      actions.append(open);
+      view.replaceChildren(head, stage, pick);
+      return;
+    }
     const add = button('primary', 'Ajouter', () => {
       // Sur une page vide, le premier ajout lance l'aide des premiers pas, sauf si elle a déjà été vue.
       if (!screen.aide && !onPage().length) screen.aide = {};
@@ -4416,7 +4844,8 @@ if (!sb) {
     screen.widgets = [...new Set(listOf(saved.widgets))].filter(known);
     screen.done = saved.done === true;
     if (ACCENTS.some(a => a.id === saved.accent) || HEX.test(saved.accent)) screen.accent = saved.accent;
-    screen.look = Object.fromEntries(Object.entries(LOOK).map(([k, list]) => [k, list.some(o => o[0] === saved.look?.[k]) ? saved.look[k] : LOOK_DEFAULT[k]]));
+    screen.polices = cleanFonts(saved.polices);
+    screen.look = Object.fromEntries(Object.entries(LOOK).map(([k, list]) => [k, list.some(o => o[0] === saved.look?.[k]) || ['titre', 'texte'].includes(k) && savedFont(saved.look?.[k]) ? saved.look[k] : LOOK_DEFAULT[k]]));
     const whole = (v, max) => Number.isInteger(v) && v >= 0 && v <= max;
     screen.look.flou = whole(saved.look?.flou, FLOU_MAX) ? saved.look.flou : null;
     screen.look.opacite = whole(saved.look?.opacite, 100) ? saved.look.opacite : 0;
@@ -4459,7 +4888,8 @@ if (!sb) {
     for (const [page, raw] of Object.entries(v.places?.pages ?? {})) {
       if (!pageOk(page) || !raw || typeof raw !== 'object') continue;
       const ok = Object.entries(raw.d ?? {}).filter(([id, q]) => known(id) && q && [q.p, q.c, q.r, q.w, q.h].every(cell) && q.w > 0 && q.h > 0);
-      (out.places.pages ??= {})[page] = { n: Number.isInteger(raw.n) && raw.n >= 1 && raw.n <= 99 ? raw.n : 1, d: Object.fromEntries(ok.map(([id, q]) => [id, { p: q.p, c: q.c, r: q.r, w: q.w, h: q.h }])) };
+      (out.places.pages ??= {})[page] = { n: Number.isInteger(raw.n) && raw.n >= 1 && raw.n <= 99 ? raw.n : 1, d: Object.fromEntries(ok.map(([id, q]) => [id, { p: q.p, c: q.c, r: q.r, w: q.w, h: q.h }])),
+        ...(Array.isArray(raw.t) && { t: raw.t.slice(0, 99).map(x => typeof x === 'string' ? x.trim().slice(0, MAX_PAGE_NAME) : '') }) };
     }
     for (const vue of VUES) {
       if (vue.id === 'pages') continue;
@@ -4492,14 +4922,26 @@ if (!sb) {
   }
   // Le plan du compte (supabase/migrations/20261115000000_abonnements.sql) : Gratuit, Pro ou Worker, lu à l'ouverture du
   // menu. Aucun paiement n'est branché et rien n'est encore réservé à un plan. Sans la migration, ou en panne : Gratuit.
+  // Réservé à Pro : renvoie true (et ouvre les plans) si le compte est en Gratuit.
+  function verrou(raison) {
+    if (debloque()) return false;
+    openPaywall(raison);
+    return true;
+  }
   let planLu = false;
   async function loadPlan() {
     if (planLu) return;
     const [p, a, l] = await Promise.all([sb.rpc('renzvi_plan'), sb.from('abonnements').select('plan,statut,fin').maybeSingle(), sb.from('plans').select('id,nom,prix_mensuel_ttc_centimes')]);
     if (p.error || l.error || !Array.isArray(l.data)) return;
     planLu = true;
+    for (const x of l.data) if (PLANS[x.id]) PLANS[x.id].prix = x.prix_mensuel_ttc_centimes;
     const plan = l.data.find(x => x.id === p.data);
     if (!plan || plan.id === 'gratuit') return;
+    planActuel = plan.id;
+    if (loaded && screen.widgets.some(id => PAYANT.has(id) && !mounted.has(id))) {
+      for (const id of screen.widgets) if (!mounted.has(id)) mount(WIDGETS.find(w => w.id === id), screenUser);
+      drawPages();
+    }
     $('plan-nom').textContent = plan.nom;
     const prix = (plan.prix_mensuel_ttc_centimes / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
     const ab = a.error ? null : a.data, fin = ab?.fin ? new Date(ab.fin).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
@@ -4507,6 +4949,39 @@ if (!sb) {
     $('plan-info').textContent = `${prix} TTC par mois${quand}.`;
   }
   $('menu').addEventListener('toggle', e => { if (e.newState === 'open') { loadReferral(); loadPlan(); } });
+  loadPlan(); // au démarrage aussi : les cadenas du catalogue en dépendent
+
+  $('plan-nom').onclick = $('plan-plans').onclick = () => openPaywall();
+  let pixels = [];
+  function openPaywall(raison) {
+    if ($('menu').matches(':popover-open')) $('menu').hidePopover();
+    $('add-dialog').close();
+    $('settings').close();
+    $('pw-why').textContent = raison ? `${raison} fait partie de Pro. Prix TTC, par mois, sans engagement.` : 'Prix TTC, par mois, sans engagement.';
+    $('pw-note').textContent = '';
+    const check = '<svg viewBox="0 0 16 20" aria-hidden="true"><path d="M3 10.5l3.200 3.200L13 7"/></svg>';
+    const cards = Object.entries(PLANS).map(([id, plan]) => {
+      const card = el('article', `pw-card pw-${id}`);
+      card.setAttribute('aria-labelledby', `pw-${id}-nom`);
+      const nom = el('h3', '', plan.nom);
+      nom.id = `pw-${id}-nom`;
+      const prix = el('p', 'pw-prix', (plan.prix / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: plan.prix ? 2 : 0 }));
+      prix.append(el('small', '', plan.prix ? 'TTC / mois' : 'pour toujours'));
+      const list = el('ul');
+      for (const f of plan.inclus) { const li = el('li'); li.innerHTML = check; li.append(el('span', '', f)); list.append(li); }
+      card.append(nom, el('p', 'pw-tag', plan.tag), prix, list);
+      if (id === planActuel) card.append(el('p', 'pw-now', 'Ton plan actuel'));
+      else if (id !== 'gratuit') card.append(button(id === 'pro' ? 'primary' : 'ghost', `Choisir ${plan.nom}`, () => { $('pw-note').textContent = "Le paiement n'est pas encore ouvert : rien n'est débité."; }));
+      return card;
+    });
+    $('pw-plans').replaceChildren(...cards);
+    $('paywall').showModal();
+    const css = getComputedStyle(document.documentElement), theme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+    const accent = css.getPropertyValue('--accent').trim() || undefined;
+    pixels = cards.map((card, i) => window.pixelCard?.(card, { theme, gap: 6, speed: 30, opacity: 0.35, fade: 0.7, radius: 20, noFocus: true, introDelay: i * 120, ...(card.classList.contains('pw-pro') && accent ? { colors: [accent], glowColor: accent } : {}) })).filter(Boolean);
+  }
+  $('paywall').addEventListener('close', () => { for (const p of pixels) p.destroy(); pixels = []; });
+  window.renzviVerrou = verrou; // pour le Cahier (study/cahier.js) : l'IA est réservée à Pro
 
   // La lumière de la carte (SpotlightCard) : posée à l'ouverture, aux couleurs du thème et de l'accent du moment,
   // retirée après la fermeture (fondu compris), pour qu'aucun écouteur ne tourne quand la carte est fermée.

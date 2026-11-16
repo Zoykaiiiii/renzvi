@@ -39,7 +39,7 @@ function filePart(body, type) {
 
 async function openBoard(browser, base, db, options = { viewport: { width: 1440, height: 900 } }) {
   const context = await browser.newContext(options);
-  await context.addInitScript(session => localStorage.setItem('sb-xjkmztfsyyccveaeyzov-auth-token', session), JSON.stringify({ access_token: JWT, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: USER }));
+  await context.addInitScript(session => (localStorage.setItem('sb-xjkmztfsyyccveaeyzov-auth-token', session), localStorage.setItem('renzvi:vue-defaut', 'grille')), JSON.stringify({ access_token: JWT, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: USER }));
   await context.route(`${SUPABASE}/rest/v1/widget_state*`, route => {
     const req = route.request();
     if (req.method() === 'OPTIONS') return preflight(route);

@@ -163,7 +163,7 @@ const { start } = require('./demo.cjs');
     await page.keyboard.press('Escape');
     await custom(page);
     await noOverflow('personnaliser');
-    assert.deepEqual(await page.locator('#settings .set-group > h3').allTextContents(), ["Fond d'écran", 'Apparence', 'Disposition', 'Espace actuel']);
+    assert.deepEqual(await page.locator('#settings .set-group > h3').allTextContents(), ["Fond d'écran", 'Apparence', 'Typographie', 'Disposition', 'Espace actuel']);
     assert.ok(await page.isVisible('#wall-slot .tile'));
     await page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running'));
     const sheet = await page.locator('#settings').boundingBox();

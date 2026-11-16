@@ -52,6 +52,7 @@ async function mockDb(context, rows = { ecran: ALL_WIDGETS }) {
     const req = route.request();
     if (req.method() === 'OPTIONS') return preflight(route);
     if (req.url().endsWith('get_my_referral')) return db.failRpc ? json(route, 500, { message: 'panne' }) : json(route, 200, [{ referral_code: 'ABCD1234', referral_count: 1 }]);
+    if (req.url().endsWith('renzvi_plan')) return json(route, 200, 'gratuit');
     if (db.failClaim) return json(route, 500, { message: 'panne' });
     db.claims.push(req.postDataJSON().p_code);
     return json(route, 200, true);
@@ -82,7 +83,7 @@ async function open(browser, base, options = {}, query = '') {
 // Ouvre le dashboard déjà connecté, avec des données de départ.
 async function openDashboard(browser, base, options, rows, prepare) {
   const context = await browser.newContext(options);
-  await context.addInitScript(session => localStorage.setItem('sb-xjkmztfsyyccveaeyzov-auth-token', session), JSON.stringify({ access_token: JWT, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: { ...USER, user_metadata: { full_name: 'Léa Martin' } } }));
+  await context.addInitScript(session => (localStorage.setItem('sb-xjkmztfsyyccveaeyzov-auth-token', session), localStorage.setItem('renzvi:vue-defaut', 'grille')), JSON.stringify({ access_token: JWT, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: { ...USER, user_metadata: { full_name: 'Léa Martin' } } }));
   const seed = { ecran: ALL_WIDGETS, ...rows };
   if (seed.ecran === null) delete seed.ecran; // premier lancement
   const db = await mockDb(context, seed);

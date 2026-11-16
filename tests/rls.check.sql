@@ -47,7 +47,12 @@ begin
   begin insert into storage.objects(bucket_id,name,owner) values ('dessins', a||'/1.png', a), ('dessins', a||'/12.png', a); r := array_append(r, 'A dépose ses dessins: 1'); exception when others then r := array_append(r, 'A dépose ses dessins: refusé '||sqlerrm); end;
   begin insert into storage.objects(bucket_id,name,owner) values ('dessins', a||'/13.png', a); r := array_append(r, 'limite: 13e dessin ACCEPTE'); exception when others then r := array_append(r, 'limite: 13e dessin refusé'); end;
   begin insert into storage.objects(bucket_id,name,owner) values ('dessins', a||'/1.jpg', a); r := array_append(r, 'limite: dessin hors format ACCEPTE'); exception when others then r := array_append(r, 'limite: dessin hors format refusé'); end;
-  select count(*) into n from storage.objects where owner=a; r := array_append(r, ('A relit ses 8 fichiers: '||(n=8)::int)::text);
+  -- Mes polices : 10 emplacements par compte, noms imposés (sans extension).
+  begin insert into storage.objects(bucket_id,name,owner) values ('polices', a||'/1', a), ('polices', a||'/10', a); r := array_append(r, 'A dépose ses polices: 1'); exception when others then r := array_append(r, 'A dépose ses polices: refusé '||sqlerrm); end;
+  begin insert into storage.objects(bucket_id,name,owner) values ('polices', a||'/11', a); r := array_append(r, 'limite: 11e police ACCEPTE'); exception when others then r := array_append(r, 'limite: 11e police refusé'); end;
+  begin insert into storage.objects(bucket_id,name,owner) values ('polices', a||'/1.ttf', a); r := array_append(r, 'limite: police hors nom ACCEPTE'); exception when others then r := array_append(r, 'limite: police hors nom refusé'); end;
+  update storage.objects set owner=a where bucket_id='polices' and name=a||'/1'; get diagnostics n = row_count; r := array_append(r, ('A remplace sa police: '||n)::text);
+  select count(*) into n from storage.objects where owner=a; r := array_append(r, ('A relit ses 10 fichiers: '||(n=10)::int)::text);
   -- cartes.js:238 (qa et trou), :474 (import CSV), ia.js:153 (depuis le cours)
   insert into study_cards(deck,kind,front,back,holes,course_id,src_page,src_offset,src_length) values ('D','qa','Q app','R app','[]',cb,0,0,10) returning id into cdb;
   insert into study_cards(deck,kind,front,holes,back) values ('D','trou','Le ciel est bleu','[[12,16]]','') returning id into cdt;
@@ -157,6 +162,10 @@ begin
   begin insert into storage.objects(bucket_id,name,owner) values ('schemas', a||'/'||gen_random_uuid()||'.jpg', b); r := array_append(r, ('B écrit schéma chez A: ACCEPTE')::text); exception when others then r := array_append(r, ('B écrit schéma chez A: refusé')::text); end;
   begin insert into storage.objects(bucket_id,name,owner) values ('dessins', a||'/5.png', b); r := array_append(r, ('B écrit dessin chez A: ACCEPTE')::text); exception when others then r := array_append(r, ('B écrit dessin chez A: refusé')::text); end;
   delete from storage.objects where bucket_id='dessins' and name like a||'/%'; get diagnostics n = row_count; r := array_append(r, (('B supprime dessins A: '||n))::text);
+  select count(*) into n from storage.objects where bucket_id='polices'; r := array_append(r, (('B lit polices A: '||n))::text);
+  begin insert into storage.objects(bucket_id,name,owner) values ('polices', a||'/5', b); r := array_append(r, ('B écrit police chez A: ACCEPTE')::text); exception when others then r := array_append(r, ('B écrit police chez A: refusé')::text); end;
+  update storage.objects set owner=b where bucket_id='polices' and name like a||'/%'; get diagnostics n = row_count; r := array_append(r, (('B remplace police A: '||n))::text);
+  delete from storage.objects where bucket_id='polices' and name like a||'/%'; get diagnostics n = row_count; r := array_append(r, (('B supprime polices A: '||n))::text);
   select count(*) into n from widget_state where user_id=a and widget in ('jardin','dessin','ambiances'); r := array_append(r, (('B lit jardin/dessin/ambiances A: '||n))::text);
   begin perform 1 from referral_codes; r := array_append(r, 'B lit les codes de parrainage: ACCEPTE'); exception when insufficient_privilege then r := array_append(r, 'B lit les codes de parrainage: refusé'); end;
   -- B est un compte neuf : le code de A marche une fois, pas deux.
@@ -197,6 +206,7 @@ begin
   delete from storage.objects where name = a||'/'||sb||'.jpg'; get diagnostics n = row_count; r := array_append(r, ('A supprime son image: '||n)::text);
   delete from study_courses where id=cb; get diagnostics n = row_count; r := array_append(r, ('A supprime son cours: '||n)::text);
   delete from storage.objects where bucket_id='dessins' and name = a||'/12.png'; get diagnostics n = row_count; r := array_append(r, ('A supprime son dessin: '||n)::text);
+  delete from storage.objects where bucket_id='polices' and name = a||'/10'; get diagnostics n = row_count; r := array_append(r, ('A supprime sa police: '||n)::text);
   reset role;
 
   -- Présentations Study (etude.js) : associations chapitre ↔ paquet (study_links) et notes de chapitre (study_notes).

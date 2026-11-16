@@ -255,7 +255,7 @@ const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, show
     const { page, context, db } = await open({ width: 1440, height: 900 }, 'perso');
     await custom(page);
     assert.equal(await page.textContent('#settings-title'), 'Personnaliser');
-    assert.deepEqual(await page.locator('#settings .set-group > h3').allTextContents(), ["Fond d'écran", 'Apparence', 'Disposition', 'Espace actuel']);
+    assert.deepEqual(await page.locator('#settings .set-group > h3').allTextContents(), ["Fond d'écran", 'Apparence', 'Typographie', 'Disposition', 'Espace actuel']);
     assert.equal(await page.getByRole('button', { name: 'Ouvrir les réglages' }).count(), 0, 'plus de détour');
     assert.equal(await page.locator('#wall-slot [aria-pressed=true]').getAttribute('data-wall'), 'brume', 'le fond actuel est marqué');
     assert.equal(await page.textContent('#page-current'), 'Study');

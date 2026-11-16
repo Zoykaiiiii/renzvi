@@ -4,6 +4,7 @@
 //   - SUPABASE_URL pointe sur ce serveur ;
 //   - une fausse session est posée avant le chargement, pour le profil choisi dans l'adresse.
 // Lancement : node tests/demo.cjs [port]   puis http://127.0.0.1:<port>/dashboard.html?profil=plein
+// ?pages=1 : disposition en pages (celle de tout le monde) ; sans lui, l'ancienne grille, pour laquelle les tests existants sont écrits.
 // Profils : plein (modes Study et Chill remplis), simple (une seule page), vide (compte existant, page vide),
 // nouveau (premier lancement), vues (présentations, avec ?vues=1). ?bac=<nom> isole un jeu de données (un par test) ; sans lui, le profil est partagé.
 const http = require('node:http');
@@ -59,7 +60,9 @@ const sub='demo-'+(net(q.get('profil'))||'plein')+(net(q.get('bac'))?'-'+net(q.g
 const b=o=>btoa(JSON.stringify(o)).replace(/=+$/,'').replace(/\\+/g,'-').replace(/\\//g,'_');
 const user={id:sub,aud:'authenticated',role:'authenticated',email:'lea@exemple.fr',app_metadata:{},user_metadata:{full_name:'Léa Martin'},created_at:'2026-11-03T00:00:00Z'};
 const session=JSON.stringify({access_token:b({alg:'HS256'})+'.'+b({sub,exp:4102444800,role:'authenticated'})+'.sig',refresh_token:'r',token_type:'bearer',expires_in:3600,expires_at:4102444800,user});
-for(const k of ['sb-127-auth-token','sb-localhost-auth-token'])localStorage.setItem(k,session);})()</script>`;
+for(const k of ['sb-127-auth-token','sb-localhost-auth-token'])localStorage.setItem(k,session);
+// Les anciens tests sont écrits pour la grille : elle reste la disposition de la démo, sauf avec ?pages=1 (la disposition de tout le monde).
+if(q.has('pages'))localStorage.removeItem('renzvi:vue-defaut');else localStorage.setItem('renzvi:vue-defaut','grille');})()</script>`;
 
 function start(port = 0) {
   const bacs = new Map(); // sub -> { rows, files, saves, panne }

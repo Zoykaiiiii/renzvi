@@ -61,7 +61,7 @@ const AUDIO_SPY = () => {
 
 async function openBoard(browser, base, { options = {}, rows = {}, query = '?chill=1', clock = false } = {}) {
   const context = await browser.newContext(options);
-  await context.addInitScript(session => localStorage.setItem('sb-xjkmztfsyyccveaeyzov-auth-token', session), JSON.stringify({ access_token: JWT, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: USER }));
+  await context.addInitScript(session => (localStorage.setItem('sb-xjkmztfsyyccveaeyzov-auth-token', session), localStorage.setItem('renzvi:vue-defaut', 'grille')), JSON.stringify({ access_token: JWT, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: USER }));
   await context.addInitScript(AUDIO_SPY);
   const db = { rows: structuredClone(rows), failSave: false, saves: 0, files: new Map(), failUpload: false, failDownload: false, uploads: 0 };
   await context.route(`${SUPABASE}/rest/v1/widget_state*`, route => {
@@ -128,7 +128,8 @@ async function stroke(page, canvas, from = [.3, .5], to = [.7, .5]) {
     assert.equal(await page.locator('#chill-labo').count(), 0, 'pas de bouton Labo Chill');
     await showMenu(page); await page.click('#open-add');
     const catalog = await page.textContent('#catalog');
-    for (const t of TITLES) assert.ok(!catalog.includes(t), `catalogue public sans « ${t} »`);
+    for (const t of TITLES) assert.ok(catalog.includes(t), `catalogue public avec « ${t} » (cadenas Pro)`);
+    assert.equal(await page.locator('#catalog .cat-lock').count() >= TITLES.length, true, 'widgets Chill avec cadenas');
     assert.ok(catalog.includes('Respiration guidée') && catalog.includes('Ambiance sonore'));
     assert.ok(!requests.some(u => CHILL_FILES.test(u)), `aucun module Chill téléchargé : ${requests.filter(u => CHILL_FILES.test(u))}`);
     assert.deepEqual(errors, []);

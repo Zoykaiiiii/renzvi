@@ -29,7 +29,7 @@ const preflight = route => route.fulfill({ status: 204, headers: { 'access-contr
 
 async function openBoard(browser, base, { options = {}, rows = {}, query = '?labo=1', catalogueKo = false } = {}) {
   const context = await browser.newContext(options);
-  await context.addInitScript(session => localStorage.setItem('sb-xjkmztfsyyccveaeyzov-auth-token', session), JSON.stringify({ access_token: JWT, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: USER }));
+  await context.addInitScript(session => (localStorage.setItem('sb-xjkmztfsyyccveaeyzov-auth-token', session), localStorage.setItem('renzvi:vue-defaut', 'grille')), JSON.stringify({ access_token: JWT, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: USER }));
   const db = { rows: structuredClone(rows), catalogueKo };
   await context.route(`${SUPABASE}/rest/v1/widget_state*`, route => {
     const req = route.request();

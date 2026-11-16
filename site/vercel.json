@@ -1,4 +1,11 @@
 {
+  "redirects": [
+    { "source": "/dashboard.html", "destination": "/espace", "permanent": false },
+    { "source": "/dashboard", "destination": "/espace", "permanent": false }
+  ],
+  "rewrites": [
+    { "source": "/espace", "destination": "/dashboard.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

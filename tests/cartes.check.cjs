@@ -59,7 +59,7 @@ function filePart(body, type) {
 async function openBoard(browser, base, db, options = { viewport: { width: 1440, height: 900 } }) {
   const { time, labo, waitFor = '[data-widget=cartes]', ...settings } = options;
   const context = await browser.newContext(settings);
-  await context.addInitScript(session => localStorage.setItem('sb-xjkmztfsyyccveaeyzov-auth-token', session), JSON.stringify({ access_token: JWT, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: USER }));
+  await context.addInitScript(session => (localStorage.setItem('sb-xjkmztfsyyccveaeyzov-auth-token', session), localStorage.setItem('renzvi:vue-defaut', 'grille')), JSON.stringify({ access_token: JWT, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: USER }));
   await context.route(`${SUPABASE}/rest/v1/widget_state*`, route => {
     const req = route.request();
     if (req.method() === 'OPTIONS') return preflight(route);
@@ -70,10 +70,13 @@ async function openBoard(browser, base, db, options = { viewport: { width: 1440,
   await context.route(`${SUPABASE}/rest/v1/rpc/*`, route => {
     const req = route.request();
     if (req.method() === 'OPTIONS') return preflight(route);
+    if (req.url().endsWith('/renzvi_plan')) return json(route, 200, db.plan ?? 'pro'); // l'IA du Cahier est réservée à Pro
     if (!req.url().endsWith('/study_answer')) return json(route, 200, []);
     if (db.failAnswer) return json(route, 500, { message: 'panne' });
     return json(route, 200, studyAnswer(db, req.postDataJSON()));
   });
+  await context.route(`${SUPABASE}/rest/v1/plans*`, route => route.request().method() === 'OPTIONS' ? preflight(route) : json(route, 200, [{ id: 'gratuit', nom: 'Gratuit', prix_mensuel_ttc_centimes: 0 }, { id: 'pro', nom: 'Pro', prix_mensuel_ttc_centimes: 999 }]));
+  await context.route(`${SUPABASE}/rest/v1/abonnements*`, route => route.request().method() === 'OPTIONS' ? preflight(route) : json(route, 200, []));
   await context.route(`${SUPABASE}/rest/v1/study_courses*`, route => {
     const req = route.request();
     if (req.method() === 'OPTIONS') return preflight(route);
@@ -716,12 +719,13 @@ const select = (page, word) => page.evaluate(w => {
     // 9. Quiz (S6), widget caché sauf ?labo=1 : création, import, séance mélangée, erreurs, signalement, correction, IA.
     {
       const dbq = fresh(['cahier', 'cartes', 'quiz']);
-      // Sans ?labo=1, le quiz n'apparaît nulle part, même s'il est dans la configuration enregistrée.
+      dbq.plan = 'gratuit';
+      // Compte Gratuit sans ?labo=1 : le quiz enregistré n'est pas affiché, et il est au catalogue avec un cadenas.
       const pub = await openBoard(browser, base, dbq);
       await pub.page.waitForSelector('[data-widget=cahier]');
       assert.strictEqual(await pub.page.locator('[data-widget=quiz]').count(), 0, 'caché sur le site public');
       await showMenu(pub.page); await pub.page.click('#open-add');
-      assert.ok(!(await pub.page.locator('#catalog').innerText()).includes('Quiz'), 'absent du catalogue public');
+      assert.ok(await pub.page.locator('#catalog [data-widget=quiz] .cat-lock').isVisible(), 'au catalogue, avec un cadenas');
       assert.deepStrictEqual(pub.errors, []);
       await pub.context.close();
       assert.deepStrictEqual(dbq.rows.ecran.widgets, ['cahier', 'cartes', 'quiz'], 'la configuration enregistrée n’est pas abîmée');

@@ -1,9 +1,9 @@
-/* Pages (labo ?vues=1). Les variables sont posées par vues/pages.js et retirées quand on quitte la présentation.
+/* Pages (disposition par défaut). Les variables sont posées par vues/pages.js et retirées quand on quitte la présentation.
    Le tableau devient une rangée de pages qui défile à l'horizontale, aimantée page par page. */
 .board[data-vue=pages]{
   /* La colonne vide de largeur nulle à la fin ajoute l'espace qui suit la dernière colonne : la rangée fait pile N pages,
      et la dernière page peut s'aligner comme les autres. */
-  grid-template-columns:repeat(var(--pg-cols),var(--pg-cw)) 0px;grid-template-rows:repeat(6,var(--pg-ch));
+  grid-template-columns:repeat(var(--pg-cols),var(--pg-cw)) 0px;grid-template-rows:repeat(var(--pg-rows,6),var(--pg-ch));
   height:var(--pg-h);overflow-x:auto;overflow-y:hidden;
   scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none
 }
@@ -15,8 +15,22 @@
 .pg-snap{grid-row:1/-1;scroll-snap-align:start;pointer-events:none}
 
 /* Points de pagination, sous la page : un par page, le point actif plus long. */
-.pg-dots{display:flex;align-items:center;justify-content:center;width:fit-content;margin:10px auto 0;padding:2px 6px;border-radius:var(--pill);background:var(--glass);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)} /* taste-skill-ignore : verre du dashboard (décision du 2 nov.), les points restent lisibles sur une photo */
+.pg-dots{display:flex;align-items:center;justify-content:center;gap:2px;width:fit-content;max-width:100%;margin:10px auto 0;padding:2px 4px 2px 6px;border-radius:var(--pill);background:var(--glass);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)} /* taste-skill-ignore : verre du dashboard (décision du 2 nov.), les points restent lisibles sur une photo */
 .pg-dots[hidden]{display:none}
+.pg-group{display:flex;align-items:center}
+.pg-dot.temp i{background:none;box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--ink) 45%,transparent)}
+/* « + » : ajouter une page, toujours à droite des points. */
+.pg-add{display:grid;place-items:center;width:28px;height:28px;margin-left:2px;padding:0;border:0;border-radius:50%;background:none;color:var(--ink);cursor:pointer;transition:background-color .15s}
+.pg-add:hover:not(:disabled){background:var(--tint)}
+.pg-add:disabled{opacity:.35;cursor:default}
+.pg-add svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.pg-name{max-width:16ch;overflow:hidden;padding:0 8px 0 4px;font-size:13px;font-weight:500;text-overflow:ellipsis;white-space:nowrap}
+.pg-name[hidden]{display:none}
+/* Page sans widget : le message prend le haut de la page, en pointillés comme les autres états vides. */
+.pg-empty{display:grid;align-content:center;justify-items:center;gap:6px;padding:24px;border:1.5px dashed var(--edge);border-radius:var(--r-panel);text-align:center}
+.pg-empty-title{font-size:17px;font-weight:600}
+.pg-empty-text{max-width:42ch;font-size:14px;color:var(--slate)}
+.pg-empty .primary{margin-top:8px}
 .pg-dot{display:grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:none;cursor:pointer}
 .pg-dot i{display:block;width:7px;height:7px;border-radius:4px;background:color-mix(in srgb,var(--ink) 30%,transparent);transition:width .25s var(--ease),background-color .25s}
 .pg-dot[aria-current=page] i{width:18px;background:var(--ink)}
@@ -24,13 +38,19 @@
 .pg-step{width:32px;height:32px;padding:0;border:0;border-radius:50%;background:none;font-size:18px;color:var(--ink);cursor:pointer}
 .pg-step:disabled{opacity:.35;cursor:default}
 .pg-where{padding:0 6px;font-size:13px;font-variant-numeric:tabular-nums}
-@media (max-width:727px){.pg-dots{margin-bottom:env(safe-area-inset-bottom)}}
+/* Téléphone : une page peut être plus haute que l'écran ; les points restent en bas de l'écran, toujours à portée du pouce. */
+@media (max-width:727px){.pg-dots{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));z-index:20}}
 
 /* Édition : le contenu ne répond plus, le widget entier se prend à la main ; deux poignées apparaissent. */
 .pages-editing .board[data-vue=pages]>.widget{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 45%,transparent)} /* taste-skill-ignore : le contour dit qu'on peut prendre le widget */
-.pages-editing .board[data-vue=pages]>.widget>:not(.pg-move):not(.pg-size){pointer-events:none}
+.pages-editing .board[data-vue=pages]>.widget>:not(.pg-move):not(.pg-size):not(.pg-to){pointer-events:none}
 .pages-editing.dragging .board[data-vue=pages]>.widget{cursor:grabbing}
-.pg-move,.pg-size{display:none}
+.pg-move,.pg-size,.pg-to{display:none}
+/* « Déplacer vers une page » : invisible (demande de Damien), elle n'apparaît que si on y arrive au clavier. */
+.pages-editing .pg-to{position:absolute;top:6px;right:6px;z-index:5;display:block;max-width:calc(100% - 52px);clip-path:inset(50%);width:1px;height:1px;overflow:hidden}
+.pages-editing .pg-to:focus-within{clip-path:none;width:auto;height:auto;overflow:visible}
+.pg-to select{height:32px;max-width:100%;padding:0 8px;border:0;border-radius:10px;background:var(--glass-solid);color:var(--ink);font-size:13px}
+@media (pointer:coarse){.pg-to select{height:44px}}
 .pages-editing .pg-move,.pages-editing .pg-size{position:absolute;z-index:5;display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:10px;background:var(--glass-solid);color:var(--ink);touch-action:none}
 .pages-editing .pg-move{top:6px;left:6px;cursor:grab}
 .pages-editing .pg-size{right:6px;bottom:6px;cursor:nwse-resize}
@@ -45,6 +65,16 @@
 /* La barre d'édition : en haut, pour ne jamais couvrir les poignées du bas des widgets. */
 .pg-bar{position:fixed;top:12px;left:50%;z-index:40;display:flex;align-items:center;gap:16px;width:max-content;max-width:calc(100vw - 32px);padding:8px 8px 8px 18px;border-radius:var(--r-panel);background:var(--glass-solid);transform:translateX(-50%);box-shadow:0 1px 2px rgba(23,25,28,.08),0 10px 30px rgba(23,25,28,.16)} /* taste-skill-ignore : la barre flotte au-dessus de l'écran, le temps de disposer */
 .pg-bar[hidden]{display:none}
+/* Bords de l'écran pendant un glisser : on y tient le widget pour passer à la page voisine. */
+.pg-edge{position:fixed;top:0;bottom:0;z-index:45;display:grid;place-items:center;width:44px;pointer-events:none;transition:background-color .2s}
+.pg-edge[hidden]{display:none}
+.pg-edge-left{left:0}
+.pg-edge-right{right:0}
+.pg-edge span{padding:6px 10px;border-radius:var(--pill);background:var(--glass-solid);font-size:12px;font-weight:600;white-space:nowrap;opacity:0;transition:opacity .2s}
+.pg-edge-left span{transform:translateX(30%)}
+.pg-edge-right span{transform:translateX(-30%)}
+.pg-edge.on{background:color-mix(in srgb,var(--accent) 16%,transparent)}
+.pg-edge.on span{opacity:1}
 .pg-hint{font-size:13px;color:var(--slate)}
 @media (max-width:727px){.pg-hint{display:none}}
 @media (prefers-reduced-motion:reduce){.pg-dot i{transition:none}}

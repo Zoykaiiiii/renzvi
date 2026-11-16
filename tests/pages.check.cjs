@@ -242,7 +242,7 @@ const { start } = require('./demo.cjs');
     await context.close();
   }
 
-  // Téléphone : disposition dérivée (un widget par rangée, toute la largeur), points, pas d'édition, rien ne déborde.
+  // Téléphone : chaque page garde ses widgets (un par rangée, toute la largeur), points, pas d'édition, rien ne déborde.
   {
     const { page, context } = await open({ width: 390, height: 844 }, 'p3');
     await choosePages(page).catch(async () => {
@@ -252,7 +252,9 @@ const { start } = require('./demo.cjs');
     const g = await grid(page);
     const w = await page.locator(W('cahier')).boundingBox();
     assert.ok(Math.abs(w.width - (g.W - g.gap)) < 3, 'toute la largeur');
-    assert.ok(await page.locator('.pg-dot').count() >= 3, 'plusieurs pages sur téléphone');
+    await until(() => dbOf('p3').rows.ecran?.vues?.places?.pages?.study, 'places enregistrées');
+    // Les mêmes pages que sur l'ordinateur (les points représentent les pages du mode), widgets empilés dans chacune.
+    assert.equal(await page.locator('.pg-dot').count(), places('p3').n, 'mêmes pages que sur l’ordinateur');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0, 'rien ne déborde');
     const head = await page.locator(`${W('cahier')} .head h2`).boundingBox();
     await longPress(page, head.x + 4, head.y + 4);

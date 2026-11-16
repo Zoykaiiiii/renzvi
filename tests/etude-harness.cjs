@@ -64,7 +64,7 @@ function studyAnswer(db, a) {
 
 async function openBoard(browser, base, db, { labo = true, ...settings } = {}) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, ...settings });
-  await context.addInitScript(session => localStorage.setItem('sb-xjkmztfsyyccveaeyzov-auth-token', session), JSON.stringify({ access_token: JWT, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: USER }));
+  await context.addInitScript(session => (localStorage.setItem('sb-xjkmztfsyyccveaeyzov-auth-token', session), localStorage.setItem('renzvi:vue-defaut', 'grille')), JSON.stringify({ access_token: JWT, refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: 4102444800, user: USER }));
   const table = (name, handler) => context.route(`${SUPABASE}/rest/v1/${name}*`, route => route.request().method() === 'OPTIONS' ? preflight(route) : handler(route, route.request()));
   await table('widget_state', (route, req) => {
     if (req.method() === 'GET') return json(route, 200, Object.entries(db.rows).map(([widget, data]) => ({ widget, data })));

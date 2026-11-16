@@ -206,7 +206,7 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
   const editBtn = button('link', 'Modifier les chapitres', () => { mode = mode === 'edit' ? 'read' : 'edit'; draw(); });
   const originalBtn = button('link', "Télécharger l'original", downloadOriginal);
   const removeBtn = button('link cahier-danger', 'Supprimer ce cours', removeCourse);
-  const iaBtn = button('link', 'IA : cartes et résumé du chapitre', () => { mode = mode === 'ia' ? 'read' : 'ia'; say(''); draw(); });
+  const iaBtn = button('link', 'IA : cartes et résumé du chapitre', () => { if (mode !== 'ia' && window.renzviVerrou?.('L’IA')) return; mode = mode === 'ia' ? 'read' : 'ia'; say(''); draw(); });
   // Une page d'un PDF devient un schéma à légendes cachées (widget Schémas, en préparation).
   const schemaBtn = button('link', 'Faire un schéma de cette page', () => {
     const c = course(), reader = view.querySelector('.cahier-text');
@@ -233,7 +233,7 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     search: text => { search.value = text; search.oninput(); },
     tools: () => [importBtn, iaBtn, schemaBtn, editBtn, originalBtn, removeBtn],
     makeCard,
-    explain: () => { if (!lastSel) return; explainSel = lastSel; mode = 'explain'; draw(); },
+    explain: () => { if (!lastSel || window.renzviVerrou?.('L’IA')) return; explainSel = lastSel; mode = 'explain'; draw(); },
     close: () => { expand(false); grow.focus(); },
   }) ?? null;
   function expand(open) {
