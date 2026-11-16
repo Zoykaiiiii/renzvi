@@ -1,0 +1,10 @@
+/* Widget Dictée (labo) : la note, le texte provisoire pendant l'écoute, le micro à droite, l'état dessous. */
+.dictee-text{min-height:140px}
+.dictee-live{margin:8px 0 0;min-height:1.45em;font-size:14px;line-height:1.45;color:var(--slate);font-style:italic}
+.dictee-live:empty::before{content:"\200b"}
+.dictee-row{display:flex;justify-content:flex-end;min-height:48px;align-items:center}
+.dictee-pill{display:inline-grid}
+.dictee-status{margin:4px 0 0;min-height:1.4em;font-size:13.5px;line-height:1.4;color:var(--ink)}
+.dictee-status.bad{color:var(--error)}
+.dictee-privacy{margin:6px 0 0;font-size:12px;line-height:1.4;color:var(--slate)}
+.dictee-privacy:empty{display:none}

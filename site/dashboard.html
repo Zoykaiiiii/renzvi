@@ -2781,6 +2781,7 @@ const VUES = [
 ];
 const VUES_VERSION = 1, VUE_MAX = 20000;
 // Nutrition (labo, ?labo=1) : recettes Wikibooks en CC BY-SA, chargées seulement quand le widget s'affiche.
+WIDGETS.push({ id: 'dictee', labo: true, title: 'Dictée', desc: 'Appuie sur le micro et parle : ton texte s’écrit dans une note.', render: chillLazy('dash/dictee.js', 'dicteeWidget') });
 WIDGETS.push({ id: 'repas', labo: true, title: "Qu'est-ce qu'on mange ?", desc: 'Une recette tirée au sort, ou ce que tu peux cuisiner avec ton frigo.', render: chillLazy('nutrition/repas.js', 'repasWidget') });
 for (let i = WIDGETS.length - 1; i >= 0; i--) if (WIDGETS[i].labo === 'chill' ? !CHILL_LABO : WIDGETS[i].labo && !LABO) WIDGETS.splice(i, 1);
 for (const m of MODES) m.widgets = m.widgets.filter(id => WIDGETS.some(w => w.id === id));
