@@ -135,19 +135,20 @@ async function stroke(page, canvas, from = [.3, .5], to = [.7, .5]) {
     assert.deepEqual(errors, []);
     await context.close();
   }
-  // Le labo Study (?labo=1) n'ouvre pas le labo Chill, et inversement.
+  // Le labo Study (?labo=1) et le labo Chill (?chill=1) : les widgets payants sont au catalogue dans les deux, sans cadenas.
   {
     const { page, errors, context } = await openBoard(browser, base, { options: desk, rows: board([]), query: '?labo=1' });
     await showMenu(page); await page.click('#open-add');
     const catalog = await page.textContent('#catalog');
     assert.ok(catalog.includes('Quiz'), 'labo Study visible');
-    for (const t of TITLES) assert.ok(!catalog.includes(t), `?labo=1 ne montre pas « ${t} »`);
+    for (const t of TITLES) assert.ok(catalog.includes(t), `?labo=1 montre « ${t} »`);
+    assert.equal(await page.locator('#catalog .cat-lock').count(), 0, 'labo : aucun cadenas');
     assert.equal(await page.locator('#chill-labo').count(), 0);
     await page.goto(`${base}/dashboard.html?labo=0&chill=1`);
     await showMenu(page); await page.click('#open-add');
     const chill = await page.textContent('#catalog');
     for (const t of TITLES) assert.ok(chill.includes(t), `?chill=1 montre « ${t} »`);
-    assert.ok(!chill.includes('Quiz'), '?chill=1 ne montre pas les widgets Study en préparation');
+    assert.ok(!chill.includes('Guide Study'), '?chill=1 ne montre pas les widgets Study en préparation');
     await page.keyboard.press('Escape');
     assert.equal(await page.locator('#chill-labo').isVisible(), true);
     await page.goto(`${base}/dashboard.html?chill=0`);
