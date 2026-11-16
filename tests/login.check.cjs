@@ -560,8 +560,11 @@ async function openDashboard(browser, base, options, rows, prepare) {
     assert.match(await page.textContent('#flight-eta'), /^Arrivée à \d\d:\d\d$/);
     // Le hublot : le paysage est bien dessiné (pas une image uniforme) et l'heure, en gras, est en plein milieu de l'écran.
     assert.equal(await page.locator('#flight-view canvas').count(), 1);
+    // L'heure est posée sur la vitre, vue avec le même angle que le hublot : dedans, et à peu près au milieu.
     const clock = await page.locator('#flight-clock').boundingBox();
-    assert.ok(Math.abs(clock.x + clock.width / 2 - 720) <= 1 && Math.abs(clock.y + clock.height / 2 - 450) <= 1, 'l\'heure est au centre de l\'écran');
+    const glass = await page.locator('#flight-view').boundingBox();
+    assert.ok(clock.x >= glass.x && clock.x + clock.width <= glass.x + glass.width && clock.y >= glass.y && clock.y + clock.height <= glass.y + glass.height, 'l\'heure est sur la vitre');
+    assert.ok(Math.abs(clock.x + clock.width / 2 - (glass.x + glass.width / 2)) <= glass.width * .06 && Math.abs(clock.y + clock.height / 2 - (glass.y + glass.height / 2)) <= glass.height * .06, 'l\'heure est au milieu de la vitre');
     assert.ok(Number(await page.locator('#flight-clock').evaluate(c => getComputedStyle(c).fontWeight)) >= 700, 'l\'heure est en gras');
     await page.waitForFunction(() => {
       const canvas = document.querySelector('#flight-view canvas');
@@ -637,9 +640,8 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.waitForFunction(() => window.locks.length === 2);
     await page.getByRole('button', { name: 'Annuler le vol' }).click();
     await page.getByRole('button', { name: 'Vraiment annuler ?' }).click();
-    assert.equal(await page.locator('#flight-view canvas').count(), 1, 'le paysage reste derrière l\'écran de fin');
-    await page.click('#flight-close');
-    assert.equal(await page.locator('#flight-view canvas').count(), 0, 'le paysage est arrêté à la fermeture');
+    await page.waitForSelector('#flight', { state: 'hidden' });
+    assert.equal(await page.locator('#flight-view canvas').count(), 0, 'annulé : retour au dashboard, paysage arrêté');
     assert.deepEqual(errors, []);
     await context.close();
   }
@@ -701,7 +703,11 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.getByRole('button', { name: 'Annuler le vol' }).click();
     await page.getByRole('button', { name: 'Vraiment annuler ?' }).click();
     assert.equal(await page.textContent('#flight-end-title'), 'Vol annulé');
-    await page.click('#flight-close');
+    // Pas de clic de plus : retour direct au dashboard, le widget dit pourquoi, le focus revient au bouton.
+    await page.waitForSelector('#flight', { state: 'hidden' });
+    assert.equal(await page.locator('#app').evaluate(a => a.inert), false);
+    assert.equal(await page.textContent('.vol-said'), 'Vol annulé. Il ne compte pas dans ta journée.');
+    await page.waitForFunction(() => document.activeElement.textContent === 'Déchirer et décoller'); // une fois sorti du plein écran
     assert.equal(await page.locator('section[aria-labelledby=title-vol] .meta').textContent(), "Aujourd'hui : 1 vol · 5 min");
     assert.deepEqual(errors, []);
     await context.close();
@@ -730,10 +736,10 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.evaluate(() => document.exitFullscreen());
     await page.waitForSelector('#flight-alert:not([hidden])');
     await page.clock.runFor(10500);
-    await page.waitForSelector('#flight-end:not([hidden])');
-    assert.equal(await page.textContent('#flight-end-title'), 'Vol annulé');
+    await page.waitForFunction(() => document.getElementById('flight-end-title').textContent === 'Vol annulé');
     assert.equal(db.rows.vol?.flights ?? 0, 0);
-    await page.click('#flight-close');
+    await page.waitForSelector('#flight', { state: 'hidden' });
+    assert.match(await page.textContent('.vol-said'), /quitté plus de 10 secondes/);
 
     await go.click();
 
@@ -742,8 +748,9 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await hide(page, true);
     await page.clock.setSystemTime(Date.now() + 60000); // l'onglet dort : aucune minuterie ne tourne
     await hide(page, false);
-    await page.waitForSelector('#flight-end:not([hidden])');
-    assert.equal(await page.textContent('#flight-end-title'), 'Vol annulé');
+    await page.waitForFunction(() => document.getElementById('flight-end-title').textContent === 'Vol annulé');
+    await page.waitForSelector('#flight', { state: 'hidden' });
+    assert.match(await page.textContent('.vol-said'), /quitté plus de 10 secondes/);
     assert.deepEqual(errors, []);
     await context.close();
   }
