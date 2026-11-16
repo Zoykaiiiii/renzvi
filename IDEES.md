@@ -1098,3 +1098,20 @@ Objectif : un journal alimentaire relié aux recettes, alimenté par de vraies d
 **Mise à jour Claude Code, 10 novembre 2026 (nuit) :** N1 complété dans le même widget. Nouvel onglet « Chercher », par nom de plat ou ingrédient, sans accents ni pluriels, avec les filtres. Les fiches disent « allergènes et valeurs nutritionnelles non renseignés ». Import corrigé : 78 recettes recopiaient leurs ingrédients dans la préparation, et 12 « pommes de terre » étaient lues comme « pomme ». « Œufs brouillés » est retiré, car sa préparation est vide sur Wikibooks. 3 recettes de caramel sont ajoutées. Total : 1 020 recettes. Pas encore poussé. Restent : la durée et le budget (absents de la source), un filtre allergènes (impossible honnêtement sans données), plus de recettes, et N4.
 
 **À la date de l'ajout initial, aucun lot Nutrition n'était construit.** L'accord de Damien porte ici sur la documentation de l'idée ; il ne vaut pas lancement automatique du développement ou publication sur le site. Les prompts sont des briefs réutilisables pour une prochaine demande.
+
+## Quotidien — outils de tous les jours (16 novembre 2026)
+
+Brief de Codex collé par Damien : développer la catégorie « Quotidien » avec cinq outils sans IA ni service payant. **Construits le 16 nov. par Claude Code, cachés en labo (`?labo=1`)** jusqu'à la session design, comme tous les nouveaux widgets. Détail technique : `memoire.md`, section 33.
+
+- [x] **Aujourd'hui** : tâches du jour et en retard (les tâches ont maintenant une échéance facultative), rendez-vous, habitudes, « Dans les 7 jours » (tâches, Compte à rebours, renouvellements). Cocher ici coche la tâche ou l'habitude d'origine. Pro : choisir et ordonner les sections, préparer demain.
+- [x] **Agenda** : rendez-vous à la main, journée entière, lieu, notes, vues jour et semaine, soirée qui finit le lendemain. Pro : répétitions (ce rendez-vous / les suivants / toute la série) et modèles.
+- [x] **Liste de courses** : quantité et unité lues dans la saisie (« 2 kg pommes »), rayons, cocher, masquer et vider les achetés. Pro : listes enregistrées et repartir d'une liste. Les recettes ajoutent leurs ingrédients manquants.
+- [x] **Mes dépenses** : saisie, modification, total du mois, mois par mois. Pro : budgets par catégorie, comparaison avec le mois d'avant, répartition.
+- [x] **Mes abonnements** : renouvellements, équivalent mensuel (estimation), paiement confirmé = une dépense liée unique. Pro : prévision sur 1 à 12 mois, filtres et regroupements.
+
+Plus tard, non construit (ne pas promettre) :
+- [ ] Rappels et notifications (il faudrait des notifications push : service worker, autorisation, serveur d'envoi).
+- [ ] Synchro Google/Apple Agenda (voir le prompt Google Agenda plus haut ; l'import ICS en lecture seule reste l'option la moins chère).
+- [ ] Partage d'une liste de courses entre deux comptes (aucun système de partage sécurisé n'existe).
+- [ ] Conversion entre devises (il faudrait une source de taux datée).
+- [ ] Rangement automatique d'un article dans son rayon (petit dictionnaire, sans IA).

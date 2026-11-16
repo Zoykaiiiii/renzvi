@@ -124,7 +124,7 @@ function repasStyle() {
   document.head.append(link);
 }
 
-function repasWidget({ body, meta, data, save }) {
+function repasWidget({ body, meta, data, save, peer, savePeer, apercu }) {
   repasStyle();
   let state = repasClean(data), cat = null, gone = false, spin = null, tirage = null, q = '';
   const persist = () => save(state);
@@ -388,7 +388,26 @@ function repasWidget({ body, meta, data, save }) {
       if (ok) li.append(el('span', 'sr', ' (tu en as)'));
       ul.append(li);
     }
-    doc.append(ul, el('h3', '', 'Préparation'));
+    doc.append(ul);
+    // Liste de courses (Quotidien) : les ingrédients qui manquent, une ligne chacun, tels qu'écrits dans la recette.
+    // Rien n'est fusionné avec ce qui est déjà sur la liste ; un deuxième clic n'ajoute pas les mêmes lignes.
+    const manquent = r.ing.map((i, n) => ({ i, n })).filter(({ i }) => !i.g && i.x && !((i.k ?? []).length && state.frigo.length && (i.k ?? []).map(repasSans).every(k => have.has(k) || (state.base && staples.has(k)))));
+    if (manquent.length && savePeer && !apercu) {
+      const msg = el('p', 'zone');
+      msg.setAttribute('role', 'status');
+      const b = button('ghost', state.frigo.length ? `Ajouter les ${manquent.length} ingrédients manquants à ma liste de courses` : 'Ajouter les ingrédients à ma liste de courses', async () => {
+        b.disabled = true;
+        try {
+          await chillScript('quotidien/courses.js');
+          const lignes = manquent.map(({ i, n }) => ({ texte: i.x.replace(/[,.;]+$/, '').trim(), src: `recette:${r.id}:${n}` }));
+          const n = window.coursesAjouter(peer, savePeer, lignes);
+          msg.textContent = n > 0 ? `${n} ingrédient${n > 1 ? 's' : ''} ajouté${n > 1 ? 's' : ''} à ta liste de courses, rayon « Autre ».` : n === 0 ? 'Ces ingrédients sont déjà sur ta liste.' : 'Ta liste de courses est pleine (200 articles).';
+        } catch { msg.textContent = 'La liste de courses n’a pas pu se charger. Réessaie.'; }
+        b.disabled = false;
+      });
+      doc.append(b, msg);
+    }
+    doc.append(el('h3', '', 'Préparation'));
     const ol = el('ol', 'repas-etapes');
     for (const e of r.et) ol.append(typeof e === 'string' ? el('li', '', e) : el('li', 'repas-sous', e.g));
     const src = el('p', 'repas-credit');

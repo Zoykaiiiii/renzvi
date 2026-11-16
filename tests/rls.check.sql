@@ -28,11 +28,21 @@ begin
   -- Les écritures de l'app, colonnes exactes (sans user_id quand l'app ne l'envoie pas).
   -- dashboard.html:2108 : upsert de chaque widget qui enregistre, dont le Guide.
   insert into widget_state(user_id,widget,data,updated_at)
-    select a, w, '{"v":1}', now() from unnest(array['ecran','notes','taches','minuteur','habitudes','vol','ambiance','compte','raccourcis','playlist','lecture','inspiration','cahier','cartes','revisions','quiz','schemas','guide','jardin','dessin','coloriage','puzzle','tangram','fenetre','ambiances','repas','dictee']) w
+    select a, w, '{"v":1}', now() from unnest(array['ecran','notes','taches','minuteur','habitudes','vol','ambiance','compte','raccourcis','playlist','lecture','inspiration','cahier','cartes','revisions','quiz','schemas','guide','jardin','dessin','coloriage','puzzle','tangram','fenetre','ambiances','repas','dictee','aujourdhui','agenda','courses','depenses','abos']) w
     on conflict (user_id,widget) do update set data = excluded.data, updated_at = excluded.updated_at;
   insert into widget_state(user_id,widget,data,updated_at) values (a,'guide','{"masque":true}',now())
     on conflict (user_id,widget) do update set data = excluded.data, updated_at = excluded.updated_at;
-  select count(*) into n from widget_state where user_id=a; r := array_append(r, ('A enregistre ses 27 widgets (dont Chill, repas et dictée): '||(n=27)::int)::text);
+  select count(*) into n from widget_state where user_id=a; r := array_append(r, ('A enregistre ses 32 widgets (dont Chill, repas, dictée et Quotidien): '||(n=32)::int)::text);
+  -- Quotidien : Mes dépenses (depenses.js:insert/update/delete) et le paiement confirmé d'un abonnement (abos.js), colonnes exactes.
+  insert into depenses(id,montant_centimes,devise,jour,categorie,libelle) values (gen_random_uuid(),1250,'EUR',current_date,'Courses','Pain');
+  insert into depenses(montant_centimes,devise,jour,categorie,libelle,abonnement_id,echeance) values (1199,'EUR',current_date,'Abonnements','Musique','11111111-1111-4111-8111-111111111111',current_date);
+  select count(*) into n from depenses where user_id=a; r := array_append(r, ('A crée ses dépenses comme l''app: '||(n=2)::int)::text);
+  update depenses set montant_centimes=2000, devise='EUR', libelle='Pain', categorie='Courses', jour=current_date, updated_at=now() where libelle='Pain'; get diagnostics n = row_count; r := array_append(r, ('A modifie sa dépense: '||n)::text);
+  perform id,montant_centimes,devise,jour,categorie,libelle,abonnement_id,echeance,created_at from depenses where jour >= current_date - 40 order by jour desc, created_at desc;
+  begin insert into depenses(montant_centimes,devise,jour,categorie,libelle,abonnement_id,echeance) values (1199,'EUR',current_date,'Abonnements','Musique','11111111-1111-4111-8111-111111111111',current_date); r := array_append(r, 'limite: même échéance payée deux fois ACCEPTE'); exception when unique_violation then r := array_append(r, 'limite: même échéance payée deux fois refusé'); end;
+  begin insert into depenses(montant_centimes,jour,categorie) values (0,current_date,'Autre'); r := array_append(r, 'limite: dépense de 0 ACCEPTE'); exception when check_violation then r := array_append(r, 'limite: dépense de 0 refusé'); end;
+  begin insert into depenses(montant_centimes,devise,jour,categorie) values (100,'XYZ',current_date,'Autre'); r := array_append(r, 'limite: devise inconnue ACCEPTE'); exception when check_violation then r := array_append(r, 'limite: devise inconnue refusé'); end;
+  begin insert into depenses(montant_centimes,jour,categorie,abonnement_id) values (100,current_date,'Autre',gen_random_uuid()); r := array_append(r, 'limite: lien sans échéance ACCEPTE'); exception when check_violation then r := array_append(r, 'limite: lien sans échéance refusé'); end;
   select count(*) into n from widget_state where widget='guide' and data->>'masque'='true'; r := array_append(r, ('A met à jour son guide: '||n)::text);
   begin insert into widget_state(user_id,widget,data) values (a,'pirate','{}'); r := array_append(r, 'interdit: widget inconnu ACCEPTE'); exception when others then r := array_append(r, 'interdit: widget inconnu refusé'); end;
   -- cahier.js:606 et :483
@@ -163,6 +173,13 @@ begin
   begin insert into storage.objects(bucket_id,name,owner) values ('dessins', a||'/5.png', b); r := array_append(r, ('B écrit dessin chez A: ACCEPTE')::text); exception when others then r := array_append(r, ('B écrit dessin chez A: refusé')::text); end;
   delete from storage.objects where bucket_id='dessins' and name like a||'/%'; get diagnostics n = row_count; r := array_append(r, (('B supprime dessins A: '||n))::text);
   select count(*) into n from storage.objects where bucket_id='polices'; r := array_append(r, (('B lit polices A: '||n))::text);
+  select count(*) into n from depenses; r := array_append(r, (('B lit dépenses A: '||n))::text);
+  update depenses set montant_centimes=1 where user_id=a; get diagnostics n = row_count; r := array_append(r, (('B modifie dépenses A: '||n))::text);
+  delete from depenses where user_id=a; get diagnostics n = row_count; r := array_append(r, (('B supprime dépenses A: '||n))::text);
+  begin insert into depenses(user_id,montant_centimes,jour,categorie) values (a,100,current_date,'Autre'); r := array_append(r, 'B crée une dépense chez A: ACCEPTE'); exception when others then r := array_append(r, 'B crée une dépense chez A: refusé'); end;
+  -- La même échéance d'abonnement chez B ne gêne pas A (l'unicité est par compte).
+  insert into depenses(montant_centimes,jour,categorie,abonnement_id,echeance) values (1199,current_date,'Abonnements','11111111-1111-4111-8111-111111111111',current_date);
+  select count(*) into n from depenses; r := array_append(r, ('ok B paie la même échéance chez lui: '||n)::text);
   begin insert into storage.objects(bucket_id,name,owner) values ('polices', a||'/5', b); r := array_append(r, ('B écrit police chez A: ACCEPTE')::text); exception when others then r := array_append(r, ('B écrit police chez A: refusé')::text); end;
   update storage.objects set owner=b where bucket_id='polices' and name like a||'/%'; get diagnostics n = row_count; r := array_append(r, (('B remplace police A: '||n))::text);
   delete from storage.objects where bucket_id='polices' and name like a||'/%'; get diagnostics n = row_count; r := array_append(r, (('B supprime polices A: '||n))::text);
@@ -180,6 +197,7 @@ begin
   set local role anon;
   begin select count(*) into n from study_courses; r := array_append(r, ('anon lit cours: '||n)::text); exception when insufficient_privilege then r := array_append(r, 'anon lit cours: refusé'); end;
   begin select count(*) into n from widget_state; r := array_append(r, ('anon lit widgets: '||n)::text); exception when insufficient_privilege then r := array_append(r, 'anon lit widgets: refusé'); end;
+  begin select count(*) into n from depenses; r := array_append(r, ('anon lit dépenses: '||n)::text); exception when insufficient_privilege then r := array_append(r, 'anon lit dépenses: refusé'); end;
   begin select count(*) into n from ia_portefeuilles; r := array_append(r, ('anon lit portefeuilles: '||n)::text); exception when insufficient_privilege then r := array_append(r, 'anon lit portefeuilles: refusé'); end;
   begin select count(*) into n from ia_prix; r := array_append(r, ('anon lit prix IA: '||n)::text); exception when insufficient_privilege then r := array_append(r, 'anon lit prix IA: refusé'); end;
   begin select count(*) into n from study_reviews; r := array_append(r, ('anon lit révisions: '||n)::text); exception when insufficient_privilege then r := array_append(r, 'anon lit révisions: refusé'); end;
@@ -197,6 +215,7 @@ begin
   perform set_config('request.jwt.claim.sub', a::text, true);
   set local role authenticated;
   select count(*) into n from study_cards where id=cda and front='QA'; r := array_append(r, (('A garde sa carte intacte: '||n))::text);
+  select count(*) into n from depenses where user_id=a and montant_centimes=2000; r := array_append(r, (('A garde sa dépense intacte: '||n))::text);
   select count(*) into n from study_courses where id=ca and title='Cours A'; r := array_append(r, (('A garde son cours intact: '||n))::text);
   select count(*) into n from study_reviews where card_id=cdb; r := array_append(r, (('A garde une seule révision: '||n))::text);
   select referral_count into n from get_my_referral(); r := array_append(r, (('A voit son filleul: '||n))::text);

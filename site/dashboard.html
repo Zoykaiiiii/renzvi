@@ -20,6 +20,7 @@
 <link rel="stylesheet" href="dash/agrandi.css">
 <link rel="stylesheet" href="dash/spotlight.css">
 <link rel="stylesheet" href="dash/pixelcard.css">
+<link rel="stylesheet" href="quotidien/quotidien.css">
 <script src="install.js" defer></script>
 <style>@font-face{font-family:"Hanken Grotesk";src:url(fonts/hanken-grotesk-latin.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
 /* Polices au choix (Réglages) : le navigateur ne télécharge que celle qui est utilisée. */
@@ -1255,6 +1256,7 @@ dialog.settings,dialog.settings :is(h2,h3,h4){font-family:var(--marque)}
 <script src="dash/pixelcard.js"></script>
 <script src="dash/select.js"></script>
 <script src="dash/polices.js"></script>
+<script src="quotidien/core.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>
 <script>
 // Clé publique par conception : ce sont les règles de sécurité de la base qui protègent les données.
@@ -2234,7 +2236,8 @@ const WIDGETS = [
   },
   {
     id: 'taches', title: 'Tâches', desc: 'Ta liste de choses à faire.',
-    render({ body, meta, data, save }) {
+    // Une tâche peut avoir une échéance (due, AAAA-MM-JJ) : le widget Aujourd'hui la montre le jour venu, ou en retard.
+    render({ body, meta, data, save, peer, apercu }) {
       let items = listOf(data?.items);
       const note = el('p', 'note');
       note.hidden = true;
@@ -2284,8 +2287,29 @@ const WIDGETS = [
           input.focus();
         });
         remove.ariaLabel = `Supprimer : ${task.text}`;
-        li.append(label, remove);
+        li.append(label, dueButton(task), remove);
         return li;
+      }
+      // L'échéance : une pastille (« Aujourd'hui », « En retard · 12 nov. », « Ven. 21 nov. »), ou une petite icône pour en mettre une.
+      function dueButton(task) {
+        const today = Q.aujourdhui(), due = Q.valide(task.due) ? task.due : null;
+        const late = due && due < today && !task.done;
+        const b = button(`due${due ? ' set' : ''}${late ? ' late' : ''}${due === today ? ' now' : ''}`, '', () => askDue(task, b));
+        if (due) b.textContent = late ? `En retard · ${Q.dateCourte(due)}` : Q.jourLabel(due, today);
+        else b.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M2.5 6.500h11M5.500 2v3M10.500 2v3"/></svg>';
+        b.ariaLabel = due ? `Échéance de « ${task.text} » : ${Q.dateLongue(due)}${late ? ', en retard' : ''}. Modifier` : `Ajouter une échéance à « ${task.text} »`;
+        return b;
+      }
+      function askDue(task, from) {
+        const form = el('form', 'q-form');
+        const date = qInput('date', { value: Q.valide(task.due) ? task.due : Q.aujourdhui(), required: true, min: '2000-01-01', max: '2100-12-31' });
+        const actions = el('div', 'q-actions');
+        const set = due => { task.due = due; if (!due) delete task.due; draw(); save({ items }); d.close(); };
+        if (task.due) actions.append(button('ghost q-left', 'Retirer la date', () => set(null)));
+        actions.append(button('ghost', 'Annuler', () => d.close()), Object.assign(el('button', 'primary', 'Enregistrer'), { type: 'submit' }));
+        form.append(el('p', 'q-texte', task.text), qChamp('Échéance', date), actions);
+        form.onsubmit = e => { e.preventDefault(); if (Q.valide(date.value)) set(date.value); };
+        const d = qFiche('Échéance', form, { onClose: () => from.isConnected ? from.focus() : input.focus() });
       }
       function draw() {
         list.replaceChildren(...items.map(row));
@@ -2293,6 +2317,8 @@ const WIDGETS = [
       }
       draw();
       body.append(form, note, empty, list, clear);
+      // Cochée depuis Aujourd'hui : la même tâche, redessinée ici (aucune copie).
+      if (!apercu && peer) return qEcouter('taches', 'taches', () => { items = listOf(peer('taches')?.items); draw(); });
     },
   },
   {
@@ -2382,7 +2408,7 @@ const WIDGETS = [
   },
   {
     id: 'habitudes', title: 'Habitudes', desc: 'Ce que tu veux tenir, jour après jour.',
-    render({ body, meta, data, save }) {
+    render({ body, meta, data, save, peer, apercu }) {
       let items = listOf(data?.items);
       const now = new Date();
       const today = dayKey(now);
@@ -2450,6 +2476,7 @@ const WIDGETS = [
       }
       draw();
       body.append(form, note, empty, list);
+      if (!apercu && peer) return qEcouter('habitudes', 'habitudes', () => { items = listOf(peer('habitudes')?.items); draw(); });
     },
   },
   {
@@ -3030,6 +3057,16 @@ const VUE_DEFAUT = (() => { try { return localStorage.getItem('renzvi:vue-defaut
 // Nutrition (labo, ?labo=1) : recettes Wikibooks en CC BY-SA, chargées seulement quand le widget s'affiche.
 WIDGETS.push({ id: 'dictee', labo: true, title: 'Dictée', desc: 'Appuie sur le micro et parle : ton texte s’écrit dans une note.', render: chillLazy('dash/dictee.js', 'dicteeWidget') });
 WIDGETS.push({ id: 'repas', labo: true, title: "Qu'est-ce qu'on mange ?", desc: 'Une recette tirée au sort, ou ce que tu peux cuisiner avec ton frigo.', render: chillLazy('nutrition/repas.js', 'repasWidget') });
+// Quotidien (labo, ?labo=1, jusqu'à la session design) : outils de tous les jours, sans IA ni service payant.
+// Code dans quotidien/ (core.js chargé d'avance : Aujourd'hui lit l'Agenda même quand celui-ci n'est pas encore affiché).
+// Gratuits ; certaines fonctions à l'intérieur sont réservées à Pro (qPro, qVerrou dans quotidien/core.js).
+WIDGETS.push(
+  { id: 'aujourdhui', labo: true, cat: 'Quotidien', title: "Aujourd'hui", desc: 'Tes tâches du jour et en retard, tes rendez-vous, tes habitudes et ce qui arrive.', render: chillLazy('quotidien/aujourdhui.js', 'aujourdhuiWidget') },
+  { id: 'agenda', labo: true, cat: 'Quotidien', title: 'Agenda', desc: 'Tes rendez-vous, au jour et à la semaine.', render: chillLazy('quotidien/agenda.js', 'agendaWidget') },
+  { id: 'courses', labo: true, cat: 'Quotidien', title: 'Liste de courses', desc: 'Ta liste rangée par rayons, à cocher au magasin.', render: chillLazy('quotidien/courses.js', 'coursesWidget') },
+  { id: 'depenses', labo: true, cat: 'Quotidien', title: 'Mes dépenses', desc: 'Tes dépenses du mois, notées à la main.', render: chillLazy('quotidien/depenses.js', 'depensesWidget') },
+  { id: 'abos', labo: true, cat: 'Quotidien', title: 'Mes abonnements', desc: 'Tes abonnements et leurs prochains renouvellements.', render: chillLazy('quotidien/abos.js', 'abosWidget') },
+);
 // Widgets payants (Pro et Worker) : visibles par tous dans le catalogue, avec un cadenas ; jamais dans un mode par défaut sans le labo.
 const PAYANT = new Set(['quiz', 'schemas', 'etude', 'dictee', 'jardin', 'dessin', 'coloriage', 'puzzle', 'tangram', 'fenetre', 'ambiances', 'cinq']);
 // Les plans (prix TTC en centimes : repris de la table plans au chargement). Aucun paiement n'est branché (Whop à venir).
@@ -3042,7 +3079,16 @@ const PLANS = {
 };
 let planActuel = 'gratuit';
 // Le labo (?labo=1, ?chill=1) sert aux essais : il ouvre tout, comme avant.
-const debloque = () => planActuel !== 'gratuit' || LABO || CHILL_LABO;
+// Essai du partage Gratuit/Pro dans le labo : ?plan=gratuit (ou pro) force le plan sur cet appareil, ?plan=0 l'enlève.
+// Sans effet hors du labo. Ce n'est pas une sécurité : les cadenas sont dans le navigateur, les données restent protégées par la base.
+const PLAN_TEST = (() => {
+  try {
+    const q = new URLSearchParams(location.search).get('plan');
+    if (q != null) localStorage.setItem('renzvi:plan-test', ['gratuit', 'pro'].includes(q) ? q : '');
+    return (LABO || CHILL_LABO) ? localStorage.getItem('renzvi:plan-test') || '' : '';
+  } catch { return ''; }
+})();
+const debloque = () => PLAN_TEST ? PLAN_TEST === 'pro' : planActuel !== 'gratuit' || LABO || CHILL_LABO;
 const verrouille = id => PAYANT.has(id) && !debloque();
 function lockChip() {
   const chip = document.createElement('span');
@@ -3097,9 +3143,11 @@ if (!sb) {
       $(id).classList.toggle('bad', bad);
     }
   }
-  function queueSave(widget, data) {
+  function queueSave(widget, data, from = widget) {
     // Tenu à jour : un widget remis sur l'écran doit retrouver son dernier contenu, pas celui du chargement.
     stored[widget] = data;
+    // Les widgets qui montrent les mêmes données se redessinent : Aujourd'hui coche une tâche → Tâches ; Tâches change → Aujourd'hui.
+    document.dispatchEvent(new CustomEvent('renzvi:donnees', { detail: { widget, from } }));
     pending.set(widget, data);
     if (widget === 'vol' || widget === 'minuteur') document.dispatchEvent(new Event('renzvi:focus'));
     if (loaded && ['vol', 'minuteur', 'taches', 'ecran'].includes(widget)) drawToday();
@@ -3164,7 +3212,7 @@ if (!sb) {
       head.append(entry.zoomBtn, entry.backBtn);
     }
     // Un widget qui plante ne doit pas emporter tout l'écran.
-    try { entry.cleanup = w.render({ body, meta, user, sb, data: stored[w.id], save: data => queueSave(w.id, data), peer: id => stored[id], savePeer: (id, data) => queueSave(id, data), focusLogs: () => [focusLog(stored.vol), focusLog(stored.minuteur)] }); }
+    try { entry.cleanup = w.render({ body, meta, user, sb, data: stored[w.id], save: data => queueSave(w.id, data), peer: id => stored[id], savePeer: (id, data) => queueSave(id, data, w.id), focusLogs: () => [focusLog(stored.vol), focusLog(stored.minuteur)] }); }
     catch (e) { console.error(w.id, e); body.replaceChildren(el('p', 'msg', "Ce widget n'a pas pu se charger.")); }
     $('board').append(box);
     mounted.set(w.id, entry);
@@ -4325,6 +4373,15 @@ if (!sb) {
     saveScreen();
     e.detail.added = ids;
   });
+  // Quotidien : « Ouvrir » depuis Aujourd'hui va au widget (autre mode ou autre page compris), et l'agrandit si demandé.
+  // detail.ok reste faux si le widget n'est pas sur l'écran : le widget qui demande propose alors de l'ajouter.
+  document.addEventListener('renzvi:ouvrir', e => {
+    const m = mounted.get(e.detail?.id);
+    if (!m || m.box.hidden && !screen.widgets.includes(e.detail.id)) return;
+    goFav(e.detail.id);
+    if (e.detail.zoom && m.zoomBtn && zoomed !== m) zoom(m);
+    e.detail.ok = true;
+  });
   // Labo Chill : « Mes ambiances » lit et change le fond de la page affichée, comme le sélecteur de fond.
   document.addEventListener('renzvi:fond', e => {
     const want = e.detail?.set;
@@ -4500,7 +4557,7 @@ if (!sb) {
   }
   // Le catalogue : une liste rangée par catégories, une recherche, et un aperçu. Rien n'est ajouté sans le bouton de l'aperçu.
   const CATEGORIES = [...MODES.map(m => m.name), 'Quotidien', 'En préparation'];
-  const categoryOf = w => w.labo && !PAYANT.has(w.id) ? 'En préparation' : MODES.find(m => m.widgets.includes(w.id))?.name ?? (w.labo === 'chill' ? 'Chill' : ['quiz', 'schemas', 'etude'].includes(w.id) ? 'Study' : 'Quotidien');
+  const categoryOf = w => w.cat ?? (w.labo && !PAYANT.has(w.id) ? 'En préparation' : MODES.find(m => m.widgets.includes(w.id))?.name ?? (w.labo === 'chill' ? 'Chill' : ['quiz', 'schemas', 'etude'].includes(w.id) ? 'Study' : 'Quotidien'));
   const plain = text => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const STAGE_WIDTH = { s: '263px', m: '356px', l: '728px' };
   let picked = null, pickedSize = DEFAULT_SIZE, previewCleanup = null;
@@ -4508,7 +4565,26 @@ if (!sb) {
   const exampleDay = n => dayKey(new Date(Date.now() + n * 864e5));
   const exampleLog = () => ({ [exampleDay(0)]: 50, [exampleDay(-1)]: 75, [exampleDay(-2)]: 25 });
   const EXAMPLES = {
-    taches: () => ({ items: [{ id: 'a', text: 'Relire le chapitre 4', done: false }, { id: 'b', text: 'Envoyer le dossier de stage', done: true }, { id: 'c', text: 'Préparer les fiches', done: false }] }),
+    taches: () => ({ items: [{ id: 'a', text: 'Relire le chapitre 4', done: false, due: exampleDay(0) }, { id: 'b', text: 'Envoyer le dossier de stage', done: true }, { id: 'c', text: 'Préparer les fiches', done: false, due: exampleDay(-1) }, { id: 'd', text: 'Rendre le livre à la bibliothèque', done: false, due: exampleDay(3) }] }),
+    agenda: () => ({ events: [
+      { id: 'a', t: 'Dentiste', d: exampleDay(0), h1: '17:30', h2: '18:00', lieu: 'Cabinet du centre' },
+      { id: 'b', t: 'Cours de yoga', d: exampleDay(1), h1: '19:00', h2: '20:00' },
+      { id: 'c', t: 'Anniversaire de Sam', d: exampleDay(4), all: true },
+    ] }),
+    courses: () => ({ items: [
+      { id: 'a', n: 'pommes', q: 1, u: 'kg', c: 'Fruits et légumes', ok: false }, { id: 'b', n: 'lait', q: 2, u: 'L', c: 'Frais', ok: true },
+      { id: 'c', n: 'pâtes', q: 2, u: 'paquet', c: 'Épicerie', ok: false }, { id: 'd', n: 'yaourts nature', c: 'Frais', ok: false },
+    ] }),
+    depenses: () => ({ exemple: [
+      { id: 'a', montant_centimes: 4250, devise: 'EUR', jour: exampleDay(0), categorie: 'Courses', libelle: 'Marché' },
+      { id: 'b', montant_centimes: 1290, devise: 'EUR', jour: exampleDay(-1), categorie: 'Restaurant', libelle: 'Déjeuner' },
+      { id: 'c', montant_centimes: 3000, devise: 'EUR', jour: exampleDay(-2), categorie: 'Transport', libelle: 'Pass navigo' },
+    ] }),
+    abos: () => ({ items: [
+      { id: 'a', nom: 'Musique', cents: 1199, devise: 'EUR', periode: 'mois', next: exampleDay(5), actif: true },
+      { id: 'b', nom: 'Stockage en ligne', cents: 2999, devise: 'EUR', periode: 'an', next: exampleDay(40), actif: true },
+      { id: 'c', nom: 'Salle de sport', cents: 2990, devise: 'EUR', periode: 'mois', next: exampleDay(12), actif: true },
+    ] }),
     notes: () => ({ text: 'Idées pour le mémoire\n— plan en trois parties\n— rappeler Sam pour les sources' }),
     habitudes: () => ({ items: [{ id: 'a', name: 'Lire vingt minutes', days: [exampleDay(0), exampleDay(-1), exampleDay(-2)] }, { id: 'b', name: 'Marcher', days: [exampleDay(-1)] }] }),
     compte: () => ({ items: [{ id: 'a', title: 'Partiel de droit civil', date: exampleDay(12) }, { id: 'b', title: 'Vacances', date: exampleDay(38) }] }),
@@ -4608,7 +4684,7 @@ if (!sb) {
     const meta = el('p', 'meta'), body = el('div', 'body'), boxHead = el('div', 'head');
     boxHead.append(el('h2', '', w.title), meta);
     box.append(boxHead, body);
-    try { previewCleanup = w.render({ body, meta, user, sb, data: EXAMPLES[w.id]?.(), save() {}, focusLogs: () => [{}, exampleLog()] }); }
+    try { previewCleanup = w.render({ body, meta, user, sb, data: EXAMPLES[w.id]?.(), save() {}, apercu: true, peer: id => EXAMPLES[id]?.(), savePeer() {}, focusLogs: () => [{}, exampleLog()] }); }
     catch (e) { console.error(w.id, e); body.replaceChildren(el('p', 'msg', "L'aperçu n'a pas pu se charger.")); }
     stage.inert = true;
     stage.setAttribute('aria-hidden', 'true');
@@ -4938,6 +5014,7 @@ if (!sb) {
     const plan = l.data.find(x => x.id === p.data);
     if (!plan || plan.id === 'gratuit') return;
     planActuel = plan.id;
+    document.dispatchEvent(new Event('renzvi:plan'));
     if (loaded && screen.widgets.some(id => PAYANT.has(id) && !mounted.has(id))) {
       for (const id of screen.widgets) if (!mounted.has(id)) mount(WIDGETS.find(w => w.id === id), screenUser);
       drawPages();

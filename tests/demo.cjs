@@ -93,6 +93,34 @@ function start(port = 0) {
           for (const row of JSON.parse(await body(req))) b.rows[row.widget] = row.data;
           return json(res, 201, []);
         }
+        // Mes dépenses (supabase/migrations/20261116000100_quotidien.sql) : filtres gte/lte/eq/not.is.null, tri par jour,
+        // identifiant unique et une seule dépense par échéance d'abonnement (comme l'index unique de la vraie table).
+        if (table === 'depenses') {
+          b.depenses ??= [];
+          if (b.panneDepenses) return json(res, 500, { message: 'panne simulée' });
+          const filtres = [...url.searchParams].filter(([k]) => !['select', 'order', 'limit', 'offset'].includes(k));
+          const garde = r => filtres.every(([k, v]) => {
+            const [op, ...rest] = v.split('.'), val = rest.join('.');
+            if (op === 'gte') return r[k] >= val;
+            if (op === 'lte') return r[k] <= val;
+            if (op === 'eq') return String(r[k]) === val;
+            if (op === 'not' && val === 'is.null') return r[k] != null;
+            return true;
+          });
+          if (req.method === 'GET') return json(res, 200, b.depenses.filter(garde).sort((x, y) => y.jour.localeCompare(x.jour) || y.created_at.localeCompare(x.created_at)));
+          if (req.method === 'POST') {
+            for (const row of [].concat(JSON.parse(await body(req)))) {
+              const r = { id: row.id ?? require('node:crypto').randomUUID(), devise: 'EUR', libelle: '', abonnement_id: null, echeance: null, created_at: new Date().toISOString(), ...row };
+              if (b.depenses.some(x => x.id === r.id || (r.abonnement_id && x.abonnement_id === r.abonnement_id && x.echeance === r.echeance)))
+                return json(res, 409, { code: '23505', message: 'duplicate key value violates unique constraint' });
+              if (!(Number.isInteger(r.montant_centimes) && r.montant_centimes > 0)) return json(res, 400, { code: '23514', message: 'check' });
+              b.depenses.push(r);
+            }
+            return json(res, 201, []);
+          }
+          if (req.method === 'PATCH') { const patch = JSON.parse(await body(req)); for (const r of b.depenses.filter(garde)) Object.assign(r, patch); return json(res, 204, []); }
+          if (req.method === 'DELETE') { b.depenses = b.depenses.filter(r => !garde(r)); return json(res, 204, []); }
+        }
         if (table === 'rpc/get_my_referral') return json(res, 200, [{ referral_code: 'K7M2PQ9D', referral_count: 0 }]);
         // Plans et abonnement (supabase/migrations/20261115000000_abonnements.sql). Un test règle b.abonnement ;
         // la règle « en vigueur » est simplifiée ici : la vraie est testée par tests/rls.check.sql.
