@@ -5,7 +5,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
-const { custom, closeCustom, openMe, modeNames, goMode, modeNow, showMenu } = require('./menu.cjs');
+const { custom, closeCustom, openMe, acctSection, modeNames, goMode, modeNow, showMenu } = require('./menu.cjs');
 // Catalogue : on choisit le widget dans la liste, puis on confirme dans l'aperçu.
 const catClick = async (page, name) => {
   const title = name.split(' : ')[1];
@@ -197,6 +197,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.waitForSelector('#logout', { state: 'visible' });
     const menu = await page.locator('#menu').boundingBox();
     assert.ok(menu.x >= 0 && menu.x + menu.width <= width && menu.y + menu.height <= 800, `menu coupé à ${width}`);
+    await acctSection(page, 'Parrainage');
     await page.waitForSelector('#ref-row:not([hidden])');
     await page.keyboard.press('Escape');
     await page.waitForSelector('#logout', { state: 'hidden' });
@@ -467,6 +468,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.waitForSelector('#logout', { state: 'hidden' });
     db.failRpc = false;
     await openMe(page);
+    await acctSection(page, 'Parrainage');
     await page.waitForSelector('#ref-row:not([hidden])');
     assert.equal(await page.inputValue('#ref-link'), `${base}/login.html?ref=ABCD1234`);
     assert.equal(await page.textContent('#ref-info'), 'Ton code : ABCD1234 · 1 filleul');

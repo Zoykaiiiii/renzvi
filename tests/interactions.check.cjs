@@ -5,7 +5,7 @@
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const { start } = require('./demo.cjs');
-const { custom, dispose, openMe, modeNow, options, showMenu } = require('./menu.cjs');
+const { custom, dispose, openMe, acctSection, modeNow, options, showMenu } = require('./menu.cjs');
 
 (async () => {
   const srv = await start();
@@ -303,7 +303,7 @@ const { custom, dispose, openMe, modeNow, options, showMenu } = require('./menu.
     const typeCode = async code => { await page.keyboard.type(code, { delay: 20 }); await page.waitForTimeout(500); };
     // Le verrou est sous le compte, pas dans Personnaliser.
     await openMe(page);
-    await page.locator('#menu .lock-set').scrollIntoViewIfNeeded();
+    await acctSection(page, 'Verrouillage');
     await page.getByRole('button', { name: 'Choisir un code' }).click();
     await typeCode('123456');
     assert.match(await page.locator('#lock-setup-msg').textContent(), /trop facile/);
@@ -316,6 +316,7 @@ const { custom, dispose, openMe, modeNow, options, showMenu } = require('./menu.
     const stored = await page.evaluate(() => Object.entries(localStorage).filter(([k]) => k.startsWith('renzvi:verrou')).map(([, v]) => v).join(''));
     assert.ok(stored.includes('"hash"') && !stored.includes('482915'), 'empreinte seulement, jamais le code');
     if (!await page.locator('#menu').evaluate(n => n.matches(':popover-open'))) await openMe(page);
+    await acctSection(page, 'Verrouillage');
     await page.locator('.lock-set').screenshot({ path: process.env.SHOTS ? `${process.env.SHOTS}/verrou-reglages.png` : '/dev/null' }).catch(() => {});
     await page.getByRole('button', { name: 'Verrouiller maintenant' }).click();
     assert.equal(await page.locator('.lock-screen').isVisible(), true);
@@ -344,6 +345,7 @@ const { custom, dispose, openMe, modeNow, options, showMenu } = require('./menu.
     await page.evaluate(() => document.querySelector('.lock-set .primary')?.click());
     if (!(await page.locator('.lock-screen').isVisible())) {
       await openMe(page);
+      await acctSection(page, 'Verrouillage');
       await page.getByRole('button', { name: 'Verrouiller maintenant' }).click();
     }
     for (let i = 0; i < 5; i++) {

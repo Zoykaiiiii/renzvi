@@ -252,6 +252,7 @@
 
   function hideButtons() {
     document.querySelectorAll('[data-install]').forEach(b => { (b.closest('[data-install-row]') || b).hidden = true; });
+    document.querySelectorAll('[data-installed]').forEach(n => { n.hidden = false; }); // à la place du bouton : l'état, pas un vide
   }
 
   addEventListener('beforeinstallprompt', e => {

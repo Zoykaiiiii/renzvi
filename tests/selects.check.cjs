@@ -5,7 +5,7 @@
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const { start } = require('./demo.cjs');
-const { dispose, openMe, goMode, options } = require('./menu.cjs');
+const { dispose, openMe, acctSection, goMode, options } = require('./menu.cjs');
 
 (async () => {
   const srv = await start();
@@ -184,12 +184,13 @@ const { dispose, openMe, goMode, options } = require('./menu.cjs');
     const { page, context } = await open({ width: 1440, height: 900 }, 'reglages');
     const typeCode = async code => { await page.keyboard.type(code, { delay: 20 }); await page.waitForTimeout(500); };
     await openMe(page);
-    await page.locator('#menu .lock-set').scrollIntoViewIfNeeded();
+    await acctSection(page, 'Verrouillage');
     await page.getByRole('button', { name: 'Choisir un code' }).click();
     await typeCode('482915');
     await typeCode('482915');
     await page.waitForFunction(() => !document.querySelector('dialog.lock-setup[open]'));
     if (!await page.locator('#menu').evaluate(n => n.matches(':popover-open'))) await openMe(page);
+    await acctSection(page, 'Verrouillage');
     const trigger = page.getByRole('combobox', { name: 'Verrouiller seul' });
     await trigger.scrollIntoViewIfNeeded();
     assert.equal(await trigger.textContent(), 'Jamais');

@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="study/cartes.css">
 <link rel="stylesheet" href="dash/dash.css">
 <link rel="stylesheet" href="dash/agrandi.css">
+<link rel="stylesheet" href="dash/spotlight.css">
 <script src="install.js" defer></script>
 <style>@font-face{font-family:"Hanken Grotesk";src:url(fonts/hanken-grotesk-latin.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
 /* Polices au choix (Réglages) : le navigateur ne télécharge que celle qui est utilisée. */
@@ -198,15 +199,40 @@ body{--side:0px;padding-left:var(--side)}
 }
 @media (prefers-reduced-motion:reduce){.topbar,.topbar .bar-nav,.drawer-open .topbar,.bar-toggle,.bar-toggle .chev,.bar-btn,dialog.settings,#menu{transition:none;animation:none}}
 
-/* Le menu sort du bouton de compte. */
-#menu{position:fixed;inset:auto auto 12px 268px;margin:0;width:min(320px,100vw - 24px);max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain;padding:16px;border-radius:var(--r-panel);color:inherit;transform-origin:bottom left;transition:transform .25s var(--ease),opacity .18s,display .25s allow-discrete,overlay .25s allow-discrete;--glass:var(--glass-solid);box-shadow:inset 0 1px 0 var(--pop-shine),0 16px 40px rgba(23,25,28,.14)}
+/* Carte du compte : sort du bouton « Mon compte ». Surface, bord et lumière : SpotlightCard (dash/spotlight.css), posée à l'ouverture.
+   En-tête et déconnexion restent en place ; seule la liste défile quand un réglage déplié dépasse la hauteur de l'écran. */
+#menu{position:fixed;inset:auto auto 12px 268px;margin:0;width:min(340px,100vw - 24px);max-height:calc(100dvh - 24px);padding:0;border:0;border-radius:var(--r-panel);color:var(--ink);transform-origin:bottom left;transition:transform .25s var(--ease),opacity .18s,display .25s allow-discrete,overlay .25s allow-discrete}
+#menu:popover-open{display:flex;flex-direction:column}
 #menu:not(:popover-open){opacity:0;transform:scale(.96) translateY(-6px)}
 @starting-style{#menu:popover-open{opacity:0;transform:scale(.96) translateY(-6px)}}
-@media (max-width:1023px){#menu{inset:auto 12px calc(12px + env(safe-area-inset-bottom)) 12px;width:auto;transform-origin:bottom center}}
-#who{font-size:14px;color:var(--slate);overflow-wrap:anywhere}
-.out{display:block;width:100%;height:44px;margin-top:12px;border:0;border-radius:var(--pill);background:var(--ink);color:var(--paper);font-weight:500;transition:transform .15s}
+@media (max-width:1023px){#menu{inset:auto 12px calc(12px + env(safe-area-inset-bottom)) 12px;width:auto;max-width:440px;max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));margin-inline:auto;transform-origin:bottom center}}
+.acct-head{flex:none;padding:20px 20px 12px}
+.acct-av{display:grid;place-items:center;width:56px;height:56px;overflow:hidden;border-radius:50%;background:var(--tint);font-size:19px;font-weight:600;letter-spacing:.02em}
+.acct-av img{width:100%;height:100%;object-fit:cover}
+#menu .acct-name{display:-webkit-box;margin-top:14px;overflow:hidden;font-family:var(--sans);font-size:20px;line-height:26px;font-weight:600;letter-spacing:-.015em;overflow-wrap:anywhere;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+#who{margin-top:2px;font-size:14px;line-height:20px;color:var(--slate);overflow-wrap:anywhere}
+.acct-plan{margin-top:12px}
+#plan-nom{display:inline-block;padding:3px 10px;border-radius:var(--pill);background:var(--tint);font-size:12px;line-height:18px;font-weight:600}
+.acct-list{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 8px 4px}
+.acct-row > summary,.acct-btn,.acct-note{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:var(--r-control);background:none;color:var(--ink);font-size:14px;font-weight:500;text-align:left;list-style:none;cursor:pointer;transition:background-color .15s}
+.acct-row > summary::-webkit-details-marker{display:none}
+.acct-row > summary > span,.acct-btn > span{flex:1;min-width:0}
+.acct-row > summary small{font-size:13px;font-weight:400;color:var(--slate);white-space:nowrap}
+:is(.acct-row > summary,.acct-btn):hover{background:var(--tint)}
+:is(.acct-row > summary,.acct-btn):active{background:var(--press)}
+.acct-note{color:var(--slate);font-weight:400;cursor:default}
+#menu .acct-list svg{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round}
+#menu .acct-btn svg[viewBox="0 0 24 24"]{stroke-width:1.700}
+.acct-chev{color:var(--slate);transition:transform .2s var(--ease)}
+.acct-row[open] > summary .acct-chev{transform:rotate(90deg)}
+.acct-more{padding:2px 12px 14px 40px}
+.acct-more .desc{font-size:13px;line-height:1.45}
+.acct-foot{flex:none;padding:8px 16px 16px}
+.out{display:block;width:100%;height:44px;border:0;border-radius:var(--pill);background:var(--tint);color:var(--ink);font-weight:500;transition:background-color .15s,transform .15s}
+.out:hover{background:var(--press)}
 .out:active{transform:scale(.98)}
 .out:disabled{cursor:progress}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 
 /* Le bonjour et le fait du jour, tiré des widgets de la personne. Sur une photo, la bande devient un panneau de verre. */
 .hello{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:4px 16px;margin:28px 0 20px}
@@ -303,13 +329,10 @@ dialog.cat[open]{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr
 .cat-hello{flex:1;display:grid;place-content:center;justify-items:center;gap:8px;text-align:center;color:var(--slate);font-size:14px}
 .cat-hello svg{width:96px;height:auto;color:var(--ink)}
 
-.acct{margin-top:12px;padding-top:12px;border-top:1px solid var(--rule)}
-.acct p{font-size:14px}
-.acct .desc{margin-top:2px;font-size:12px}
-.acct .link{margin-top:4px}
-.ref{display:flex;gap:6px;margin-top:6px}
-.ref input{flex:1;min-width:0;height:36px;padding:0 10px;border:1px solid var(--edge);border-radius:10px;background:var(--paper);font-size:12px}
-.ref .ghost{height:36px;padding:0 12px;font-size:13px}
+/* Lien de parrainage et son bouton Copier : un seul champ, coins intérieurs carrés. */
+.ref{display:flex;margin-bottom:8px}
+.ref input{flex:1;min-width:0;height:36px;padding:0 10px;border:1px solid var(--edge);border-right:0;border-radius:10px 0 0 10px;background:var(--paper);color:var(--ink);font-size:12px}
+.ref .ghost{height:36px;padding:0 12px;border-radius:0 10px 10px 0;font-size:13px}
 .widget{container:widget/inline-size;grid-column:span 12;display:flex;flex-direction:column;min-width:0;padding:var(--pad);border-radius:var(--r-panel)}
 .widget[data-size=s]{padding:calc(var(--pad) - 4px)}
 @media (min-width:728px){
@@ -856,8 +879,15 @@ dialog.settings::backdrop{background:transparent}
 .fav-act svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.600;stroke-linecap:round;stroke-linejoin:round}
 /* Verrou de l'appareil, dans le menu du compte. */
 #menu .lock-set{padding:0;border:0}
-#menu .lock-set h3{font-size:14px;line-height:20px;font-weight:600}
-#menu .lock-help{font-size:12px}
+#menu .lock-set h3{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap} /* le titre est déjà la ligne dépliée */
+#menu .lock-set .set-row{margin-top:8px}
+#menu .lock-set .set-row label{font-size:14px}
+#menu .lock-state{display:none} /* déjà dans la ligne : « Activé » ou « Désactivé » */
+#menu .lock-tools{margin-top:0}
+#menu .lock-help{margin-top:10px}
+#menu .lock-more summary{display:inline-block;padding:10px 0 6px;font-size:13px;font-weight:500;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+#menu .lock-more summary::-webkit-details-marker{display:none}
+#menu .lock-more p{margin-top:2px}
 </style>
 </head>
 <body>
@@ -885,32 +915,45 @@ dialog.settings::backdrop{background:transparent}
 </header>
 <div class="bar-edge" id="bar-edge" aria-hidden="true"></div>
 <div class="bar-scrim" id="bar-scrim" hidden></div>
-<div class="glass" id="menu" popover>
-  <p id="who"></p>
-  <div class="acct">
-    <h2>Abonnement</h2>
-    <p id="plan-nom">Gratuit</p>
-    <p class="desc" id="plan-info">Renzvi est gratuit pour l'instant.</p>
+<!-- Carte du compte : SpotlightCard (site/dash/spotlight.js) posée à l'ouverture. Les réglages se déplient un à la fois. -->
+<div id="menu" popover aria-labelledby="acct-name">
+  <div class="acct-head">
+    <span class="acct-av" id="acct-av" aria-hidden="true"></span>
+    <h2 class="acct-name" id="acct-name">Mon compte</h2>
+    <p id="who"></p>
+    <p class="acct-plan"><span class="visually-hidden">Abonnement : </span><span id="plan-nom">Gratuit</span></p>
   </div>
-  <div class="acct">
-    <h2>Parrainage</h2>
-    <div class="ref" id="ref-row" hidden>
-      <input id="ref-link" type="text" readonly aria-label="Ton lien de parrainage">
-      <button class="ghost" id="ref-copy" type="button">Copier</button>
+  <div class="acct-list" id="acct-list">
+    <details class="acct-row" name="acct">
+      <summary><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3.500" width="12" height="9" rx="1.500"/><path d="M2 6.500h12"/></svg><span>Abonnement</span><svg class="acct-chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></summary>
+      <div class="acct-more"><p class="desc" id="plan-info">Renzvi est gratuit pour l'instant.</p></div>
+    </details>
+    <details class="acct-row" name="acct">
+      <summary><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="6.500" cy="5.500" r="2.500"/><path d="M2 13c.6-2.300 2.400-3.500 4.500-3.500s3.900 1.200 4.500 3.500M12.500 5v4M10.500 7h4"/></svg><span>Parrainage</span><small id="ref-count"></small><svg class="acct-chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></summary>
+      <div class="acct-more">
+        <div class="ref" id="ref-row" hidden>
+          <input id="ref-link" type="text" readonly aria-label="Ton lien de parrainage">
+          <button class="ghost" id="ref-copy" type="button">Copier</button>
+        </div>
+        <p class="desc" id="ref-info" role="status">Chargement…</p>
+      </div>
+    </details>
+    <div class="acct-row" data-install-row>
+      <button class="acct-btn" type="button" data-install><span>Installer l'app</span></button>
     </div>
-    <p class="desc" id="ref-info" role="status">Chargement…</p>
+    <p class="acct-row acct-note" data-installed hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.500 8.500l3 3 6-7"/></svg><span>Application installée sur cet appareil</span></p>
+    <details class="acct-row" name="acct">
+      <summary><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.500"/><path d="M5.500 7V5a2.500 2.500 0 0 1 5 0v2"/></svg><span>Verrouillage de l’écran</span><small id="lock-state"></small><svg class="acct-chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></summary>
+      <div class="acct-more" id="acct-lock"></div>
+    </details>
+    <div class="acct-row">
+      <button class="acct-btn" id="aide-open" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M6.300 6.200a1.800 1.800 0 1 1 2.500 1.700c-.5.200-.8.600-.8 1.100v.4M8 11.500v.01"/></svg><span>Revoir les premiers pas</span></button>
+    </div>
   </div>
-  <div class="acct" data-install-row>
-    <h2>Application</h2>
-    <button class="ghost ins-open ins-menu-btn" type="button" data-install><span>Installer l'app</span></button>
+  <div class="acct-foot">
+    <button class="out" id="logout" type="button">Se déconnecter</button>
+    <p class="msg" id="logout-msg" role="alert"></p>
   </div>
-  <div class="acct" id="acct-lock"></div>
-  <div class="acct">
-    <h2>Aide</h2>
-    <button class="link" id="aide-open" type="button">Revoir les premiers pas</button>
-  </div>
-  <button class="out" id="logout" type="button">Se déconnecter</button>
-  <p class="msg" id="logout-msg" role="alert"></p>
 </div>
 
 <dialog class="settings" id="settings" aria-labelledby="settings-title">
@@ -1090,6 +1133,7 @@ dialog.settings::backdrop{background:transparent}
 <script src="dash/layout.js"></script>
 <script src="dash/code-slots.js"></script>
 <script src="dash/lock.js"></script>
+<script src="dash/spotlight.js"></script>
 <script src="dash/select.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>
 <script>
@@ -4341,6 +4385,7 @@ if (!sb) {
     $('ref-link').value = `${location.origin}/login.html?ref=${referral.referral_code}`;
     $('ref-row').hidden = false;
     $('ref-info').textContent = `Ton code : ${referral.referral_code} · ${plural(referral.referral_count, 'filleul')}`;
+    $('ref-count').textContent = plural(referral.referral_count, 'filleul');
   }
   // Le plan du compte (supabase/migrations/20261115000000_abonnements.sql) : Gratuit, Pro ou Worker, lu à l'ouverture du
   // menu. Aucun paiement n'est branché et rien n'est encore réservé à un plan. Sans la migration, ou en panne : Gratuit.
@@ -4359,6 +4404,40 @@ if (!sb) {
     $('plan-info').textContent = `${prix} TTC par mois${quand}.`;
   }
   $('menu').addEventListener('toggle', e => { if (e.newState === 'open') { loadReferral(); loadPlan(); } });
+
+  // La lumière de la carte (SpotlightCard) : posée à l'ouverture, aux couleurs du thème et de l'accent du moment,
+  // retirée après la fermeture (fondu compris), pour qu'aucun écouteur ne tourne quand la carte est fermée.
+  let spot = null, spotOff = 0;
+  $('menu').addEventListener('toggle', e => {
+    const menu = $('menu');
+    clearTimeout(spotOff);
+    if (e.newState === 'open') {
+      const look = { theme: document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light', spotlightColor: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || undefined };
+      if (spot) spot.update(look);
+      else spot = window.spotlightCard?.(menu, { ...look, intensity: 0.12, spotlightSize: 220, borderGlow: 0.5, proximity: 60 }) ?? null;
+      return;
+    }
+    // Rouverte, la carte repart de son premier écran : réglages repliés.
+    for (const d of menu.querySelectorAll('details[open]')) d.open = false;
+    spotOff = setTimeout(() => { if (!menu.matches(':popover-open')) { spot?.destroy(); spot = null; } }, 400);
+  });
+  // Un réglage déplié vient en vue dans la liste (la carte ne dépasse jamais l'écran).
+  for (const d of $('menu').querySelectorAll('.acct-row')) d.addEventListener('toggle', () => { if (d.open) d.scrollIntoView({ block: 'nearest' }); });
+  // Toucher ou cliquer à côté ferme la carte sans actionner ce qui est dessous (le navigateur ferme, on avale le clic).
+  let swallowAt = 0;
+  addEventListener('pointerdown', e => {
+    swallowAt = 0;
+    if (!$('menu').matches(':popover-open') || e.composedPath().some(n => n === $('menu') || n === $('me'))) return;
+    swallowAt = e.timeStamp;
+    e.preventDefault();
+    e.stopPropagation();
+  }, true);
+  addEventListener('click', e => {
+    if (!swallowAt || e.timeStamp - swallowAt > 1000) return;
+    swallowAt = 0;
+    e.preventDefault();
+    e.stopPropagation();
+  }, true);
   $('ref-copy').onclick = async () => {
     try {
       await navigator.clipboard.writeText($('ref-link').value);
@@ -4389,11 +4468,22 @@ if (!sb) {
         },
         say: text => { $('custom-live').textContent = text; },
       });
-      $('acct-lock').append(lock.settingsSection());
+      $('acct-lock').append(lock.settingsSection({ onState: on => { $('lock-state').textContent = on ? 'Activé' : 'Désactivé'; } }));
     }
     const first = firstName(user);
     $('hello').textContent = first ? `Bonjour ${first}.` : 'Bonjour.';
     $('who').textContent = user.email ?? '';
+    // Carte du compte : le vrai nom s'il existe, sinon « Mon compte » (rien d'inventé) ; photo du compte Google, sinon initiales.
+    const meta = user.user_metadata ?? {}, full = (meta.full_name || meta.name || '').trim();
+    $('acct-name').textContent = full || 'Mon compte';
+    const av = $('acct-av');
+    av.textContent = full ? full.split(/\s+/).slice(0, 2).map(w => [...w][0]).join('').toUpperCase() : (user.email || '?')[0].toUpperCase();
+    const pic = meta.avatar_url || meta.picture;
+    if (typeof pic === 'string' && pic.startsWith('https://')) {
+      const img = Object.assign(new Image(), { alt: '', decoding: 'async', referrerPolicy: 'no-referrer' });
+      img.onload = () => av.replaceChildren(img); // en panne : les initiales restent
+      img.src = pic;
+    }
     $('me-letter').textContent = (first || user.email || '?')[0].toUpperCase();
     $('me').hidden = false;
     $('app').hidden = false;

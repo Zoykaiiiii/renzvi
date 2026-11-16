@@ -219,12 +219,13 @@
       show();
     }
 
-    function settingsSection() {
+    // onState(activé) : prévient le menu du compte, qui affiche l'état dans sa ligne repliée.
+    function settingsSection({ onState } = {}) {
       const sec = node('section', 'set-sec lock-set');
       sec.setAttribute('aria-labelledby', 'set-lock');
       const h3 = node('h3', '', 'Verrouillage de l’écran');
       h3.id = 'set-lock';
-      const state = node('p', 'desc');
+      const state = node('p', 'desc lock-state');
       const tools = node('div', 'lock-tools');
       const autoRow = node('div', 'set-row');
       const autoLabel = node('label', '', 'Verrouiller seul');
@@ -234,7 +235,10 @@
       for (const [v, t] of AUTO) auto.append(Object.assign(node('option', '', t), { value: String(v) }));
       auto.onchange = () => { const r = read(); if (r) { write({ ...r, auto: Number(auto.value) }); lastActive = Date.now(); } };
       autoRow.append(autoLabel, auto);
-      const help = node('p', 'desc lock-help', 'Sur cet appareil seulement. Un cache contre les regards, pas une protection du compte : tes données ne sont pas chiffrées, et quelqu’un qui contrôle ce navigateur peut le contourner. Le minuteur et les sons continuent derrière. Code oublié : il suffit de te reconnecter.');
+      // L'essentiel en une phrase ; les limites et le code oublié restent à un clic.
+      const help = node('p', 'desc lock-help', 'Cache l’écran sur cet appareil seulement. Ce n’est pas une protection du compte.');
+      const more = node('details', 'lock-more');
+      more.append(node('summary', '', 'Limites et code oublié'), node('p', 'desc', 'Tes données ne sont pas chiffrées, et quelqu’un qui contrôle ce navigateur peut contourner le verrou. Le minuteur et les sons continuent derrière. Code oublié : il suffit de te reconnecter.'));
       function draw() {
         const on = !!read();
         state.textContent = on ? 'Activé sur cet appareil.' : 'Désactivé.';
@@ -243,10 +247,11 @@
           : [btn('primary', 'Choisir un code', () => flow('set'))]));
         autoRow.hidden = !on;
         auto.value = String(read()?.auto ?? 0);
+        onState?.(on);
       }
       onChangeUi = draw;
       draw();
-      sec.append(h3, state, tools, autoRow, help);
+      sec.append(h3, state, tools, autoRow, help, more);
       return sec;
     }
 

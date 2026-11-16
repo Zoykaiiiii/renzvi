@@ -12,6 +12,11 @@ const custom = async page => { await showMenu(page); await page.locator('#open-c
 const closeCustom = async page => { await page.click('#settings-close'); await page.waitForSelector('#settings', { state: 'hidden' }); };
 const dispose = async page => { await custom(page); await page.click('#layout-edit'); await page.waitForSelector('#settings', { state: 'hidden' }); };
 const openMe = async page => { await showMenu(page); await page.locator('#me').click(); };
+// Carte du compte : les réglages sont repliés ; on déplie la section voulue (Abonnement, Parrainage, Verrouillage…).
+const acctSection = async (page, name) => {
+  const s = page.locator('#menu .acct-row > summary', { hasText: name });
+  if (!await s.evaluate(n => n.parentElement.open)) await s.click();
+};
 const wheelShut = page => page.waitForFunction(() => !document.querySelector('dialog.mode-wheel[open]'));
 const openWheel = async page => { await showMenu(page); await page.click('#open-modes'); await page.waitForSelector('dialog.mode-wheel[open] .option-wheel'); };
 const modeNames = async page => {
@@ -39,4 +44,4 @@ const options = async (page, title) => {
   const b = page.getByRole('button', { name: `Options de ${title} : ordre, taille, page` });
   if (await b.getAttribute('aria-expanded') !== 'true') await b.click();
 };
-module.exports = { showMenu, custom, closeCustom, dispose, openMe, openWheel, modeNames, goMode, modeNow, wheelShut, options };
+module.exports = { showMenu, custom, closeCustom, dispose, openMe, acctSection, openWheel, modeNames, goMode, modeNow, wheelShut, options };

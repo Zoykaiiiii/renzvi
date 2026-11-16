@@ -5,7 +5,7 @@
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const { start } = require('./demo.cjs');
-const { custom, closeCustom, dispose, openMe, goMode, modeNow, showMenu } = require('./menu.cjs');
+const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, showMenu } = require('./menu.cjs');
 
 (async () => {
   const srv = await start();
@@ -288,8 +288,9 @@ const { custom, closeCustom, dispose, openMe, goMode, modeNow, showMenu } = requ
     const { page, context } = await open({ width: 1440, height: 900 }, 'compte');
     await openMe(page);
     const menu = page.locator('#menu');
+    await acctSection(page, 'Parrainage');
     await page.waitForSelector('#ref-row:not([hidden])');
-    for (const text of ['Abonnement', 'Parrainage', 'Verrouillage de l’écran', 'Se déconnecter']) assert.ok(await menu.getByText(text, { exact: true }).isVisible(), text);
+    for (const text of ['Abonnement', 'Parrainage', 'Verrouillage de l’écran', 'Se déconnecter']) assert.ok(await menu.getByText(text, { exact: true }).first().isVisible(), text);
     assert.equal(await menu.getByText('Thème, couleurs et polices').count(), 0);
     assert.equal(await page.textContent('#plan-nom'), 'Gratuit', 'sans abonnement : Gratuit');
     const r = await menu.boundingBox();
