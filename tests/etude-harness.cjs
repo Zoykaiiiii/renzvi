@@ -98,6 +98,22 @@ async function openBoard(browser, base, db, { labo = true, ...settings } = {}) {
     db.links.push(...added);
     return json(route, 201, added);
   });
+  // Annotations du carnet : insertion (rend la ligne), modification, suppression, panne simulée (db.failMarks).
+  await table('study_annotations', (route, req) => {
+    db.marks ??= [];
+    if (db.noMarks) return json(route, 404, { code: '42P01', message: 'absent' });
+    if (req.method() === 'GET') return json(route, 200, db.marks.filter(m => m.course_id === eq(req, 'course_id')).sort((x, y) => x.page - y.page || x.pos - y.pos));
+    if (db.failMarks) return json(route, 500, { message: 'panne' });
+    if (req.method() === 'POST') {
+      const row = { id: randomUUID(), surligne: false, souligne: false, color: 'jaune', note: null, created_at: new Date().toISOString(), ...req.postDataJSON() };
+      db.marks.push(row);
+      return json(route, 201, row);
+    }
+    const m = db.marks.find(x => x.id === eq(req, 'id'));
+    if (req.method() === 'PATCH') { if (m) Object.assign(m, req.postDataJSON()); return route.fulfill({ status: 204, headers: CORS }); }
+    if (req.method() === 'DELETE') { db.marks = db.marks.filter(x => x !== m); return route.fulfill({ status: 204, headers: CORS }); }
+    return route.fulfill({ status: 204, headers: CORS });
+  });
   await table('study_notes', (route, req) => {
     if (db.noLinks) return json(route, 404, { code: '42P01', message: 'absent' });
     const c = eq(req, 'course_id'), ch = eq(req, 'chapter_id');

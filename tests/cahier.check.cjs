@@ -202,11 +202,11 @@ async function importFile(page, name, buffer, mimeType, subject = 'Droit civil')
       await w.getByRole('button', { name: 'Chapitre suivant' }).click();
       assert.strictEqual(await w.locator('.cahier-title').innerText(), 'Chapitre 2 Le contrat');
       assert.strictEqual(await w.locator('.meta').innerText(), 'Chapitre 3 / 4');
-      await w.getByLabel('Chercher dans le cours').fill('hypotheque');
+      await w.getByLabel('Chercher dans le cours').filter({ visible: true }).fill('hypotheque');
       await page.waitForSelector('.cahier-results li');
       assert.match(await w.locator('.cahier-results').innerText(), /Chapitre 2 Le contrat · page \d[\s\S]*hypothèque/);
       await shot(page, 'cahier-recherche');
-      await w.getByLabel('Chercher dans le cours').fill('élève étudie');
+      await w.getByLabel('Chercher dans le cours').filter({ visible: true }).fill('élève étudie');
       await page.waitForFunction(() => document.querySelectorAll('.cahier-results li').length >= 40);
       await w.locator('.cahier-results li button').nth(35).click();
       await page.waitForSelector('.cahier-text');
@@ -253,7 +253,7 @@ async function importFile(page, name, buffer, mimeType, subject = 'Droit civil')
       // Agrandir puis Échap.
       await w.getByRole('button', { name: 'Agrandir' }).click();
       const big = await w.evaluate(b => { const r = b.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height), getComputedStyle(b).position]; });
-      assert.deepStrictEqual(big, [1440 - 32, 900 - 32, 'fixed']);
+      assert.deepStrictEqual(big, [1440, 900, 'fixed'], 'le carnet prend tout l’écran');
       await shot(page, 'cahier-agrandi');
       await page.keyboard.press('Escape');
       assert.notStrictEqual(await w.evaluate(b => getComputedStyle(b).position), 'fixed', 'Échap referme le cahier agrandi');

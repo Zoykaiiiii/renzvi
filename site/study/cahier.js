@@ -222,14 +222,52 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
 
   const say = (text, bad = false) => { note.textContent = text; note.classList.toggle('msg', bad); };
 
+  // Agrandi, le Cahier devient un carnet (carnet.js) : même widget, même lecteur, avec chapitres, annotations et signets
+  // autour. Le plein écran du navigateur n'est pas utilisé. Réduire rend le widget compact tel qu'il était.
+  const carnet = window.cahierCarnet?.({
+    box, body, view, sb,
+    course, courses: () => courses, chapter: () => chapterIndex,
+    openCourse: id => { say(''); openCourse(id); }, openChapter, loadText,
+    selection: () => selectionRange(),
+    reveal: r => reveal(r, true),
+    search: text => { search.value = text; search.oninput(); },
+    tools: () => [importBtn, iaBtn, schemaBtn, editBtn, originalBtn, removeBtn],
+    makeCard,
+    explain: () => { if (!lastSel) return; explainSel = lastSel; mode = 'explain'; draw(); },
+    close: () => { expand(false); grow.focus(); },
+  }) ?? null;
   function expand(open) {
+    if (open === box.classList.contains('cahier-open')) return;
     box.classList.toggle('cahier-open', open);
     document.body.classList.toggle('cahier-lock', open);
     grow.textContent = open ? 'Réduire' : 'Agrandir';
     grow.setAttribute('aria-pressed', open);
+    carnet?.open(open);
   }
-  const onKey = e => { if (e.key === 'Escape' && box.classList.contains('cahier-open')) { expand(false); grow.focus(); } };
-  box.addEventListener('keydown', onKey);
+  const onKey = e => {
+    if (e.key !== 'Escape' || !box.classList.contains('cahier-open')) return;
+    if (carnet?.escape()) return e.stopPropagation();
+    expand(false);
+    grow.focus();
+  };
+  // Aller à un passage (résultat de recherche, annotation, signet) : son chapitre s'ouvre, le passage vient en vue.
+  function reveal(r, brief = false) {
+    const c = course();
+    if (!c) return;
+    chapterIndex = cahierChapterAt(c.chapters, r.page, r.offset);
+    query = search.value = '';
+    at[c.id] = { chapter: c.chapters[chapterIndex].id, y: 0 };
+    mode = 'read';
+    draw();
+    loadText(c).then(t => {
+      if (course() !== c || query) return;
+      drawReader(c, t, r);
+      // Le repère d'arrivée s'efface seul : il ne doit pas se confondre avec un surlignage gardé.
+      if (brief) setTimeout(() => { if (!query) window.CSS?.highlights?.delete('cahier'); }, 1800);
+    }, () => {});
+    persist();
+  }
+  document.addEventListener('keydown', onKey); // sur la page : le focus peut tomber hors du widget (bouton retiré après une réponse)
   // Garde le dernier endroit choisi dans le texte : toucher un bouton sur téléphone peut effacer la sélection.
   // Une sélection non vide propose d'en faire une carte ; elle reste proposée tant que le texte affiché ne change pas.
   const onSelect = () => {
@@ -290,6 +328,7 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     const c = course();
     const ready = state === 'ready';
     if (state !== 'ready' || mode === 'import' || !c) expand(false);
+    carnet?.sync();
     bar.hidden = !ready;
     pick.hidden = grow.hidden = !courses.length || mode === 'import';
     importBtn.hidden = mode === 'import';
@@ -366,8 +405,9 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
         persist();
       }, 800);
     };
-    if (reveal) return show(reader, reveal);
-    if (at[c.id]?.chapter === ch.id) reader.scrollTop = at[c.id].y;
+    if (reveal) show(reader, reveal);
+    else if (at[c.id]?.chapter === ch.id) reader.scrollTop = at[c.id].y;
+    carnet?.drawn(reader);
   }
 
   // Surligne un passage trouvé et le fait venir au tiers haut du texte.
@@ -380,7 +420,8 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     range.setEnd(block.firstChild, Math.min(block.firstChild.length, start + length));
     if (window.CSS?.highlights && window.Highlight) CSS.highlights.set('cahier', new Highlight(range));
     else { const s = getSelection(); s.removeAllRanges(); s.addRange(range); }
-    reader.scrollTop += range.getBoundingClientRect().top - reader.getBoundingClientRect().top - reader.clientHeight / 3;
+    // Longueur 0 = signet ou reprise : la ligne revient en haut, là où elle était quand on l'a gardée.
+    reader.scrollTop += range.getBoundingClientRect().top - reader.getBoundingClientRect().top - (length ? reader.clientHeight / 3 : 2);
   }
 
   function drawResults(c, text) {
@@ -391,14 +432,7 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     list.ariaLabel = 'Résultats de la recherche';
     for (const r of found) {
       const li = el('li', 'row');
-      const go = button('grow cahier-hit', '', () => {
-        chapterIndex = r.chapter;
-        query = search.value = '';
-        at[c.id] = { chapter: c.chapters[r.chapter].id, y: 0 };
-        draw();
-        loadText(c).then(t => { if (course() === c && !query) drawReader(c, t, r); });
-        persist();
-      });
+      const go = button('grow cahier-hit', '', () => reveal(r));
       const where = el('span', 'cahier-where', `${c.chapters[r.chapter].title}${c.kind === 'pdf' ? ` · page ${r.page + 1}` : ''}`);
       const snippet = el('span', 'cahier-snippet');
       snippet.append(r.before, el('mark', '', r.match), r.after);
@@ -727,7 +761,8 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     clearTimeout(saveTimer);
     clearTimeout(searchTimer);
     expand(false);
-    box.removeEventListener('keydown', onKey);
+    carnet?.destroy();
+    document.removeEventListener('keydown', onKey);
     document.removeEventListener('selectionchange', onSelect);
     document.removeEventListener('renzvi:revoir', onRevoir);
     document.removeEventListener('renzvi:importer', onPrefill);

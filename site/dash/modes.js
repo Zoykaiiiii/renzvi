@@ -27,7 +27,7 @@
 
   // Une cible sûre pour l'appui long : le fond de l'écran, ou le fond d'un widget (son cadre, son en-tête, le vide de son corps).
   // Jamais un contrôle, un champ, un texte modifiable, un dessin, un lecteur, une poignée ni le contenu d'un widget.
-  const NEVER = 'button,a,input,textarea,select,label,option,summary,[contenteditable=""],[contenteditable=true],canvas,iframe,video,audio,svg,img,[role=slider],[role=listbox],[role=option],[role=button],[tabindex],.edit,.grip,.resize-handle,.custom,dialog,[popover],.topbar,.option-wheel,.notes,.comet-dial,.drop-slot,#renzvi-chat';
+  const NEVER = 'button,a,input,textarea,select,label,option,summary,[contenteditable=""],[contenteditable=true],canvas,iframe,video,audio,svg,img,[role=slider],[role=listbox],[role=option],[role=button],[tabindex],.edit,.grip,.resize-handle,.custom,dialog,[popover],.topbar,.option-wheel,.notes,.comet-dial,.drop-slot,#renzvi-chat,.cahier-open';
   function safeTarget(t) {
     if (!(t instanceof Element) || t.closest(NEVER)) return false;
     if (!t.closest('#app') && t !== document.body && t !== document.documentElement && t.id !== 'wall' && !t.closest('#wall')) return false;

@@ -236,6 +236,21 @@ begin
   select count(*) into n from study_cards where id=cda; r := array_append(r, ('A garde sa carte après le retrait: '||n)::text);
   delete from study_notes where course_id=ca and chapter_id='c0'; get diagnostics n = row_count; r := array_append(r, ('A supprime sa note: '||n)::text);
 
+  -- Annotations du carnet : privées, liées à son propre cours.
+  insert into study_annotations(course_id,kind,page,pos,length,quote,surligne) values (ca,'passage',0,2,5,'texte',true);
+  insert into study_annotations(course_id,kind,page,pos,length,quote) values (ca,'signet',0,0,0,'début');
+  select count(*) into n from study_annotations; r := array_append(r, ('A lit ses 2 annotations: '||(n=2)::int)::text);
+  begin insert into study_annotations(course_id,kind,page,pos,length,quote,note) values (ca,'signet',0,0,0,'x','note'); r := array_append(r, 'interdit: signet avec note ACCEPTE'); exception when others then r := array_append(r, 'interdit: signet avec note refusé'); end;
+  perform set_config('request.jwt.claims', json_build_object('sub',b,'role','authenticated')::text, true);
+  perform set_config('request.jwt.claim.sub', b::text, true);
+  select count(*) into n from study_annotations; r := array_append(r, ('B lit les annotations de A: '||n)::text);
+  begin insert into study_annotations(course_id,kind,page,pos,length,quote,surligne) values (ca,'passage',0,0,3,'vol',true); r := array_append(r, 'B annote le cours de A: 1'); exception when others then r := array_append(r, 'B annote le cours de A: refusé'); end;
+  update study_annotations set note='vol' where course_id=ca; get diagnostics n = row_count; r := array_append(r, ('B modifie une annotation de A: '||n)::text);
+  delete from study_annotations where course_id=ca; get diagnostics n = row_count; r := array_append(r, ('B supprime les annotations de A: '||n)::text);
+  perform set_config('request.jwt.claims', json_build_object('sub',a,'role','authenticated')::text, true);
+  perform set_config('request.jwt.claim.sub', a::text, true);
+  update study_annotations set note='ma note', souligne=true where kind='passage'; get diagnostics n = row_count; r := array_append(r, ('A modifie son annotation: '||n)::text);
+
   -- Abonnements : chacun lit son plan, personne ne s'en donne un ; sans ligne, c'est Gratuit.
   select count(*) into n from plans; r := array_append(r, ('A lit les 3 plans: '||(n=3)::int)::text);
   select renzvi_plan() into s; r := array_append(r, ('A sans abonnement est gratuit: '||(s='gratuit')::int)::text);
