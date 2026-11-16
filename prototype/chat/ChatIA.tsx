@@ -8,15 +8,15 @@ import { PromptInputBox } from "@/components/ui/ai-prompt-box";
 
 type Message = { id: number; role: "moi" | "note"; texte: string };
 
-// Le personnage : un visage dessiné au trait, original (pas la mascotte d'une autre marque).
+// Le symbole de l'assistant : la grille du logo Renzvi, dont le carré en bas à droite devient une étincelle.
+// Dessiné pour Renzvi (pas la mascotte d'une autre marque) ; la couleur suit le texte (currentColor).
 function Personnage({ size = 38 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 32 32" width={size} height={size} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 10.500c.800-3.500 4-5.500 7.500-5 2 .300 3.200 1.200 4 2.500" />
-      <path d="M6.500 17c0-5.500 4.200-9.500 9.500-9.500s9.500 4 9.500 9.500-4.200 9-9.500 9-9.500-3.700-9.500-9z" />
-      <circle cx="12.300" cy="16" r="1.300" fill="currentColor" stroke="none" />
-      <circle cx="19.700" cy="16" r="1.300" fill="currentColor" stroke="none" />
-      <path d="M13 20.300c1.700 1.300 4.300 1.300 6 0" />
+    <svg viewBox="0 0 32 32" width={size} height={size} aria-hidden="true" fill="currentColor">
+      <rect x="3" y="3" width="11.5" height="11.5" rx="3.5" />
+      <rect x="17.5" y="3" width="11.5" height="11.5" rx="3.5" opacity=".38" />
+      <rect x="3" y="17.5" width="11.5" height="11.5" rx="3.5" opacity=".38" />
+      <path d="M23.25 16.5c.65 4.2 2.55 6.1 6.75 6.75-4.2.65-6.1 2.55-6.75 6.75-.65-4.2-2.55-6.1-6.75-6.75 4.2-.65 6.1-2.55 6.75-6.75z" />
     </svg>
   );
 }

@@ -676,7 +676,7 @@ async function photo(browser, kind) {
     assert.deepEqual(await visible(page), ['minuteur', 'heure', 'taches']);
     // Le catalogue dit où est un widget ; ajouté, il arrive sur le mode affiché.
     await showMenu(page); await page.click('#open-add');
-    assert.match(await page.locator('#catalog li', { hasText: 'Notes' }).first().textContent(), /Sur la page « Détente »/);
+    assert.match(await page.locator('#catalog li:has([data-widget=notes])').textContent(), /Sur la page « Détente »/);
     await catClick(page, 'Ajouter : Habitudes');
     await page.locator('#add-dialog .primary').click();
     assert.ok((await visible(page)).includes('habitudes'));

@@ -79,7 +79,7 @@ function seed(b) {
     assert.ok(b.rows.habitudes.items[0].days.includes(day(0)));
     assert.equal(await W(page, 'habitudes').locator('.days button.today').getAttribute('aria-pressed'), 'true');
     // Échéance d'une tâche, réglée dans Tâches, lue par Aujourd'hui.
-    await W(page, 'taches').getByRole('button', { name: 'Ajouter une échéance à « Ranger le bureau »' }).click();
+    await W(page, 'taches').getByRole('button', { name: 'Mettre une échéance à « Ranger le bureau »' }).click();
     await fiche(page).getByRole('button', { name: 'Enregistrer' }).click();
     await until(async () => /Ranger le bureau/.test(await auj.innerText()), 'nouvelle échéance visible');
     // Demain (Pro) et Organiser (Pro).

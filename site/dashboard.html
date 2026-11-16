@@ -2297,7 +2297,7 @@ const WIDGETS = [
         const b = button(`due${due ? ' set' : ''}${late ? ' late' : ''}${due === today ? ' now' : ''}`, '', () => askDue(task, b));
         if (due) b.textContent = late ? `En retard · ${Q.dateCourte(due)}` : Q.jourLabel(due, today);
         else b.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M2.5 6.500h11M5.500 2v3M10.500 2v3"/></svg>';
-        b.ariaLabel = due ? `Échéance de « ${task.text} » : ${Q.dateLongue(due)}${late ? ', en retard' : ''}. Modifier` : `Ajouter une échéance à « ${task.text} »`;
+        b.ariaLabel = due ? `Échéance de « ${task.text} » : ${Q.dateLongue(due)}${late ? ', en retard' : ''}. Modifier` : `Mettre une échéance à « ${task.text} »`;
         return b;
       }
       function askDue(task, from) {
@@ -4565,7 +4565,7 @@ if (!sb) {
   const exampleDay = n => dayKey(new Date(Date.now() + n * 864e5));
   const exampleLog = () => ({ [exampleDay(0)]: 50, [exampleDay(-1)]: 75, [exampleDay(-2)]: 25 });
   const EXAMPLES = {
-    taches: () => ({ items: [{ id: 'a', text: 'Relire le chapitre 4', done: false, due: exampleDay(0) }, { id: 'b', text: 'Envoyer le dossier de stage', done: true }, { id: 'c', text: 'Préparer les fiches', done: false, due: exampleDay(-1) }, { id: 'd', text: 'Rendre le livre à la bibliothèque', done: false, due: exampleDay(3) }] }),
+    taches: () => ({ items: [{ id: 'a', text: 'Relire le chapitre 4', done: false, due: exampleDay(0) }, { id: 'b', text: 'Envoyer le dossier de stage', done: true }, { id: 'c', text: 'Préparer les fiches', done: false, due: exampleDay(-1) }] }),
     agenda: () => ({ events: [
       { id: 'a', t: 'Dentiste', d: exampleDay(0), h1: '17:30', h2: '18:00', lieu: 'Cabinet du centre' },
       { id: 'b', t: 'Cours de yoga', d: exampleDay(1), h1: '19:00', h2: '20:00' },
