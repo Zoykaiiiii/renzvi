@@ -117,7 +117,7 @@ async function openBoard(browser, base, db, { labo = true, ...settings } = {}) {
   await table('study_notes', (route, req) => {
     if (db.noLinks) return json(route, 404, { code: '42P01', message: 'absent' });
     const c = eq(req, 'course_id'), ch = eq(req, 'chapter_id');
-    if (req.method() === 'GET') return json(route, 200, c ? db.notes.filter(n => n.course_id === c && n.chapter_id === ch) : db.notes);
+    if (req.method() === 'GET') return json(route, 200, c ? db.notes.filter(n => n.course_id === c && (!ch || n.chapter_id === ch)) : db.notes);
     if (req.method() === 'DELETE') { db.notes = db.notes.filter(n => !(n.course_id === c && n.chapter_id === ch)); return route.fulfill({ status: 204, headers: CORS }); }
     for (const row of [req.postDataJSON()].flat()) { db.notes = db.notes.filter(n => !(n.course_id === row.course_id && n.chapter_id === row.chapter_id)); db.notes.push(row); }
     return route.fulfill({ status: 201, headers: CORS });

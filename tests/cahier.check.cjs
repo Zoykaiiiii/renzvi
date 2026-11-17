@@ -187,12 +187,17 @@ async function importFile(page, name, buffer, mimeType, subject = 'Droit civil')
 
       // Les cours sont rangés par matière dans le choix du cours.
       assert.deepStrictEqual(await w.locator('.cahier-bar select optgroup').evaluateAll(g => g.map(x => x.label)), ['Biologie', 'Droit civil']);
+      // Widget fermé : un livre ouvert. La lecture, la recherche et les chapitres se font dans le carnet.
+      assert.strictEqual(await w.locator('.cahier-text').isVisible(), false);
+      await w.locator('.cahier-livre-open').click();
+      await page.waitForFunction(() => !document.querySelector('[data-widget=cahier]').getAnimations().length);
+      await page.getByRole('button', { name: 'Chapitres', exact: true }).click();
       // Menu stylé (dash/select.js) : mêmes groupes et options que le <select>, l'option choisie cochée.
       const coursePick = w.getByRole('combobox', { name: 'Cours' });
       await coursePick.click();
       const lb = page.getByRole('listbox', { name: 'Cours' });
       assert.deepStrictEqual(await lb.getByRole('group').evaluateAll(g => g.map(x => x.getAttribute('aria-labelledby') && document.getElementById(x.getAttribute('aria-labelledby')).textContent)), ['Biologie', 'Droit civil']);
-      assert.strictEqual(await lb.getByRole('option', { selected: true }).innerText(), await w.locator('.cahier-bar select').evaluate(s => s.selectedOptions[0].label));
+      assert.strictEqual(await lb.getByRole('option', { selected: true }).innerText(), await w.locator('.carnet-course').evaluate(s => s.selectedOptions[0].label));
       await page.waitForTimeout(200);
       await shot(page, 'cahier-menu-cours-ouvert');
       await page.keyboard.press('Escape');
@@ -201,12 +206,13 @@ async function importFile(page, name, buffer, mimeType, subject = 'Droit civil')
       await w.getByRole('button', { name: 'Chapitre suivant' }).click();
       await w.getByRole('button', { name: 'Chapitre suivant' }).click();
       assert.strictEqual(await w.locator('.cahier-title').innerText(), 'Chapitre 2 Le contrat');
-      assert.strictEqual(await w.locator('.meta').innerText(), 'Chapitre 3 / 4');
-      await w.getByLabel('Chercher dans le cours').filter({ visible: true }).fill('hypotheque');
+      assert.strictEqual(await w.locator('.carnet-count').innerText(), 'Chapitre 3 sur 4');
+      await w.getByRole('button', { name: 'Chercher dans le cours' }).click();
+      await w.locator('.carnet-find').fill('hypotheque');
       await page.waitForSelector('.cahier-results li');
       assert.match(await w.locator('.cahier-results').innerText(), /Chapitre 2 Le contrat · page \d[\s\S]*hypothèque/);
       await shot(page, 'cahier-recherche');
-      await w.getByLabel('Chercher dans le cours').filter({ visible: true }).fill('élève étudie');
+      await w.locator('.carnet-find').fill('élève étudie');
       await page.waitForFunction(() => document.querySelectorAll('.cahier-results li').length >= 40);
       await w.locator('.cahier-results li button').nth(35).click();
       await page.waitForSelector('.cahier-text');
@@ -227,10 +233,14 @@ async function importFile(page, name, buffer, mimeType, subject = 'Droit civil')
       const { page, context, errors } = await openBoard(browser, base, db);
       const w = cahier(page);
       await page.waitForFunction(() => document.querySelector('[data-widget=cahier] .cahier-title')?.textContent === 'Chapitre 2 Le contrat');
+      assert.match(await w.locator('.cahier-livre-foot').innerText(), /Chapitre 3 sur 4/, 'le livre montre le chapitre où l’on s’est arrêté');
+      await w.locator('.cahier-livre-open').click();
+      await page.waitForFunction(() => !document.querySelector('[data-widget=cahier]').getAnimations().length);
       assert.strictEqual(await page.locator('.cahier-text').evaluate(e => e.scrollTop), 300, 'reprise à la dernière position');
 
-      // Corriger les chapitres : renommer, couper à un endroit choisi, retirer.
-      await w.getByRole('button', { name: 'Modifier les chapitres' }).click();
+      // Corriger les chapitres (depuis « Gérer ce cours ») : renommer, couper à un endroit choisi, retirer.
+      await page.getByRole('button', { name: 'Chapitres', exact: true }).click();
+      await w.locator('.carnet-menu').getByRole('button', { name: 'Modifier les chapitres' }).click();
       await w.getByLabel('Titre du chapitre 3').fill('Le contrat');
       await w.getByLabel('Titre du chapitre 3').press('Enter');
       await page.waitForFunction(() => document.querySelector('.cahier-nav select').selectedOptions[0].textContent === 'Le contrat');
@@ -248,22 +258,25 @@ async function importFile(page, name, buffer, mimeType, subject = 'Droit civil')
       await w.getByRole('button', { name: /Retirer le chapitre Début/ }).click();
       await page.waitForFunction(() => document.querySelectorAll('.cahier-chapters li').length === 4);
       assert.strictEqual(db.courses.find(x => x.kind === 'pdf').chapters[0].page, 0, 'le texte du début reste lisible dans le premier chapitre');
-      await w.getByRole('button', { name: 'Terminer les chapitres' }).click();
+      await page.getByRole('button', { name: 'Chapitres', exact: true }).click();
+      await w.locator('.carnet-menu').getByRole('button', { name: 'Terminer les chapitres' }).click();
 
-      // Agrandir puis Échap.
-      await w.getByRole('button', { name: 'Agrandir' }).click();
-      await page.waitForFunction(() => !document.querySelector('[data-widget=cahier]').getAnimations().length);
+      // Le carnet prend presque tout l'écran ; Échap le referme.
       const big = await w.evaluate(b => { const r = b.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height), getComputedStyle(b).position]; });
       assert.ok(big[0] >= 1300 && big[1] >= 800 && big[2] === 'fixed', `le carnet prend presque tout l’écran (${big})`);
       await shot(page, 'cahier-agrandi');
       await page.keyboard.press('Escape');
       assert.notStrictEqual(await w.evaluate(b => getComputedStyle(b).position), 'fixed', 'Échap referme le cahier agrandi');
 
-      // Supprimer en deux appuis.
+      // Supprimer en deux appuis (dans « Gérer ce cours »).
       const id = c.id;
-      await w.getByRole('button', { name: 'Supprimer ce cours' }).click();
+      await w.locator('.cahier-livre-open').click();
+      await page.waitForFunction(() => !document.querySelector('[data-widget=cahier]').getAnimations().length);
+      await page.getByRole('button', { name: 'Chapitres', exact: true }).click();
+      await w.locator('.carnet-menu').getByRole('button', { name: 'Supprimer ce cours' }).click();
       assert.strictEqual(db.courses.length, 2, 'le premier appui ne supprime rien');
-      await w.getByRole('button', { name: /Appuie encore/ }).click();
+      await page.getByRole('button', { name: 'Chapitres', exact: true }).click();
+      await w.locator('.carnet-menu').getByRole('button', { name: /Appuie encore/ }).click();
       await page.waitForFunction(() => /est supprimé/.test(document.querySelector('.cahier-note').textContent));
       assert.deepStrictEqual(db.courses.map(x => x.title), ['La cellule']);
       await page.waitForTimeout(300);
@@ -345,14 +358,14 @@ async function importFile(page, name, buffer, mimeType, subject = 'Droit civil')
     for (const [width, height] of [[320, 568], [390, 844], [768, 1024], [1440, 900]]) {
       const { page, context, errors } = await openBoard(browser, base, db, { viewport: { width, height }, isMobile: width < 700, hasTouch: width < 700 });
       const w = cahier(page);
-      await page.waitForSelector('.cahier-title');
+      await page.waitForSelector('[data-widget=cahier] .cahier-livre-open');
       const wide = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
       assert.strictEqual(wide, false, `débordement à ${width}px`);
       const inside = await w.evaluate(b => [...b.querySelectorAll('select,input,button')].filter(x => x.offsetParent).every(x => { const r = x.getBoundingClientRect(), o = b.getBoundingClientRect(); return r.left >= o.left - 1 && r.right <= o.right + 1; }));
       assert.ok(inside, `contrôles hors du widget à ${width}px`);
       await w.scrollIntoViewIfNeeded();
       await shot(page, `cahier-${width}`);
-      await w.getByRole('button', { name: 'Agrandir' }).click();
+      await w.getByRole('button', { name: 'Ouvrir le cahier' }).click();
       await shot(page, `cahier-${width}-agrandi`);
       assert.deepStrictEqual(errors, []);
       await context.close();

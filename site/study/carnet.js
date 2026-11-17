@@ -51,17 +51,61 @@ function carnetScroll(reader, page, pos) {
 window.cahierCarnet = function cahierCarnet(api) {
   const { box, body, view, sb } = api;
   let open = false, tab = 'cours', marks = [], marksFor = null, marksState = 'idle', lastColor = 'jaune';
-  let draft = null, barCtx = null, back = null, keepTop = null, sheet = null, menuOpen = false, selTimer = 0, gone = false;
+  let draft = null, barCtx = null, back = null, keepTop = null, sheet = null, selTimer = 0, gone = false;
   let rev = null; // { state, decks } de l'onglet Révisions
-  const wide = matchMedia('(min-width:1100px)'), roomy = matchMedia('(min-width:760px)');
-  let sideOn = roomy.matches, marginOn = wide.matches;
+  let chapNotes = new Map(), chapNotesFor = null; // notes de chapitre (study_notes), partagées avec « Mon espace Study »
+  const wide = matchMedia('(min-width:1100px)');
+  let sideOn = false, marginOn = wide.matches;
 
   // --- Cadre -----------------------------------------------------------------------------------------------------
+  // En haut : retour, fil (matière / cours), Personnaliser, signet, fermer. Dessous : Chapitres, onglets, Aa, recherche.
+  // Au milieu : le cours, et « Mes notes » à droite. En bas : chapitre n sur N, progression, chapitre suivant.
   const icon = d => `<svg viewBox="0 0 16 16" aria-hidden="true">${d}</svg>`;
+  const ICONS = {
+    retour: '<path d="M13 8H3.500M7.500 4L3.500 8l4 4"/>',
+    reglages: '<path d="M2.500 5h6M11.500 5h2M2.500 11h2M7.500 11h6"/><circle cx="10" cy="5" r="1.500"/><circle cx="6" cy="11" r="1.500"/>',
+    signet: '<path d="M4.500 2.500h7v11L8 10.800 4.500 13.500z"/>',
+    fermer: '<path d="M4 4l8 8M12 4l-8 8"/>',
+    liste: '<path d="M5.500 4h8M5.500 8h8M5.500 12h8M2.500 4h.500M2.500 8h.500M2.500 12h.500"/>',
+    chercher: '<circle cx="7" cy="7" r="4.300"/><path d="M10.200 10.200L13.500 13.500"/>',
+    notes: '<path d="M3 3.500h10v7H8.500L6 12.800V10.500H3z"/>',
+    copier: '<rect x="5.500" y="5.500" width="8" height="8" rx="1.500"/><path d="M10.500 3.500v-.500A1 1 0 0 0 9.500 2H3a1 1 0 0 0-1 1v6.500a1 1 0 0 0 1 1h.500"/>',
+    surligner: '<path d="M9.500 3l3.500 3.500-5.500 5.500H4v-3.500z"/><path d="M2.500 14h11"/>',
+    souligner: '<path d="M4.500 2.500v5a3.500 3.500 0 0 0 7 0v-5M3.500 14h9"/>',
+    note: '<path d="M2.500 3.500h11v7.500H8l-3 2.500v-2.500H2.500z"/><path d="M5 6.500h6M5 8.800h4"/>',
+    plus: '<circle cx="3.500" cy="8" r=".800"/><circle cx="8" cy="8" r=".800"/><circle cx="12.500" cy="8" r=".800"/>',
+    corbeille: '<path d="M3 4.500h10M6.500 4.500V3h3v1.500M4.500 4.500l.600 9h5.800l.600-9"/>',
+    ajouter: '<path d="M8 3v10M3 8h10"/>',
+    suivant: '<path d="M3 8h9.500M8.500 4l4 4-4 4"/>',
+    coche: '<path d="M3 8.500l3 3 7-7"/>',
+    chevron: '<path d="M6 3.500L10.500 8 6 12.500"/>',
+  };
+  const iconBtn = (cls, d, label, onClick) => {
+    const b = button(`carnet-icon ${cls}`.trim(), '', onClick);
+    b.innerHTML = icon(d);
+    if (label) b.ariaLabel = b.title = label;
+    return b;
+  };
+  // Un bouton avec icône et libellé visible.
+  const labelBtn = (cls, d, label, onClick) => {
+    const b = button(cls, '', onClick);
+    b.innerHTML = icon(d);
+    b.append(el('span', '', label));
+    return b;
+  };
   const top = el('header', 'carnet-top');
-  const sideBtn = button('carnet-icon', '', () => { sideOn = !sideOn; layout(); });
-  sideBtn.innerHTML = icon('<path d="M2.500 4h11M2.500 8h11M2.500 12h7"/>');
+  const closeLabel = api.retour ?? 'Retour au tableau';
+  const backBtn = labelBtn('carnet-back', ICONS.retour, closeLabel, () => api.close());
   const name = el('p', 'carnet-name');
+  const status = el('span', 'carnet-status');
+  status.setAttribute('role', 'status');
+  const signetBtn = iconBtn('carnet-signet', ICONS.signet, '', toggleSignet);
+  const closeBtn = iconBtn('carnet-close', ICONS.fermer, 'Fermer le cahier', () => api.close());
+
+  const sub = el('div', 'carnet-subbar');
+  const sideBtn = labelBtn('carnet-chap-btn', ICONS.liste, 'Chapitres', () => { sideOn = !sideOn; if (sideOn) drawMenu(); layout(); if (sideOn) side.querySelector('[aria-current], button')?.focus(); });
+  sideBtn.setAttribute('aria-controls', 'carnet-side');
+  sideBtn.ariaLabel = 'Chapitres'; // le libellé visible disparaît sur petit écran
   const tabs = el('div', 'carnet-tabs');
   tabs.setAttribute('role', 'tablist');
   tabs.ariaLabel = 'Parties du carnet';
@@ -83,28 +127,31 @@ window.cahierCarnet = function cahierCarnet(api) {
   };
   const find = Object.assign(el('input', 'cahier-search carnet-find'), { type: 'search', placeholder: 'Chercher dans le cours', ariaLabel: 'Chercher dans le cours', autocomplete: 'off', maxLength: 80 });
   find.oninput = () => { if (tab !== 'cours') setTab('cours'); api.search(find.value); };
-  const status = el('span', 'carnet-status');
-  status.setAttribute('role', 'status');
-  const signetBtn = button('carnet-icon carnet-signet', '', toggleSignet);
-  signetBtn.innerHTML = icon('<path d="M4.500 2.500h7v11L8 10.800 4.500 13.500z"/>');
-  const marginBtn = button('carnet-icon', '', () => { marginOn = !marginOn; layout(); if (marginOn) margin.querySelector('button, textarea')?.focus(); });
-  marginBtn.innerHTML = icon('<path d="M3 3.500h10v7H8.500L6 12.800V10.500H3z"/>');
-  const menuBtn = button('ghost carnet-menu-btn', 'Gérer', () => setMenu(!menuOpen));
-  menuBtn.setAttribute('aria-haspopup', 'true');
-  const menu = el('div', 'carnet-menu');
-  menu.hidden = true;
-  const closeBtn = button('ghost carnet-retour', api.retour ?? 'Réduire', () => api.close());
-  closeBtn.ariaLabel = api.retour ?? 'Réduire : retour au tableau';
+  find.onkeydown = e => { if (e.key === 'Escape' && !find.value) { e.stopPropagation(); setFind(false); findBtn.focus(); } };
+  const findBtn = iconBtn('carnet-find-btn', ICONS.chercher, 'Chercher dans le cours', () => setFind(!findOn));
+  findBtn.setAttribute('aria-expanded', 'false');
+  let findOn = false;
+  function setFind(on) {
+    findOn = on;
+    box.classList.toggle('carnet-find-on', on);
+    findBtn.setAttribute('aria-expanded', on);
+    if (on) find.focus();
+    else if (find.value) { find.value = ''; api.search(''); }
+  }
+  const marginBtn = iconBtn('carnet-margin-btn', ICONS.notes, '', () => { marginOn = !marginOn; layout(); if (marginOn) margin.querySelector('button, textarea')?.focus(); });
+  const aaBtn = button('carnet-icon carnet-aa', 'Aa', () => { lookView = 'texte'; setLook(lookPanel.hidden || lookView !== 'texte'); });
+  aaBtn.ariaLabel = aaBtn.title = 'Police et taille du texte';
+  aaBtn.setAttribute('aria-haspopup', 'dialog');
   // --- Apparence du carnet : Papier, Verre (le fond d'écran se devine derrière), Sombre ; police, taille, interligne.
   // Gardée sur cet appareil (localStorage), limitée au carnet : le tableau, le logo et le reste de l'appli ne changent pas.
   // Tout s'applique tout de suite (aperçu en direct) ; « Réinitialiser » revient au réglage de départ (Verre).
   const LOOK_KEY = 'renzvi:carnet-look';
-  const LOOK0 = { surface: 'verre', opacite: 74, flou: 24, police: 'editoriale', taille: 18, interligne: 1.7 };
+  const LOOK0 = { surface: 'verre', opacite: 72, flou: 24, police: 'editoriale', taille: 19, interligne: 1.55 };
   const SURFACES = [['papier', 'Papier'], ['verre', 'Verre'], ['sombre', 'Sombre']];
   const POLICES = [['editoriale', 'Éditoriale'], ['sans', 'Sans empattement']];
-  const INTERLIGNES = [[1.55, 'Serré'], [1.7, 'Normal'], [1.9, 'Aéré']];
+  const INTERLIGNES = [[1.45, 'Serré'], [1.55, 'Normal'], [1.8, 'Aéré']];
   const clampN = (v, a, b, d) => Number.isFinite(+v) ? Math.min(b, Math.max(a, +v)) : d;
-  let look = { ...LOOK0 };
+  let look = { ...LOOK0 }, lookView = 'main';
   try {
     const l = JSON.parse(localStorage.getItem(LOOK_KEY) || 'null');
     if (l) look = {
@@ -123,7 +170,8 @@ window.cahierCarnet = function cahierCarnet(api) {
     box.style.setProperty('--cn-lh', String(look.interligne));
     if (keep) try { localStorage.setItem(LOOK_KEY, JSON.stringify(look)); } catch {}
   }
-  const lookBtn = button('ghost carnet-look-btn', 'Personnaliser', () => setLook(lookPanel.hidden));
+  const lookBtn = labelBtn('carnet-look-btn', ICONS.reglages, 'Personnaliser', () => { lookView = 'main'; setLook(lookPanel.hidden || lookView !== 'main'); });
+  lookBtn.ariaLabel = 'Personnaliser';
   lookBtn.setAttribute('aria-haspopup', 'dialog');
   lookBtn.setAttribute('aria-expanded', 'false');
   const lookPanel = el('div', 'carnet-look');
@@ -132,17 +180,18 @@ window.cahierCarnet = function cahierCarnet(api) {
   lookPanel.ariaLabel = 'Apparence du cahier';
   function setLook(on) {
     lookPanel.hidden = !on;
-    lookBtn.setAttribute('aria-expanded', on);
-    if (on) { drawLook(); lookPanel.querySelector('[aria-pressed=true]')?.focus(); }
+    lookBtn.setAttribute('aria-expanded', on && lookView === 'main');
+    aaBtn.setAttribute('aria-expanded', on && lookView === 'texte');
+    if (on) { drawLook(); lookPanel.querySelector('[aria-pressed=true], button')?.focus(); }
   }
   function choix(label, list, value, onPick, cls = '') {
     const g = el('div', `carnet-look-row ${cls}`);
     g.setAttribute('role', 'group');
     g.ariaLabel = label;
     for (const [v, t] of list) {
-      const b = button(`carnet-look-opt carnet-look-${v}`, '', () => { onPick(v); applyLook(); drawLook(); g.querySelector(`[data-v="${v}"]`)?.focus(); });
+      const b = button(`carnet-look-opt carnet-look-${v}`, '', () => { onPick(v); applyLook(); drawLook(); lookPanel.querySelector(`[aria-label="${label}"] [data-v="${v}"]`)?.focus(); });
       b.dataset.v = String(v);
-      if (cls === 'carnet-look-surfaces') b.append(el('i', ''));
+      if (cls === 'carnet-look-surfaces') { const i = el('i', ''); i.innerHTML = icon(ICONS.coche); b.append(i); }
       b.append(el('span', '', t));
       b.setAttribute('aria-pressed', String(v === value));
       g.append(b);
@@ -151,42 +200,78 @@ window.cahierCarnet = function cahierCarnet(api) {
   }
   function curseur(label, min, max, value, unit, onInput) {
     const wrap = el('label', 'carnet-look-range');
-    const top = el('span', 'carnet-look-label');
     const val = el('span', 'carnet-look-val', `${value}${unit}`);
-    top.append(label, val);
     const input = Object.assign(el('input'), { type: 'range', min, max, value });
     input.oninput = () => { onInput(+input.value); val.textContent = `${input.value}${unit}`; applyLook(); };
-    wrap.append(top, input);
+    wrap.append(el('span', 'carnet-look-label', label), input, val);
     return wrap;
   }
   function drawLook() {
-    const parts = [el('h3', '', 'Apparence du cahier'), choix('Surface', SURFACES, look.surface, v => { look.surface = v; }, 'carnet-look-surfaces')];
-    if (look.surface === 'verre') parts.push(curseur('Opacité', 40, 96, look.opacite, ' %', v => { look.opacite = v; }), curseur('Flou', 0, 40, look.flou, ' px', v => { look.flou = v; }));
-    parts.push(
-      el('p', 'carnet-look-label', 'Police du cours'), choix('Police du cours', POLICES, look.police, v => { look.police = v; }),
-      curseur('Taille du texte', 15, 24, look.taille, ' px', v => { look.taille = v; }),
-      el('p', 'carnet-look-label', 'Interligne'), choix('Interligne', INTERLIGNES, look.interligne, v => { look.interligne = v; }),
-      button('link carnet-look-reset', 'Réinitialiser', () => { look = { ...LOOK0 }; applyLook(); drawLook(); }),
-    );
+    const parts = [];
+    if (lookView === 'main') {
+      parts.push(el('h3', '', 'Apparence du cahier'), choix('Surface', SURFACES, look.surface, v => { look.surface = v; }, 'carnet-look-surfaces'));
+      if (look.surface === 'verre') parts.push(curseur('Opacité', 40, 96, look.opacite, ' %', v => { look.opacite = v; }), curseur('Flou', 0, 40, look.flou, ' px', v => { look.flou = v; }));
+      const police = button('carnet-look-link', '', () => { lookView = 'texte'; drawLook(); lookPanel.querySelector('button')?.focus(); });
+      police.append(el('span', '', `Police · ${POLICES.find(([k]) => k === look.police)[1]}`));
+      police.insertAdjacentHTML('beforeend', icon(ICONS.chevron));
+      police.ariaLabel = `Police et texte : ${POLICES.find(([k]) => k === look.police)[1]}`;
+      parts.push(police);
+    } else {
+      const retour = button('carnet-look-back', '', () => { lookView = 'main'; drawLook(); lookPanel.querySelector('.carnet-look-link')?.focus(); });
+      retour.innerHTML = icon(ICONS.retour);
+      retour.append(el('span', '', 'Apparence du cahier'));
+      parts.push(retour, el('h3', '', 'Police et texte'),
+        choix('Police du cours', POLICES, look.police, v => { look.police = v; }),
+        curseur('Taille du texte', 15, 24, look.taille, ' px', v => { look.taille = v; }),
+        el('p', 'carnet-look-label', 'Interligne'), choix('Interligne', INTERLIGNES, look.interligne, v => { look.interligne = v; }));
+    }
+    parts.push(button('link carnet-look-reset', 'Réinitialiser', () => { look = { ...LOOK0 }; applyLook(); drawLook(); }));
     lookPanel.replaceChildren(...parts);
   }
   applyLook(false);
   const acts = el('div', 'carnet-acts');
-  acts.append(status, lookBtn, lookPanel, signetBtn, marginBtn, menuBtn, menu, closeBtn);
-  top.append(sideBtn, name, tabs, find, acts);
+  acts.append(status, lookBtn, signetBtn, closeBtn, lookPanel);
+  top.append(backBtn, name, acts);
+  const subTools = el('div', 'carnet-subtools');
+  subTools.append(find, marginBtn, aaBtn, findBtn);
+  sub.append(sideBtn, tabs, subTools);
 
+  // Chapitres : un tiroir à gauche, ouvert par « Chapitres ». Les actions de gestion du cours y sont aussi.
   const side = el('nav', 'carnet-side');
+  side.id = 'carnet-side';
   side.ariaLabel = 'Cours et chapitres';
   const coursePick = Object.assign(el('select', 'cahier-pick carnet-course'), { ariaLabel: 'Cours' });
   coursePick.onchange = () => { back = null; api.openCourse(coursePick.value); };
   const resume = button('link carnet-resume', '', () => { const b = back; back = null; if (b) api.reveal({ page: b.page, offset: b.pos, length: 0 }); });
   const chapters = el('ol', 'carnet-chapters');
-  side.append(coursePick, resume, chapters);
+  const menu = el('div', 'carnet-menu');
+  menu.setAttribute('role', 'group');
+  menu.ariaLabel = 'Gérer ce cours';
+  side.append(coursePick, resume, chapters, el('h3', 'carnet-side-h', 'Gérer ce cours'), menu);
 
   const margin = el('aside', 'carnet-margin');
-  margin.ariaLabel = 'Notes et signets';
+  margin.ariaLabel = 'Mes notes sur ce chapitre';
   const pane = el('div', 'carnet-pane');
   pane.hidden = true;
+  // Pied : chapitre n sur N, progression dans le cours, chapitre suivant.
+  const foot = el('footer', 'carnet-foot');
+  const count = el('span', 'carnet-count');
+  const progress = el('div', 'carnet-progress');
+  progress.setAttribute('role', 'progressbar');
+  progress.ariaLabel = 'Progression dans le cours';
+  progress.setAttribute('aria-valuemin', '0');
+  progress.setAttribute('aria-valuemax', '100');
+  const fill = el('i', '');
+  progress.append(fill);
+  const nextBtn = button('carnet-next', '', () => { back = null; api.openChapter(api.chapter() + 1); });
+  nextBtn.append(el('span', '', 'Chapitre suivant'));
+  nextBtn.insertAdjacentHTML('beforeend', icon(ICONS.suivant));
+  nextBtn.ariaLabel = 'Chapitre suivant';
+  const prevBtn = button('carnet-next carnet-prev', '', () => { back = null; api.openChapter(api.chapter() - 1); });
+  prevBtn.innerHTML = icon(ICONS.retour);
+  prevBtn.append(el('span', '', 'Chapitre précédent'));
+  prevBtn.ariaLabel = 'Chapitre précédent';
+  foot.append(count, progress, prevBtn, nextBtn);
   const bar = el('div', 'carnet-bar');
   bar.setAttribute('role', 'toolbar');
   bar.ariaLabel = 'Annoter le passage';
@@ -194,10 +279,11 @@ window.cahierCarnet = function cahierCarnet(api) {
   // Un appui sur la barre ne doit pas effacer la sélection du texte.
   bar.addEventListener('pointerdown', e => { if (e.target.closest('button')) e.preventDefault(); });
   const layer = el('div', 'carnet-layer');
-  const parts = [top, side, margin, pane, bar, layer];
+  const parts = [top, sub, side, margin, pane, foot, bar, layer];
   for (const n of parts) n.hidden = true;
-  view.before(top, side);
+  view.before(top, sub, side);
   view.after(pane, bar, margin, layer);
+  body.append(foot);
 
   let statusTimer;
   function tell(text, bad = false) {
@@ -215,23 +301,16 @@ window.cahierCarnet = function cahierCarnet(api) {
     box.classList.toggle('carnet-side-on', open && sideOn);
     box.classList.toggle('carnet-margin-on', open && marginOn);
     sideBtn.setAttribute('aria-expanded', sideOn);
-    sideBtn.ariaLabel = sideBtn.title = sideOn ? 'Masquer les chapitres' : 'Afficher les chapitres';
     marginBtn.setAttribute('aria-expanded', marginOn);
     const n = marks.filter(m => m.kind === 'passage' && here(m)).length;
-    marginBtn.ariaLabel = marginBtn.title = `${marginOn ? 'Masquer' : 'Afficher'} les notes et signets${n ? ` (${n} sur ce chapitre)` : ''}`;
+    marginBtn.ariaLabel = marginBtn.title = `${marginOn ? 'Masquer' : 'Afficher'} mes notes${n ? ` (${n} sur ce chapitre)` : ''}`;
     marginBtn.dataset.n = n || '';
+    // « Enregistré » s'affiche au pied de « Mes notes » quand la colonne est là, sinon en haut.
+    placeStatus();
   }
-  function setMenu(on) {
-    menuOpen = on;
-    menu.hidden = !on;
-    menuBtn.setAttribute('aria-expanded', on);
-    if (!on) return;
-    // Les actions de gestion sont celles du widget compact : mêmes boutons, mêmes confirmations.
-    menu.replaceChildren(...api.tools().filter(t => !t.hidden).map(t => {
-      const b = button(t.classList.contains('cahier-danger') ? 'cahier-danger' : '', t.textContent, () => { setMenu(false); t.click(); });
-      return b;
-    }));
-    menu.querySelector('button')?.focus();
+  // Les actions de gestion sont celles du widget compact : mêmes boutons, mêmes confirmations.
+  function drawMenu() {
+    menu.replaceChildren(...api.tools().filter(t => !t.hidden).map(t => button(t.classList.contains('cahier-danger') ? 'cahier-danger' : '', t.textContent, () => { sideOn = false; layout(); t.click(); })));
   }
   function setTab(id) {
     if (id === tab) return;
@@ -259,6 +338,13 @@ window.cahierCarnet = function cahierCarnet(api) {
     if (q.error || !text) { marksState = 'error'; drawMargin(); return; }
     marks = listOf(q.data);
     for (const m of marks) locate(m, text.pages);
+    // Notes de chapitre : un plus. Si elles ne se chargent pas, les annotations restent utilisables.
+    sb.from('study_notes').select('chapter_id,body').eq('course_id', c.id).then(({ data, error }) => {
+      if (gone || marksFor !== c.id || error) return;
+      chapNotes = new Map(listOf(data).map(n => [n.chapter_id, n.body]));
+      chapNotesFor = c.id;
+      drawMargin();
+    }, () => {});
     marksState = 'ready';
     refresh();
   }
@@ -359,8 +445,22 @@ window.cahierCarnet = function cahierCarnet(api) {
   function showBar(ctx, rect) {
     barCtx = ctx;
     const m = ctx.mark ?? (ctx.sel && exact(ctx.sel));
-    const hl = button('carnet-tool', 'Surligner', () => style(ctx, 'surligne'));
+    const tool = (d, label, onClick, name) => { const b = labelBtn('carnet-tool', d, label, onClick); if (name) b.ariaLabel = name; return b; };
+    const text = ctx.sel?.text ?? m?.quote ?? '';
+    const copy = tool(ICONS.copier, 'Copier', async () => {
+      try { await navigator.clipboard.writeText(text); tell('Copié'); } catch { tell('La copie est bloquée par le navigateur : utilise Ctrl + C.', true); }
+      hideBar();
+    });
+    const hl = tool(ICONS.surligner, 'Surligner', () => style(ctx, 'surligne'));
     hl.setAttribute('aria-pressed', !!m?.surligne);
+    const ul = tool(ICONS.souligner, 'Souligner', () => style(ctx, 'souligne'));
+    ul.setAttribute('aria-pressed', !!m?.souligne);
+    const noteBtn = tool(ICONS.note, 'Note', () => { startNote(ctx.sel, m); hideBar(); }, m?.note ? 'Modifier la note' : 'Ajouter une note');
+    // Le reste à portée sans encombrer : couleur du surlignage, carte, texte à trous, explication, suppression.
+    const more = iconBtn('carnet-tool carnet-more', ICONS.plus, 'Plus', () => { extra.hidden = !extra.hidden; more.setAttribute('aria-expanded', !extra.hidden); place(rect); });
+    more.setAttribute('aria-expanded', 'false');
+    const extra = el('div', 'carnet-extra');
+    extra.hidden = true;
     const dots = el('span', 'carnet-dots');
     dots.setAttribute('role', 'group');
     dots.ariaLabel = 'Couleur du surlignage';
@@ -371,26 +471,10 @@ window.cahierCarnet = function cahierCarnet(api) {
       d.setAttribute('aria-pressed', !!m?.surligne && m.color === id);
       dots.append(d);
     }
-    const ul = button('carnet-tool', 'Souligner', () => style(ctx, 'souligne'));
-    ul.setAttribute('aria-pressed', !!m?.souligne);
-    const noteBtn = button('carnet-tool', m?.note ? 'Modifier la note' : 'Ajouter une note', () => { startNote(ctx.sel, m); hideBar(); });
-    const items = [hl, dots, ul, noteBtn];
-    const text = ctx.sel?.text ?? m?.quote ?? '';
-    items.push(button('carnet-tool', 'Copier', async () => {
-      try { await navigator.clipboard.writeText(text); tell('Copié'); } catch { tell('La copie est bloquée par le navigateur : utilise Ctrl + C.', true); }
-      hideBar();
-    }));
-    if (ctx.sel) {
-      // Les actions d'étude du widget compact restent à portée : carte, texte à trous, explication.
-      const more = button('carnet-tool', 'Plus', () => { extra.hidden = !extra.hidden; more.setAttribute('aria-expanded', !extra.hidden); place(rect); });
-      more.setAttribute('aria-expanded', 'false');
-      const extra = el('div', 'carnet-extra');
-      extra.hidden = true;
-      extra.append(button('carnet-tool', 'Créer une carte', () => { hideBar(); api.makeCard('qa'); }), button('carnet-tool', 'Masquer ces mots', () => { hideBar(); api.makeCard('trou'); }), button('carnet-tool', 'Expliquer (IA)', () => { hideBar(); api.explain(); }));
-      items.push(more, extra);
-    } else {
-      items.push(button('carnet-tool cahier-danger', 'Supprimer', async () => { await remove(m); hideBar(); }));
-    }
+    extra.append(dots);
+    if (ctx.sel) extra.append(button('carnet-tool', 'Créer une carte', () => { hideBar(); api.makeCard('qa'); }), button('carnet-tool', 'Masquer ces mots', () => { hideBar(); api.makeCard('trou'); }), button('carnet-tool', 'Expliquer (IA)', () => { hideBar(); api.explain(); }));
+    else extra.append(button('carnet-tool cahier-danger', 'Supprimer', async () => { await remove(m); hideBar(); }));
+    const items = [copy, hl, ul, noteBtn, more, extra];
     bar.replaceChildren(...items);
     bar.hidden = false;
     place(rect);
@@ -400,8 +484,13 @@ window.cahierCarnet = function cahierCarnet(api) {
     const w = bar.offsetWidth, h = bar.offsetHeight, touch = matchMedia('(pointer:coarse)').matches;
     const above = rect.top - h - 10, below = rect.bottom + 10;
     const y = (!touch && above > 8) || below + h > innerHeight - 8 ? Math.max(8, above) : below;
-    bar.style.left = `${Math.round(Math.max(8, Math.min(innerWidth - w - 8, rect.left + rect.width / 2 - w / 2)))}px`;
+    const x = Math.round(Math.max(8, Math.min(innerWidth - w - 8, rect.left + rect.width / 2 - w / 2)));
+    bar.style.left = `${x}px`;
     bar.style.top = `${Math.round(y)}px`;
+    // Le flou de la fenêtre (Verre) fait de la fenêtre le repère de « position: fixed » : on corrige l'écart mesuré.
+    const got = bar.getBoundingClientRect();
+    bar.style.left = `${x - (got.left - x)}px`;
+    bar.style.top = `${Math.round(y - (got.top - y))}px`;
   }
   const onSelection = () => {
     clearTimeout(selTimer);
@@ -427,8 +516,9 @@ window.cahierCarnet = function cahierCarnet(api) {
   };
   view.addEventListener('click', onClick);
   const onDown = e => {
-    if (menuOpen && !menu.contains(e.target) && e.target !== menuBtn) setMenu(false);
-    if (!lookPanel.hidden && !lookPanel.contains(e.target) && e.target !== lookBtn) setLook(false);
+    const t = e.target;
+    if (!lookPanel.hidden && !lookPanel.contains(t) && !lookBtn.contains(t) && !aaBtn.contains(t)) setLook(false);
+    if (open && sideOn && !side.contains(t) && !sideBtn.contains(t) && !t.closest?.('.dd-list')) { sideOn = false; layout(); }
     if (barCtx?.mark && !bar.contains(e.target) && !e.target.closest?.('.cahier-block')) hideBar();
   };
   document.addEventListener('pointerdown', onDown);
@@ -445,8 +535,36 @@ window.cahierCarnet = function cahierCarnet(api) {
     drawMargin();
     margin.querySelector('.carnet-draft textarea')?.focus();
   }
+  // « Ajouter une note » sans passage choisi : la note du chapitre, la même que dans « Mon espace Study ».
+  function startChapNote() {
+    const c = api.course(), ch = c?.chapters[api.chapter()];
+    if (!ch) return;
+    if (draft?.text.trim() && !draft.chapitre && draft.text !== (draft.mark?.note ?? '')) { tell('Enregistre ou annule d’abord la note en cours.', true); return; }
+    draft = { chapitre: true, course: c.id, chapter: ch.id, text: (chapNotesFor === c.id && chapNotes.get(ch.id)) || '' };
+    marginOn = true;
+    layout();
+    drawMargin();
+    margin.querySelector('.carnet-draft textarea')?.focus();
+  }
+  async function saveChapNote(d, text) {
+    if (!api.user?.id) { tell(FAIL, true); return false; }
+    const key = { user_id: api.user.id, course_id: d.course, chapter_id: d.chapter };
+    tell('Enregistrement…');
+    const { error } = text
+      ? await sb.from('study_notes').upsert({ ...key, body: text, updated_at: new Date().toISOString() })
+      : await sb.from('study_notes').delete().match(key);
+    if (gone) return false;
+    if (error) { tell(FAIL, true); return false; }
+    if (chapNotesFor === d.course) text ? chapNotes.set(d.chapter, text) : chapNotes.delete(d.chapter);
+    tell('Enregistré');
+    return true;
+  }
   async function saveDraft() {
     const d = draft, text = d.text.trim().slice(0, CARNET.note);
+    if (d.chapitre) {
+      if (await saveChapNote(d, text) && draft === d) { draft = null; drawMargin(); }
+      return;
+    }
     if (!text && !d.mark) { tell('Écris ta note avant de l’enregistrer.', true); return; }
     let ok;
     if (d.mark) {
@@ -479,8 +597,11 @@ window.cahierCarnet = function cahierCarnet(api) {
       li.append(go, x);
       return li;
     }
-    if (withChapter) li.append(el('p', 'carnet-where', api.course()?.chapters[chapterOf(m)]?.title ?? ''));
-    const q = el('blockquote', 'carnet-quote', m.quote);
+    const h = el('p', 'carnet-mark-h');
+    h.innerHTML = icon(ICONS.signet);
+    h.append(el('strong', '', withChapter ? api.course()?.chapters[chapterOf(m)]?.title ?? '' : headingOf(m)));
+    li.append(h);
+    const q = el('blockquote', 'carnet-quote', `« ${m.quote} »`);
     if (m.souligne) q.classList.add('souligne');
     li.append(q);
     if (m.note) li.append(el('p', 'carnet-notetext', m.note));
@@ -499,43 +620,83 @@ window.cahierCarnet = function cahierCarnet(api) {
     return li;
   }
 
+  // Le sous-titre du cours sous lequel tombe un passage (sinon le titre du chapitre) : le nom de la note dans la marge.
+  function headingOf(m) {
+    const r = reader();
+    let h = null;
+    for (const b of r ? r.querySelectorAll('.cahier-block') : []) {
+      const page = +b.dataset.page, start = +b.dataset.start;
+      if (page > m.page || (page === m.page && start > posOf(m))) break;
+      if (b.classList.contains('cahier-sous-titre')) h = b.textContent.trim();
+    }
+    return h ?? api.course()?.chapters[chapterOf(m)]?.title ?? 'Passage';
+  }
+  function placeStatus() {
+    const foot = marginOn && wide.matches ? margin.querySelector('.carnet-mfoot') : null;
+    if (foot) { if (status.parentNode !== foot) foot.append(status); }
+    else if (status.parentNode !== acts) acts.prepend(status);
+  }
+  function chapItem(text) {
+    const li = el('li', 'carnet-mark carnet-chapnote');
+    const h = el('p', 'carnet-mark-h');
+    h.innerHTML = icon(ICONS.signet);
+    h.append(el('strong', '', 'Note du chapitre'));
+    const row = el('div', 'carnet-markacts');
+    row.append(button('link', 'Modifier', () => startChapNote()));
+    li.append(h, el('p', 'carnet-notetext', text), row);
+    return li;
+  }
   function drawMargin() {
     const c = api.course();
     const hadKey = margin.contains(document.activeElement) ? document.activeElement.dataset.key : null;
     const items = [];
     const head = el('div', 'carnet-mhead');
-    const hide = button('carnet-icon carnet-mclose', '', () => { marginOn = false; layout(); marginBtn.focus(); });
-    hide.innerHTML = icon('<path d="M4 4l8 8M12 4l-8 8"/>');
-    hide.ariaLabel = hide.title = 'Masquer les notes et signets';
-    head.append(el('h3', '', 'Sur ce chapitre'), hide);
+    const titles = el('div', '');
+    titles.append(el('h2', 'carnet-mtitle', 'Mes notes'), el('p', 'carnet-msub', 'Liées à ce chapitre'));
+    const hide = iconBtn('carnet-mclose', ICONS.fermer, 'Masquer mes notes', () => { marginOn = false; layout(); marginBtn.focus(); });
+    head.append(titles, hide);
     items.push(head);
     if (draft) {
       const f = el('form', 'carnet-draft');
-      const quote = draft.mark?.quote ?? draft.sel.text;
-      const area = Object.assign(el('textarea', ''), { maxLength: CARNET.note, value: draft.text, placeholder: 'Ta note sur ce passage', ariaLabel: 'Note sur le passage cité' });
+      const area = Object.assign(el('textarea', ''), { maxLength: CARNET.note, value: draft.text, placeholder: draft.chapitre ? 'Ta note sur ce chapitre' : 'Ta note sur ce passage', ariaLabel: draft.chapitre ? 'Note sur ce chapitre' : 'Note sur le passage cité' });
       area.dataset.key = 'brouillon';
       area.oninput = () => { draft.text = area.value; };
       const save = Object.assign(el('button', 'primary', 'Enregistrer la note'), { type: 'submit' });
       const cancel = button('ghost', 'Annuler', () => { draft = null; drawMargin(); });
       const row = el('div', 'carnet-draftacts');
       row.append(save, cancel);
-      f.append(el('blockquote', 'carnet-quote', quote), area, row);
+      if (!draft.chapitre) f.append(el('blockquote', 'carnet-quote', `« ${draft.mark?.quote ?? draft.sel.text} »`));
+      f.append(area, row);
       f.onsubmit = e => { e.preventDefault(); saveDraft(); };
       items.push(f);
     }
-    if (marksState === 'loading') items.push(el('p', 'carnet-hint', 'Chargement de tes annotations…'));
+    const ch = c?.chapters[api.chapter()];
+    const chapText = ch && chapNotesFor === c.id ? chapNotes.get(ch.id) : null;
+    if (marksState === 'loading') items.push(el('p', 'carnet-hint', 'Chargement de tes notes…'));
     else if (marksState === 'error') {
-      items.push(el('p', 'carnet-hint bad', 'Tes annotations n’ont pas pu se charger. Le cours reste lisible.'), button('ghost', 'Réessayer', () => c && loadMarks(c)));
+      items.push(el('p', 'carnet-hint bad', 'Tes notes n’ont pas pu se charger. Le cours reste lisible.'), button('ghost', 'Réessayer', () => c && loadMarks(c)));
     } else {
       const mine = marks.filter(m => m.kind === 'passage' && here(m));
-      if (mine.length) { const ul = el('ul', 'carnet-marks'); ul.append(...mine.map(m => markItem(m))); items.push(ul); }
+      const ul = el('ul', 'carnet-marks');
+      if (chapText && !draft?.chapitre) ul.append(chapItem(chapText));
+      ul.append(...mine.map(m => markItem(m)));
+      if (ul.children.length) items.push(ul);
       else if (!draft) items.push(el('p', 'carnet-hint', 'Sélectionne un passage du cours pour le surligner, le souligner ou y attacher une note.'));
       const signets = marks.filter(m => m.kind === 'signet');
-      items.push(el('h3', '', 'Signets'));
-      if (signets.length) { const ul = el('ul', 'carnet-marks carnet-signets'); ul.append(...signets.map(m => markItem(m))); items.push(ul); }
-      else items.push(el('p', 'carnet-hint', 'Aucun signet. Le bouton en forme de marque-page, en haut, garde l’endroit où tu lis.'));
+      if (signets.length) {
+        items.push(el('h3', 'carnet-mh3', 'Signets'));
+        const sl = el('ul', 'carnet-marks carnet-signets');
+        sl.append(...signets.map(m => markItem(m)));
+        items.push(sl);
+      }
     }
+    const foot = el('div', 'carnet-mfoot');
+    const add = labelBtn('carnet-add', ICONS.ajouter, 'Ajouter une note', () => { const s = api.selection(); if (s) startNote(s); else startChapNote(); });
+    add.hidden = !!draft || marksState !== 'ready';
+    foot.append(add);
+    items.push(foot);
     margin.replaceChildren(...items);
+    placeStatus();
     if (hadKey) margin.querySelector(`[data-key="${hadKey}"]`)?.focus();
   }
 
@@ -654,7 +815,7 @@ window.cahierCarnet = function cahierCarnet(api) {
     head.append(backBtn, el('h2', '', s.ariaLabel), m);
     const b = el('div', 'body');
     s.append(head, b);
-    for (const n of [top, side, view, pane, margin]) n.inert = true;
+    for (const n of [top, sub, side, view, pane, margin, foot]) n.inert = true;
     layer.append(s);
     sheet = { node: s, from, cleanup: null };
     try { sheet.cleanup = revisionsWidget({ body: b, meta: m, sb, data: { deck, libre }, save() {} }) ?? null; }
@@ -667,7 +828,7 @@ window.cahierCarnet = function cahierCarnet(api) {
     sheet = null;
     try { s.cleanup?.(); } catch (e) { console.error(e); }
     s.node.remove();
-    for (const n of [top, side, view, pane, margin]) n.inert = false;
+    for (const n of [top, sub, side, view, pane, margin, foot]) n.inert = false;
     if (tab === 'revisions') loadRev();
     if (refocus) (s.from?.isConnected ? s.from : tabBtns[2]).focus();
   }
@@ -679,8 +840,9 @@ window.cahierCarnet = function cahierCarnet(api) {
   function sync() {
     if (!open) return;
     const c = api.course();
-    name.textContent = c ? `${c.subject} · ${c.title}` : '';
-    name.title = name.textContent;
+    name.replaceChildren();
+    if (c) name.append(el('span', '', c.subject), el('span', 'carnet-crumb-sep', '/'), el('span', '', c.title));
+    name.title = c ? `${c.subject} / ${c.title}` : '';
     for (const b of tabBtns) { b.setAttribute('aria-selected', b.dataset.tab === tab); b.tabIndex = b.dataset.tab === tab ? 0 : -1; }
     view.hidden = tab !== 'cours';
     pane.hidden = tab === 'cours';
@@ -695,7 +857,7 @@ window.cahierCarnet = function cahierCarnet(api) {
     const had = chapters.contains(document.activeElement) ? document.activeElement.dataset.i : null;
     chapters.replaceChildren(...(c?.text_chars ? c.chapters : []).map((ch, i) => {
       const li = el('li'), n = marks.filter(m => m.kind === 'passage' && chapterOf(m) === i).length;
-      const b = button('carnet-chapter', '', () => { back = null; if (tab !== 'cours') { tab = 'cours'; keepTop = null; } if (!roomy.matches) sideOn = false; api.openChapter(i); layout(); });
+      const b = button('carnet-chapter', '', () => { back = null; if (tab !== 'cours') { tab = 'cours'; keepTop = null; } sideOn = false; api.openChapter(i); layout(); sideBtn.focus(); });
       b.append(el('span', '', ch.title));
       if (n) { const k = el('small', '', String(n)); k.title = plural(n, 'annotation'); b.append(k); b.ariaLabel = `${ch.title}, ${plural(n, 'annotation')}`; }
       b.dataset.i = i;
@@ -704,6 +866,13 @@ window.cahierCarnet = function cahierCarnet(api) {
       return li;
     }));
     if (had != null) chapters.querySelector(`[data-i="${had}"]`)?.focus();
+    drawMenu();
+    const n = c?.text_chars ? c.chapters.length : 0, i = api.chapter();
+    foot.classList.toggle('carnet-foot-off', !n);
+    count.textContent = n ? `Chapitre ${i + 1} sur ${n}` : '';
+    nextBtn.hidden = !n || i >= n - 1;
+    prevBtn.hidden = !n || i < n - 1 || n < 2;
+    drawProgress();
     if (c && marksFor !== c.id) loadMarks(c);
     if (tab === 'notes') drawNotes();
     if (tab === 'revisions' && rev && rev.state !== 'loading') drawRev();
@@ -711,18 +880,35 @@ window.cahierCarnet = function cahierCarnet(api) {
     layout();
   }
 
+  // « Chapitre 01 · Biologie » au-dessus du titre, seulement dans le carnet.
+  function kicker(r) {
+    const c = api.course(), title = r?.querySelector('.cahier-title');
+    if (!title) return;
+    // Le texte ne doit pas glisser sous les yeux (signet, passage retrouvé) : on compense la hauteur ajoutée.
+    const y = title.getBoundingClientRect().top;
+    r.querySelector('.carnet-kicker')?.remove();
+    if (open && c) title.before(el('p', 'carnet-kicker', `Chapitre ${String(api.chapter() + 1).padStart(2, '0')} · ${c.subject}`));
+    if (r.scrollTop > 0) r.scrollTop += title.getBoundingClientRect().top - y;
+  }
+  // Progression dans le cours : chapitres déjà passés + la part lue du chapitre ouvert.
+  function drawProgress() {
+    const c = api.course(), r = reader(), n = c?.chapters.length || 1;
+    const lu = r && r.scrollHeight > r.clientHeight ? r.scrollTop / (r.scrollHeight - r.clientHeight) : 0;
+    const pct = Math.round(Math.min(1, (api.chapter() + lu) / n) * 100);
+    fill.style.width = `${pct}%`;
+    progress.setAttribute('aria-valuenow', pct);
+  }
   let ticking = false;
   const onScroll = () => {
     if (ticking) return;
     ticking = true;
-    requestAnimationFrame(() => { ticking = false; drawSignet(); if (barCtx) hideBar(); });
+    requestAnimationFrame(() => { ticking = false; drawSignet(); drawProgress(); if (barCtx) hideBar(); });
   };
   const onResize = () => { if (open) { hideBar(); drawSignet(); } };
   addEventListener('resize', onResize);
   // Passer un seuil de largeur remet les panneaux à leur état par défaut pour cette taille.
-  const onWide = () => { marginOn = wide.matches; layout(); }, onRoomy = () => { sideOn = roomy.matches; layout(); };
+  const onWide = () => { marginOn = wide.matches; layout(); };
   wide.addEventListener('change', onWide);
-  roomy.addEventListener('change', onRoomy);
 
   return {
     isOpen: () => open,
@@ -730,34 +916,38 @@ window.cahierCarnet = function cahierCarnet(api) {
     drawn(r) {
       if (!open) return;
       r.addEventListener('scroll', onScroll, { passive: true });
+      kicker(r);
       if (document.activeElement !== find) find.value = '';
+      drawProgress();
       paint();
       drawMargin();
       drawSignet();
     },
     sync,
     open(on) {
-      const r = reader(), keep = r && carnetTop(r);
+      const r = reader(), keep = r && carnetTop(r), atTop = r && r.scrollTop < 4;
       open = on;
       for (const n of parts) n.hidden = !on;
-      if (on) { tab = 'cours'; sideOn = roomy.matches; marginOn = wide.matches; bar.hidden = true; pane.hidden = true; }
-      else { closeSheet(false); setMenu(false); setLook(false); hideBar(); view.hidden = false; back = null; }
+      if (on) { tab = 'cours'; sideOn = false; marginOn = wide.matches; bar.hidden = true; pane.hidden = true; }
+      else { closeSheet(false); setLook(false); setFind(false); hideBar(); view.hidden = false; back = null; box.classList.remove('carnet-find-on'); }
       layout();
       if (on) sync();
       paint();
       // La mise en page a changé : on retrouve le même endroit du texte, pas le même nombre de pixels.
       const r2 = reader();
-      if (r2 && keep) carnetScroll(r2, keep.page, keep.pos);
+      kicker(r2);
+      if (r2 && atTop) r2.scrollTop = 0;
+      else if (r2 && keep) carnetScroll(r2, keep.page, keep.pos);
       if (on) closeBtn.focus({ preventScroll: true });
     },
     // Échap : ferme d'abord ce qui est ouvert par-dessus (menu, barre, révision, panneaux flottants).
     escape() {
-      if (!lookPanel.hidden) { setLook(false); lookBtn.focus(); return true; }
-      if (menuOpen) { setMenu(false); menuBtn.focus(); return true; }
+      if (!lookPanel.hidden) { const from = lookView === 'texte' ? aaBtn : lookBtn; setLook(false); from.focus(); return true; }
       if (sheet) { closeSheet(); return true; }
       if (!bar.hidden) { hideBar(); return true; }
       if (marginOn && !wide.matches) { marginOn = false; layout(); marginBtn.focus(); return true; }
-      if (sideOn && !roomy.matches) { sideOn = false; layout(); sideBtn.focus(); return true; }
+      if (sideOn) { sideOn = false; layout(); sideBtn.focus(); return true; }
+      if (findOn) { setFind(false); findBtn.focus(); return true; }
       return false;
     },
     destroy() {
@@ -770,7 +960,6 @@ window.cahierCarnet = function cahierCarnet(api) {
       document.removeEventListener('renzvi:revoir', onRevoir);
       removeEventListener('resize', onResize);
       wide.removeEventListener('change', onWide);
-      roomy.removeEventListener('change', onRoomy);
       view.removeEventListener('click', onClick);
     },
   };

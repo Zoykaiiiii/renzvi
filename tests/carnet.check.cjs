@@ -27,9 +27,9 @@ function newDb() {
   return db;
 }
 const cahier = page => page.locator('[data-widget=cahier]');
-const grow = page => cahier(page).locator('.cahier-bar').getByRole('button', { name: 'Agrandir', exact: true });
+const grow = page => cahier(page).locator('.cahier-livre-open');
 async function openCarnet(page) {
-  await page.waitForSelector('[data-widget=cahier] .cahier-text');
+  await page.waitForSelector('[data-widget=cahier] .cahier-livre-open');
   await grow(page).click();
   await page.waitForSelector('.carnet-top:not([hidden])');
   await page.waitForFunction(() => !/Chargement/.test(document.querySelector('.carnet-margin')?.textContent ?? ''));
@@ -70,10 +70,13 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     const course = addCourse(db);
     db.cards.push({ ...card('La cellule', 'Rôle de la membrane ?', '2026-11-12T08:00:00.000Z'), course_id: course }, { ...card('La cellule', 'Où est l’ADN ?'), course_id: course }, card('Autre paquet', 'Sans rapport'));
     let { context, page, errors } = await openBoard(browser, base, db);
-    await page.waitForSelector('[data-widget=cahier] .cahier-text');
+    await page.waitForSelector('[data-widget=cahier] .cahier-livre-open');
     const compact = await cahier(page).boundingBox();
     assert.strictEqual(await page.locator('.carnet-top, .carnet-side, .carnet-margin').evaluateAll(a => a.filter(n => n.checkVisibility()).length), 0, 'aucun élément du carnet dans le widget compact');
-    assert.ok(await cahier(page).getByRole('button', { name: 'Supprimer ce cours' }).isVisible(), 'les outils du widget compact sont là');
+    // Widget fermé : un livre ouvert (le cours à gauche, mes notes à droite), « Ouvrir le cahier » en bas.
+    assert.match(await cahier(page).locator('.cahier-livre-titre').textContent(), /La cellule/);
+    assert.strictEqual(await cahier(page).locator('.cahier-livre-foot span').textContent(), 'Chapitre 1 sur 2');
+    assert.strictEqual(await cahier(page).locator('.cahier-text').isVisible(), false, 'la lecture se fait dans le carnet');
     await shot(page, 'carnet-compact');
     await openCarnet(page);
     assert.strictEqual(await page.evaluate(() => document.fullscreenElement), null, 'pas de plein écran du navigateur');
@@ -81,7 +84,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     // Une fenêtre posée sur le tableau : presque tout l'écran, avec une marge où le fond reste visible.
     assert.ok(full.x >= 10 && full.x <= 60 && full.y >= 10 && full.width >= 1300 && full.height >= 800, `le carnet prend presque toute la page (${JSON.stringify(full)})`);
     // Par défaut : le verre fumé, le fond d'écran se devine derrière.
-    assert.strictEqual(await cahier(page).evaluate(n => getComputedStyle(n).backgroundColor), 'rgba(30, 26, 23, 0.74)', 'verre par défaut');
+    assert.strictEqual(await cahier(page).evaluate(n => getComputedStyle(n).backgroundColor), 'rgba(32, 27, 23, 0.72)', 'verre par défaut');
     assert.match(await cahier(page).evaluate(n => getComputedStyle(n).backdropFilter), /blur\(24px\)/);
     await shot(page, 'carnet-verre');
     // Personnaliser : Papier, puis taille du texte ; gardé sur l'appareil, limité au carnet.
@@ -90,7 +93,9 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     await shot(page, 'carnet-personnaliser');
     await page.locator('.carnet-look').getByRole('button', { name: 'Papier' }).click();
     assert.strictEqual(await cahier(page).evaluate(n => getComputedStyle(n).backgroundColor), 'rgb(244, 239, 228)', 'papier chaud');
-    assert.equal(await page.locator('.carnet-look').getByRole('slider').count(), 1, 'opacité et flou : seulement pour le verre');
+    assert.equal(await page.locator('.carnet-look').getByRole('slider').count(), 0, 'opacité et flou : seulement pour le verre');
+    // Police et texte : un second écran du panneau ; « Aa » y mène directement.
+    await page.locator('.carnet-look').getByRole('button', { name: /^Police et texte/ }).click();
     await page.locator('.carnet-look input[type=range]').fill('21');
     assert.strictEqual(await page.locator('.widget.cahier-open .cahier-text').evaluate(n => getComputedStyle(n).fontSize), '21px');
     assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('renzvi:carnet-look')).surface), 'papier');
@@ -101,8 +106,13 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     assert.deepStrictEqual(await page.locator('.carnet-chapter span').allTextContents(), ['La membrane', 'Le noyau']);
     assert.strictEqual(await page.locator('.carnet-chapter[aria-current]').textContent(), 'La membrane');
     assert.strictEqual(await cahier(page).locator('.cahier-title').count(), 1, 'un seul titre de chapitre');
+    assert.strictEqual(await cahier(page).locator('.carnet-kicker').textContent(), 'Chapitre 01 · Biologie');
+    assert.strictEqual(await page.locator('.carnet-count').textContent(), 'Chapitre 1 sur 2');
+    assert.ok(await page.getByRole('button', { name: 'Chapitre suivant' }).isVisible());
+    assert.strictEqual(await page.locator('.carnet-side').isVisible(), false, 'les chapitres sont dans un tiroir');
+    assert.ok(await page.locator('.carnet-margin').isVisible(), 'Mes notes à droite sur grand écran');
     const col = await cahier(page).locator('.cahier-block').first().boundingBox();
-    assert.ok(col.width <= 700, `colonne de lecture lisible (${col.width})`);
+    assert.ok(col.width <= 780, `colonne de lecture lisible (${col.width})`);
     assert.strictEqual(await cahier(page).locator('.cahier-block').first().evaluate(n => getComputedStyle(n).fontSize), '21px', 'la taille choisie dans Personnaliser');
     assert.strictEqual(await cahier(page).locator('.cahier-tools').isVisible(), false, 'plus de ligne de liens de gestion');
     await shot(page, 'carnet-ouvert');
@@ -112,7 +122,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     const second = TEXT.indexOf('La cellule est vivante.', TEXT.indexOf('La cellule est vivante.') + 1);
     await select(page, 'La cellule est vivante.', 1);
     await bar(page).waitFor();
-    assert.deepStrictEqual(await bar(page).locator('.carnet-tool:visible').allTextContents(), ['Surligner', 'Souligner', 'Ajouter une note', 'Copier', 'Plus']);
+    assert.deepStrictEqual(await bar(page).locator('.carnet-tool:visible').allTextContents(), ['Copier', 'Surligner', 'Souligner', 'Note', '']);
     const bb = await bar(page).boundingBox();
     assert.ok(bb.x >= 0 && bb.y >= 0 && bb.x + bb.width <= 1440 && bb.y + bb.height <= 900, 'barre dans l’écran');
     await shot(page, 'carnet-barre');
@@ -139,6 +149,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
       await bar(page).waitFor();
     };
     await clickMark('carnet-jaune');
+    await bar(page).getByRole('button', { name: 'Plus' }).click();
     assert.ok(await bar(page).getByRole('button', { name: 'Supprimer' }).isVisible(), 'une annotation existante se règle');
     await bar(page).getByRole('button', { name: 'Surligner en vert' }).click();
     await saved(page);
@@ -146,6 +157,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     assert.deepStrictEqual(await painted(page, 'carnet-vert'), ['La cellule est vivante.']);
     assert.deepStrictEqual(await painted(page, 'carnet-jaune'), []);
     await clickMark('carnet-souligne');
+    await bar(page).getByRole('button', { name: 'Plus' }).click();
     await bar(page).getByRole('button', { name: 'Supprimer' }).click();
     await page.waitForFunction(() => document.querySelector('.carnet-status').textContent === 'Annotation retirée');
     assert.strictEqual(db.marks.length, 1);
@@ -155,7 +167,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     await select(page, 'Paragraphe 3.');
     await bar(page).getByRole('button', { name: 'Ajouter une note' }).click();
     const draft = page.locator('.carnet-draft');
-    assert.strictEqual(await draft.locator('.carnet-quote').textContent(), 'Paragraphe 3.', 'le passage cité est montré');
+    assert.strictEqual(await draft.locator('.carnet-quote').textContent(), '« Paragraphe 3. »', 'le passage cité est montré');
     await draft.locator('textarea').fill('À revoir avant le partiel.');
     db.failMarks = true;
     await draft.getByRole('button', { name: 'Enregistrer la note' }).click();
@@ -163,9 +175,9 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     assert.match(await status(page).textContent(), /Pas enregistré/);
     assert.strictEqual(db.marks.length, 1, 'rien n’est écrit pendant la panne');
     assert.strictEqual(await draft.locator('textarea').inputValue(), 'À revoir avant le partiel.', 'le brouillon reste');
-    // Fermer puis rouvrir le panneau des notes ne jette pas le brouillon.
-    await page.getByRole('button', { name: /Masquer les notes et signets/ }).first().click();
-    await page.getByRole('button', { name: /Afficher les notes et signets/ }).click();
+    // Changer d'onglet puis revenir ne jette pas le brouillon.
+    await page.getByRole('tab', { name: 'Révisions' }).click();
+    await page.getByRole('tab', { name: 'Cours' }).click();
     assert.strictEqual(await draft.locator('textarea').inputValue(), 'À revoir avant le partiel.');
     db.failMarks = false;
     await draft.getByRole('button', { name: 'Enregistrer la note' }).click();
@@ -194,6 +206,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     assert.ok(sg && sg.length === 0 && sg.quote.length > 10, 'signet enregistré avec ses premiers mots');
     assert.strictEqual(await signet.getAttribute('aria-label'), 'Retirer le signet de cet endroit');
     const where = await topText(page);
+    await page.getByRole('button', { name: 'Chapitres', exact: true }).click();
     await page.locator('.carnet-chapter', { hasText: 'Le noyau' }).click();
     await page.waitForFunction(() => document.querySelector('[data-widget=cahier] .cahier-title').textContent === 'Le noyau');
     assert.strictEqual(await signet.getAttribute('aria-pressed'), 'false', 'pas de signet ici');
@@ -203,12 +216,14 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     assert.strictEqual(await topText(page), where, 'le signet ramène au même endroit du texte');
     assert.match(await page.locator('.carnet-resume').textContent(), /Reprendre ma lecture · Le noyau/);
     await shot(page, 'carnet-signets');
+    await page.getByRole('button', { name: 'Chapitres', exact: true }).click();
     await page.locator('.carnet-resume').click();
     await page.waitForFunction(() => document.querySelector('[data-widget=cahier] .cahier-title').textContent === 'Le noyau');
     assert.strictEqual(await page.locator('.carnet-resume').isVisible(), false);
     console.log('ok signets et reprise');
 
     // 5. Recherche : son repère ne se confond pas avec un surlignage gardé.
+    await page.getByRole('button', { name: 'Chercher dans le cours' }).click();
     await page.locator('.carnet-find').fill('vivante');
     await page.waitForSelector('[data-widget=cahier] .cahier-results');
     await cahier(page).locator('.cahier-hit').nth(1).click();
@@ -225,7 +240,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     const place = await topText(page);
     await page.getByRole('tab', { name: 'Mes notes' }).click();
     assert.strictEqual(await page.locator('.carnet-pane .carnet-h').textContent(), 'Mes notes');
-    assert.strictEqual(await page.locator('.carnet-pane .carnet-mark').first().locator('.carnet-where').textContent(), 'La membrane', 'la note dit son chapitre');
+    assert.strictEqual(await page.locator('.carnet-pane .carnet-mark').first().locator('.carnet-mark-h strong').textContent(), 'La membrane', 'la note dit son chapitre');
     assert.match(await page.locator('.carnet-pane').textContent(), /partiel de janvier/);
     assert.match(await page.locator('.carnet-pane').textContent(), /Passages surlignés ou soulignés/);
     await page.getByRole('tab', { name: 'Cours' }).click();
@@ -261,17 +276,31 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     assert.strictEqual(await topText(page), before, 'même chapitre, même endroit après la révision');
     console.log('ok révisions et retour');
 
-    // 8. Menu « Gérer » : les actions du widget compact, rangées ; Échap ferme le menu d'abord.
-    await page.getByRole('button', { name: 'Gérer' }).click();
+    // 8. « Gérer ce cours », dans le tiroir des chapitres : les actions du widget compact ; Échap ferme le tiroir d'abord.
+    await page.getByRole('button', { name: 'Chapitres', exact: true }).click();
     assert.deepStrictEqual(await page.locator('.carnet-menu button').allTextContents(), ['Importer un cours', 'IA : cartes et résumé du chapitre', 'Modifier les chapitres', "Télécharger l'original", 'Supprimer ce cours']);
     await page.keyboard.press('Escape');
     assert.strictEqual(await page.locator('.carnet-menu').isVisible(), false);
     assert.ok(await page.locator('.carnet-top').isVisible());
-    await page.getByRole('button', { name: 'Gérer' }).click();
+    await page.getByRole('button', { name: 'Chapitres', exact: true }).click();
     await page.locator('.carnet-menu').getByRole('button', { name: 'Modifier les chapitres' }).click();
     await page.waitForSelector('[data-widget=cahier] .cahier-edit');
-    await page.getByRole('button', { name: 'Gérer' }).click();
+    await page.getByRole('button', { name: 'Chapitres', exact: true }).click();
     await page.locator('.carnet-menu').getByRole('button', { name: 'Terminer les chapitres' }).click();
+    // Note du chapitre : « Ajouter une note » sans passage choisi ; la même note que dans « Mon espace Study ».
+    await page.evaluate(() => getSelection().removeAllRanges());
+    await page.locator('.carnet-margin .carnet-add').click();
+    await page.locator('.carnet-draft textarea').fill('Question à revoir : pourquoi si petites ?');
+    await page.locator('.carnet-draft').getByRole('button', { name: 'Enregistrer la note' }).click();
+    await page.waitForSelector('.carnet-chapnote');
+    assert.deepStrictEqual(db.notes.map(n => [n.user_id, n.course_id, n.chapter_id, n.body]), [['u1', course, 'c0', 'Question à revoir : pourquoi si petites ?']]);
+    // Chapitre suivant, en bas.
+    await page.getByRole('button', { name: 'Chapitre suivant' }).click();
+    await page.waitForFunction(() => document.querySelector('[data-widget=cahier] .cahier-title').textContent === 'Le noyau');
+    assert.strictEqual(await page.locator('.carnet-count').textContent(), 'Chapitre 2 sur 2');
+    assert.ok(await page.getByRole('button', { name: 'Chapitre précédent' }).isVisible(), 'dernier chapitre : on peut revenir');
+    await page.getByRole('button', { name: 'Chapitre précédent' }).click();
+    await page.waitForFunction(() => document.querySelector('[data-widget=cahier] .cahier-title').textContent === 'La membrane');
     // Clavier : flèches sur les onglets.
     await page.getByRole('tab', { name: 'Cours' }).focus();
     await page.keyboard.press('ArrowRight');
@@ -293,7 +322,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     console.log('ok rechargement et redimensionnement');
 
     // 10. Réduire : le même widget, à sa taille et à sa place, sans rien du carnet.
-    await page.getByRole('button', { name: 'Réduire : retour au tableau' }).click();
+    await page.getByRole('button', { name: 'Retour au tableau', exact: true }).click();
     await page.waitForFunction(() => !document.querySelector('[data-widget=cahier]').getAnimations().length);
     const again = await cahier(page).boundingBox();
     assert.deepStrictEqual([again.x, again.y, again.width, again.height].map(Math.round), [compact.x, compact.y, compact.width, compact.height].map(Math.round), 'mêmes dimensions');
@@ -326,7 +355,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     // Annotations en panne : le cours reste lisible, c'est dit.
     db2.noMarks = true;
     await page.reload();
-    await page.waitForSelector('[data-widget=cahier] .cahier-text');
+    await page.waitForSelector('[data-widget=cahier] .cahier-livre-open');
     await grow(page).click();
     await page.waitForSelector('.carnet-hint.bad');
     assert.match(await page.locator('.carnet-margin').textContent(), /n’ont pas pu se charger/);
@@ -347,11 +376,12 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     await saved(page);
     assert.strictEqual(db3.marks[0].page, 1, 'seconde page');
     assert.strictEqual(db3.marks[0].course_id, pdf);
+    await page.getByRole('button', { name: 'Chapitres', exact: true }).click();
     await page.locator('.carnet-course').selectOption({ label: 'Scan' });
     await page.waitForSelector('[data-widget=cahier] .cahier-alert');
     assert.strictEqual(await page.locator('.carnet-signet').isDisabled(), true, 'pas de signet sans texte');
     assert.strictEqual(await page.locator('.carnet-chapter').count(), 0);
-    await page.getByRole('button', { name: 'Gérer' }).click();
+    if (!await page.locator('.carnet-side').isVisible()) await page.getByRole('button', { name: 'Chapitres', exact: true }).click();
     assert.ok(await page.locator('.carnet-menu').getByRole('button', { name: "Télécharger l'original" }).isVisible(), 'l’original reste disponible');
     assert.deepStrictEqual(errors, []);
     await context.close();
@@ -361,7 +391,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     const db4 = newDb();
     addCourse(db4);
     ({ context, page, errors } = await openBoard(browser, base, db4, { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }));
-    await page.waitForSelector('[data-widget=cahier] .cahier-text');
+    await page.waitForSelector('[data-widget=cahier] .cahier-livre-open');
     await grow(page).tap();
     await page.waitForSelector('.carnet-top:not([hidden])');
     await page.waitForFunction(() => !document.querySelector('[data-widget=cahier]').getAnimations().length);
@@ -370,7 +400,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     assert.ok((await cahier(page).locator('.cahier-block').first().boundingBox()).width >= 340, 'la lecture prend la largeur');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'pas de défilement de côté');
     await shot(page, 'carnet-telephone');
-    await page.getByRole('button', { name: 'Afficher les chapitres' }).tap();
+    await page.getByRole('button', { name: 'Chapitres', exact: true }).tap();
     assert.ok(await page.locator('.carnet-side').isVisible());
     await page.locator('.carnet-chapter', { hasText: 'Le noyau' }).tap();
     await page.waitForFunction(() => document.querySelector('[data-widget=cahier] .cahier-title').textContent === 'Le noyau');

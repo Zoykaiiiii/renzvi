@@ -90,6 +90,37 @@ function cahierSlices(pages, from, to) {
   return out;
 }
 
+// Découpe un morceau de page en blocs de texte et sous-titres. Un sous-titre : une ligne « # … », ou une ligne courte,
+// sans ponctuation finale, seule après une ligne vide (ou en tête), suivie de texte. Le « # » n'est pas affiché.
+// Les lignes vides autour d'un sous-titre ne sont pas affichées non plus : chaque bloc garde sa vraie position.
+function cahierSousTitres(page, start, end) {
+  const out = [];
+  let from = start, at = start, blank = true;
+  const push = (a, b, titre) => {
+    while (b > a && /\s/.test(page[b - 1])) b--;
+    if (!titre) while (a < b && page[a] === '\n') a++;
+    if (b > a) out.push({ start: a, end: b, titre });
+  };
+  while (at < end) {
+    let nl = page.indexOf('\n', at);
+    if (nl < 0 || nl > end) nl = end;
+    const line = page.slice(at, nl), t = line.trim();
+    const after = page.slice(nl + 1, Math.min(end, page.indexOf('\n', nl + 1) < 0 ? end : page.indexOf('\n', nl + 1))).trim();
+    const md = /^#{1,6}\s+\S/.test(t);
+    const court = blank && at > start && t.length >= 3 && t.length <= 70 && /^[A-ZÀ-ÖØ-Þ]/.test(t) && !/[.:;,!?…»)]$/.test(t) && after;
+    if (md || court) {
+      push(from, at, false);
+      const lead = line.length - line.trimStart().length + (md ? t.match(/^#+\s+/)[0].length : 0);
+      push(at + lead, nl, true);
+      from = nl + 1;
+    }
+    blank = !t;
+    at = nl + 1;
+  }
+  push(from, end, false);
+  return out.length ? out : [{ start, end, titre: false }];
+}
+
 function cahierChapterAt(chapters, page, offset) {
   let index = 0;
   chapters.forEach((c, i) => { if (c.page < page || (c.page === page && c.offset <= offset)) index = i; });
@@ -165,7 +196,7 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
   const store = sb.storage.from('cours');
   const pathOf = (course, name) => `${user.id}/${course.id}/${name}`;
   const originalName = course => course.kind === 'pdf' ? 'original.pdf' : 'original.txt';
-  let courses = [], state = 'loading', mode = 'read', chapterIndex = 0, query = '';
+  let courses = [], state = 'loading', mode = data?.importer ? 'import' : 'read', chapterIndex = 0, query = '';
   let gone = false, job = null, saveTimer, searchTimer, lastPick = null, armed = null, lastSel = null, cardDraft = null, explainSel = null;
   const texts = new Map();
   let current = typeof data?.course === 'string' ? data.course : null;
@@ -216,16 +247,26 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     const d = { course: c.id, page: block ? +block.dataset.page : c.chapters[chapterIndex].page, title: c.title, deck: c.subject, found: false };
     document.dispatchEvent(new CustomEvent('renzvi:schema', { detail: d }));
     say(d.found ? `Page ${d.page + 1} envoyée au widget Schémas.` : 'Ajoute le widget Schémas à ton écran pour faire un schéma de cette page.', !d.found);
+    // Le widget Schémas est sur le tableau, derrière le carnet : on referme le carnet pour qu'il se voie.
+    if (d.found && box.classList.contains('cahier-open')) expand(false);
   });
   tools.append(iaBtn, schemaBtn, editBtn, originalBtn, removeBtn);
-  body.append(bar, nav, cardBar, view, note, tools);
+  // Widget fermé : un livre ouvert (maquette de Damien, 17 nov.). Le cours à gauche, mes notes à droite, « Ouvrir le
+  // cahier » en bas. Le lecteur reste dessous, caché : le carnet l'ouvre tel quel. Import, scan, erreurs : l'interface
+  // habituelle revient.
+  const livre = el('div', 'cahier-livre');
+  const addBtn = button('zoom cahier-add', '', () => { mode = 'import'; draw(); });
+  addBtn.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.200"/><path d="M8 5.200v5.600M5.200 8h5.600"/></svg>';
+  addBtn.ariaLabel = addBtn.title = 'Importer un cours';
+  meta?.after(addBtn);
+  body.append(bar, nav, cardBar, livre, view, note, tools);
 
   const say = (text, bad = false) => { note.textContent = text; note.classList.toggle('msg', bad); };
 
   // Agrandi, le Cahier devient un carnet (carnet.js) : même widget, même lecteur, avec chapitres, annotations et signets
   // autour. Le plein écran du navigateur n'est pas utilisé. Réduire rend le widget compact tel qu'il était.
   const carnet = window.cahierCarnet?.({
-    box, body, view, sb,
+    box, body, view, sb, user,
     course, courses: () => courses, chapter: () => chapterIndex,
     openCourse: id => { say(''); openCourse(id); }, openChapter, loadText,
     selection: () => selectionRange(),
@@ -236,7 +277,7 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     explain: () => { if (!lastSel || window.renzviVerrou?.('L’IA')) return; explainSel = lastSel; mode = 'explain'; draw(); },
     // Ouvert depuis l'espace Study (data.retour) : le bouton dit d'où l'on vient et y ramène.
     retour: data?.retour?.label ?? null,
-    close: () => { expand(false); if (data?.retour?.apres) return data.retour.apres(); grow.focus(); },
+    close: () => { expand(false); if (data?.retour?.apres) return data.retour.apres(); focusOpen(); },
   }) ?? null;
   // Ouvrir et réduire en glissant depuis la place du widget (comme la vue agrandie des autres widgets), pas d'un coup.
   // Transform seulement ; rien en mouvement réduit.
@@ -248,8 +289,14 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     box.classList.toggle('cahier-open', open);
     document.body.classList.toggle('cahier-lock', open);
     grow.textContent = open ? 'Réduire' : 'Agrandir';
+    // Retour du carnet : le livre relit les notes et surlignages qui viennent peut-être de changer.
+    const c = course();
+    if (!open && c && box.classList.contains('cahier-livre-on')) { livreData.delete(c.id); loadText(c).then(t => { if (course() === c && !box.classList.contains('cahier-open')) drawLivre(c, t); }, () => {}); }
     grow.setAttribute('aria-pressed', open);
     carnet?.open(open);
+    // Le lecteur était caché derrière le livre : on lui rend la dernière position de lecture gardée.
+    const lu = c && at[c.id], r = open && view.querySelector('.cahier-text');
+    if (r && lu?.y && lu.chapter === c.chapters[chapterIndex]?.id) r.scrollTop = lu.y;
     const to = box.getBoundingClientRect();
     if (matchMedia('(prefers-reduced-motion: reduce)').matches || !from.width || !to.width || !box.animate) return;
     box.style.zIndex = '61';
@@ -263,7 +310,7 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     if (e.key !== 'Escape' || !box.classList.contains('cahier-open')) return;
     if (carnet?.escape()) return e.stopPropagation();
     expand(false);
-    grow.focus();
+    focusOpen();
   };
   // Aller à un passage (résultat de recherche, annotation, signet) : son chapitre s'ouvre, le passage vient en vue.
   function reveal(r, brief = false) {
@@ -341,9 +388,74 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     persist();
   }
 
+  // Le focus revient sur « Ouvrir le cahier » (ou Agrandir quand le livre n'est pas affiché).
+  const focusOpen = () => (box.classList.contains('cahier-livre-on') ? livre.querySelector('.cahier-livre-open') : grow)?.focus();
+  const livreData = new Map(); // course id → promesse { marks, notes }, relue après chaque passage par le carnet
+  function livreMarks(c) {
+    if (!livreData.has(c.id)) livreData.set(c.id, Promise.all([
+      sb.from('study_annotations').select('kind,page,pos,length,quote,surligne,note').eq('course_id', c.id).then(r => listOf(r.data), () => []),
+      sb.from('study_notes').select('chapter_id,body').eq('course_id', c.id).then(r => listOf(r.data), () => []),
+    ]).then(([marks, notes]) => ({ marks, notes })));
+    return livreData.get(c.id);
+  }
+  function setLivre(on) {
+    box.classList.toggle('cahier-livre-on', on);
+    livre.hidden = !on;
+    addBtn.hidden = !on || !courses.length; // ⊕ seulement sur le livre : ailleurs, « Importer un cours » est déjà là
+  }
+  // Une page du livre : vide (des lignes), ou le début du chapitre, ou mes notes.
+  function feuille(cls, ...kids) {
+    const p = el('div', `cahier-feuille ${cls}`);
+    p.append(...kids);
+    return p;
+  }
+  const lignes = n => { const d = el('div', 'cahier-lignes'); d.setAttribute('aria-hidden', 'true'); for (let i = 0; i < n; i++) d.append(el('i', '')); return d; };
+  const signet = () => { const i = el('span', 'cahier-ruban'); i.setAttribute('aria-hidden', 'true'); i.innerHTML = '<svg viewBox="0 0 18 26"><path d="M1 0v24.500l8-6 8 6V0"/></svg>'; return i; };
+  function drawLivre(c, text) {
+    const focused = livre.contains(document.activeElement); // redessiné sous le focus : il revient au même bouton
+    const book = el('div', 'cahier-book');
+    const foot = el('div', 'cahier-livre-foot');
+    if (!c) {
+      book.classList.add('cahier-book-vide');
+      book.append(feuille('gauche', lignes(8)), feuille('droite', signet(), lignes(2)));
+      const go = button('cahier-livre-open', 'Importer un cours', () => { mode = 'import'; draw(); });
+      foot.append(el('span', '', 'PDF ou texte'), go);
+      livre.replaceChildren(book, el('p', 'cahier-livre-mot', 'Tes cours, tes notes, ton cahier.'), foot);
+      if (focused) go.focus();
+      return;
+    }
+    const ch = c.chapters[chapterIndex];
+    const parts = cahierSlices(text.pages, ch, c.chapters[chapterIndex + 1]);
+    const raw = parts.map(p => text.pages[p.page].slice(p.start, p.end)).join('\n');
+    // Le début du chapitre, sans sa ligne de titre ni ses sous-titres : une ou deux phrases.
+    const corps = raw.split('\n').map(l => l.trim()).filter((l, i) => l && !(i === 0 && cahierFold(l).endsWith(cahierFold(ch.title))) && !/^#/.test(l) && /[.!?…»]$/.test(l)).join(' ');
+    const debut = (corps.match(/^.{20,140}?[.!?…](\s|$)/) ?? [corps.slice(0, 120)])[0].trim();
+    const titre = el('h3', 'cahier-livre-titre', c.title);
+    const gauche = feuille('gauche', titre, el('p', 'cahier-livre-matiere', c.subject), el('p', 'cahier-livre-texte', debut));
+    const droite = feuille('droite', signet(), el('p', 'cahier-livre-notes', 'Mes notes'));
+    const liste = el('ul', 'cahier-livre-liste');
+    droite.append(liste, lignes(2));
+    book.append(gauche, droite);
+    const go = button('cahier-livre-open', 'Ouvrir le cahier', () => expand(true));
+    foot.append(el('span', '', `Chapitre ${chapterIndex + 1} sur ${c.chapters.length}`), go);
+    livre.replaceChildren(book, foot);
+    if (focused) go.focus();
+    // Un passage surligné et mes notes du chapitre, s'il y en a (rien n'est inventé sinon).
+    livreMarks(c).then(({ marks, notes }) => {
+      if (gone || course() !== c || !livre.contains(book)) return;
+      const inCh = m => m.kind === 'passage' && cahierChapterAt(c.chapters, m.page, m.pos) === chapterIndex;
+      const hl = marks.find(m => inCh(m) && m.surligne);
+      if (hl) gauche.append(el('p', 'cahier-livre-texte', ''), Object.assign(el('mark', 'cahier-livre-marque', hl.quote.length > 90 ? `${hl.quote.slice(0, 88)}…` : hl.quote)));
+      const court = t => (t.length > 60 ? `${t.slice(0, 58)}…` : t);
+      const mine = [...notes.filter(n => n.chapter_id === ch.id).map(n => n.body), ...marks.filter(m => inCh(m) && m.note).map(m => m.note)].slice(0, 2);
+      liste.replaceChildren(...mine.map(t => el('li', '', court(t.split('\n')[0]))));
+    });
+  }
+
   function draw() {
     const c = course();
     const ready = state === 'ready';
+    setLivre(false);
     if (state !== 'ready' || mode === 'import' || !c) expand(false);
     carnet?.sync();
     bar.hidden = !ready;
@@ -365,6 +477,8 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     if (!c) {
       const start = el('div', 'empty cahier-start');
       start.append(el('p', '', 'Importe un cours une fois : un PDF ou ton texte. Tu le retrouves ici, rangé par chapitres.'));
+      drawLivre(null);
+      setLivre(true);
       return view.replaceChildren(start);
     }
     chapterPick.replaceChildren(...c.chapters.map((ch, i) => Object.assign(el('option', '', ch.title), { value: i, selected: i === chapterIndex })));
@@ -382,6 +496,7 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     loadText(c).then(text => {
       if (gone || course() !== c || mode === 'import') return;
       if (query) drawResults(c, text); else drawReader(c, text);
+      if (mode === 'read' && !query) { drawLivre(c, text); setLivre(true); meta.textContent = `${courses.length} cours`; }
     }, () => {
       if (gone || course() !== c) return;
       const retry = button('ghost', 'Réessayer', draw);
@@ -399,12 +514,17 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     const parts = cahierSlices(text.pages, ch, c.chapters[chapterIndex + 1]);
     // La ligne du titre est déjà affichée en tête : on ne la répète pas dans le texte.
     const first = parts[0], line = first && text.pages[first.page].slice(first.start).match(/^[ \t]*([^\n]*)\n?/);
-    if (line && cahierFold(line[1].replace(/^#+\s*/, '').replace(/\s+/g, ' ').trim()) === cahierFold(ch.title)) first.start += line[0].length;
+    // « Chapitre 1 La cellule » répète aussi le titre « La cellule » : la ligne est retirée de la même façon.
+    const ligne = line && cahierFold(line[1].replace(/^#+\s*/, '').replace(/\s+/g, ' ').trim()), titre = cahierFold(ch.title);
+    if (ligne && (ligne === titre || (ligne.endsWith(titre) && /^(chapitre|partie|chap\.?)?\s*[\divxlc]+[\s.):—–-]*$/.test(ligne.slice(0, -titre.length).trim())))) first.start += line[0].length;
     for (const s of parts) {
       if (c.kind === 'pdf') reader.append(el('p', 'cahier-page', `Page ${s.page + 1}`));
-      const block = el('div', 'cahier-block', text.pages[s.page].slice(s.start, s.end));
-      Object.assign(block.dataset, { page: s.page, start: s.start });
-      reader.append(block);
+      // Les sous-titres du cours deviennent des blocs à part (même texte, même position : les annotations ne bougent pas).
+      for (const b of cahierSousTitres(text.pages[s.page], s.start, s.end)) {
+        const block = el('div', b.titre ? 'cahier-block cahier-sous-titre' : 'cahier-block', text.pages[s.page].slice(b.start, b.end));
+        Object.assign(block.dataset, { page: s.page, start: b.start });
+        reader.append(block);
+      }
     }
     if (!parts.some(s => text.pages[s.page].slice(s.start, s.end).trim())) reader.append(el('p', 'empty', 'Ce chapitre est vide.'));
     const items = [reader];
@@ -438,7 +558,10 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     if (window.CSS?.highlights && window.Highlight) CSS.highlights.set('cahier', new Highlight(range));
     else { const s = getSelection(); s.removeAllRanges(); s.addRange(range); }
     // Longueur 0 = signet ou reprise : la ligne revient en haut, là où elle était quand on l'a gardée.
-    reader.scrollTop += range.getBoundingClientRect().top - reader.getBoundingClientRect().top - (length ? reader.clientHeight / 3 : 2);
+    // Mesurer sur un caractère : une position vide en début de ligne est placée par le navigateur au bout de la ligne d'avant.
+    const mesure = range.cloneRange();
+    if (!length) mesure.setEnd(block.firstChild, Math.min(block.firstChild.length, start + 1));
+    reader.scrollTop += mesure.getBoundingClientRect().top - reader.getBoundingClientRect().top - (length ? reader.clientHeight / 3 : 2);
   }
 
   function drawResults(c, text) {
@@ -754,7 +877,12 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
       persist();
       draw();
       return loadText(c);
-    }).then(t => { if (t && live()) drawReader(c, t, d); }, () => {});
+    }).then(t => {
+      if (!t || !live()) return;
+      // Le widget fermé montre un livre : le passage se lit dans le carnet, ouvert avant d'y placer le passage.
+      if (box.classList.contains('cahier-livre-on')) expand(true);
+      drawReader(c, t, d);
+    }, () => {});
     box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   };
   document.addEventListener('renzvi:revoir', onRevoir);

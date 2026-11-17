@@ -670,7 +670,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
     if (c && ch && at[c.id]?.chapter !== ch.id) at[c.id] = { chapter: ch.id, y: 0 };
     const retour = carnet && c ? { label: vueId === 'constellations' ? 'Retour à la constellation' : vueId === 'arbre' ? 'Retour à l’arbre' : 'Retour à mon espace', apres: () => closeSheet() } : undefined;
     const entry = openSheet(c ? `${c.subject} / ${c.title}` : 'Importer un cours', ({ body: b, meta: m }) => cahierWidget({
-      body: b, meta: m, user, sb, data: { course: c?.id ?? null, at, retour },
+      body: b, meta: m, user, sb, data: { course: c?.id ?? null, at, retour, importer: !c },
       // shortcut: si le widget Cahier est aussi sur l'écran, sa prochaine sauvegarde reprend ses propres positions ; unifier si ça gêne.
       save: d => savePeer('cahier', { course: (peer('cahier') ?? {}).course ?? d.course, at: { ...((peer('cahier') ?? {}).at ?? {}), ...d.at } }),
     }), from);

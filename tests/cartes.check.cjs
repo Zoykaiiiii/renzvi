@@ -228,6 +228,16 @@ const fresh = (widgets = ['cahier', 'cartes', 'notes']) => ({
 const cartes = page => page.locator('[data-widget=cartes]');
 const cahier = page => page.locator('[data-widget=cahier]');
 const viewText = page => cartes(page).locator('.cartes-view').innerText();
+// Le widget fermé montre un livre : les outils du cours sont dans le carnet, « Gérer ce cours » (tiroir Chapitres).
+async function outil(page, name) {
+  const c = cahier(page);
+  if (!await c.evaluate(b => b.classList.contains('cahier-open'))) {
+    await c.locator('.cahier-livre-open').click();
+    await page.waitForFunction(() => !document.querySelector('[data-widget=cahier]').getAnimations().length);
+  }
+  if (!await page.locator('.carnet-side').isVisible()) await page.getByRole('button', { name: 'Chapitres', exact: true }).click();
+  await c.locator('.carnet-menu').getByRole('button', { name }).click();
+}
 // Sélectionne un mot du cours comme le ferait la souris.
 const select = (page, word) => page.evaluate(w => {
   const block = [...document.querySelectorAll('.cahier-block')].find(b => b.textContent.includes(w));
@@ -410,11 +420,14 @@ const select = (page, word) => page.evaluate(w => {
       const { page, context, errors } = await openBoard(browser, base, db3);
       const c = cahier(page);
       await page.waitForFunction(() => document.querySelector('[data-widget=cahier] .cahier-title')?.textContent === 'La membrane');
-      assert.ok(await c.locator('.cahier-cardbar').isHidden(), 'rien à proposer sans sélection');
+      // Le widget fermé montre un livre : on lit et on sélectionne dans le carnet.
+      await c.locator('.cahier-livre-open').click();
+      await page.waitForFunction(() => !document.querySelector('[data-widget=cahier]').getAnimations().length);
+      assert.ok(await page.locator('.carnet-bar').isHidden(), 'rien à proposer sans sélection');
       await select(page, 'mitochondrie');
-      await c.getByRole('button', { name: 'Masquer ces mots' }).waitFor();
+      await page.locator('.carnet-bar').getByRole('button', { name: 'Plus' }).click();
       await shot(page, 'cahier-selection');
-      await c.getByRole('button', { name: 'Masquer ces mots' }).click();
+      await page.locator('.carnet-bar').getByRole('button', { name: 'Masquer ces mots' }).click();
       assert.strictEqual(await c.getByLabel('Texte à trous').inputValue(), 'La [mitochondrie] produit l’énergie de la cellule.', 'la phrase autour de la sélection');
       assert.strictEqual(await c.getByLabel('Paquet', { exact: true }).inputValue(), 'La cellule');
       await shot(page, 'cahier-carte');
@@ -424,9 +437,12 @@ const select = (page, word) => page.evaluate(w => {
       assert.deepStrictEqual([trou.kind, trou.course_id, trou.src_page, trou.src_offset, trou.src_length], ['trou', COURSE.id, 0, PAGE.indexOf('mitochondrie'), 12]);
       await page.waitForFunction(() => /·····/.test(document.querySelector('[data-widget=cartes] .cartes-view').innerText), null, { timeout: 5000 });
 
-      await c.locator('.cahier-nav select').selectOption({ label: 'Le noyau' });
+      await page.getByRole('button', { name: 'Chapitres', exact: true }).click();
+      await page.locator('.carnet-chapter', { hasText: 'Le noyau' }).click();
+      await page.waitForFunction(() => document.querySelector('[data-widget=cahier] .cahier-title')?.textContent === 'Le noyau');
       await select(page, 'Il contient l’ADN, rangé en chromosomes.');
-      await c.getByRole('button', { name: 'Créer une carte' }).click();
+      await page.locator('.carnet-bar').getByRole('button', { name: 'Plus' }).click();
+      await page.locator('.carnet-bar').getByRole('button', { name: 'Créer une carte' }).click();
       assert.strictEqual(await c.getByLabel('Réponse').inputValue(), 'Il contient l’ADN, rangé en chromosomes.');
       await c.getByRole('button', { name: 'Créer la carte' }).click();
       assert.match(await c.locator('.cartes-form').innerText(), /Écris la question/);
@@ -658,7 +674,7 @@ const select = (page, word) => page.evaluate(w => {
       const { page, context, errors } = await openBoard(browser, base, dbi);
       const c = cahier(page);
       await page.waitForFunction(() => document.querySelector('[data-widget=cahier] .cahier-title')?.textContent === 'La membrane');
-      await c.getByRole('button', { name: 'IA : cartes et résumé du chapitre' }).click();
+      await outil(page, 'IA : cartes et résumé du chapitre');
       await c.getByRole('button', { name: 'Générer des cartes · 1 crédit' }).waitFor();
       assert.match(await c.locator('.ia-panel').innerText(), /crédits de découverte à la première utilisation/);
       await shot(page, 'ia-panneau');
@@ -678,8 +694,8 @@ const select = (page, word) => page.evaluate(w => {
       assert.deepStrictEqual([made.course_id, made.src_page, PAGE.slice(made.src_offset, made.src_offset + made.src_length)], [COURSE.id, 0, made.back], 'la carte garde son passage source');
       await page.waitForFunction(() => /Question 1 \?/.test(document.querySelector('[data-widget=cartes] .cartes-view').innerText));
       // Le résultat est gardé : le revoir est gratuit, régénérer est un choix.
-      await c.getByRole('button', { name: 'Fermer' }).click();
-      await c.getByRole('button', { name: 'IA : cartes et résumé du chapitre' }).click();
+      await c.getByRole('button', { name: 'Fermer', exact: true }).click();
+      await outil(page, 'IA : cartes et résumé du chapitre');
       await c.getByRole('button', { name: 'Générer des cartes : revoir le résultat (gratuit)' }).click();
       assert.match(await c.locator('.ia-out').innerText(), /Cartes déjà générées/);
       assert.ok(await c.getByRole('button', { name: 'Régénérer · 1 crédit' }).isVisible());
@@ -694,10 +710,11 @@ const select = (page, word) => page.evaluate(w => {
       await c.getByRole('button', { name: 'Régénérer · 1 crédit' }).first().click();
       await page.waitForFunction(() => /Il te faut 3 crédits, tu en as 0/.test(document.querySelector('.ia-panel').innerText));
       dbi.iaRefus = null;
-      await c.getByRole('button', { name: 'Fermer' }).click();
+      await c.getByRole('button', { name: 'Fermer', exact: true }).click();
       // Expliquer une sélection.
       await select(page, 'mitochondrie');
-      await c.getByRole('button', { name: 'Expliquer (IA)' }).click();
+      await page.locator('.carnet-bar').getByRole('button', { name: 'Plus' }).click();
+      await page.locator('.carnet-bar').getByRole('button', { name: 'Expliquer (IA)' }).click();
       assert.match(await c.locator('.ia-panel').innerText(), /« mitochondrie »/);
       await c.getByRole('button', { name: 'Expliquer · 1 crédit' }).click();
       await page.waitForFunction(() => /D'après ton cours[\s\S]*En clair : mitochondrie[\s\S]*Exemple qui ne vient pas de ton cours/.test(document.querySelector('.ia-panel').innerText));
@@ -708,7 +725,7 @@ const select = (page, word) => page.evaluate(w => {
       dbi.iaMax = 50;
       const long = await openBoard(browser, base, dbi);
       await long.page.waitForFunction(() => document.querySelector('[data-widget=cahier] .cahier-title')?.textContent === 'La membrane');
-      await cahier(long.page).getByRole('button', { name: 'IA : cartes et résumé du chapitre' }).click();
+      await outil(long.page, 'IA : cartes et résumé du chapitre');
       await long.page.waitForFunction(() => /trop long pour l'IA/.test(document.querySelector('.ia-panel').innerText));
       assert.ok(await cahier(long.page).getByRole('button', { name: /^Régénérer · / }).first().isDisabled(), 'pas de troncature silencieuse');
       assert.deepStrictEqual(long.errors, []);
@@ -806,7 +823,7 @@ const select = (page, word) => page.evaluate(w => {
 
       // Générer un quiz depuis le Cahier (IA simulée) : les questions rejoignent le widget Quiz.
       const c = cahier(page);
-      await c.getByRole('button', { name: 'IA : cartes et résumé du chapitre' }).click();
+      await outil(page, 'IA : cartes et résumé du chapitre');
       await c.getByRole('button', { name: 'Générer un quiz · 1 crédit' }).click();
       await c.getByRole('button', { name: 'Ajouter les questions cochées' }).click();
       await page.waitForFunction(() => /ajoutées? au quiz « La cellule »/.test(document.querySelector('.ia-panel').innerText));
@@ -937,8 +954,12 @@ const select = (page, word) => page.evaluate(w => {
 
       // Depuis le Cahier : une page du PDF devient un schéma.
       const c = cahier(again.page);
-      await c.locator('.cahier-bar select').selectOption({ label: 'Cellule PDF' });
-      await c.getByRole('button', { name: 'Faire un schéma de cette page' }).click();
+      await c.locator('.cahier-livre-open').click();
+      await again.page.waitForFunction(() => !document.querySelector('[data-widget=cahier]').getAnimations().length);
+      await again.page.getByRole('button', { name: 'Chapitres', exact: true }).click();
+      await c.locator('.carnet-course').selectOption({ label: 'Cellule PDF' });
+      await again.page.waitForFunction(() => document.querySelector('[data-widget=cahier] .cahier-page'));
+      await outil(again.page, 'Faire un schéma de cette page');
       await again.page.waitForFunction(() => /Page 1 du cours/.test(document.querySelector('[data-widget=schemas] .cartes-view').innerText), null, { timeout: 20000 });
       assert.strictEqual(await w2.getByLabel('Titre').inputValue(), 'Cellule PDF · page 1');
       await w2.getByRole('button', { name: 'Créer le schéma' }).click();
@@ -995,8 +1016,11 @@ const select = (page, word) => page.evaluate(w => {
       assert.match(await g.locator('.meta').innerText(), /Étape 3 \/ 4/);
       assert.match(await gText(), /Gratuit[\s\S]*Avec crédits[\s\S]*Le coût est affiché avant de lancer/, 'gratuit et payant distingués avant l’action');
       // Une carte depuis une sélection du cours d'exemple.
+      await c.locator('.cahier-livre-open').click();
+      await page.waitForFunction(() => !document.querySelector('[data-widget=cahier]').getAnimations().length);
       await select(page, 'membrane plasmique');
-      await c.getByRole('button', { name: 'Créer une carte' }).click();
+      await page.locator('.carnet-bar').getByRole('button', { name: 'Plus' }).click();
+      await page.locator('.carnet-bar').getByRole('button', { name: 'Créer une carte' }).click();
       await c.getByLabel('Question').fill('Qu’entoure la membrane plasmique ?');
       await c.getByRole('button', { name: 'Créer la carte' }).click();
       await page.waitForFunction(() => /Étape 4 \/ 4/.test(document.querySelector('[data-widget=guide] .meta').textContent));
