@@ -140,7 +140,10 @@ function start(port = 0) {
           return res.end(file.data);
         }
         if (req.method === 'DELETE') { for (const p of JSON.parse(await body(req)).prefixes ?? []) b.files.delete(`${key}/${p}`); return json(res, 200, []); }
-        b.files.set(key, { type: req.headers['content-type'] ?? 'application/octet-stream', data: await body(req) });
+        // Comme le vrai Supabase : un envoi multipart (supabase-js avec un Blob) ne garde que le fichier et son type.
+        const type = req.headers['content-type'] ?? 'application/octet-stream', raw = await body(req);
+        const part = type.startsWith('multipart/form-data') ? [...(await new Response(raw, { headers: { 'content-type': type } }).formData()).values()].find(v => typeof v !== 'string') : null;
+        b.files.set(key, part ? { type: part.type, data: Buffer.from(await part.arrayBuffer()) } : { type, data: raw });
         return json(res, 200, { Key: key });
       }
       if (route === '/auth/v1/logout') { res.writeHead(204); return res.end(); }

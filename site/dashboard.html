@@ -123,6 +123,7 @@ body{font:400 16px/1.5 var(--sans);letter-spacing:-.008em;color:var(--ink);backg
 #wall i.recul::before{inset:-48px;filter:blur(32px) brightness(.9)}
 #wall i.recul::after{inset:0;background-size:var(--size)}
 #wall i.on{opacity:1}
+#wall video,.tile video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
 /* Sur une photo (même noire), le verre garde 4,5:1 avec le gris secondaire et 3:1 avec l'accent, vérifié par tests/personnalisation.check.cjs. */
 body.has-wall{--glass:var(--glass-wall);--slate:var(--slate-wall)}
 body.has-wall :is(.credit,#load-error,#page-note:not(:empty)){padding:4px 14px;border-radius:14px;background:var(--wall-glass);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
@@ -286,8 +287,8 @@ body.has-wall .hello{margin:16px 0;padding:16px 24px;border:1px solid var(--glas
 .lead{margin-top:8px;color:var(--slate)}
 .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-top:20px}
-.tile{display:flex;align-items:flex-end;aspect-ratio:3/2;padding:0;border:1px solid var(--edge);border-radius:var(--r-control);background:var(--paper) center/cover;overflow:hidden}
-.tile span{width:100%;padding:4px 10px;background:var(--wall-glass);font-size:13px;font-weight:500;text-align:left}
+.tile{position:relative;display:flex;align-items:flex-end;aspect-ratio:3/2;padding:0;border:1px solid var(--edge);border-radius:var(--r-control);background:var(--paper) center/cover;overflow:hidden}
+.tile span{position:relative;width:100%;padding:4px 10px;background:var(--wall-glass);font-size:13px;font-weight:500;text-align:left}
 .tile[aria-pressed=true]{outline:2px solid var(--ink);outline-offset:2px}
 .tile:disabled{cursor:progress}
 .pick-note{margin-top:12px;font-size:14px;color:var(--error)}
@@ -1388,6 +1389,8 @@ const WALLPAPERS = [
 ];
 // Photo personnelle : réduite et réenregistrée dans le navigateur avant l'envoi, ce qui retire aussi ses données GPS.
 const MAX_SOURCE_BYTES = 30 * 1048576, MAX_UPLOAD_BYTES = 3 * 1048576, MAX_PHOTO_SIDE = 2560;
+// Vidéo de fond (Pro) : envoyée telle quelle, sans réencodage. La limite et les types sont aussi imposés par le bucket « fonds-video ».
+const MAX_VIDEO_BYTES = 20 * 1048576, VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
 
 const $ = id => document.getElementById(id);
 const el = (tag, className, text) => Object.assign(document.createElement(tag), { className, textContent: text ?? '' });
@@ -3091,7 +3094,7 @@ const PAYANT = new Set(['quiz', 'schemas', 'etude', 'dictee', 'jardin', 'dessin'
 // À vérifier côté serveur (renzvi_plan) avant d'ouvrir le paiement.
 const PLANS = {
   gratuit: { nom: 'Gratuit', prix: 0, tag: 'Ton espace, sans payer.', inclus: ['Les widgets de base : minuteur, tâches, notes, habitudes…', 'Cahier, Flashcards et Révisions du jour', 'Modes, pages et fonds d’écran'] },
-  pro: { nom: 'Pro', prix: 999, tag: 'Pour réviser avec l’IA.', inclus: ['Tout Gratuit', 'L’IA sur tes cours : cartes, quiz et résumés', 'Quiz, Schémas et Mon espace Study', 'Dictée et les widgets Chill', 'Tes propres polices'] },
+  pro: { nom: 'Pro', prix: 999, tag: 'Pour réviser avec l’IA.', inclus: ['Tout Gratuit', 'L’IA sur tes cours : cartes, quiz et résumés', 'Quiz, Schémas et Mon espace Study', 'Dictée et les widgets Chill', 'Tes propres polices', 'Ton fond d’écran en vidéo'] },
   worker: { nom: 'Worker', prix: 1799, tag: 'Pour les gros volumes de cours.', inclus: ['Tout Pro', '4 fois plus d’IA que Pro', 'PDF jusqu’à 300 pages (60 avec Pro)', 'Le chat IA sur tous tes cours'] },
 };
 let planActuel = 'gratuit';
@@ -3130,7 +3133,7 @@ if (!sb) {
   // shortcut: si deux appareils sont ouverts en même temps, le dernier qui enregistre un widget écrase l'autre ; à revoir si des utilisateurs s'en plaignent.
   const pending = new Map();
   const mounted = new Map();
-  let userId, saveTimer, saving = null, loaded = false, stored = {}, photoUrl = null, referral = null;
+  let userId, saveTimer, saving = null, loaded = false, stored = {}, photoUrl = null, videoUrl = null, referral = null;
   // Polices personnelles : l'aperçu en cours (rien d'enregistré), les fichiers déjà chargés, ceux qui ont échoué.
   let fontPreview = null, fontToken = 0, fontImportFor = null; // fontImportFor : carte « + » des titres ou du texte
   const fontFaces = new Map(), fontFailed = new Set();
@@ -3153,6 +3156,7 @@ if (!sb) {
   }
   const layout = window.renzviLayout({ get: layoutGet, set: layoutSet, flip: (change, skip) => flip(change, skip), board: () => $('board'), say: text => { $('custom-live').textContent = text; } });
   const photoPath = () => `${userId}/fond.jpg`;
+  const videoPath = () => `${userId}/fond`;
 
   function showSaved(text, bad = false) {
     for (const id of ['saved', 'set-saved']) {
@@ -4476,10 +4480,10 @@ if (!sb) {
   // Labo Chill : « Mes ambiances » lit et change le fond de la page affichée, comme le sélecteur de fond.
   document.addEventListener('renzvi:fond', e => {
     const want = e.detail?.set;
-    const known = id => id === 'blanc' || WALLPAPERS.some(w => w.id === id) || (id === 'perso' && !!photoUrl);
+    const known = id => id === 'blanc' || WALLPAPERS.some(w => w.id === id) || (id === 'perso' && !!photoUrl) || (id === 'video' && !!videoUrl);
     if (want != null) { e.detail.ok = known(want); if (e.detail.ok && want !== wallNow()) chooseWallpaper(want); }
     e.detail.current = wallNow();
-    e.detail.choices = [{ id: 'blanc', name: 'Blanc' }, ...WALLPAPERS.map(w => ({ id: w.id, name: w.name })), ...(photoUrl ? [{ id: 'perso', name: 'Ta photo' }] : [])];
+    e.detail.choices = [{ id: 'blanc', name: 'Blanc' }, ...WALLPAPERS.map(w => ({ id: w.id, name: w.name })), ...(photoUrl ? [{ id: 'perso', name: 'Ta photo' }] : []), ...(videoUrl ? [{ id: 'video', name: 'Ta vidéo' }] : [])];
   });
   // Labo Chill : une création (dessin, coloriage) rejoint le tableau d'inspiration, dans le même stockage privé et la même limite de 6 images.
   document.addEventListener('renzvi:inspiration', e => {
@@ -4548,7 +4552,7 @@ if (!sb) {
           return page;
         },
         accents: () => ['vert', 'bleu', 'prune', 'terre', 'ambre', 'rose', 'sauge', 'encre'].map(id => ({ id, name: ACCENTS.find(a => a.id === id).name, hex: accentColor(id) })),
-        wallName: () => { const w = wallNow(); return w === 'blanc' ? 'blanc' : w === 'perso' ? 'ta photo' : (WALLPAPERS.find(x => x.id === w)?.name ?? w).toLowerCase(); },
+        wallName: () => { const w = wallNow(); return w === 'blanc' ? 'blanc' : w === 'perso' ? 'ta photo' : w === 'video' ? 'ta vidéo' : (WALLPAPERS.find(x => x.id === w)?.name ?? w).toLowerCase(); },
         // En mode Disposer, l'appui long laisse la main au glisser et aux poignées de taille.
         blocked: () => !!lock?.isLocked() || !!zoomed || document.documentElement.classList.contains('zoom-lock') || $('screen').hidden || document.body.classList.contains('dragging') || document.body.classList.contains('customizing') || document.body.classList.contains('pages-editing') || !!document.querySelector('dialog[open]'),
         say: text => { $('page-note').textContent = text; },
@@ -4828,12 +4832,25 @@ if (!sb) {
   const pageNow = () => screen.pages.find(p => p.id === currentPage);
   const wallNow = () => pageNow()?.wall ?? screen.wallpaper;
   const photoInUse = () => [screen.wallpaper, ...screen.pages.map(p => p.wall)].includes('perso');
+  const videoInUse = () => [screen.wallpaper, ...screen.pages.map(p => p.wall)].includes('video');
+  // Une vidéo de fond tourne en boucle, sans son ; à l'arrêt sur sa première image si on a réduit les animations.
+  function wallVideo(src) {
+    const v = Object.assign(el('video'), { src, muted: true, loop: true, playsInline: true, preload: 'auto' });
+    v.setAttribute('aria-hidden', 'true');
+    if (!REDUCED_MOTION()) v.play().catch(() => {});
+    return v;
+  }
+  document.addEventListener('visibilitychange', () => {
+    for (const v of document.querySelectorAll('#wall video')) document.hidden || REDUCED_MOTION() ? v.pause() : v.play().catch(() => {});
+  });
   let wallUrl = null;
   function applyWallpaper() {
     const wall = wallNow();
     const library = WALLPAPERS.find(w => w.id === wall);
-    const url = library ? `url(assets/${library.file})` : wall === 'perso' && photoUrl ? `url(${photoUrl})` : null;
-    if (url) document.documentElement.style.setProperty('--wall', url);
+    const video = wall === 'video' && videoUrl;
+    const url = library ? `url(assets/${library.file})` : wall === 'perso' && photoUrl ? `url(${photoUrl})` : video ? `video:${videoUrl}` : null;
+    // shortcut: --wall (aperçus du catalogue) reste vide pour une vidéo, l'aperçu montre le fond uni ; à revoir si on veut une image de la vidéo.
+    if (url && !video) document.documentElement.style.setProperty('--wall', url);
     else document.documentElement.style.removeProperty('--wall');
     document.body.classList.toggle('has-wall', !!url);
     // La nouvelle photo apparaît en fondu par-dessus l'ancienne, retirée ensuite.
@@ -4842,14 +4859,18 @@ if (!sb) {
       const old = [...$('wall').children];
       if (url) {
         const layer = el('i', '');
-        layer.style.setProperty('--img', url);
-        layer.dataset.src = library ? `assets/${library.file}` : photoUrl;
+        if (video) layer.append(wallVideo(videoUrl));
+        else {
+          layer.style.setProperty('--img', url);
+          layer.dataset.src = library ? `assets/${library.file}` : photoUrl;
+        }
         $('wall').append(layer);
         sizeWall();
         layer.getBoundingClientRect();
         layer.classList.add('on');
       } else for (const layer of old) layer.classList.remove('on');
       setTimeout(() => { for (const layer of old) layer.remove(); }, 800);
+      for (const v of old.flatMap(layer => [...layer.querySelectorAll('video')])) setTimeout(() => v.pause(), 800);
     }
     $('credit').hidden = !library;
     if (library) {
@@ -4883,13 +4904,23 @@ if (!sb) {
     photoUrl = URL.createObjectURL(data);
     applyWallpaper();
   }
-  // On ne garde pas une photo personnelle dont plus aucune page ne se sert.
+  async function loadVideo() {
+    const { data, error } = await sb.storage.from('fonds-video').download(videoPath());
+    if (error) return showSaved("Ta vidéo de fond n'a pas pu se charger.", true);
+    videoUrl = URL.createObjectURL(data);
+    applyWallpaper();
+  }
+  // On ne garde pas une photo ou une vidéo personnelle dont plus aucune page ne se sert.
   function changeWalls(change) {
-    const had = photoInUse();
+    const had = photoInUse(), hadVideo = videoInUse();
     change();
     if (had && !photoInUse()) {
       sb.storage.from('fonds').remove([photoPath()]);
       photoUrl = null;
+    }
+    if (hadVideo && !videoInUse()) {
+      sb.storage.from('fonds-video').remove([videoPath()]);
+      videoUrl = null;
     }
     applyWallpaper();
   }
@@ -4918,11 +4949,14 @@ if (!sb) {
     note.setAttribute('role', 'alert');
     const file = Object.assign(el('input'), { type: 'file', accept: 'image/*', hidden: true });
     file.setAttribute('aria-label', 'Ta photo de fond');
-    const options = [{ id: 'blanc', name: 'Blanc' }, ...WALLPAPERS, { id: 'perso', name: 'Ta photo' }];
+    const videoFile = Object.assign(el('input'), { type: 'file', accept: VIDEO_TYPES.join(','), hidden: true });
+    videoFile.setAttribute('aria-label', 'Ta vidéo de fond');
+    const options = [{ id: 'blanc', name: 'Blanc' }, ...WALLPAPERS, { id: 'perso', name: 'Ta photo' }, { id: 'video', name: 'Ta vidéo' }];
     const entries = options.map(o => {
       const tile = button('tile', '', () => {
         note.textContent = '';
         if (o.id === 'perso') return file.click();
+        if (o.id === 'video') { if (!verrou('Ton fond d’écran en vidéo')) videoFile.click(); return; }
         chooseWallpaper(o.id);
         mark();
       });
@@ -4932,7 +4966,8 @@ if (!sb) {
       tiles.append(tile);
       return tile;
     });
-    const photoTile = entries.at(-1);
+    const photoTile = entries.at(-2), videoTile = entries.at(-1);
+    videoTile.title = 'MP4, WebM ou MOV, 20 Mo maximum. Une courte boucle de quelques secondes suffit.';
     const zoom = inlineSlider({
       label: 'Zoom du fond', min: FOND_MIN, max: 100, step: 5, value: screen.look.fond ?? 100, format: v => `${v} %`,
       onInput: v => { screen.look = { ...screen.look, fond: v }; sizeWall(); },
@@ -4943,7 +4978,12 @@ if (!sb) {
     function mark() {
       for (const t of entries) t.setAttribute('aria-pressed', t.dataset.wall === wallNow());
       photoTile.style.backgroundImage = photoUrl ? `url(${photoUrl})` : '';
-      zoom.disable(wallNow() === 'blanc');
+      // L'aperçu de la vidéo : sa première image, immobile.
+      const shown = videoTile.querySelector('video');
+      if (shown && shown.src !== videoUrl) shown.remove();
+      if (videoUrl && !videoTile.querySelector('video')) videoTile.prepend(Object.assign(el('video'), { src: videoUrl, muted: true, preload: 'metadata', ariaHidden: 'true' }));
+      // shortcut: le zoom du fond ne s'applique pas à une vidéo (toujours plein écran) ; à faire si on le demande.
+      zoom.disable(wallNow() === 'blanc' || wallNow() === 'video');
     }
     file.onchange = async () => {
       const chosen = file.files[0];
@@ -4967,8 +5007,42 @@ if (!sb) {
       photoTile.firstChild.textContent = 'Ta photo';
       mark();
     };
+    videoFile.onchange = async () => {
+      const chosen = videoFile.files[0];
+      videoFile.value = '';
+      if (!chosen) return;
+      note.textContent = '';
+      if (!VIDEO_TYPES.includes(chosen.type)) { note.textContent = 'Choisis une vidéo MP4, WebM ou MOV.'; return; }
+      if (chosen.size > MAX_VIDEO_BYTES) { note.textContent = 'Cette vidéo est trop lourde (20 Mo maximum). Une boucle de quelques secondes suffit.'; return; }
+      videoTile.disabled = true;
+      videoTile.lastChild.textContent = 'Envoi…';
+      const local = URL.createObjectURL(chosen);
+      // Avant d'envoyer : ce navigateur sait-il la lire ? (une vidéo d'iPhone en HEVC ne passe pas partout)
+      const readable = await new Promise(resolve => {
+        const probe = Object.assign(document.createElement('video'), { muted: true, preload: 'auto', src: local });
+        const done = ok => { clearTimeout(t); probe.removeAttribute('src'); probe.load(); resolve(ok); };
+        const t = setTimeout(() => done(false), 15000);
+        probe.onloadeddata = () => done(probe.videoWidth > 0);
+        probe.onerror = () => done(false);
+      });
+      if (!readable) {
+        URL.revokeObjectURL(local);
+        note.textContent = "Ton navigateur ne sait pas lire cette vidéo. Essaie un MP4 classique (H.264).";
+      } else {
+        const { error } = await sb.storage.from('fonds-video').upload(videoPath(), chosen, { upsert: true, contentType: chosen.type, cacheControl: '0' });
+        if (error) { URL.revokeObjectURL(local); note.textContent = "L'envoi n'a pas abouti. Vérifie ta connexion et réessaie."; }
+        else {
+          if (videoUrl) URL.revokeObjectURL(videoUrl);
+          videoUrl = local;
+          chooseWallpaper('video');
+        }
+      }
+      videoTile.disabled = false;
+      videoTile.lastChild.textContent = 'Ta vidéo';
+      mark();
+    };
     mark();
-    box.append(tiles, zoomBox, file, note);
+    box.append(tiles, zoomBox, file, videoFile, note);
     return box;
   }
 
@@ -5029,7 +5103,7 @@ if (!sb) {
     screen.favoris = [...new Set(listOf(saved.favoris))].filter(known).slice(0, FAV_MAX);
     // Une configuration abîmée ne doit pas empêcher d'ouvrir l'écran : on ne garde que ce qui est valide.
     const pages = listOf(saved.pages).filter(p => typeof p?.id === 'string' && p.id && p.id.length <= 64 && typeof p.name === 'string' && p.name.trim());
-    const validWall = id => id === 'perso' || id === 'blanc' || WALLPAPERS.some(w => w.id === id);
+    const validWall = id => id === 'perso' || id === 'video' || id === 'blanc' || WALLPAPERS.some(w => w.id === id);
     const validAccent = a => ACCENTS.some(x => x.id === a) || HEX.test(a);
     if (pages.length) screen.pages = [...new Map(pages.map(p => [p.id, { id: p.id, name: p.name.trim().slice(0, MAX_PAGE_NAME), ...(validWall(p.wall) && { wall: p.wall }), ...(MODE_ICONS.includes(p.icon) && { icon: p.icon }), ...(validAccent(p.accent) && { accent: p.accent }) }])).values()].slice(0, MAX_SCREEN_PAGES);
     screen.where = Object.fromEntries(Object.entries(saved.where ?? {}).filter(([id, page]) => known(id) && screen.pages.some(p => p.id === page)));
@@ -5045,6 +5119,7 @@ if (!sb) {
     if (validWall(saved.wallpaper)) screen.wallpaper = saved.wallpaper;
     applyWallpaper();
     if (photoInUse()) loadPhoto();
+    if (videoInUse()) loadVideo();
     if (screen.done) showScreen(user); else setupWallpaper(user);
   }
 

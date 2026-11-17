@@ -791,3 +791,11 @@ Damien a confié à Codex la préparation technique des prompts pour pouvoir se 
 - **Tests** : pages, pages-mode, vues, retrait, interactions, cartes, paywall passent. `parcours` et `menu-lateral` échouent **déjà sans ce changement** (vérifié avec la version d'avant) : à réparer à part.
 - **À vérifier par Damien** : le même écran que sa capture (mode à 4 pages, fond sombre), glisser au pavé tactile entre les pages, puis attendre. Si ça recoupe : noter le navigateur et le geste.
 - Poussé sur main le 17 nov.
+
+## 40. Fond d'écran en vidéo (Pro) — Claude, 17 novembre 2026
+- **Demande de Damien** : fonds animés. Choix : import de sa propre vidéo (pas de GIF : 5-20 Mo, 256 couleurs, flou du verre recalculé à chaque image).
+- **Ce qui marche** : Personnaliser → Fond → tuile « Ta vidéo » (cadenas Pro, comme les polices ; ligne ajoutée dans la liste du plan Pro). MP4, WebM ou MOV, 20 Mo max, envoyée telle quelle. Avant l'envoi, le navigateur vérifie qu'il sait la lire (une vidéo d'iPhone en HEVC ne passe pas partout). Lecture en boucle, sans son, plein écran derrière le verre ; pause quand l'onglet est caché ; figée sur la première image si animations réduites. Supprimée du stockage quand plus aucun mode ne l'utilise (comme la photo).
+- **Stockage** : bucket privé `fonds-video`, un fichier `<compte>/fond`. Migration `supabase/migrations/20261117000000_fond_video.sql` **PAS ENCORE APPLIQUÉE** : sans elle, l'envoi échoue (« L'envoi n'a pas abouti »). Le plan Pro n'est vérifié que dans l'interface, pas par la base.
+- **Limites connues** : le zoom du fond ne s'applique pas à une vidéo (curseur grisé) ; les aperçus du catalogue montrent le fond uni au lieu de la vidéo ; les métadonnées de la vidéo (lieu GPS d'un iPhone) ne sont pas retirées (fichier privé, lisible par la personne seule).
+- **Poussé sur main le 17 nov.** Suites polices, personnalisation, paywall, cartes, chill, carnet, compte, quotidien repassées après le changement du serveur de démo : OK.
+- **Tests** : `tests/fond-video.check.cjs` (gratuit → plans ; refus type/poids/illisible ; envoi, boucle, rechargement, onglet caché, suppression ; animations réduites), 4 passages sur 4. Le serveur de démo (`tests/demo.cjs`) garde maintenant seulement le fichier d'un envoi multipart, comme le vrai Supabase.
