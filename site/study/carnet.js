@@ -490,7 +490,7 @@ window.cahierCarnet = function cahierCarnet(api) {
     hl.setAttribute('aria-pressed', !!m?.surligne);
     const ul = tool(ICONS.souligner, 'Souligner', () => style(ctx, 'souligne'));
     ul.setAttribute('aria-pressed', !!m?.souligne);
-    const noteBtn = tool(ICONS.note, 'Note', () => { startNote(ctx.sel, m); hideBar(); }, m?.note ? 'Modifier la note' : 'Ajouter une note');
+    const noteBtn = tool(ICONS.note, 'Note', () => { noteFromSel(ctx.sel, m); hideBar(); }, m?.note ? 'Modifier la note' : 'Ajouter une note');
     // Le reste à portée sans encombrer : couleur du surlignage, carte, texte à trous, explication, suppression.
     const more = iconBtn('carnet-tool carnet-more', ICONS.plus, 'Plus', () => { extra.hidden = !extra.hidden; more.setAttribute('aria-expanded', !extra.hidden); place(rect); });
     more.setAttribute('aria-expanded', 'false');
@@ -570,6 +570,15 @@ window.cahierCarnet = function cahierCarnet(api) {
     drawMargin();
     margin.querySelector('.carnet-draft textarea')?.focus();
   }
+  // « Note » sur un passage neuf : le passage entre tout de suite dans « Mes notes », le commentaire est facultatif.
+  async function noteFromSel(sel, m) {
+    m ??= exact(sel);
+    if (m) return startNote(null, m);
+    if (tooLong(sel)) return;
+    if (draft?.text.trim() && draft.text !== (draft.mark?.note ?? '')) { tell('Enregistre ou annule d’abord la note en cours.', true); return; }
+    const made = await insert(fromSel(sel));
+    if (made) { getSelection()?.removeAllRanges(); startNote(null, made); }
+  }
   // « Ajouter une note » sans passage choisi : la note du chapitre, la même que dans « Mon espace Study ».
   function startChapNote() {
     const c = api.course(), ch = c?.chapters[api.chapter()];
@@ -602,10 +611,9 @@ window.cahierCarnet = function cahierCarnet(api) {
     }
     if (!text && !d.mark) { tell('Écris ta note avant de l’enregistrer.', true); return; }
     let ok;
-    if (d.mark) {
-      const after = { ...d.mark, note: text || null };
-      ok = !after.note && !after.surligne && !after.souligne ? await remove(d.mark) : await patch(d.mark, { note: text || null });
-    } else ok = !!await insert({ ...fromSel(d.sel), note: text });
+    // Note vidée : le passage reste dans « Mes notes » ; on le retire avec « Supprimer ».
+    if (d.mark) ok = (d.mark.note ?? '') === text || await patch(d.mark, { note: text || null });
+    else ok = !!await insert({ ...fromSel(d.sel), note: text });
     // En cas de panne, le brouillon reste tel quel dans la marge.
     if (ok && draft === d) { draft = null; getSelection()?.removeAllRanges(); drawMargin(); }
   }
@@ -726,7 +734,7 @@ window.cahierCarnet = function cahierCarnet(api) {
       }
     }
     const foot = el('div', 'carnet-mfoot');
-    const add = labelBtn('carnet-add', ICONS.ajouter, 'Ajouter une note', () => { const s = api.selection(); if (s) startNote(s); else startChapNote(); });
+    const add = labelBtn('carnet-add', ICONS.ajouter, 'Ajouter une note', () => { const s = api.selection(); if (s) noteFromSel(s); else startChapNote(); });
     add.hidden = !!draft || marksState !== 'ready';
     foot.append(add);
     items.push(foot);

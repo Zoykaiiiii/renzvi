@@ -163,17 +163,30 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     assert.strictEqual(db.marks.length, 1);
     console.log('ok surligner, souligner, modifier, retirer');
 
-    // 3. Note liée à un passage : une panne ne passe pas pour une réussite et garde le brouillon.
+    // 3. Note liée à un passage : « Note » range le passage tout de suite, le commentaire est facultatif.
+    await select(page, 'Paragraphe 3.');
+    db.failMarks = true;
+    await bar(page).getByRole('button', { name: 'Ajouter une note' }).click();
+    await page.waitForSelector('.carnet-status.bad');
+    assert.strictEqual(db.marks.length, 1, 'panne : rien n’est rangé, et ce n’est pas présenté comme une réussite');
+    db.failMarks = false;
     await select(page, 'Paragraphe 3.');
     await bar(page).getByRole('button', { name: 'Ajouter une note' }).click();
+    await saved(page);
+    assert.strictEqual(db.marks.length, 2, 'le passage est dans « Mes notes » sans rien écrire');
+    assert.deepStrictEqual(await painted(page, 'carnet-note'), ['Paragraphe 3.']);
     const draft = page.locator('.carnet-draft');
     assert.strictEqual(await draft.locator('.carnet-quote').textContent(), '« Paragraphe 3. »', 'le passage cité est montré');
+    await draft.getByRole('button', { name: 'Enregistrer la note' }).click();
+    assert.strictEqual(await page.locator('.carnet-draft').count(), 0, 'enregistrer sans commentaire garde le passage');
+    assert.strictEqual(db.marks.length, 2);
+    await page.locator('.carnet-margin .carnet-mark', { hasText: 'Paragraphe 3.' }).getByRole('button', { name: 'Ajouter une note' }).click();
     await draft.locator('textarea').fill('À revoir avant le partiel.');
     db.failMarks = true;
     await draft.getByRole('button', { name: 'Enregistrer la note' }).click();
     await page.waitForSelector('.carnet-status.bad');
     assert.match(await status(page).textContent(), /Pas enregistré/);
-    assert.strictEqual(db.marks.length, 1, 'rien n’est écrit pendant la panne');
+    assert.ok(!db.marks.some(m => m.note), 'rien n’est écrit pendant la panne');
     assert.strictEqual(await draft.locator('textarea').inputValue(), 'À revoir avant le partiel.', 'le brouillon reste');
     // Changer d'onglet puis revenir ne jette pas le brouillon.
     await page.getByRole('tab', { name: 'Révisions' }).click();
@@ -411,6 +424,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     assert.ok(mb.x >= 0 && mb.x + mb.width <= 390, 'barre dans l’écran');
     assert.ok((await bar(page).getByRole('button', { name: 'Ajouter une note' }).boundingBox()).height >= 44, 'cibles de 44 px');
     await bar(page).getByRole('button', { name: 'Ajouter une note' }).tap();
+    await page.locator('.carnet-draft textarea').waitFor();
     assert.ok(await page.locator('.carnet-margin').isVisible(), 'la note s’ouvre dans une feuille');
     const sheetBox = await page.locator('.carnet-margin').boundingBox();
     assert.ok(sheetBox.width >= 380 && sheetBox.y > 150, 'feuille du bas, pleine largeur');
