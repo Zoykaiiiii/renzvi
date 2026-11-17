@@ -370,8 +370,35 @@ const chillLazy = (src, name) => ctx => {
   return () => { gone = true; cleanup?.(); };
 };
 
+// Ouverture et sortie animées d'une fenêtre : elle sort de « from » (la place du widget) et y retourne en rétrécissant,
+// le voile se fond. Sans « from » : elle monte doucement. Mouvement réduit : rien ne bouge.
+// close() attend la fin de la sortie ; Échap passe par la même sortie. onFini est appelé une fois la fenêtre vraiment fermée
+// (sans compter sur l'événement « close », que Chromium ne livre pas toujours quand deux fenêtres sont empilées).
+const chillCalme = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+function chillAnimer(dialog, from, onFini) {
+  const pose = () => {
+    const to = dialog.getBoundingClientRect();
+    if (!from?.width || !to.width) return 'translateY(24px) scale(.97)';
+    return `translate(${from.left + from.width / 2 - (to.left + to.width / 2)}px,${from.top + from.height / 2 - (to.top + to.height / 2)}px) scale(${Math.max(.15, from.width / to.width)},${Math.max(.15, from.height / to.height)})`;
+  };
+  const fermer = HTMLDialogElement.prototype.close;
+  let sortie = null, fini = false;
+  const finir = v => { if (fini) return; fini = true; if (dialog.open) fermer.call(dialog, v); onFini?.(); };
+  dialog.close = function (v) {
+    if (sortie || fini) return;
+    if (chillCalme() || !dialog.animate || !dialog.open) return finir(v);
+    dialog.classList.add('sortie');
+    sortie = dialog.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: pose() }], { duration: 300, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' });
+    sortie.finished.catch(() => {}).finally(() => finir(v));
+  };
+  dialog.addEventListener('cancel', e => { e.preventDefault(); dialog.close(); });
+  dialog.addEventListener('close', () => { fini = true; onFini?.(); }, { once: true });
+  if (!chillCalme() && dialog.animate) dialog.animate([{ opacity: 0, transform: pose() }, { opacity: 1, transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.22,1,.36,1)' });
+}
+
 // Vue agrandie : le contenu passe dans une grande fenêtre, puis revient à sa place à la fermeture.
 function chillAgrandir(title, content, onClose) {
+  const from = content.getBoundingClientRect();
   const dialog = el('dialog', 'glass chill-big');
   const head = el('div', 'chill-big-head');
   const close = button('ghost', 'Retour au tableau', () => dialog.close());
@@ -379,13 +406,13 @@ function chillAgrandir(title, content, onClose) {
   const home = content.parentNode, next = content.nextSibling;
   dialog.append(head, content);
   dialog.setAttribute('aria-label', title);
-  dialog.addEventListener('close', () => {
+  document.body.append(dialog);
+  dialog.showModal();
+  chillAnimer(dialog, from, () => {
     home?.insertBefore(content, next?.parentNode === home ? next : null);
     dialog.remove();
     onClose?.();
   });
-  document.body.append(dialog);
-  dialog.showModal();
   return dialog;
 }
 

@@ -93,10 +93,86 @@ window.cahierCarnet = function cahierCarnet(api) {
   menuBtn.setAttribute('aria-haspopup', 'true');
   const menu = el('div', 'carnet-menu');
   menu.hidden = true;
-  const closeBtn = button('ghost', 'Réduire', () => api.close());
-  closeBtn.ariaLabel = 'Réduire : retour au tableau';
+  const closeBtn = button('ghost carnet-retour', api.retour ?? 'Réduire', () => api.close());
+  closeBtn.ariaLabel = api.retour ?? 'Réduire : retour au tableau';
+  // --- Apparence du carnet : Papier, Verre (le fond d'écran se devine derrière), Sombre ; police, taille, interligne.
+  // Gardée sur cet appareil (localStorage), limitée au carnet : le tableau, le logo et le reste de l'appli ne changent pas.
+  // Tout s'applique tout de suite (aperçu en direct) ; « Réinitialiser » revient au réglage de départ (Verre).
+  const LOOK_KEY = 'renzvi:carnet-look';
+  const LOOK0 = { surface: 'verre', opacite: 74, flou: 24, police: 'editoriale', taille: 18, interligne: 1.7 };
+  const SURFACES = [['papier', 'Papier'], ['verre', 'Verre'], ['sombre', 'Sombre']];
+  const POLICES = [['editoriale', 'Éditoriale'], ['sans', 'Sans empattement']];
+  const INTERLIGNES = [[1.55, 'Serré'], [1.7, 'Normal'], [1.9, 'Aéré']];
+  const clampN = (v, a, b, d) => Number.isFinite(+v) ? Math.min(b, Math.max(a, +v)) : d;
+  let look = { ...LOOK0 };
+  try {
+    const l = JSON.parse(localStorage.getItem(LOOK_KEY) || 'null');
+    if (l) look = {
+      surface: SURFACES.some(([k]) => k === l.surface) ? l.surface : LOOK0.surface,
+      opacite: clampN(l.opacite, 40, 96, LOOK0.opacite), flou: clampN(l.flou, 0, 40, LOOK0.flou),
+      police: POLICES.some(([k]) => k === l.police) ? l.police : LOOK0.police,
+      taille: clampN(l.taille, 15, 24, LOOK0.taille), interligne: INTERLIGNES.some(([v]) => v === l.interligne) ? l.interligne : LOOK0.interligne,
+    };
+  } catch {}
+  function applyLook(keep = true) {
+    box.dataset.surface = look.surface;
+    box.dataset.police = look.police;
+    box.style.setProperty('--cn-alpha', String(look.opacite / 100));
+    box.style.setProperty('--cn-blur', `${look.flou}px`);
+    box.style.setProperty('--cn-size', `${look.taille}px`);
+    box.style.setProperty('--cn-lh', String(look.interligne));
+    if (keep) try { localStorage.setItem(LOOK_KEY, JSON.stringify(look)); } catch {}
+  }
+  const lookBtn = button('ghost carnet-look-btn', 'Personnaliser', () => setLook(lookPanel.hidden));
+  lookBtn.setAttribute('aria-haspopup', 'dialog');
+  lookBtn.setAttribute('aria-expanded', 'false');
+  const lookPanel = el('div', 'carnet-look');
+  lookPanel.hidden = true;
+  lookPanel.setAttribute('role', 'dialog');
+  lookPanel.ariaLabel = 'Apparence du cahier';
+  function setLook(on) {
+    lookPanel.hidden = !on;
+    lookBtn.setAttribute('aria-expanded', on);
+    if (on) { drawLook(); lookPanel.querySelector('[aria-pressed=true]')?.focus(); }
+  }
+  function choix(label, list, value, onPick, cls = '') {
+    const g = el('div', `carnet-look-row ${cls}`);
+    g.setAttribute('role', 'group');
+    g.ariaLabel = label;
+    for (const [v, t] of list) {
+      const b = button(`carnet-look-opt carnet-look-${v}`, '', () => { onPick(v); applyLook(); drawLook(); g.querySelector(`[data-v="${v}"]`)?.focus(); });
+      b.dataset.v = String(v);
+      if (cls === 'carnet-look-surfaces') b.append(el('i', ''));
+      b.append(el('span', '', t));
+      b.setAttribute('aria-pressed', String(v === value));
+      g.append(b);
+    }
+    return g;
+  }
+  function curseur(label, min, max, value, unit, onInput) {
+    const wrap = el('label', 'carnet-look-range');
+    const top = el('span', 'carnet-look-label');
+    const val = el('span', 'carnet-look-val', `${value}${unit}`);
+    top.append(label, val);
+    const input = Object.assign(el('input'), { type: 'range', min, max, value });
+    input.oninput = () => { onInput(+input.value); val.textContent = `${input.value}${unit}`; applyLook(); };
+    wrap.append(top, input);
+    return wrap;
+  }
+  function drawLook() {
+    const parts = [el('h3', '', 'Apparence du cahier'), choix('Surface', SURFACES, look.surface, v => { look.surface = v; }, 'carnet-look-surfaces')];
+    if (look.surface === 'verre') parts.push(curseur('Opacité', 40, 96, look.opacite, ' %', v => { look.opacite = v; }), curseur('Flou', 0, 40, look.flou, ' px', v => { look.flou = v; }));
+    parts.push(
+      el('p', 'carnet-look-label', 'Police du cours'), choix('Police du cours', POLICES, look.police, v => { look.police = v; }),
+      curseur('Taille du texte', 15, 24, look.taille, ' px', v => { look.taille = v; }),
+      el('p', 'carnet-look-label', 'Interligne'), choix('Interligne', INTERLIGNES, look.interligne, v => { look.interligne = v; }),
+      button('link carnet-look-reset', 'Réinitialiser', () => { look = { ...LOOK0 }; applyLook(); drawLook(); }),
+    );
+    lookPanel.replaceChildren(...parts);
+  }
+  applyLook(false);
   const acts = el('div', 'carnet-acts');
-  acts.append(status, signetBtn, marginBtn, menuBtn, menu, closeBtn);
+  acts.append(status, lookBtn, lookPanel, signetBtn, marginBtn, menuBtn, menu, closeBtn);
   top.append(sideBtn, name, tabs, find, acts);
 
   const side = el('nav', 'carnet-side');
@@ -352,6 +428,7 @@ window.cahierCarnet = function cahierCarnet(api) {
   view.addEventListener('click', onClick);
   const onDown = e => {
     if (menuOpen && !menu.contains(e.target) && e.target !== menuBtn) setMenu(false);
+    if (!lookPanel.hidden && !lookPanel.contains(e.target) && e.target !== lookBtn) setLook(false);
     if (barCtx?.mark && !bar.contains(e.target) && !e.target.closest?.('.cahier-block')) hideBar();
   };
   document.addEventListener('pointerdown', onDown);
@@ -664,7 +741,7 @@ window.cahierCarnet = function cahierCarnet(api) {
       open = on;
       for (const n of parts) n.hidden = !on;
       if (on) { tab = 'cours'; sideOn = roomy.matches; marginOn = wide.matches; bar.hidden = true; pane.hidden = true; }
-      else { closeSheet(false); setMenu(false); hideBar(); view.hidden = false; back = null; }
+      else { closeSheet(false); setMenu(false); setLook(false); hideBar(); view.hidden = false; back = null; }
       layout();
       if (on) sync();
       paint();
@@ -675,6 +752,7 @@ window.cahierCarnet = function cahierCarnet(api) {
     },
     // Échap : ferme d'abord ce qui est ouvert par-dessus (menu, barre, révision, panneaux flottants).
     escape() {
+      if (!lookPanel.hidden) { setLook(false); lookBtn.focus(); return true; }
       if (menuOpen) { setMenu(false); menuBtn.focus(); return true; }
       if (sheet) { closeSheet(); return true; }
       if (!bar.hidden) { hideBar(); return true; }

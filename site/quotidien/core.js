@@ -230,16 +230,14 @@ function qFiche(titre, contenu, { onClose } = {}) {
   fermer.ariaLabel = 'Fermer';
   head.append(h, fermer);
   dialog.append(head, contenu);
-  // Fermer une seule fois, que ce soit par un bouton (close) ou par Échap (événement close). Avec deux fenêtres empilées,
-  // Chromium ne livre pas toujours l'événement close : on n'attend donc pas l'événement pour finir.
+  // Ouverture et sortie animées (chill/chill.js) ; la fenêtre n'est retirée qu'une fois la sortie finie.
   let fini = false;
   const finir = () => { if (fini) return; fini = true; dialog.remove(); onClose?.(); };
-  dialog.addEventListener('close', finir);
-  dialog.close = function (v) { HTMLDialogElement.prototype.close.call(this, v); finir(); };
   // Clic sur le voile : ferme, comme Échap.
   dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });
   document.body.append(dialog);
   dialog.showModal();
+  chillAnimer(dialog, null, finir);
   contenu.querySelector('input:not([type=hidden]),select,textarea')?.focus();
   return dialog;
 }

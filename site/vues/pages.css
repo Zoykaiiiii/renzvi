@@ -43,7 +43,7 @@
 
 /* Édition : le contenu ne répond plus, le widget entier se prend à la main ; deux poignées apparaissent. */
 .pages-editing .board[data-vue=pages]>.widget{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 45%,transparent)} /* taste-skill-ignore : le contour dit qu'on peut prendre le widget */
-.pages-editing .board[data-vue=pages]>.widget>:not(.pg-move):not(.pg-size):not(.pg-to){pointer-events:none}
+.pages-editing .board[data-vue=pages]>.widget>:not(.pg-move):not(.pg-size):not(.pg-to):not(.pg-remove){pointer-events:none}
 .pages-editing.dragging .board[data-vue=pages]>.widget{cursor:grabbing}
 .pg-move,.pg-size,.pg-to{display:none}
 /* « Déplacer vers une page » : invisible (demande de Damien), elle n'apparaît que si on y arrive au clavier. */
@@ -52,7 +52,18 @@
 .pg-to select{height:32px;max-width:100%;padding:0 8px;border:0;border-radius:10px;background:var(--glass-solid);color:var(--ink);font-size:13px}
 @media (pointer:coarse){.pg-to select{height:44px}}
 .pages-editing .pg-move,.pages-editing .pg-size{position:absolute;z-index:5;display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:10px;background:var(--glass-solid);color:var(--ink);touch-action:none}
-.pages-editing .pg-move{top:6px;left:6px;cursor:grab}
+/* La poignée en pointillés ne sert plus qu'au clavier : invisible, elle apparaît si on y arrive avec Tab. */
+.pages-editing .pg-move{top:6px;left:48px;cursor:grab;clip-path:inset(50%)}
+.pages-editing .pg-move:focus-visible{clip-path:none}
+/* Retirer de la page : une corbeille en haut à gauche, rouge au survol. */
+.pg-remove{display:none}
+.pages-editing .pg-remove{position:absolute;top:6px;left:6px;z-index:5;display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:10px;background:var(--glass-solid);color:var(--ink);cursor:pointer;transition:background-color .15s,color .15s}
+.pg-remove svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+.pg-remove .pg-lid{transition:transform .18s var(--ease,ease);transform-origin:13.5px 4.5px}
+.pages-editing .pg-remove:is(:hover,:focus-visible){background:var(--error);color:#fff}
+.pg-remove:is(:hover,:focus-visible) .pg-lid{transform:rotate(-14deg) translateY(-1px)}
+@media (pointer:coarse){.pages-editing .pg-remove{width:44px;height:44px}.pages-editing .pg-move{left:58px}}
+@media (prefers-reduced-motion:reduce){.pg-remove .pg-lid{transition:none}}
 .pages-editing .pg-size{right:6px;bottom:6px;cursor:nwse-resize}
 .pg-move svg{width:12px;height:12px;fill:currentColor}
 .pg-size svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}

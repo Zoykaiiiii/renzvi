@@ -12,6 +12,13 @@
 
 /* Vue agrandie */
 /* Comme la vue agrandie des autres widgets : tout l'espace de l'appli, 16 px de marge (bord à bord sur téléphone). */
+/* Voile des grandes fenêtres et des fiches : il se fond à l'ouverture et à la sortie (chillAnimer). */
+@keyframes chill-voile{from{opacity:0}}
+@keyframes chill-voile-off{to{opacity:0}}
+dialog:is(.chill-big,.q-fiche)::backdrop{animation:chill-voile .42s ease}
+dialog:is(.chill-big,.q-fiche).sortie::backdrop{animation:chill-voile-off .3s ease forwards}
+@media (prefers-reduced-motion:reduce){dialog:is(.chill-big,.q-fiche)::backdrop{animation:none}}
+.atelier-fond{margin-top:8px}
 dialog.chill-big{width:calc(100vw - 32px);height:calc(100dvh - 32px);max-width:none;max-height:none;padding:clamp(16px,2.4vw,32px);overflow:auto}
 @media (max-width:727px){dialog.chill-big{width:100vw;height:100dvh;margin:0;border-radius:0;padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom))}}
 .chill-big-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}

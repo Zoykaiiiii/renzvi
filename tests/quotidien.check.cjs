@@ -48,11 +48,17 @@ function seed(b) {
   }
   const W = (page, id) => page.locator(`#board [data-widget=${id}]`);
   // Une action peut finir après le clic (fenêtre de confirmation) : on laisse partir l'enregistrement avant d'attendre « Enregistré ».
-  const saved = async page => { await page.waitForTimeout(300); await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré'); };
+  const saved = async page => { await page.waitForTimeout(700); await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré'); };
   const shot = async (loc, name) => { if (SHOTS) await loc.screenshot({ path: `${SHOTS}/${name}.png` }); };
   const fiche = page => page.locator('dialog.q-fiche[open]').last();
   // Une confirmation s'ouvre par-dessus une fiche (ou seule) : on attend qu'elle soit là avant de cliquer dedans.
-  const confirmer = async (page, nom, avant = 0) => { await page.waitForFunction(n => document.querySelectorAll('dialog.q-fiche[open]').length > n, avant); await fiche(page).getByRole('button', { name: nom, exact: true }).click(); };
+  const confirmer = async (page, nom, avant = 0) => {
+    await page.waitForFunction(n => document.querySelectorAll('dialog.q-fiche[open]').length > n, avant);
+    const d = await fiche(page).elementHandle();
+    await fiche(page).getByRole('button', { name: nom, exact: true }).click();
+    // La confirmation se referme en glissant ; l'action part une fois cette fenêtre partie (une autre peut s'ouvrir aussitôt).
+    await page.waitForFunction(n => !n.isConnected, d);
+  };
 
   // 1. Aujourd'hui : cocher une tâche ici coche la tâche d'origine (même identifiant, pas de copie), et l'inverse.
   {
@@ -104,6 +110,7 @@ function seed(b) {
     await page.waitForSelector('#board [data-widget=agenda].zoomed');
     assert.match(await fiche(page).locator('h2').textContent(), /Modifier le rendez-vous/);
     await page.keyboard.press('Escape');
+    await page.waitForSelector('dialog.q-fiche', { state: 'detached' }); // la fiche se referme en glissant
     await page.keyboard.press('Escape');
     await page.waitForSelector('#board [data-widget=agenda]:not(.zoomed)');
     await context.close();
@@ -226,6 +233,7 @@ function seed(b) {
     assert.equal(b.rows.courses.items.length, 2);
     await co.locator('.q-cote').getByRole('button', { name: 'Utiliser la liste La semaine' }).click();
     await fiche(page).getByRole('button', { name: /^Ajouter les 2 articles/ }).click();
+    await page.waitForSelector('dialog.q-fiche', { state: 'detached' }); // l'ajout part une fois la fiche sortie (animation)
     await saved(page);
     assert.equal(b.rows.courses.items.length, 4);
     await page.keyboard.press('Escape');

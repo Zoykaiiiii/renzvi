@@ -40,9 +40,9 @@ const overlaps = page => page.locator('.cst-txt, .cst-label').evaluateAll(all =>
     assert.strictEqual(await page.locator('.cst-chap').count(), 10, 'une étoile par chapitre');
     assert.deepStrictEqual(await page.locator('.cst-matiere span').allTextContents(), ['Biologie', 'Histoire', 'Mathématiques']);
     assert.strictEqual(await page.locator('.cst-svg .cst-line').evaluate(p => (p.getAttribute('d').match(/M/g) ?? []).length), 3, 'un trait par cours, aucun entre cours différents');
-    assert.strictEqual(await page.locator('.cst-sky').evaluate(n => getComputedStyle(n).pointerEvents), 'none', 'le décor ne se clique pas');
+    assert.strictEqual(await page.locator('.cst-sky, .cst-hills').count(), 0, 'aucun ciel ajouté : le fond d’écran reste le ciel');
     { const w = (await page.locator('.cst-chap .cst-hit').first().boundingBox()).width; assert.ok(w >= 43.5, `cible de 44 px (${w})`); }
-    assert.strictEqual(await page.locator('[data-widget=etude]').evaluate(n => getComputedStyle(n).backgroundColor), 'rgb(13, 16, 22)', 'ciel de nuit');
+    assert.strictEqual(await page.locator('[data-widget=etude]').evaluate(n => getComputedStyle(n).backgroundColor), 'rgba(0, 0, 0, 0)', 'aucun fond plein : le fond d’écran reste visible');
     assert.strictEqual(await overlaps(page), 0, 'aucun nom ne chevauche un autre');
     await shot(page, 'ciel-1440');
     console.log('ok ciel dessiné depuis les cours');

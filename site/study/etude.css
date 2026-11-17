@@ -6,16 +6,55 @@
 :root[data-theme=dark] .widget[data-widget=etude]{
   --et-ground:#1c1c1d; --et-raise:#262627; --et-ink:#ecebe8; --et-soft:#a8a6a2; --et-line:rgba(236,235,232,.16); --et-press:rgba(236,235,232,.09);
 }
-.etude-closed{display:grid;gap:12px;justify-items:start}
-.etude-sum{margin:0;color:var(--slate)}
+/* Fermé : l'aperçu de la vraie présentation est l'élément principal ; le résumé et le bouton dessous. */
+.etude-closed{display:flex;flex-direction:column;gap:10px;height:100%;min-height:0}
+.etude-pick-vue{align-self:flex-start}
+.etude-pick-vue button{height:28px;font-size:12.5px}
+.etude-preview{position:relative;flex:1;min-height:200px;overflow:hidden;border-radius:calc(var(--r-panel) - 6px);cursor:pointer;--et-ink:var(--ink);--et-soft:var(--slate);--et-press:transparent;--et-raise:transparent}
+.etude-preview .arbre-label,.etude-preview .cst-label,.etude-preview .cst-chap{pointer-events:none}
+/* Dans l'aperçu, le dessin est réduit mais les noms gardent une taille lisible (ils ne suivent pas le zoom).
+   Constellations : seul le chapitre choisi et la matière sont nommés ; les titres complets sont dans l'espace ouvert. */
+.etude-preview .cst-chap:not([aria-current]) .cst-txt,.etude-preview .cst-cours{visibility:hidden}
+.etude-preview .arbre-label{font-size:calc(11.5px / var(--arbre-k,1));max-width:calc(130px / var(--arbre-k,1));padding:0 calc(4px / var(--arbre-k,1))}
+.etude-preview :is(.arbre-matiere,.arbre-big,.arbre-titre){font-size:calc(15px / var(--arbre-k,1));max-width:calc(160px / var(--arbre-k,1))}
+.etude-preview .arbre-cours{font-size:calc(11px / var(--arbre-k,1))}
+.etude-preview .cst-txt{font-size:calc(11.5px / var(--cst-k,1));padding:0}
+.etude-preview .cst-label{font-size:calc(11px / var(--cst-k,1))}
+.etude-preview .cst-matiere{font-size:calc(15px / var(--cst-k,1))}
+.etude-preview :is(.arbre-due,.cst-due){display:none}
+.etude-preview-vide{display:grid;place-items:center;align-content:center;gap:10px;cursor:default;height:100%;color:var(--slate);font-size:14px;border:1.5px dashed var(--edge);border-radius:14px}
+.etude-preview-vide svg{width:72px;height:72px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.etude-preview-vide p{margin:0}
+.etude-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.etude-sum{margin:0;color:var(--slate);font-size:13px}
+.widget[data-widget=etude]:not(.etude-open)>.body{min-height:280px}
 
-/* Ouvert : l'espace prend tout l'écran, sur un fond de papier plein (pas de verre ici, on lit et on travaille). */
-.widget.etude-open{position:fixed;inset:0;z-index:60;border-radius:0;padding:0;overflow:hidden;background:var(--et-ground);color:var(--et-ink);backdrop-filter:none;box-shadow:none;border:0}
+/* Ouvert : une scène posée sur le fond d'écran de la page. Aucun fond plein ; un voile léger selon le contraste. */
+.widget.etude-open{position:fixed;inset:0;z-index:60;border-radius:0;padding:0;overflow:hidden;background:transparent;color:var(--et-ink);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;border:0}
+.etude-cache{visibility:hidden!important}
+/* L'encre suit le fond (mesuré à l'ouverture) : claire sur un fond sombre, sombre sur un fond clair. */
+.widget.etude-open[data-contraste=sombre]{
+  --et-ink:#f2eee6; --et-soft:rgba(242,238,230,.74); --et-line:rgba(242,238,230,.24); --et-press:rgba(242,238,230,.12);
+  --et-raise:rgba(20,20,22,.72); --et-ground:#141416; --et-scrim:rgba(6,6,8,.26); --et-label:rgba(10,10,12,.22);
+}
+.widget.etude-open[data-contraste=clair]{
+  --et-ink:#1d1c1a; --et-soft:rgba(29,28,26,.72); --et-line:rgba(29,28,26,.18); --et-press:rgba(29,28,26,.08);
+  --et-raise:rgba(255,255,255,.8); --et-ground:#f3f0ea; --et-scrim:rgba(255,255,255,.2); --et-label:rgba(255,255,255,.34);
+}
+.widget.etude-open .etude-space::before{content:"";position:absolute;inset:0;background:var(--et-scrim,transparent);pointer-events:none}
+.widget.etude-open :is(.etude-panel,.etude-tool,.etude-search,.etude-results){-webkit-backdrop-filter:blur(20px) saturate(1.4);backdrop-filter:blur(20px) saturate(1.4)}
+.widget.etude-open[data-contraste=sombre] :is(.etude-panel,.etude-tool,.etude-search,.etude-results,.etude-picker){color-scheme:dark}
+/* Les feuilles (lire, réviser, notes) restent sur papier : on y lit longtemps. */
+.widget.etude-open .etude-sheets{--et-ground:#f3f0ea;--et-raise:#fbfaf7;--et-ink:#242424;--et-soft:#615d59;--et-line:rgba(36,36,36,.14);--et-press:rgba(36,36,36,.07)}
+:root[data-theme=dark] .widget.etude-open .etude-sheets{--et-ground:#1c1c1d;--et-raise:#262627;--et-ink:#ecebe8;--et-soft:#a8a6a2;--et-line:rgba(236,235,232,.16);--et-press:rgba(236,235,232,.09)}
+/* Sur le fond, chaque nom a un léger appui pour rester lisible, sans cacher le fond. */
+.widget.etude-open :is(.arbre-label,.cst-txt,.cst-label){background:var(--et-label)}
+.widget.etude-open .arbre-titre{background:none}
 .widget.etude-open>.head,.widget.etude-open>.edit{display:none}
 .widget.etude-open>.body{height:100%;padding:0;margin:0;max-height:none;overflow:hidden}
 .etude-space{position:relative;height:100%;display:grid;grid-template-rows:auto 1fr;color:var(--et-ink)}
 .etude-space[hidden]{display:none}
-.etude-top{display:flex;align-items:center;gap:12px 20px;flex-wrap:wrap;padding:14px 20px;position:relative;z-index:3}
+.etude-top{display:flex;align-items:center;gap:12px 20px;flex-wrap:wrap;padding:16px 20px 14px 92px;position:relative;z-index:3}
 .etude-name{margin:0;font-weight:600;font-size:17px}
 .etude-name span{font-weight:400;color:var(--et-soft)}
 .etude-tabs{display:flex;gap:4px;margin-left:auto}
@@ -41,7 +80,7 @@
 .etude-empty p{margin:0;color:var(--et-soft);line-height:1.5}
 
 /* Panneau du chapitre : une carte posée en haut à droite ; en bas de l'écran sur téléphone. */
-.etude-panel{position:absolute;top:70px;right:20px;z-index:2;width:min(340px,calc(100% - 40px));max-height:calc(100% - 160px);overflow:auto;padding:18px 20px;display:grid;gap:10px;background:var(--et-raise);border:1px solid var(--et-line);border-radius:var(--r-panel)}
+.etude-panel{position:absolute;top:76px;right:20px;z-index:2;width:min(360px,calc(100% - 40px));max-height:calc(100% - 160px);overflow:auto;padding:18px 20px;display:grid;gap:10px;background:var(--et-raise);border:1px solid var(--et-line);border-radius:var(--r-panel)}
 .etude-panel h3{margin:0;font:400 24px/1.15 var(--et-serif)}
 .etude-panel h4{margin:8px 0 0;font-size:13px;font-weight:600;color:var(--et-soft)}
 .etude-crumb{margin:0;font-size:13px;color:var(--et-soft)}
@@ -72,6 +111,7 @@
 .etude-tool svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .etude-more{padding:0;margin-left:-2px}
 .etude-tool{gap:8px}
+.etude-tool span{font-size:13.5px}
 .etude-play path{fill:currentColor}
 .arbre-level{min-width:52px;text-align:center;font-size:13px;color:var(--et-soft);font-variant-numeric:tabular-nums}
 .etude-live{position:absolute;left:50%;bottom:24px;z-index:4;transform:translateX(-50%);margin:0;max-width:min(520px,calc(100% - 40px));padding:10px 16px;border-radius:var(--r-control);background:var(--et-ink);color:var(--et-ground);font-size:14px}
@@ -138,23 +178,7 @@ h4>.etude-fold{font-size:15px;font-weight:600}
 .etude-flash .primary{flex:none}
 .etude-panel-idle{gap:8px}
 
-/* Constellations : un ciel de nuit, quel que soit le thème. Les feuilles (lire, réviser, notes) restent sur papier. */
-.widget[data-widget=etude][data-etude-vue=constellations]{
-  --et-ground:#0d1016; --et-raise:#151922; --et-ink:#ebe8df; --et-soft:#a3a6ae; --et-line:rgba(235,232,223,.15); --et-press:rgba(235,232,223,.08);
-}
-.widget[data-widget=etude][data-etude-vue=constellations] .etude-sheets{
-  --et-ground:#f3f0ea; --et-raise:#fbfaf7; --et-ink:#242424; --et-soft:#615d59; --et-line:rgba(36,36,36,.14); --et-press:rgba(36,36,36,.07);
-}
-:root[data-theme=dark] .widget[data-widget=etude][data-etude-vue=constellations] .etude-sheets{
-  --et-ground:#1c1c1d; --et-raise:#262627; --et-ink:#ecebe8; --et-soft:#a8a6a2; --et-line:rgba(236,235,232,.16); --et-press:rgba(236,235,232,.09);
-}
-.widget[data-etude-vue=constellations] .etude-space :is(.etude-panel,.etude-tool,.etude-search,.etude-results,.etude-picker){color-scheme:dark}
-#screen .widget[data-etude-vue=constellations] .etude-space .primary{background:var(--et-ink);color:var(--et-ground)}
-.cst-sky,.cst-hills{position:absolute;left:0;width:100%;pointer-events:none}
-.cst-sky{top:0;height:100%}
-.cst-hills{bottom:0;height:14%;min-height:70px}
-.cst-hills path{fill:#0a0c11}
-.cst-hills path.far{fill:#07080c}
+/* Constellations : les étoiles du contenu sur le fond d'écran de la personne (aucun ciel ajouté). */
 .cst-world{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
 .cst-world.gliding{transition:transform .42s cubic-bezier(.22,1,.36,1)}
 .cst-svg{position:absolute;overflow:visible;pointer-events:none}
@@ -168,15 +192,17 @@ h4>.etude-fold{font-size:15px;font-weight:600}
 /* Le bouton est posé sur l'étoile ; sa cible (44 px à l'écran, quel que soit le zoom) et son nom partent tous deux de ce point. */
 .cst-chap{--hit:max(44px,calc(44px / var(--cst-k,1)));position:absolute;width:1px;height:1px;margin:0;padding:0;border:0;background:none;color:var(--et-ink);font:inherit;cursor:pointer} /* taste-skill-ignore : un bouton d'un pixel posé sur l'étoile, pas un trait */
 .cst-hit{position:absolute;left:calc(var(--hit) / -2);top:calc(var(--hit) / -2);width:var(--hit);height:var(--hit);border-radius:50%}
-.cst-chap .cst-txt{position:absolute;top:0;left:10px;transform:translateY(-50%)}
-.cst-chap.cst-g .cst-txt{left:auto;right:10px}
-.cst-chap.cst-h .cst-txt{left:0;transform:translate(-50%,calc(-100% - 10px))}
-.cst-chap.cst-b .cst-txt{left:0;transform:translate(-50%,10px)}
+.cst-chap .cst-txt{position:absolute;top:0;left:16px;transform:translateY(-50%)}
+.cst-chap.cst-g .cst-txt{left:auto;right:16px}
+.cst-chap.cst-h .cst-txt{left:0;transform:translate(-50%,calc(-100% - 16px))}
+.cst-chap.cst-b .cst-txt{left:0;transform:translate(-50%,16px)}
 .cst-chap:hover .cst-hit{background:rgba(246,242,230,.08)}
-.cst-txt{display:inline-flex;align-items:center;gap:8px;max-width:240px;padding:2px 6px;border-radius:6px;font:400 16px/1.3 var(--et-serif);white-space:nowrap}
+.cst-txt{display:inline-flex;align-items:center;gap:8px;max-width:260px;padding:3px 12px;border:1px solid transparent;border-radius:var(--pill);font:400 19px/1.3 var(--et-serif);letter-spacing:-.005em;white-space:nowrap}
 .cst-name{overflow:hidden;text-overflow:ellipsis}
 .cst-chap:hover .cst-name{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--et-soft)}
-.cst-chap[aria-current] .cst-txt{font-weight:600}
+/* Le chapitre choisi : son nom dans une capsule fine, en plus de l'anneau autour de l'étoile. */
+.cst-chap[aria-current] .cst-txt{border-color:var(--et-ink)}
+.cst-chap:hover .cst-txt,.cst-chap:focus-visible .cst-txt{border-color:color-mix(in srgb,var(--et-ink) 40%,transparent)}
 /* Pas de place libre pour le nom : il n'apparaît qu'à la demande, par-dessus les autres. */
 .cst-quiet .cst-txt{visibility:hidden}
 .cst-quiet:is(:hover,:focus-visible,[aria-current]) .cst-txt{visibility:visible;z-index:2;background:var(--et-ground)}
@@ -188,26 +214,44 @@ h4>.etude-fold{font-size:15px;font-weight:600}
 .cst-label span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .cst-label small{font:400 12.5px var(--sans);color:var(--et-soft)}
 .cst-label:hover{background:var(--et-press)}
-.cst-matiere{font:italic 400 30px/1.15 var(--et-serif);letter-spacing:-.005em}
+.cst-matiere{font:italic 400 30px/1.15 var(--et-serif);letter-spacing:-.005em;color:color-mix(in srgb,var(--et-ink) 85%,transparent)}
 .cst-cours{max-width:240px;font-size:15px;color:var(--et-soft)}
 .cst-cours:hover{color:var(--et-ink)}
 .etude-stage[data-lod=loin] .cst-txt{visibility:hidden}
-.etude-stage[data-vue=constellations]{background:var(--et-ground)}
+/* Replier ou déplier une matière ou un cours : un petit bouton à côté de son nom. */
+.cst-plier,.arbre-plier{position:absolute;width:26px;height:26px;margin:0;padding:0;border:0;border-radius:50%;background:var(--et-label,transparent);color:var(--et-soft);cursor:pointer;transform:translate(-34px,-50%)}
+.arbre-plier[data-side=d]{transform:translate(-34px,-50%)}
+.arbre-plier[data-side=g]{transform:translate(8px,-50%)}
+.cst-plier{transform:translate(-30px,0)}
+:is(.cst-plier,.arbre-plier)::before{content:"";position:absolute;left:9px;top:8px;width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg)}
+:is(.cst-plier,.arbre-plier)[aria-expanded=false]::before{transform:rotate(-45deg);left:7px;top:9px}
+:is(.cst-plier,.arbre-plier):hover{color:var(--et-ink);background:var(--et-press)}
+.cst-ring{stroke-width:1.4}
+.cst-halo{fill:color-mix(in srgb,var(--et-ink) 8%,transparent)}
+.cst-glow{fill:color-mix(in srgb,var(--et-ink) 26%,transparent)}
+.cst-spike{stroke:color-mix(in srgb,var(--et-ink) 55%,transparent);stroke-width:.8;stroke-linecap:round}
+.cst-star,.cst-star.big{fill:var(--et-ink)}
+.cst-line{stroke:color-mix(in srgb,var(--et-ink) 50%,transparent);stroke-width:1.1}
+.cst-ring{stroke:var(--et-ink)}
 
 /* Arbre */
 .arbre-world{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
 .arbre-world.gliding{transition:transform .38s cubic-bezier(.22,1,.36,1)}
 .arbre-svg{position:absolute;overflow:visible;pointer-events:none}
 .arbre-wood{fill:var(--et-ink)}
-.arbre-fine{fill:none;stroke:var(--et-ink);stroke-width:1.1;stroke-linecap:round}
+.arbre-fine{fill:none;stroke:var(--et-ink);stroke-width:1.3;stroke-linecap:round}
+.arbre-leaf{fill:var(--et-ink);opacity:.85}
 .arbre-dot{fill:var(--et-ink)}
 .arbre-ring{fill:none;stroke:var(--et-ink);stroke-width:1.4}
-.arbre-label{position:absolute;margin:0;display:inline-flex;align-items:baseline;gap:8px;max-width:190px;padding:3px 8px;border:1px solid transparent;border-radius:8px;background:none;color:var(--et-ink);font:inherit;font-size:14.5px;line-height:1.3;white-space:nowrap;cursor:pointer;transform:translateY(-50%)}
+.arbre-label{position:absolute;margin:0;display:inline-flex;align-items:baseline;gap:8px;width:max-content;max-width:210px;padding:3px 9px;border:1px solid transparent;border-radius:9px;background:none;color:var(--et-ink);font:inherit;font-size:15px;line-height:1.3;cursor:pointer;transform:translateY(-50%)}
+.arbre-chapitre{font:400 17px/1.25 var(--et-serif);max-width:230px}
+.arbre-labels[data-place=serre] .arbre-chapitre{font-size:15px;max-width:200px}
+.arbre-labels[data-place=serre] .arbre-label span{-webkit-line-clamp:1;overflow-wrap:normal;white-space:nowrap;text-overflow:ellipsis;display:block}
 .arbre-label[data-side=g]{transform:translate(-100%,-50%);flex-direction:row-reverse}
-.arbre-label span{overflow:hidden;text-overflow:ellipsis}
+.arbre-label span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;text-wrap:balance}
 .arbre-label small{flex:none;font:400 12.5px var(--sans);color:var(--et-soft)}
 .arbre-label:hover{background:var(--et-press)}
-.arbre-chapitre[aria-current]{background:var(--et-raise);border-color:var(--et-ink);font-weight:600}
+.arbre-chapitre[aria-current]{background:var(--et-raise);border-color:var(--et-ink);font-weight:500}
 .arbre-matiere,.arbre-big,.arbre-titre{font:400 25px/1.2 var(--et-serif);max-width:260px}
 .arbre-cours{font-weight:600;font-size:15px;max-width:176px}
 .arbre-cours,.arbre-matiere{flex-direction:column;align-items:flex-start;gap:0}
@@ -219,15 +263,17 @@ h4>.etude-fold{font-size:15px;font-weight:600}
 .etude-stage[data-lod=loin] .arbre-dot{opacity:.5}
 
 @media (max-width:727px){
-  .etude-top{padding:10px 14px;gap:8px 10px}
-  .etude-name span{display:none}
+  /* Téléphone : la barre passe sous la pastille du menu ; zoom et dock au-dessus du panneau, de part et d'autre. */
+  .etude-top{padding:76px 14px 8px;gap:8px 10px}
+  .arbre-zoom .etude-tool span{display:none}
+  .etude-name{display:none}
   .etude-tabs{margin-left:0}
   .etude-finder{order:5;width:100%}
   .etude-close{margin-left:auto}
   .etude-panel{top:auto;right:0;left:0;bottom:0;width:auto;max-height:46%;border-radius:var(--r-panel) var(--r-panel) 0 0;border-width:1px 0 0;padding-bottom:max(18px,env(safe-area-inset-bottom))}
-  .etude-dock{left:14px;bottom:calc(46% + 12px)}
-  .arbre-zoom{right:14px;bottom:auto;top:8px}
-  .etude-live{bottom:calc(46% + 12px)}
+  .etude-dock{left:14px;bottom:calc(var(--et-sheet,46dvh) + 12px)}
+  .arbre-zoom{position:fixed;right:14px;bottom:calc(var(--et-sheet,46dvh) + 12px)}
+  .etude-live{bottom:calc(var(--et-sheet,46dvh) + 64px)}
   .etude-sheet{padding:12px 14px 20px}
 }
 @media (pointer:coarse){

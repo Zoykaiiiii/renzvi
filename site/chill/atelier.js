@@ -17,6 +17,26 @@ const ATELIER = {
 };
 const atelierColor = c => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c);
 
+// Le fond de la feuille : une couleur et un motif, sous le dessin (le dessin lui-même est transparent).
+// Les dessins enregistrés avant le 16 nov. ont leur blanc dans l'image : ils restent blancs, quel que soit le fond.
+const ATELIER_PAPIERS = { blanc: ['Blanc', '#ffffff'], creme: ['Crème', '#f6efe2'], kraft: ['Kraft', '#d8c19c'], ardoise: ['Ardoise', '#2a2d31'] };
+const ATELIER_MOTIFS = { uni: 'Uni', quadrille: 'Quadrillé', lignes: 'Lignes', points: 'Points' };
+const atelierFond = f => ({ papier: ATELIER_PAPIERS[f?.papier] ? f.papier : 'blanc', motif: ATELIER_MOTIFS[f?.motif] ? f.motif : 'uni' });
+function atelierPeindreFond(g, W, H, fond) {
+  const { papier, motif } = atelierFond(fond);
+  g.fillStyle = ATELIER_PAPIERS[papier][1];
+  g.fillRect(0, 0, W, H);
+  if (motif === 'uni') return;
+  const pas = W / 24, trait = papier === 'ardoise' ? 'rgba(255,255,255,.14)' : 'rgba(31,32,29,.13)';
+  g.fillStyle = g.strokeStyle = trait;
+  g.lineWidth = 2;
+  if (motif === 'points') { for (let x = pas; x < W; x += pas) for (let y = pas; y < H; y += pas) { g.beginPath(); g.arc(x, y, 2.6, 0, Math.PI * 2); g.fill(); } return; }
+  g.beginPath();
+  for (let y = pas; y < H; y += pas) { g.moveTo(0, y); g.lineTo(W, y); }
+  if (motif === 'quadrille') for (let x = pas; x < W; x += pas) { g.moveTo(x, 0); g.lineTo(x, H); }
+  g.stroke();
+}
+
 // Historique borné, partagé par le dessin et le coloriage. onDrop reçoit les actions trop anciennes.
 function atelierHistory(limit, onDrop) {
   let done = [], undone = [];
@@ -90,7 +110,9 @@ function atelierDrawStroke(g, op) {
   const p = op.pts;
   g.save();
   g.lineCap = g.lineJoin = 'round';
-  g.strokeStyle = g.fillStyle = op.eraser ? '#ffffff' : op.color;
+  // La gomme rend la feuille transparente : on revoit le fond choisi dessous.
+  if (op.eraser) g.globalCompositeOperation = 'destination-out';
+  g.strokeStyle = g.fillStyle = op.eraser ? '#000000' : op.color;
   for (const mirror of op.sym ? [false, true] : [false]) {
     const X = i => mirror ? ATELIER.W - p[i] : p[i];
     if (p.length <= 3) { g.beginPath(); g.arc(X(0), p[1], p[2] / 2, 0, Math.PI * 2); g.fill(); continue; }
@@ -114,7 +136,18 @@ function atelierSurface({ onChange } = {}) {
   const g = paper.getContext('2d');
   const base = Object.assign(document.createElement('canvas'), { width: W, height: H });
   const bg = base.getContext('2d');
-  const blank = c => { c.fillStyle = '#fff'; c.fillRect(0, 0, W, H); };
+  const blank = c => c.clearRect(0, 0, W, H);
+  let fond = atelierFond(null);
+  // Le fond est peint une fois dans une image posée sous la feuille (rien à redessiner pendant le trait).
+  function poserFond(f) {
+    fond = atelierFond(f);
+    const c = Object.assign(document.createElement('canvas'), { width: W / 4, height: H / 4 });
+    const cg = c.getContext('2d');
+    cg.scale(.25, .25);
+    atelierPeindreFond(cg, W, H, fond);
+    paper.style.background = `url(${c.toDataURL('image/png')}) 0 0 / 100% 100%`;
+  }
+  poserFond(null);
   blank(bg);
   let baseUsed = false;
   const history = atelierHistory(ATELIER.HISTORY, op => { apply(bg, op); baseUsed = true; });
@@ -122,6 +155,7 @@ function atelierSurface({ onChange } = {}) {
   let stroke = null, locked = false;
   function apply(c, op) { if (op.type === 'clear') blank(c); else atelierDrawStroke(c, op); }
   function render() {
+    g.clearRect(0, 0, W, H);
     g.drawImage(base, 0, 0);
     for (const op of history.ops()) apply(g, op);
   }
@@ -166,7 +200,27 @@ function atelierSurface({ onChange } = {}) {
     // Repart d'une image (dessin enregistré) ou d'une feuille blanche.
     load(image) { blank(bg); if (image) bg.drawImage(image, 0, 0, W, H); baseUsed = !!image; history.reset(); render(); },
     lock(on) { locked = on; paper.classList.toggle('locked', on); },
+    fond: () => fond,
+    setFond: poserFond,
+    // Le dessin posé sur son fond, pour l'export et l'inspiration (la feuille seule est transparente).
+    flat() {
+      const c = Object.assign(document.createElement('canvas'), { width: W, height: H });
+      const cg = c.getContext('2d');
+      atelierPeindreFond(cg, W, H, fond);
+      cg.drawImage(paper, 0, 0);
+      return c;
+    },
   };
+}
+
+// Un bouton « Agrandir » à sa place habituelle, en haut à droite du widget (comme les autres widgets).
+function atelierBoutonTete(meta, label, action) {
+  const head = meta?.parentNode;
+  if (!head || head.querySelector('.atelier-zoom')) return;
+  const b = button('zoom atelier-zoom', '', action);
+  b.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.500 2.500h4v4M13.500 2.500 9 7M6.500 13.500h-4v-4M2.500 13.500 7 9"/></svg>';
+  b.ariaLabel = label;
+  head.append(b);
 }
 
 function atelierTools(surface, refresh) {
@@ -209,12 +263,13 @@ function atelierTools(surface, refresh) {
 function dessinWidget({ body, meta, data, save, sb, user }) {
   const valid = i => Number.isInteger(i?.slot) && i.slot >= 1 && i.slot <= ATELIER.MAX_DRAWINGS;
   let items = [];
-  for (const i of Array.isArray(data?.items) ? data.items : []) if (valid(i) && !items.some(x => x.slot === i.slot)) items.push({ slot: i.slot, at: Number.isFinite(i.at) ? i.at : 0 });
+  for (const i of Array.isArray(data?.items) ? data.items : []) if (valid(i) && !items.some(x => x.slot === i.slot)) items.push({ slot: i.slot, at: Number.isFinite(i.at) ? i.at : 0, ...(i.fond ? { fond: atelierFond(i.fond) } : {}) });
+  let fondNeuf = atelierFond(data?.fond); // le fond d'un nouveau dessin : le dernier choisi
   let current = items.some(i => i.slot === data?.current) ? data.current : items.at(-1)?.slot ?? null;
   let dirty = false, timer = null, saving = null, gone = false, state = 'ready', dialog = null;
   const pathOf = slot => `${user.id}/${slot}.png`;
   const store = () => sb.storage.from('dessins');
-  const persist = () => save({ items, current });
+  const persist = () => save({ items, current, fond: fondNeuf });
 
   const root = el('div', 'atelier');
   const status = el('p', 'zone atelier-status');
@@ -233,12 +288,28 @@ function dessinWidget({ body, meta, data, save, sb, user }) {
   const fresh = button('ghost', 'Nouveau dessin', () => open(null));
   const clear = atelierConfirm('Effacer', 'Vraiment tout effacer ?', () => surface.clear(), () => surface.has());
   const del = atelierConfirm('Supprimer ce dessin', 'Vraiment supprimer ?', remove);
-  const big = button('ghost', 'Agrandir', () => { dialog = chillAgrandir('Atelier de dessin', root, () => { dialog = null; }); });
-  big.classList.add('atelier-open');
-  const share = atelierShare(note, () => surface.paper, 'renzvi-dessin', 'Dessin');
+  const agrandir = () => { if (!dialog) dialog = chillAgrandir('Atelier de dessin', root, () => { dialog = null; }); };
+  atelierBoutonTete(meta, 'Agrandir l’atelier de dessin', agrandir);
+  const share = atelierShare(note, () => surface.flat(), 'renzvi-dessin', 'Dessin');
+  // Fond de la feuille : couleur et motif, gardés avec chaque dessin.
+  const papier = el('select', 'atelier-pick');
+  papier.ariaLabel = 'Couleur de la feuille';
+  for (const [k, [nom]] of Object.entries(ATELIER_PAPIERS)) papier.append(Object.assign(el('option', '', nom), { value: k }));
+  const motif = el('select', 'atelier-pick');
+  motif.ariaLabel = 'Motif de la feuille';
+  for (const [k, nom] of Object.entries(ATELIER_MOTIFS)) motif.append(Object.assign(el('option', '', nom), { value: k }));
+  const changerFond = () => {
+    fondNeuf = atelierFond({ papier: papier.value, motif: motif.value });
+    surface.setFond(fondNeuf);
+    items = items.map(i => i.slot === current ? { ...i, fond: fondNeuf } : i);
+    persist();
+  };
+  papier.onchange = motif.onchange = changerFond;
+  const fondRow = el('div', 'atelier-row atelier-fond');
+  fondRow.append(papier, motif);
   const files = el('div', 'atelier-row');
   files.append(pick, fresh, clear, del, ...share);
-  root.append(ui.tools, stage, files, status, note);
+  root.append(ui.tools, fondRow, stage, files, status, note);
   root.addEventListener('keydown', ui.keys);
 
   function draw() {
@@ -272,7 +343,7 @@ function dessinWidget({ body, meta, data, save, sb, user }) {
       if (error) { dirty = true; setStatus("Pas encore enregistré. Nouvel essai au prochain trait, ou touche Réessayer."); retry.hidden = false; return false; }
       retry.hidden = true;
       const at = Date.now();
-      items = items.some(i => i.slot === slot) ? items.map(i => i.slot === slot ? { ...i, at } : i) : [...items, { slot, at }];
+      items = items.some(i => i.slot === slot) ? items.map(i => i.slot === slot ? { ...i, at } : i) : [...items, { slot, at, fond: surface.fond() }];
       current = slot;
       persist();
       if (!gone) { draw(); setStatus('Enregistré'); }
@@ -294,6 +365,11 @@ function dessinWidget({ body, meta, data, save, sb, user }) {
   // Tant qu'un dessin enregistré n'est pas chargé, on ne dessine pas dessus : l'enregistrer écraserait l'original.
   async function load() {
     draw();
+    // Le fond du dessin ouvert (un nouveau dessin prend le dernier fond choisi).
+    const f = atelierFond(items.find(i => i.slot === current)?.fond ?? fondNeuf);
+    surface.setFond(f);
+    papier.value = f.papier;
+    motif.value = f.motif;
     if (current === null) { surface.load(null); surface.lock(false); veil.hidden = true; state = 'ready'; setStatus(''); ui.sync(); return; }
     state = 'loading';
     surface.lock(true);
@@ -333,7 +409,7 @@ function dessinWidget({ body, meta, data, save, sb, user }) {
   }
   const hide = () => { if (document.hidden) flush(); };
   addEventListener('visibilitychange', hide);
-  body.append(root, big);
+  body.append(root);
   ui.sync();
   load();
   return () => { gone = true; removeEventListener('visibilitychange', hide); dialog?.close(); flush(); };
@@ -435,8 +511,8 @@ function coloriageWidget({ body, meta, data, save }) {
     history.push({ before, after: {} });
     setMany({});
   }, () => Object.keys(fills()).length > 0);
-  const big = button('ghost', 'Agrandir', () => { dialog = chillAgrandir('Coloriage', root, () => { dialog = null; }); });
-  big.classList.add('atelier-open');
+  const agrandirColo = () => { if (!dialog) dialog = chillAgrandir('Coloriage', root, () => { dialog = null; }); };
+  atelierBoutonTete(meta, 'Agrandir le coloriage', agrandirColo);
   const share = atelierShare(note, () => coloriageCanvas(pic(), fills()), `renzvi-coloriage-${state.pic}`, pic().name);
   const row = el('div', 'atelier-row');
   row.append(undo, redo, clear, ...share);
@@ -488,7 +564,7 @@ function coloriageWidget({ body, meta, data, save }) {
     meta.textContent = n ? `${n} / ${pic().shapes.length} zones` : '';
   }
   draw();
-  body.append(root, big);
+  body.append(root);
   return () => dialog?.close();
 }
 

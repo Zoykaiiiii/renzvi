@@ -102,7 +102,8 @@ const saved = page => page.waitForFunction(() => document.getElementById('saved'
 const until = async (fn, what, ms = 8000) => { const end = Date.now() + ms; while (!(await fn())) { if (Date.now() > end) throw new Error(`délai dépassé : ${what}`); await new Promise(r => setTimeout(r, 50)); } };
 const shot = (page, name, opts) => SHOTS && page.screenshot({ path: path.join(SHOTS, `chill-${name}.png`), ...opts });
 // Pixel d'un canvas de dessin (coordonnées internes 1600 x 1200).
-const pixel = (loc, x, y) => loc.evaluate((c, [x, y]) => [...c.getContext('2d').getImageData(x, y, 1, 1).data].slice(0, 3), [x, y]);
+// Ce qu'on voit à cet endroit : la feuille est transparente depuis le 16 nov. (le fond est posé dessous), blanc par défaut.
+const pixel = (loc, x, y) => loc.evaluate((c, [x, y]) => { const [r, g, b, a] = c.getContext('2d').getImageData(x, y, 1, 1).data; return [r, g, b].map(v => Math.round(v * a / 255 + 255 * (1 - a / 255))); }, [x, y]);
 const hash = loc => loc.evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let h = 0; for (let i = 0; i < d.length; i += 97) h = (h * 31 + d[i]) | 0; return `${c.width}x${c.height}:${h}`; });
 async function stroke(page, canvas, from = [.3, .5], to = [.7, .5]) {
   await canvas.scrollIntoViewIfNeeded();
@@ -325,7 +326,7 @@ async function stroke(page, canvas, from = [.3, .5], to = [.7, .5]) {
     assert.equal(await page.evaluate(() => scrollY), y0, 'la page ne défile pas pendant le dessin');
     assert.ok((await pixel(canvas, 800, 600))[0] < 100, 'trait au doigt');
     // shortcut: dans l'émulation tactile de Chromium, le premier toucher après un geste CDP brut est avalé ; on clique.
-    await W(page, 'dessin').getByRole('button', { name: 'Agrandir' }).click();
+    await W(page, 'dessin').getByRole('button', { name: 'Agrandir l’atelier de dessin' }).click();
     assert.equal(await page.locator('dialog.chill-big canvas.atelier-paper').isVisible(), true);
     assert.ok((await pixel(page.locator('dialog.chill-big canvas'), 800, 600))[0] < 100, 'même dessin en grand');
     await shot(page, 'dessin-agrandi-mobile');

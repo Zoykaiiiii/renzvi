@@ -234,15 +234,30 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     tools: () => [importBtn, iaBtn, schemaBtn, editBtn, originalBtn, removeBtn],
     makeCard,
     explain: () => { if (!lastSel || window.renzviVerrou?.('L’IA')) return; explainSel = lastSel; mode = 'explain'; draw(); },
-    close: () => { expand(false); grow.focus(); },
+    // Ouvert depuis l'espace Study (data.retour) : le bouton dit d'où l'on vient et y ramène.
+    retour: data?.retour?.label ?? null,
+    close: () => { expand(false); if (data?.retour?.apres) return data.retour.apres(); grow.focus(); },
   }) ?? null;
+  // Ouvrir et réduire en glissant depuis la place du widget (comme la vue agrandie des autres widgets), pas d'un coup.
+  // Transform seulement ; rien en mouvement réduit.
+  let glisse = null;
   function expand(open) {
     if (open === box.classList.contains('cahier-open')) return;
+    const from = box.getBoundingClientRect();
+    glisse?.cancel();
     box.classList.toggle('cahier-open', open);
     document.body.classList.toggle('cahier-lock', open);
     grow.textContent = open ? 'Réduire' : 'Agrandir';
     grow.setAttribute('aria-pressed', open);
     carnet?.open(open);
+    const to = box.getBoundingClientRect();
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches || !from.width || !to.width || !box.animate) return;
+    box.style.zIndex = '61';
+    glisse = box.animate([
+      { transformOrigin: '0 0', transform: `translate(${from.left - to.left}px,${from.top - to.top}px) scale(${from.width / to.width},${from.height / to.height})` },
+      { transformOrigin: '0 0', transform: 'none' },
+    ], { duration: open ? 380 : 320, easing: 'cubic-bezier(.22,1,.36,1)' });
+    glisse.finished.catch(() => {}).finally(() => { box.style.zIndex = ''; glisse = null; });
   }
   const onKey = e => {
     if (e.key !== 'Escape' || !box.classList.contains('cahier-open')) return;
@@ -288,6 +303,8 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     state = 'ready';
     if (!course()) current = courses.at(-1)?.id ?? null;
     openCourse(current, false);
+    // « Ouvrir le cahier » depuis l'espace Study : le carnet s'ouvre tout de suite, sur le chapitre choisi.
+    if (data?.retour && course() && !box.classList.contains('cahier-open')) expand(true);
   }
 
   function loadText(c) {

@@ -254,3 +254,14 @@ dialog.lock-setup h2{font-size:20px;font-weight:600}
 @media (prefers-reduced-transparency:reduce){.dd-list{background:var(--paper);-webkit-backdrop-filter:none;backdrop-filter:none}}
 @media (forced-colors:active){.dd-opt.is-active{outline:2px solid Highlight}.dd-check{stroke:CanvasText}}
 @media (prefers-reduced-motion:reduce){.dd-trigger,.dd-chev{transition:none}}
+
+/* Retirer un widget de la page : la notice « Annuler » en bas de l'écran (8 s, retenue au survol et au focus). */
+.retrait-notice{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));z-index:90;display:flex;align-items:center;gap:14px;max-width:calc(100vw - 32px);padding:8px 8px 8px 18px;border-radius:var(--pill);transform:translateX(-50%);--glass:var(--glass-solid);box-shadow:var(--lift);animation:retrait-in .24s var(--ease)} /* taste-skill-ignore : la notice flotte vraiment au-dessus du tableau */
+.retrait-notice p{margin:0;font-size:14px}
+.retrait-notice .ghost{height:34px}
+@keyframes retrait-in{from{opacity:0;transform:translate(-50%,10px)}}
+@media (prefers-reduced-motion:reduce){.retrait-notice{animation:none}}
+.edit .edit-remove{display:grid;place-items:center;width:var(--control);padding:0}
+.edit .edit-remove svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.edit .edit-remove:is(:hover,:focus-visible){background:var(--error);border-color:var(--error);color:#fff}
+@media (pointer:fine){.edit .edit-remove{width:32px;height:32px}}

@@ -314,7 +314,8 @@ function agendaWidget({ body, meta, data, save, peer, apercu }) {
   }
 
   const prochaineHeure = () => { const m = Math.min(23 * 60, Math.ceil((Q.maintenant() + 1) / 60) * 60); return `${String(Math.floor(m / 60)).padStart(2, '0')}:00`; };
-  const ajouterMinutes = (h, n) => { const m = Math.min(23 * 60 + 55, Q.minutes(h) + n); return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; };
+  // Après minuit, la fin passe au lendemain (23:00 + 1 h = 00:00, que nettoyerEvenement place le jour suivant).
+  const ajouterMinutes = (h, n) => { const m = (Q.minutes(h) + n) % 1440; return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; };
 
   dessiner();
   if (apercu) return null;

@@ -105,12 +105,13 @@ const { server, makeDb, card, course, openBoard, shot, openSpace, transform, cha
     assert.strictEqual(db.notes[0].body, 'La membrane est une double couche.');
     console.log('ok notes de chapitre');
 
-    // 6. Lire : le Cahier existant, au bon chapitre ; Échap revient à l'arbre.
+    // 6. Ouvrir le cahier : le carnet existant s'ouvre au bon chapitre ; « Retour à l'arbre » revient à l'arbre.
     await page.getByRole('tab', { name: 'Lire' }).click();
-    await page.getByRole('button', { name: 'Lire le chapitre' }).click();
-    await page.waitForSelector('.etude-sheet .cahier-text');
+    await page.getByRole('button', { name: 'Ouvrir le cahier' }).click();
+    await page.waitForSelector('.etude-sheet.cahier-open .cahier-text');
     assert.match(await page.locator('.etude-sheet .cahier-text').textContent(), /présente la membrane/);
-    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'Retour à l’arbre' }).click();
+    await page.waitForSelector('.etude-sheet', { state: 'detached' });
     await page.waitForFunction(() => document.activeElement?.dataset.key === 'lire');
     console.log('ok lecture et retour');
 
@@ -154,9 +155,10 @@ const { server, makeDb, card, course, openBoard, shot, openSpace, transform, cha
     await page.keyboard.press('Enter');
     assert.strictEqual(await page.locator('.etude-panel h3').textContent(), 'Le noyau');
     assert.ok(await chapter(page, 'Le noyau').evaluate(n => n === document.activeElement), 'le focus reste sur le chapitre');
-    await page.locator('.arbre-matiere', { hasText: 'Histoire' }).click();
+    // Le nom d'une matière cadre sa branche ; le petit bouton à côté la replie.
+    await page.getByRole('button', { name: 'Replier Histoire' }).click();
     assert.strictEqual(await chapter(page, '1789').count(), 0, 'matière repliée');
-    assert.strictEqual(await page.locator('.arbre-matiere', { hasText: 'Histoire' }).getAttribute('aria-expanded'), 'false');
+    assert.strictEqual(await page.getByRole('button', { name: 'Déplier Histoire' }).getAttribute('aria-expanded'), 'false');
     await page.locator('.etude-top .etude-search').fill('terreur');
     await page.locator('.etude-results button').first().click();
     assert.strictEqual(await page.locator('.etude-panel h3').textContent(), 'La Terreur');

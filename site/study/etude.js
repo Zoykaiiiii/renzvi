@@ -22,7 +22,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
   const TABS = [['lire', 'Lire'], ['notes', 'Notes'], ['reviser', 'Réviser']];
   let courses = [], cards = [], links = [], noted = new Set(), decks = new Map();
   let state = 'loading', linksOk = true, gone = false, open = false, vue = null, vueId = null, query = '';
-  let inerted = [], opener = null, ticker = null, saveTimer = null;
+  let inerted = [], opener = null, ticker = null, saveTimer = null, apercu = null, apercuId = null, sortie = null;
   const sheets = [], texts = new Map();
 
   // Préférences : sur cet appareil seulement. Une valeur abîmée revient au départ, sans rien casser.
@@ -105,10 +105,22 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
   }
 
   // --- Cadre ---------------------------------------------------------------------------------------------------
+  // Fermé : un aperçu de la vraie présentation (l'arbre ou le ciel des vrais cours), dessiné par le même code que la scène,
+  // sans caméra ni écouteurs ; puis le résumé et le bouton d'ouverture.
   const summary = el('p', 'etude-sum');
   const openBtn = button('primary', 'Ouvrir mon espace', () => setOpen(true));
+  const pick = el('div', 'choices etude-pick-vue');
+  pick.setAttribute('role', 'group');
+  pick.ariaLabel = 'Présentation';
+  const pickOf = new Map(VUES.filter(v => v.src).map(v => [v.id, button('', v.name, () => { prefs.vue = v.id; keep(); drawApercu(); })]));
+  pick.append(...pickOf.values());
+  const preview = el('div', 'etude-preview');
+  preview.setAttribute('aria-hidden', 'true');
+  preview.onclick = () => { if (state === 'ready' && courses.length) setOpen(true); };
+  const foot = el('div', 'etude-foot');
+  foot.append(summary, openBtn);
   const closed = el('div', 'etude-closed');
-  closed.append(summary, openBtn);
+  closed.append(pick, preview, foot);
 
   const space = el('div', 'etude-space');
   space.hidden = true;
@@ -128,7 +140,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
   results.ariaLabel = 'Résultats';
   const finder = el('div', 'etude-finder');
   finder.append(search, results);
-  const closeBtn = button('ghost etude-close', 'Fermer', () => setOpen(false));
+  const closeBtn = button('ghost etude-close', 'Retour au tableau', () => setOpen(false));
   top.append(name, tabs, finder, closeBtn);
   const stage = el('div', 'etude-stage');
   const panel = el('aside', 'etude-panel');
@@ -140,6 +152,9 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
   live.setAttribute('role', 'status');
   const layer = el('div', 'etude-sheets');
   space.append(top, stage, panel, dock, live, layer);
+  // Téléphone : le dock et le zoom se posent juste au-dessus du panneau, à sa hauteur réelle (court quand rien n'est choisi).
+  const sheetSize = new ResizeObserver(() => space.style.setProperty('--et-sheet', `${panel.hidden ? 0 : panel.offsetHeight}px`));
+  sheetSize.observe(panel);
   body.append(closed, space);
   let liveTimer;
   const say = (text, bad = false) => {
@@ -149,29 +164,95 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
     if (text) liveTimer = setTimeout(() => { live.textContent = ''; }, 6000);
   };
 
-  // Ouvert, l'espace prend l'écran : le reste de la page ne répond plus, mais rien n'est arrêté (minuteur, sons).
+  // Ouvert, l'espace devient une scène posée sur le fond d'écran de la page : pas de fond plein, le fond reste visible.
+  // Les autres widgets sont cachés et inactifs (rien n'est retiré ni réarrangé) ; la pastille du menu reste visible.
+  // Rien n'est arrêté (minuteur, sons). Pas de plein écran du navigateur.
+  const calme = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   function setOpen(next) {
     if (next === open) return;
-    open = next;
-    box.classList.toggle('etude-open', open);
-    document.documentElement.classList.toggle('zoom-lock', open);
-    closed.hidden = open;
-    space.hidden = !open;
-    if (open) {
-      opener = document.activeElement;
-      for (let n = box; n.parentElement; n = n.parentElement) for (const s of n.parentElement.children) if (s !== n && !s.inert && !['SCRIPT', 'STYLE', 'LINK'].includes(s.tagName)) { s.inert = true; inerted.push(s); }
-      ticker = setInterval(drawDock, 500);
-      draw();
-      (panel.querySelector('[aria-selected=true]') ?? panel.querySelector('button') ?? closeBtn).focus({ preventScroll: true });
-    } else {
-      while (sheets.length) closeSheet(false);
-      for (const s of inerted) s.inert = false;
-      inerted = [];
-      clearInterval(ticker);
-      leaveVue();
-      draw();
-      (opener?.isConnected ? opener : openBtn).focus({ preventScroll: true });
+    if (!next && sortie) return;
+    if (!next && !calme() && space.animate) {
+      // Sortie : la scène se fond, puis le tableau revient tel qu'il était.
+      sortie = space.animate([{ opacity: 1 }, { opacity: 0, transform: 'scale(.985)' }], { duration: 220, easing: 'ease-in', fill: 'forwards' });
+      sortie.finished.catch(() => {}).finally(() => { sortie?.cancel(); sortie = null; fermer(); });
+      return;
     }
+    if (next) ouvrir(); else fermer();
+  }
+  function ouvrir() {
+    open = true;
+    leaveApercu();
+    contraste();
+    box.classList.add('etude-open');
+    document.body.classList.add('etude-scene');
+    document.documentElement.classList.add('zoom-lock');
+    closed.hidden = true;
+    space.hidden = false;
+    opener = document.activeElement;
+    for (let n = box; n.parentElement; n = n.parentElement) for (const s of n.parentElement.children) {
+      if (s === n || s.inert || ['SCRIPT', 'STYLE', 'LINK'].includes(s.tagName) || s.id === 'wall') continue;
+      s.inert = true;
+      inerted.push(s);
+      if (!s.matches('.topbar')) s.classList.add('etude-cache');
+    }
+    ticker = setInterval(drawDock, 500);
+    draw();
+    if (!calme() && space.animate) space.animate([{ opacity: 0, transform: 'scale(.985)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.22,1,.36,1)' });
+    (panel.querySelector('[aria-selected=true]') ?? panel.querySelector('button') ?? closeBtn).focus({ preventScroll: true });
+  }
+  function fermer() {
+    open = false;
+    box.classList.remove('etude-open');
+    document.body.classList.remove('etude-scene');
+    document.documentElement.classList.remove('zoom-lock');
+    closed.hidden = false;
+    space.hidden = true;
+    while (sheets.length) closeSheet(false);
+    for (const s of inerted) { s.inert = false; s.classList.remove('etude-cache'); }
+    inerted = [];
+    clearInterval(ticker);
+    leaveVue();
+    draw();
+    (opener?.isConnected ? opener : openBtn).focus({ preventScroll: true });
+  }
+  // L'encre de la scène suit le fond : claire sur un fond sombre, sombre sur un fond clair. Mesurée sur une vignette du fond
+  // (la photo n'est pas modifiée) ; si on ne peut pas la lire, le thème de l'appli décide.
+  const lus = new Map();
+  function contraste() {
+    const theme = document.documentElement.dataset.theme === 'dark' ? 'sombre' : 'clair';
+    const src = [...document.querySelectorAll('#wall i')].at(-1)?.dataset.src;
+    box.dataset.contraste = src ? lus.get(src) ?? theme : theme;
+    if (!src || lus.has(src)) return;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const c = Object.assign(document.createElement('canvas'), { width: 24, height: 24 }), g = c.getContext('2d');
+        g.drawImage(img, 0, 0, 24, 24);
+        const d = g.getImageData(0, 0, 24, 24).data;
+        let sum = 0;
+        for (let i = 0; i < d.length; i += 4) sum += .2126 * d[i] + .7152 * d[i + 1] + .0722 * d[i + 2];
+        lus.set(src, sum / (d.length / 4) < 140 ? 'sombre' : 'clair');
+      } catch { lus.set(src, theme); }
+      if (open) box.dataset.contraste = lus.get(src);
+    };
+    img.src = src;
+  }
+  // La place libre de la scène, mesurée : sans la barre du haut, le panneau du chapitre, le dock, les boutons de zoom
+  // ni la pastille du menu. C'est là que la caméra pose ce qu'on choisit.
+  function room() {
+    const s = stage.getBoundingClientRect();
+    let l = 0, r = s.width, t = 0, b = s.height;
+    const vis = n => n && !n.hidden && n.getClientRects().length;
+    if (vis(panel)) {
+      const p = panel.getBoundingClientRect();
+      if (p.left - s.left > s.width * .45) r = Math.min(r, p.left - s.left - 16);
+      else if (p.top - s.top > s.height * .3) b = Math.min(b, p.top - s.top - 12);
+    }
+    for (const n of [dock, stage.querySelector('.arbre-zoom')]) if (vis(n)) { const q = n.getBoundingClientRect(); if (q.top - s.top > s.height * .3) b = Math.min(b, q.top - s.top - 8); }
+    const pill = document.querySelector('.topbar');
+    if (vis(pill)) { const q = pill.getBoundingClientRect(); if (q.bottom > s.top + 40 && q.right - s.left < s.width * .2) l = Math.max(l, q.right - s.left + 8); }
+    return { x: l, y: t, w: Math.max(1, r - l), h: Math.max(1, b - t) };
   }
 
   function leaveVue() { vue?.leave(); vue = null; vueId = null; stage.replaceChildren(); }
@@ -200,9 +281,9 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
       vue = listeVue(vueCtx());
     }
   }
-  // Ce qu'une présentation reçoit : le contenu en lecture, la sélection, le repli, la vue gardée, et rien d'autre.
+  // Ce qu'une présentation reçoit : le contenu en lecture, la sélection, le repli, la vue gardée, la place libre.
   const vueCtx = () => ({
-    stage, say,
+    stage, say, room,
     subjects, folded, toggleFold,
     selected: () => prefs.sel,
     select: (course, chapter) => select(course, chapter),
@@ -211,6 +292,32 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
     view: () => prefs.views[vueId] ?? null,
     setView: v => { prefs.views[vueId] = v; keep(); },
   });
+  // L'aperçu du widget fermé : le même dessin, en lecture seule, cadré dans la place du widget. Aucun libellé n'est
+  // cliquable, aucune caméra, aucun écouteur de geste ; il se redessine quand le contenu change.
+  function leaveApercu() { apercu?.leave(); apercu = null; apercuId = null; preview.replaceChildren(); }
+  async function drawApercu() {
+    const id = VUES.some(v => v.id === prefs.vue && v.src) ? prefs.vue : 'arbre';
+    for (const [k, b] of pickOf) b.setAttribute('aria-pressed', k === id);
+    box.dataset.etudeApercu = id;
+    if (open || state !== 'ready') return;
+    if (!courses.length) {
+      leaveApercu();
+      const vide = el('div', 'etude-preview-vide');
+      vide.innerHTML = '<svg viewBox="0 0 120 120" aria-hidden="true"><path d="M60 108V58M60 76c-10-4-18-12-20-24M60 66c9-3 16-10 18-20M60 58c-2-10 0-18 6-24"/><path d="M38 108h44"/></svg>';
+      // Sans cours : l'espace s'ouvre directement sur l'import d'un premier cours.
+      vide.append(el('p', '', 'Aucun cours pour l’instant'), button('ghost', 'Importer un premier cours', e => { e.stopPropagation(); setOpen(true); openReader(null, null, closeBtn); }));
+      preview.replaceChildren(vide);
+      return;
+    }
+    if (apercu && apercuId === id) return apercu.update();
+    leaveApercu();
+    apercuId = id;
+    try {
+      await chillScript(VUES.find(v => v.id === id).src);
+      if (gone || open || apercuId !== id) return;
+      apercu = window.etudeVues[id]({ ...vueCtx(), stage: preview, apercu: true, view: () => null, setView() {}, room: null });
+    } catch (e) { console.error(e); preview.replaceChildren(); apercuId = null; }
+  }
 
   function drawEmpty() {
     const empty = el('div', 'etude-empty');
@@ -224,12 +331,14 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
   }
 
   function draw() {
-    meta.textContent = state === 'ready' && courses.length ? `${courses.length} cours` : '';
+    meta.textContent = '';
     summary.textContent = state === 'loading' ? 'Chargement de tes cours…'
       : state === 'error' ? "Tes cours n'ont pas pu se charger."
-      : !courses.length ? 'Tes cours, leurs chapitres et leurs flashcards, réunis dans un arbre.'
-      : `${plural(subjects().length, 'matière')}, ${plural(chapterCount(), 'chapitre')}, ${plural(decks.size, 'paquet')} de flashcards.`;
+      : !courses.length ? 'Importe un cours : ses chapitres deviennent des branches.'
+      : [plural(courses.length, 'cours'), plural(chapterCount(), 'chapitre'), decks.size ? plural(decks.size, 'paquet') : ''].filter(Boolean).join(' · ');
     openBtn.hidden = state !== 'ready';
+    pick.hidden = state !== 'ready' || !courses.length;
+    if (!open) drawApercu();
     closed.querySelector('.etude-retry')?.remove();
     if (state === 'error') closed.append(button('ghost etude-retry', 'Réessayer', () => load()));
     if (!open) return;
@@ -352,7 +461,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
         const ex = pages && excerptOf(pages, ch, c.chapters[idx + 1]);
         quote.replaceChildren(el('p', 'etude-qlabel', 'Début du chapitre'), el('p', 'etude-text', ex || 'L’extrait n’est pas disponible : ouvre le chapitre pour le lire.'));
       });
-      const read = keyed(button('primary', here ? 'Reprendre la lecture' : 'Lire le chapitre', e => openReader(c, ch, e.currentTarget)), 'lire');
+      const read = keyed(button('primary', here ? 'Reprendre dans le cahier' : 'Ouvrir le cahier', e => openReader(c, ch, e.currentTarget, { carnet: true })), 'lire');
       pane.append(quote, read);
     } else if (prefs.tab === 'notes') {
       const k = `${c.id}/${ch.id}`, has = noted.has(k);
@@ -553,12 +662,15 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
   }
 
   // Lire : le Cahier existant, ouvert au chapitre. Sa position de lecture rejoint celle du widget Cahier.
-  function openReader(c, ch, from) {
+  // carnet : ouvre directement le carnet (vue agrandie du Cahier) sur ce chapitre ; son bouton ramène à la présentation
+  // d'où l'on vient (« Retour à la constellation » / « à l'arbre »), avec le même cadrage et le même chapitre.
+  function openReader(c, ch, from, { carnet = false } = {}) {
     const saved = peer('cahier') ?? {};
     const at = { ...(saved.at ?? {}) };
     if (c && ch && at[c.id]?.chapter !== ch.id) at[c.id] = { chapter: ch.id, y: 0 };
+    const retour = carnet && c ? { label: vueId === 'constellations' ? 'Retour à la constellation' : vueId === 'arbre' ? 'Retour à l’arbre' : 'Retour à mon espace', apres: () => closeSheet() } : undefined;
     const entry = openSheet(c ? `${c.subject} / ${c.title}` : 'Importer un cours', ({ body: b, meta: m }) => cahierWidget({
-      body: b, meta: m, user, sb, data: { course: c?.id ?? null, at },
+      body: b, meta: m, user, sb, data: { course: c?.id ?? null, at, retour },
       // shortcut: si le widget Cahier est aussi sur l'écran, sa prochaine sauvegarde reprend ses propres positions ; unifier si ça gêne.
       save: d => savePeer('cahier', { course: (peer('cahier') ?? {}).course ?? d.course, at: { ...((peer('cahier') ?? {}).at ?? {}), ...d.at } }),
     }), from);
@@ -721,7 +833,10 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
   load();
   return () => {
     gone = true;
-    setOpen(false);
+    sortie?.cancel();
+    if (open) fermer();
+    leaveApercu();
+    sheetSize.disconnect();
     clearTimeout(saveTimer);
     clearTimeout(liveTimer);
     offSon();

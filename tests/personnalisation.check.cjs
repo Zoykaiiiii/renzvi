@@ -601,7 +601,7 @@ async function photo(browser, kind) {
   // Navigateur sans flou : la surface de secours est prévue et assez opaque.
   {
     const { page, context } = await openBoard(browser, base, desk, few({ wallpaper: 'lac' }));
-    const rule = await page.evaluate(() => [...document.styleSheets].flatMap(s => { try { return [...s.cssRules]; } catch { return []; } }).find(r => r instanceof CSSSupportsRule && r.conditionText.includes('backdrop-filter'))?.cssText);
+    const rule = await page.evaluate(() => [...document.styleSheets].flatMap(s => { try { return [...s.cssRules]; } catch { return []; } }).find(r => r instanceof CSSSupportsRule && r.conditionText.includes('backdrop-filter') && r.cssText.includes('--glass-wall'))?.cssText);
     assert.match(rule, /--glass-wall: var\(--glass-solid\)/);
     assert.ok(Number((await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--glass-solid'))).match(/[\d.]+\)/)[0].slice(0, -1)) >= .9);
     await context.close();

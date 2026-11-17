@@ -3181,6 +3181,64 @@ if (!sb) {
   addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
   addEventListener('beforeunload', e => { if (pending.size || saving) e.preventDefault(); });
 
+  // Retirer un widget de la page (corbeille en mode édition) : il quitte l'écran en se fondant, son contenu reste
+  // enregistré (widget_state n'est pas touché), et « Annuler » le remet à sa place. Plusieurs retraits s'annulent un par un.
+  const retraits = [];
+  let retraitTimer = 0;
+  function retirerWidget(id) {
+    const m = mounted.get(id);
+    if (!m || m.box.dataset.retrait) return;
+    m.box.dataset.retrait = '1';
+    const w = WIDGETS.find(x => x.id === id);
+    const rec = { id, index: screen.widgets.indexOf(id), where: screen.where[id], fav: screen.favoris.includes(id), place: vue.place?.(id) ?? null, page: currentPage };
+    const fin = () => {
+      screen.widgets = screen.widgets.filter(x => x !== id);
+      screen.favoris = screen.favoris.filter(x => x !== id);
+      unmount(id);
+      drawPages();
+      saveScreen();
+      retraits.push(rec);
+      notice(`${w?.title ?? 'Widget'} retiré de la page`);
+    };
+    if (REDUCED_MOTION() || !m.box.animate) return fin();
+    m.box.style.pointerEvents = 'none';
+    m.box.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(6px) scale(.93)' }], { duration: 220, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished.then(fin, fin);
+  }
+  function annulerRetrait() {
+    const rec = retraits.pop();
+    if (!rec || screen.widgets.includes(rec.id)) return notice(retraits.length ? `${retraits.length} retrait${retraits.length > 1 ? 's' : ''} à annuler` : '');
+    const list = [...screen.widgets];
+    list.splice(Math.min(Math.max(rec.index, 0), list.length), 0, rec.id);
+    screen.widgets = list;
+    if (rec.where) screen.where = { ...screen.where, [rec.id]: rec.where };
+    if (rec.fav) screen.favoris = [...new Set([...screen.favoris, rec.id])];
+    if (rec.page !== currentPage) showPage(rec.page);
+    mount(WIDGETS.find(x => x.id === rec.id), screenUser, true);
+    drawPages();
+    vue.placeAgain?.(rec.id, rec.place);
+    saveScreen();
+    const w = WIDGETS.find(x => x.id === rec.id);
+    notice(retraits.length ? `${w?.title} est revenu. ${retraits.length} autre${retraits.length > 1 ? 's' : ''} retrait${retraits.length > 1 ? 's' : ''} à annuler.` : `${w?.title} est revenu sur la page.`, !!retraits.length);
+    mounted.get(rec.id)?.box.focus?.({ preventScroll: true });
+  }
+  // La notice d'annulation : reste 8 s, ne se ferme pas tant qu'on la survole ou qu'elle a le focus.
+  const noticeBox = el('div', 'retrait-notice glass');
+  noticeBox.setAttribute('role', 'status');
+  noticeBox.hidden = true;
+  const noticeText = el('p', '');
+  const noticeBtn = button('ghost', 'Annuler', annulerRetrait);
+  noticeBox.append(noticeText, noticeBtn);
+  document.body.append(noticeBox);
+  const noticeHold = () => noticeBox.matches(':hover, :focus-within');
+  function notice(text, undo = true) {
+    clearTimeout(retraitTimer);
+    noticeText.textContent = text;
+    noticeBtn.hidden = !undo || !retraits.length;
+    noticeBox.hidden = !text;
+    const tick = () => { if (noticeHold()) retraitTimer = setTimeout(tick, 1000); else { noticeBox.hidden = true; retraits.length = 0; } };
+    if (text) retraitTimer = setTimeout(tick, 8000);
+  }
+
   // Ces widgets ont déjà leur propre grande vue.
   const OWN_ZOOM = ['cahier', 'etude', 'vol', 'jardin', 'dessin', 'coloriage', 'puzzle', 'tangram', 'fenetre'];
   function mount(w, user, arriving) {
@@ -3230,7 +3288,7 @@ if (!sb) {
   veil.hidden = true;
   veil.onclick = () => zoom(null);
   document.body.append(veil);
-  let zoomed = null, holder = null, zoomScroll = 0;
+  let zoomed = null, holder = null, zoomScroll = 0, veilFade = null;
   // Continuité : une boîte qui change de place part visuellement de l'ancienne (transform seulement, rien n'est recréé).
   // Un nouveau changement interrompt proprement le précédent ; en mouvement réduit, la boîte est tout de suite à sa place.
   const flips = new WeakMap();
@@ -3269,7 +3327,17 @@ if (!sb) {
     zoomed?.zoomBtn.setAttribute('aria-pressed', 'true');
     if (prev) prev.zoomBtn.ariaLabel = prev.zoomBtn.ariaLabel.replace('Réduire', 'Agrandir');
     if (zoomed) zoomed.zoomBtn.ariaLabel = zoomed.zoomBtn.ariaLabel.replace('Agrandir', 'Réduire');
-    veil.hidden = !zoomed;
+    // Le voile se fond à l'ouverture et à la sortie, au lieu d'apparaître ou de disparaître d'un coup.
+    veilFade?.cancel();
+    if (zoomed) {
+      veil.hidden = false;
+      veil.style.pointerEvents = '';
+      if (!prev && !REDUCED_MOTION()) veilFade = veil.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 380, easing: 'ease' });
+    } else if (prev && !REDUCED_MOTION()) {
+      veil.style.pointerEvents = 'none'; // pendant le fondu, le voile ne prend plus les clics
+      veilFade = veil.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, easing: 'ease', fill: 'forwards' });
+      veilFade.finished.then(() => { if (!zoomed) veil.hidden = true; veil.style.pointerEvents = ''; veilFade?.cancel(); veilFade = null; }, () => { veil.style.pointerEvents = ''; });
+    } else veil.hidden = true;
     document.documentElement.classList.toggle('zoom-lock', !!zoomed);
     for (const n of [$('bar'), $('aide'), $('board-empty'), ...document.querySelectorAll('[data-zoom-inert]'), ...[...mounted.values()].map(m => m.box)]) n.inert = !!zoomed && n !== zoomed.box;
     // On entre par « Retour au tableau » ; en sortant, le focus revient sur le bouton qui avait ouvert la vue.
@@ -3444,6 +3512,7 @@ if (!sb) {
           say: text => { $('custom-live').textContent = text; },
           mode: page,
           addWidget: () => screenUser && openCatalog(screenUser),
+          remove: id => retirerWidget(id),
         }) };
         if (wantReveal && vue.reveal) vue.reveal(wantReveal);
         wantReveal = null;
@@ -3564,6 +3633,10 @@ if (!sb) {
     };
     const before = button('ghost', 'Avant', () => nudge(w, -1));
     before.ariaLabel = `Déplacer ${w.title} avant le widget précédent`;
+    const trash = button('ghost edit-remove', '', () => retirerWidget(w.id));
+    trash.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5h11M6.5 4.5V3h3v1.5M4 4.5l.7 8.5h6.6l.7-8.5M6.8 7v4M9.2 7v4"/></svg>';
+    trash.ariaLabel = `Retirer ${w.title} de la page`;
+    trash.title = 'Retirer de la page';
     const after = button('ghost', 'Après', () => nudge(w, 1));
     after.ariaLabel = `Déplacer ${w.title} après le widget suivant`;
     const sizes = el('div', 'choices');
@@ -3609,7 +3682,7 @@ if (!sb) {
     }
     panel.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); openMore(false); more.focus(); } });
     document.addEventListener('pointerdown', e => { if (panel.classList.contains('open') && !box.querySelector('.edit').contains(e.target)) openMore(false); });
-    bar.append(grip, more, panel);
+    bar.append(grip, trash, more, panel);
     return { bar, before, after, page, pageField, close: () => openMore(false) };
   }
 

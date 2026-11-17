@@ -21,7 +21,7 @@ window.vuePages = function vuePages(ctx) {
   // Taille de départ d'un widget qui n'a pas encore de place : celle de son préréglage dans la grille habituelle.
   const PRESET = { s: [3, 2], m: [4, 3], l: [8, 3] };
   // Jamais un départ d'appui long : un contrôle, un champ, un texte modifiable, un dessin, un lecteur, une poignée.
-  const NEVER = 'button,a,input,textarea,select,label,option,summary,[contenteditable=""],[contenteditable=true],canvas,iframe,video,audio,svg,img,[role=slider],[role=listbox],[role=option],[role=button],[tabindex],.notes,.comet-dial,.pg-move,.pg-size,.pg-to';
+  const NEVER = 'button,a,input,textarea,select,label,option,summary,[contenteditable=""],[contenteditable=true],canvas,iframe,video,audio,svg,img,[role=slider],[role=listbox],[role=option],[role=button],[tabindex],.notes,.comet-dial,.pg-move,.pg-size,.pg-to,.pg-remove';
   const off = new AbortController(), signal = off.signal;
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -331,7 +331,7 @@ window.vuePages = function vuePages(ctx) {
   function handles(id, on) {
     const box = ctx.box(id);
     if (!box) return;
-    box.querySelectorAll(':scope > .pg-move, :scope > .pg-size, :scope > .pg-to').forEach(h => h.remove());
+    box.querySelectorAll(':scope > .pg-move, :scope > .pg-size, :scope > .pg-to, :scope > .pg-remove').forEach(h => h.remove());
     if (!on) return;
     const title = ctx.title(id);
     const move = node('button', 'pg-move');
@@ -353,7 +353,15 @@ window.vuePages = function vuePages(ctx) {
     pick.value = String(state.d[id]?.p ?? 0);
     pick.onchange = () => moveTo(id, Number(pick.value));
     to.append(pick);
-    box.append(move, size, to);
+    // Retirer de la page (demande de Damien : à la place de la poignée en pointillés, qui ne sert plus qu'au clavier).
+    // Le widget quitte cette page seulement : son contenu, ses données et les autres modes ne changent pas.
+    const del = node('button', 'pg-remove');
+    del.type = 'button';
+    del.ariaLabel = `Retirer ${title} de la page`;
+    del.title = 'Retirer de la page';
+    del.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path class="pg-lid" d="M2.5 4.5h11M6.5 4.5V3h3v1.5"/><path d="M4 4.5l.7 8.5h6.6l.7-8.5M6.8 7v4M9.2 7v4"/></svg>';
+    del.addEventListener('click', () => ctx.remove?.(id), { signal });
+    box.append(del, move, size, to);
   }
   function edit(on) {
     if (on === editing) return;
@@ -574,7 +582,7 @@ window.vuePages = function vuePages(ctx) {
     const box = e.target.closest('.widget');
     // Toucher le fond pendant l'édition la termine, comme sur un téléphone.
     if (!box) { if (e.target === board || e.target.classList.contains('pg-cell')) edit(false); return; }
-    if (box.parentElement !== board || box.classList.contains('zoomed') || e.target.closest('.pg-to')) return;
+    if (box.parentElement !== board || box.classList.contains('zoomed') || e.target.closest('.pg-to, .pg-remove')) return;
     if (e.target.closest('.pg-size')) return startResize(e, box);
     e.preventDefault();
     startDrag(box, e.pointerId, e.clientX, e.clientY);
@@ -669,8 +677,14 @@ window.vuePages = function vuePages(ctx) {
   }
 
   relayout();
+  // Annuler un retrait : le widget revient à sa place d'avant si elle est encore libre, sinon à la première place libre.
+  function placeAgain(id, q) {
+    if (q && [q.p, q.c, q.r, q.w, q.h].every(Number.isInteger) && q.p < state.n && fits(state.d, id, q)) state.d[id] = { ...q };
+    relayout();
+  }
   return {
-    relayout, leave, edit, reveal, reset,
+    relayout, leave, edit, reveal, reset, placeAgain,
+    place: id => state.d[id] ? { ...state.d[id] } : null,
     // Pour le panneau Personnaliser : les pages du mode, celle affichée, et leur gestion.
     pages: () => Array.from({ length: state.n - (temp >= 0 ? 1 : 0) }, (_, p) => ({ name: name(p), custom: !!state.t[p], count: onPageIds(p).length })),
     current: () => page,

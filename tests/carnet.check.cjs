@@ -33,6 +33,8 @@ async function openCarnet(page) {
   await grow(page).click();
   await page.waitForSelector('.carnet-top:not([hidden])');
   await page.waitForFunction(() => !/Chargement/.test(document.querySelector('.carnet-margin')?.textContent ?? ''));
+  // Le carnet glisse depuis la place du widget : on attend qu'il soit posé.
+  await page.waitForFunction(() => !document.querySelector('[data-widget=cahier]').getAnimations().length);
 }
 // Sélectionne la n-ième occurrence d'un texte dans le lecteur, comme à la souris.
 const select = (page, phrase, nth = 0) => page.evaluate(([phrase, nth]) => {
@@ -76,15 +78,32 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     await openCarnet(page);
     assert.strictEqual(await page.evaluate(() => document.fullscreenElement), null, 'pas de plein écran du navigateur');
     const full = await cahier(page).boundingBox();
-    assert.ok(full.x === 0 && full.y === 0 && full.width === 1440 && full.height === 900, 'le carnet prend la page');
+    // Une fenêtre posée sur le tableau : presque tout l'écran, avec une marge où le fond reste visible.
+    assert.ok(full.x >= 10 && full.x <= 60 && full.y >= 10 && full.width >= 1300 && full.height >= 800, `le carnet prend presque toute la page (${JSON.stringify(full)})`);
+    // Par défaut : le verre fumé, le fond d'écran se devine derrière.
+    assert.strictEqual(await cahier(page).evaluate(n => getComputedStyle(n).backgroundColor), 'rgba(30, 26, 23, 0.74)', 'verre par défaut');
+    assert.match(await cahier(page).evaluate(n => getComputedStyle(n).backdropFilter), /blur\(24px\)/);
+    await shot(page, 'carnet-verre');
+    // Personnaliser : Papier, puis taille du texte ; gardé sur l'appareil, limité au carnet.
+    await page.getByRole('button', { name: 'Personnaliser' }).click();
+    await page.waitForSelector('.carnet-look:not([hidden])');
+    await shot(page, 'carnet-personnaliser');
+    await page.locator('.carnet-look').getByRole('button', { name: 'Papier' }).click();
     assert.strictEqual(await cahier(page).evaluate(n => getComputedStyle(n).backgroundColor), 'rgb(244, 239, 228)', 'papier chaud');
+    assert.equal(await page.locator('.carnet-look').getByRole('slider').count(), 1, 'opacité et flou : seulement pour le verre');
+    await page.locator('.carnet-look input[type=range]').fill('21');
+    assert.strictEqual(await page.locator('.widget.cahier-open .cahier-text').evaluate(n => getComputedStyle(n).fontSize), '21px');
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('renzvi:carnet-look')).surface), 'papier');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.topbar')).fontSize), await page.evaluate(() => getComputedStyle(document.body).fontSize), 'le reste de l’appli ne change pas');
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('.carnet-look', { state: 'hidden' });
     assert.deepStrictEqual(await page.getByRole('tab').allTextContents(), ['Cours', 'Mes notes', 'Révisions']);
     assert.deepStrictEqual(await page.locator('.carnet-chapter span').allTextContents(), ['La membrane', 'Le noyau']);
     assert.strictEqual(await page.locator('.carnet-chapter[aria-current]').textContent(), 'La membrane');
     assert.strictEqual(await cahier(page).locator('.cahier-title').count(), 1, 'un seul titre de chapitre');
     const col = await cahier(page).locator('.cahier-block').first().boundingBox();
     assert.ok(col.width <= 700, `colonne de lecture lisible (${col.width})`);
-    assert.strictEqual(await cahier(page).locator('.cahier-block').first().evaluate(n => getComputedStyle(n).fontSize), '17px');
+    assert.strictEqual(await cahier(page).locator('.cahier-block').first().evaluate(n => getComputedStyle(n).fontSize), '21px', 'la taille choisie dans Personnaliser');
     assert.strictEqual(await cahier(page).locator('.cahier-tools').isVisible(), false, 'plus de ligne de liens de gestion');
     await shot(page, 'carnet-ouvert');
     console.log('ok compact inchangé, carnet ouvert');
@@ -275,6 +294,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
 
     // 10. Réduire : le même widget, à sa taille et à sa place, sans rien du carnet.
     await page.getByRole('button', { name: 'Réduire : retour au tableau' }).click();
+    await page.waitForFunction(() => !document.querySelector('[data-widget=cahier]').getAnimations().length);
     const again = await cahier(page).boundingBox();
     assert.deepStrictEqual([again.x, again.y, again.width, again.height].map(Math.round), [compact.x, compact.y, compact.width, compact.height].map(Math.round), 'mêmes dimensions');
     assert.strictEqual(await page.locator('.carnet-top, .carnet-side, .carnet-margin, .carnet-bar').evaluateAll(a => a.filter(n => n.checkVisibility()).length), 0);
@@ -344,6 +364,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     await page.waitForSelector('[data-widget=cahier] .cahier-text');
     await grow(page).tap();
     await page.waitForSelector('.carnet-top:not([hidden])');
+    await page.waitForFunction(() => !document.querySelector('[data-widget=cahier]').getAnimations().length);
     assert.strictEqual(await page.locator('.carnet-side').isVisible(), false);
     assert.strictEqual(await page.locator('.carnet-margin').isVisible(), false);
     assert.ok((await cahier(page).locator('.cahier-block').first().boundingBox()).width >= 340, 'la lecture prend la largeur');
