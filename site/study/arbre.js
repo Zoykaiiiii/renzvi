@@ -12,7 +12,7 @@
 // Contrat : window.etudeVues.arbre(ctx) rend { update, reveal, leave } (voir etude.js).
 window.etudeVues.arbre = function arbreVue(ctx) {
   const NS = 'http://www.w3.org/2000/svg';
-  const TIER = 190, COL = 232, STEP = 34, STUB = 214, GAP = 84, HEAD = 58, ZMIN = .35, ZMAX = 2.2, FAR = .55, NEAR = 1.15;
+  const STEP = 34, HEAD = 58, ZMIN = .35, ZMAX = 2.2, FAR = .55, NEAR = 1.15;
   const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const off = new AbortController(), signal = off.signal;
   const { stage } = ctx, mini = !!ctx.apercu;
@@ -156,41 +156,51 @@ window.etudeVues.arbre = function arbreVue(ctx) {
       const groups = solo
         ? subjects[0].courses.map(c => ({ id: c.id, courses: [c], merged: true }))
         : subjects.map(s => ({ id: s.id, name: s.name, courses: s.courses, merged: s.courses.length === 1 && cahierFold(s.courses[0].title) === s.key }));
-      const cursor = { [-1]: GAP, 1: GAP };
-      const tiers = Math.ceil(groups.length / 2);
-      const rootY = (tiers - 1) * TIER + 250;
-      const trunkW = (30 + Math.min(14, groups.length * 2)) * (.65 + .35 * maturity);
-      const trunk = [[6, rootY], [-14, rootY * .62], [12, rootY * .3 + 40], [0, 70]];
-      groups.forEach((g, i) => {
-        const side = i % 2 ? 1 : -1, y = Math.floor(i / 2) * TIER + (side > 0 ? TIER * .4 : 0);
+      // L'arbre monte : chaque matière est une branche qui part du tronc vers le haut (environ 52°), courte ; ses cours
+      // s'échelonnent le long de cette branche. Les matières se superposent de chaque côté, de bas en haut.
+      const COS = .62, SIN = .79, GO = 66, OPEN = 340, ROOT = 220;
+      const plan = groups.map(g => {
         const gFold = !g.merged && ctx.folded(g.id);
         const cols = gFold ? [] : g.courses.map(c => ({ c, fold: ctx.folded(c.id) }));
-        const x0 = cursor[side];
-        let x = x0;
-        for (const col of cols) { col.x = x + 26; x += col.fold ? STUB : COL; }
-        const width = gFold ? STUB : x - x0;
-        cursor[side] = x0 + width + 36;
-        const reach = gFold ? x0 + 60 : cols.at(-1).x;
-        // La grosse branche naît dans le tronc (elle part de son axe, plus large que lui à cet endroit) : pas de couture.
-        const tb = cubic(trunk, tAt(trunk, 1, y + 110));
-        const bough = [[tb[0] - side * 6, y + 110], [side * 18, y + 10], [side * reach * .72, y + 16], [side * reach, y - (gFold ? 6 : 34)]];
-        wood.push(limb(bough, 22 - Math.min(6, Math.floor(i / 2) * 1.6), gFold ? 2 : 5.5, 28));
-        { const mid = cubic(bough, .52); sprigs(mid[0], mid[1], -Math.PI / 2 - side * .5, hash(`${g.id}b`), fine, 2, 24, leaves); }
+        let d = 64;
+        cols.forEach((col, k) => { col.d = d; if (k < cols.length - 1) d += col.fold ? GO : OPEN; });
+        const L = gFold ? 110 : d + 24;
+        // Hauteur occupée au-dessus de la branche : la plus haute tige de cours (dépliée : tous ses chapitres).
+        const tall = Math.max(60, ...cols.map(col => (col.fold ? 54 : HEAD + col.c.chapters.length * STEP)));
+        return { g, gFold, cols, L, tall };
+      });
+      const cursor = { [-1]: 0, 1: 110 };
+      plan.forEach((pl, i) => {
+        pl.side = i % 2 ? 1 : -1;
+        pl.y = -cursor[pl.side];
+        // Toute la hauteur de la branche (elle monte) plus ses tiges : deux matières d'un même côté ne se croisent jamais.
+        cursor[pl.side] += pl.L * SIN + pl.tall + 56;
+      });
+      const top = Math.min(...plan.map(pl => pl.y - pl.L * SIN)) - 30;
+      const trunkW = (30 + Math.min(14, groups.length * 2)) * (.65 + .35 * maturity);
+      const trunk = [[6, ROOT], [-10, ROOT * .4], [10, top * .5], [0, Math.min(top + 120, plan.at(-1).y - 40)]];
+      plan.forEach(({ g, gFold, cols, L, side, y }, i) => {
+        const tb = cubic(trunk, tAt(trunk, 1, y));
+        const end = [tb[0] + side * L * COS, y - L * SIN];
+        // La branche naît dans le tronc (elle part de son axe) puis monte en s'écartant un peu : pas de couture.
+        const bough = [[tb[0] - side * 4, y + 30], [tb[0] + side * L * .22, y - L * .12], [tb[0] + side * L * .55, y - L * .5], end];
+        wood.push(limb(bough, Math.max(12, 20 - i * 1.2), gFold ? 2.4 : 4.5, 28));
+        { const mid = cubic(bough, .5); sprigs(mid[0], mid[1], -Math.PI / 2 - side * .6, hash(`${g.id}b`), fine, 2, 22, leaves); }
         if (!g.merged) {
           const count = g.courses.length;
-          // Le nom de la matière se pose sous sa branche, là où elle quitte le tronc : jamais sur un chapitre.
-          add('matiere', g.id, g.name, side * (x0 + 4), cubic(bough, tAt(bough, 0, side * (x0 + 30)))[1] + 30, side, { fold: gFold, small: gFold ? `${count} cours` : '' });
-          spots.set(g.id, [side * x0, y]);
-          grow(g.id, side * x0, y + 60, 40);
+          // Le nom de la matière se pose sous sa branche, près du tronc : jamais sur un cours.
+          const at = cubic(bough, .18);
+          add('matiere', g.id, g.name, at[0] + side * 26, at[1] + 34, side, { fold: gFold, small: gFold ? `${count} cours` : '' });
+          spots.set(g.id, at);
+          grow(g.id, at[0], at[1] + 60, 40);
         }
         if (gFold) {
-          const tip = cubic(bough, 1);
-          sprigs(tip[0], tip[1], side > 0 ? -.5 : Math.PI + .5, hash(g.id), fine, 2, 30, leaves);
-          grow(g.id, tip[0], tip[1], 120);
+          sprigs(end[0], end[1], -Math.PI / 2 + side * .4, hash(g.id), fine, 2, 30, leaves);
+          grow(g.id, end[0], end[1], 120);
           return;
         }
-        for (const { c, fold, x: cx } of cols) {
-          const base = cubic(bough, tAt(bough, 0, side * cx)), seed = hash(c.id), sway = ((seed % 21) - 10) * 1.4;
+        for (const { c, fold, d } of cols) {
+          const base = cubic(bough, tAt(bough, 0, tb[0] + side * d * COS)), seed = hash(c.id), sway = ((seed % 21) - 10) * 1.2;
           const n = fold ? 0 : c.chapters.length, h = fold ? 54 : HEAD + n * STEP;
           const tipX = base[0] + side * 6 + sway, tipY = base[1] - h;
           const pz = fresh.has(c.id) ? { x: base[0], y: base[1], wood: [], fine: [], leaves: [], dots: [] } : null;
@@ -215,12 +225,12 @@ window.etudeVues.arbre = function arbreVue(ctx) {
           });
         }
       });
-      // Le tronc, légèrement courbe, et deux racines qui s'évasent : l'arbre est posé, pas flottant.
-      wood.push(limb(trunk, trunkW, 14, 30));
-      for (const s of [-1, 1]) wood.push(limb([[6 + s * 3, rootY - 70], [6 + s * 8, rootY - 22], [6 + s * 22, rootY - 4], [6 + s * (34 + trunkW), rootY + 6]], trunkW * .6, 1.5));
-      if (solo) nodes.push({ kind: 'titre', key: 'titre', text: subjects[0].name, x: trunkW / 2 + 18, y: rootY - 40, side: 1 });
-      for (const s of [-1, 1]) grow('tout', s * (cursor[s] + 40), 0);
-      grow('tout', 0, rootY + 30, 160);
+      // Le tronc monte jusqu'à la dernière branche et finit en cime ; deux racines s'évasent : l'arbre est posé.
+      wood.push(limb(trunk, trunkW, 6, 30));
+      { const crown = cubic(trunk, 1); sprigs(crown[0], crown[1], -Math.PI / 2, hash('cime'), fine, 3, 34, leaves); grow('tout', crown[0], crown[1] - 80, 60); }
+      for (const s of [-1, 1]) wood.push(limb([[6 + s * 3, ROOT - 70], [6 + s * 8, ROOT - 22], [6 + s * 22, ROOT - 4], [6 + s * (34 + trunkW), ROOT + 6]], trunkW * .6, 1.5));
+      if (solo) nodes.push({ kind: 'titre', key: 'titre', text: subjects[0].name, x: trunkW / 2 + 18, y: ROOT - 40, side: 1 });
+      grow('tout', 0, ROOT + 30, 160);
       for (const b of boxes.values()) { grow('tout', b.x0, b.y0); grow('tout', b.x1, b.y1); }
     }
     const t = boxes.get('tout') ?? { x0: -160, y0: -40, x1: 160, y1: 300 };

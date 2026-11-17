@@ -146,9 +146,12 @@ window.cahierCarnet = function cahierCarnet(api) {
   // Gardée sur cet appareil (localStorage), limitée au carnet : le tableau, le logo et le reste de l'appli ne changent pas.
   // Tout s'applique tout de suite (aperçu en direct) ; « Réinitialiser » revient au réglage de départ (Verre).
   const LOOK_KEY = 'renzvi:carnet-look';
-  const LOOK0 = { surface: 'verre', opacite: 72, flou: 24, police: 'editoriale', taille: 19, interligne: 1.55, accent: 'auto' };
+  const LOOK0 = { surface: 'verre', opacite: 72, flou: 24, police: 'editoriale', taille: 19, interligne: 1.55, accent: 'auto', papier: 'creme' };
   // Couleur d'accent (onglet actif, boutons, signet…) : une teinte foncée pour le papier, une claire pour le verre et le sombre.
-  const ACCENTS = [['auto', 'Par défaut', '#55653a', '#f1d6a3'], ['vert', 'Vert', '#2e6b4f', '#9fd6b8'], ['bleu', 'Bleu', '#2f5d8a', '#a9c7e8'], ['brique', 'Brique', '#9a3b2e', '#f0a99c'], ['prune', 'Prune', '#6a4c93', '#cdb8ec'], ['rose', 'Rose', '#9c3d6b', '#f2b3cf']];
+  const ACCENTS = [['auto', 'Par défaut', '#55653a', '#f1d6a3'], ['vert', 'Vert', '#2e6b4f', '#9fd6b8'], ['bleu', 'Bleu', '#2f5d8a', '#a9c7e8'], ['brique', 'Brique', '#9a3b2e', '#f0a99c'], ['prune', 'Prune', '#6a4c93', '#cdb8ec'], ['rose', 'Rose', '#9c3d6b', '#f2b3cf'],
+    ['noir', 'Noir', '#1d1b18', '#121110', '#fff', '#fff'], ['blanc', 'Blanc', '#ffffff', '#ffffff', '#1d1b18', '#1d1b18']];
+  // Couleur du papier (surface Papier) : le fond, puis la feuille un ton plus claire.
+  const PAPIERS = [['creme', 'Crème', '#f4efe4', '#fbf8f1'], ['blanc', 'Blanc', '#f7f7f5', '#ffffff'], ['gris', 'Gris', '#eceef0', '#f6f7f8'], ['sable', 'Sable', '#ebe0cb', '#f5eddd'], ['rose', 'Rose', '#f5e8e4', '#fbf3f0'], ['vert', 'Vert d’eau', '#e6ede6', '#f2f6f1'], ['bleu', 'Bleu ciel', '#e6ecf2', '#f2f5f9']];
   const SURFACES = [['papier', 'Papier'], ['verre', 'Verre'], ['sombre', 'Sombre']];
   const POLICES = [['editoriale', 'Éditoriale'], ['sans', 'Sans empattement']];
   const INTERLIGNES = [[1.45, 'Serré'], [1.55, 'Normal'], [1.8, 'Aéré']];
@@ -162,6 +165,7 @@ window.cahierCarnet = function cahierCarnet(api) {
       police: POLICES.some(([k]) => k === l.police) ? l.police : LOOK0.police,
       taille: clampN(l.taille, 15, 24, LOOK0.taille), interligne: INTERLIGNES.some(([v]) => v === l.interligne) ? l.interligne : LOOK0.interligne,
       accent: ACCENTS.some(([k]) => k === l.accent) ? l.accent : LOOK0.accent,
+      papier: PAPIERS.some(([k]) => k === l.papier) ? l.papier : LOOK0.papier,
     };
   } catch {}
   function applyLook(keep = true) {
@@ -172,8 +176,12 @@ window.cahierCarnet = function cahierCarnet(api) {
     box.style.setProperty('--cn-size', `${look.taille}px`);
     box.style.setProperty('--cn-lh', String(look.interligne));
     const acc = ACCENTS.find(([k]) => k === look.accent), clair = look.surface === 'papier';
-    if (acc && look.accent !== 'auto') { box.style.setProperty('--accent', clair ? acc[2] : acc[3]); box.style.setProperty('--on-accent', clair ? '#fff' : '#231d16'); }
+    if (acc && look.accent !== 'auto') { box.style.setProperty('--accent', clair ? acc[2] : acc[3]); box.style.setProperty('--on-accent', (clair ? acc[4] : acc[5]) ?? (clair ? '#fff' : '#231d16')); }
     else { box.style.removeProperty('--accent'); box.style.removeProperty('--on-accent'); }
+    const pap = PAPIERS.find(([k]) => k === look.papier);
+    for (const [v, i] of [['--ground', 2], ['--paper', 3], ['--field', 3], ['--cn-raise', 3]]) {
+      if (clair && pap && look.papier !== 'creme') box.style.setProperty(v, pap[i]); else box.style.removeProperty(v);
+    }
     if (keep) try { localStorage.setItem(LOOK_KEY, JSON.stringify(look)); } catch {}
   }
   const lookBtn = labelBtn('carnet-look-btn', ICONS.reglages, 'Personnaliser', () => { lookView = 'main'; setLook(lookPanel.hidden || lookView !== 'main'); });
@@ -218,19 +226,26 @@ window.cahierCarnet = function cahierCarnet(api) {
     if (lookView === 'main') {
       parts.push(el('h3', '', 'Apparence du cahier'), choix('Surface', SURFACES, look.surface, v => { look.surface = v; }, 'carnet-look-surfaces'));
       if (look.surface === 'verre') parts.push(curseur('Opacité', 40, 96, look.opacite, ' %', v => { look.opacite = v; }), curseur('Flou', 0, 40, look.flou, ' px', v => { look.flou = v; }));
-      const teintes = el('div', 'carnet-look-row carnet-look-accents');
-      teintes.setAttribute('role', 'group');
-      teintes.ariaLabel = 'Couleur d’accent';
-      for (const [k, nom, papier, sombre] of ACCENTS) {
-        const b = button('carnet-look-teinte', '', () => { look.accent = k; applyLook(); drawLook(); lookPanel.querySelector(`.carnet-look-accents [data-v="${k}"]`)?.focus(); });
-        b.dataset.v = k;
-        b.ariaLabel = nom;
-        b.title = nom;
-        b.setAttribute('aria-pressed', String(k === look.accent));
-        b.style.setProperty('--t', look.surface === 'papier' ? papier : sombre);
-        teintes.append(b);
-      }
-      parts.push(el('p', 'carnet-look-label', 'Couleur d’accent'), teintes);
+      // Une rangée de pastilles (papier, accent) : choisir redessine le panneau et garde le focus sur la pastille.
+      const pastilles = (cls, label, list, value, color, onPick) => {
+        const g = el('div', `carnet-look-row ${cls}`);
+        g.setAttribute('role', 'group');
+        g.ariaLabel = label;
+        for (const item of list) {
+          const k = item[0];
+          const b = button('carnet-look-teinte', '', () => { onPick(k); applyLook(); drawLook(); lookPanel.querySelector(`.${cls} [data-v="${k}"]`)?.focus(); });
+          b.dataset.v = k;
+          b.ariaLabel = item[1];
+          b.title = item[1];
+          b.setAttribute('aria-pressed', String(k === value));
+          b.style.setProperty('--t', color(item));
+          g.append(b);
+        }
+        return [el('p', 'carnet-look-label', label), g];
+      };
+      if (look.surface === 'papier') parts.push(...pastilles('carnet-look-papiers', 'Couleur du papier', PAPIERS, look.papier, p => p[2], k => { look.papier = k; }));
+      const teintes = pastilles('carnet-look-accents', 'Couleur d’accent', ACCENTS, look.accent, a => (look.surface === 'papier' ? a[2] : a[3]), k => { look.accent = k; });
+      parts.push(...teintes);
       const police = button('carnet-look-link', '', () => { lookView = 'texte'; drawLook(); lookPanel.querySelector('button')?.focus(); });
       police.append(el('span', '', `Police · ${POLICES.find(([k]) => k === look.police)[1]}`));
       police.insertAdjacentHTML('beforeend', icon(ICONS.chevron));

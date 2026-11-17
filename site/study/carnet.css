@@ -215,8 +215,9 @@
 .carnet-look-verre i{background:rgba(70,60,52,.6)}
 .carnet-look-sombre i{background:#1e1d1c}
 .carnet-look-label{margin:0;font-size:14px;color:var(--ink)}
-.carnet-look-accents{display:flex;flex-wrap:wrap;gap:8px}
-.carnet-look-teinte{width:30px;height:30px;padding:0;border:2px solid transparent;border-radius:50%;background:var(--t);background-clip:content-box;box-shadow:inset 0 0 0 3px var(--paper,#fff);cursor:pointer}
+.carnet-look-accents,.carnet-look-papiers{display:flex;flex-wrap:wrap;gap:6px}
+
+.carnet-look-teinte{width:26px;height:26px;padding:0;border:2px solid transparent;border-radius:50%;background:var(--t);background-clip:content-box;box-shadow:inset 0 0 0 3px var(--paper,#fff),inset 0 0 0 4px var(--edge);cursor:pointer}
 .carnet-look-teinte[aria-pressed=true]{border-color:var(--ink)}
 .carnet-look-val{font-size:13px;font-variant-numeric:tabular-nums;color:var(--slate);text-align:right}
 .carnet-look-range{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 12px}
