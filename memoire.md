@@ -782,3 +782,12 @@ Damien a confié à Codex la préparation technique des prompts pour pouvoir se 
 - Tests : `menu-lateral` échoue aussi sur main avant ce travail (« un clic à côté ferme ») ; `constellations` (dense, chevauchement) instable, passe en relance.
 
 - **Ensuite (même jour)** : accents **Noir** et **Blanc** ajoutés ; surface Papier : **couleur du papier** au choix (Crème, Blanc, Gris, Sable, Rose, Vert d'eau, Bleu ciel ; `look.papier`). **Arbre vertical** à plusieurs cours : chaque matière est une branche courte qui monte (~52°), ses cours s'échelonnent dessus, les matières se superposent de chaque côté sans se croiser ; le tronc monte jusqu'à la cime. Avec 10 cours : plus haut que large, aucun nom ne se chevauche (captures `.taste-skill/arbre-pousse/`). Reste : la branche passe parfois derrière un nom de cours (pastille semi-transparente).
+
+## 39. Pages : widgets coupés sur les bords — Claude, 17 novembre 2026
+- **Signalé par Damien** (capture) : au repos, la page affichée montrait un bout de la page d'avant à gauche, et les widgets de droite étaient coupés.
+- **Cause trouvée** : `site/vues/pages.js` plaçait la page `p` à `p × largeur du tableau`. Le navigateur arrondit chaque colonne au 1/64 de pixel, donc les vraies pages ne tombaient pas pile sur ces positions (un fil de la page voisine visible au bord). Et rien ne recalait la page si l'aimantation s'arrêtait entre deux pages (geste au pavé tactile lâché, défilement doux coupé).
+- **Correction** : la position d'une page est lue sur son repère (`.pg-snap`), la page en cours est la plus proche ; à la fin d'un défilement (`scrollend`, sinon 160 ms sans défilement), la page est recalée pile dans le cadre (sauf pendant un glisser). Largeur des colonnes arrondie au 1/64 de pixel supérieur.
+- **Pas reproduit ici** : le décalage exact de 52 px de sa capture. Mesuré sans souci : clics sur les points, molette ou pavé tactile, redimensionnement (1000 à 1920 px), changement de mode, rechargement, tablette 820 px, téléphone 390 px.
+- **Tests** : pages, pages-mode, vues, retrait, interactions, cartes, paywall passent. `parcours` et `menu-lateral` échouent **déjà sans ce changement** (vérifié avec la version d'avant) : à réparer à part.
+- **À vérifier par Damien** : le même écran que sa capture (mode à 4 pages, fond sombre), glisser au pavé tactile entre les pages, puis attendre. Si ça recoupe : noter le navigateur et le geste.
+- Poussé sur main le 17 nov.

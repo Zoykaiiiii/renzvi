@@ -109,8 +109,17 @@ window.vuePages = function vuePages(ctx) {
     // La page tient dans l'écran, sous l'en-tête, avec la place des points en dessous.
     const fit = Math.max(ROWS * MIN_CELL_H + (ROWS - 1) * gap, innerHeight - top - 64);
     const ch = (fit - (ROWS - 1) * gap) / ROWS;
-    return { gap, cols, W, H: rows * ch + (rows - 1) * gap, cw: (W - cols * gap) / cols, ch };
+    // Colonne arrondie au 1/64 de pixel supérieur, l'unité du navigateur : une page ne déborde jamais d'un fil sur la suivante.
+    return { gap, cols, W, H: rows * ch + (rows - 1) * gap, cw: Math.ceil((W - cols * gap) / cols * 64) / 64, ch };
   }
+  // Début réel d'une page dans la rangée, lu sur son repère. Pas « page × largeur » : le navigateur arrondit chaque
+  // colonne (1/64 px), l'écart s'accumule de page en page et laissait voir un bout de la page voisine.
+  const startOf = p => snaps[p]?.offsetLeft ?? p * (m?.W || 0);
+  const nearest = () => {
+    let best = 0;
+    for (let p = 1; p < shownN; p++) if (Math.abs(startOf(p) - board.scrollLeft) < Math.abs(startOf(best) - board.scrollLeft)) best = p;
+    return best;
+  };
   const area = (q, cols) => ({ col: `${q.p * cols + q.c + 1} / span ${q.w}`, row: `${q.r + 1} / span ${q.h}` });
   const onPageIds = (p, lay = state) => ctx.ids().filter(id => lay.d[id]?.p === p);
   function paint() {
@@ -139,7 +148,7 @@ window.vuePages = function vuePages(ctx) {
     drawEmpties(lay);
     drawCells();
     drawDots();
-    board.scrollLeft = page * m.W;
+    board.scrollLeft = startOf(page);
   }
 
   // Une page sans widget le dit, et propose d'en ajouter un ici. Le mode entier vide garde son propre message.
@@ -169,7 +178,7 @@ window.vuePages = function vuePages(ctx) {
   label.setAttribute('aria-live', 'polite');
   function goTo(p, focusDot = false) {
     page = clamp(p, 0, shownN - 1);
-    board.scrollTo({ left: page * m.W, behavior: reduced() ? 'auto' : 'smooth' });
+    board.scrollTo({ left: startOf(page), behavior: reduced() ? 'auto' : 'smooth' });
     remember();
     markDots();
     if (focusDot) dots.querySelector('[aria-current=page]')?.focus();
@@ -232,9 +241,23 @@ window.vuePages = function vuePages(ctx) {
   // Le défilement (doigt, pavé tactile, points) dit sur quelle page on est.
   board.addEventListener('scroll', () => {
     cancelPress();
-    const p = clamp(Math.round(board.scrollLeft / (m?.W || 1)), 0, shownN - 1);
+    const p = nearest();
     if (p !== page) { page = p; remember(); markDots(); ctx.say(`${name(page)}, ${page + 1} sur ${shownN}`); }
+    if (!('onscrollend' in window)) { clearTimeout(rest); rest = setTimeout(align, 160); }
   }, { signal, passive: true });
+  // Au repos, la page est pile dans le cadre. L'aimantation du navigateur le fait d'habitude, mais un geste interrompu
+  // (pavé tactile lancé puis lâché, défilement doux coupé par un nouveau rendu) pouvait s'arrêter entre deux pages
+  // et couper les widgets des bords. scrollend quand il existe, sinon un court délai sans défilement.
+  let rest = 0;
+  function align() {
+    clearTimeout(rest);
+    if (!m || gesture || document.body.classList.contains('dragging')) return;
+    page = nearest();
+    markDots();
+    const want = Math.min(startOf(page), board.scrollWidth - board.clientWidth);
+    if (Math.abs(board.scrollLeft - want) > 1) board.scrollTo({ left: want, behavior: reduced() ? 'auto' : 'smooth' });
+  }
+  board.addEventListener('scrollend', align, { signal });
 
   // ---------- Pages : ajouter, renommer, supprimer, déplacer un widget ----------
   function addPage() {
@@ -657,6 +680,7 @@ window.vuePages = function vuePages(ctx) {
   function leave() {
     widths.disconnect();
     cancelAnimationFrame(frame);
+    clearTimeout(rest);
     endGesture(false);
     if (editing) edit(false);
     off.abort();
