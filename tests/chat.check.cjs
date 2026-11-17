@@ -47,7 +47,15 @@ const { dispose } = require('./menu.cjs');
     assert.equal(await launch(page).getAttribute('aria-expanded'), 'false');
     assert.ok(inside(b, 1440, 900) && b.x + b.width > 1400 && b.y + b.height > 860, `en bas à droite (${b.x},${b.y})`);
     assert.ok(b.width >= 44 && b.height >= 44, 'cible de 44 px au moins');
-    assert.equal(await launch(page).locator('svg').count(), 1, 'le personnage est dessiné');
+    // Le personnage (LiveOrb) : peint en WebGL ; le centre du canevas n'est pas transparent.
+    await page.waitForFunction(() => {
+      const c = document.querySelector('.chat-ia-launch [data-slot="live-orb"] canvas');
+      const gl = c?.getContext('webgl');
+      if (!gl || !c.width) return false;
+      const px = new Uint8Array(4);
+      gl.readPixels(c.width >> 1, c.height >> 1, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      return px[3] > 0;
+    }, null, { timeout: 5000 }).catch(() => assert.fail('le personnage est dessiné'));
     await shot(page, 'bureau-ferme');
     const widgets = () => page.locator('#board .widget:not([hidden])').evaluateAll(w => w.map(x => { const r = x.getBoundingClientRect(); return [r.x, r.y, r.width, r.height].map(Math.round).join(','); }));
     const before = await widgets();
@@ -97,6 +105,42 @@ const { dispose } = require('./menu.cjs');
     // Rien d'autre n'a bougé : mode, minuteur.
     assert.equal(await page.locator('[data-widget=minuteur]').getByRole('button', { name: 'Pause' }).count(), 1, 'le minuteur tourne toujours');
     assert.match(await page.textContent('#mode-now'), /Study/);
+    await context.close();
+  }
+
+  // 1 bis. Personnaliser le chat : style Verre (défaut) ou Nuit, quatre personnages ; gardé au rechargement. Plus de faux boutons.
+  {
+    const { page, context } = await open({ width: 1440, height: 900 }, 'perso');
+    await launch(page).click();
+    for (const name of ['Search', 'Think', 'Canvas', 'Voice message']) assert.equal(await panel(page).getByRole('button', { name }).count(), 0, `pas de bouton factice ${name}`);
+    const send = panel(page).getByRole('button', { name: 'Envoyer' });
+    assert.equal(await send.isDisabled(), true, 'Envoyer inactif sans message');
+    await field(page).fill('Salut');
+    assert.equal(await send.isDisabled(), false);
+    await field(page).fill('');
+    assert.equal(await panel(page).getAttribute('data-style'), 'verre', 'Verre par défaut');
+    const fond = () => panel(page).evaluate(n => getComputedStyle(n).backgroundColor);
+    const verre = await fond();
+    const perso = panel(page).getByRole('button', { name: 'Personnaliser le chat' });
+    assert.equal(await page.locator('#renzvi-chat-perso').isVisible(), false);
+    await perso.click();
+    assert.equal(await perso.getAttribute('aria-expanded'), 'true');
+    await shot(page, 'bureau-perso-verre');
+    await panel(page).getByRole('button', { name: 'Nuit' }).click();
+    await panel(page).getByRole('button', { name: 'Noir' }).click();
+    assert.equal(await panel(page).getAttribute('data-style'), 'nuit');
+    assert.notEqual(await fond(), verre, 'le fond change');
+    assert.equal(await panel(page).getByRole('button', { name: 'Nuit' }).getAttribute('aria-pressed'), 'true');
+    await shot(page, 'bureau-perso-nuit');
+    await page.reload();
+    await page.waitForSelector('#renzvi-chat .chat-ia-launch');
+    await launch(page).click();
+    assert.equal(await panel(page).getAttribute('data-style'), 'nuit', 'style gardé au rechargement');
+    await panel(page).getByRole('button', { name: 'Personnaliser le chat' }).click();
+    assert.equal(await panel(page).getByRole('button', { name: 'Noir' }).getAttribute('aria-pressed'), 'true', 'personnage gardé');
+    await panel(page).getByRole('button', { name: 'Couleur du thème' }).click();
+    await panel(page).getByRole('button', { name: 'Verre' }).click();
+    assert.equal(await panel(page).getAttribute('data-style'), 'verre');
     await context.close();
   }
 
@@ -176,6 +220,8 @@ const { dispose } = require('./menu.cjs');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'pas de défilement de côté');
     assert.equal(await launch(page).isVisible(), false, 'le personnage s’efface sous la feuille');
     await field(page).fill('Une question au téléphone');
+    assert.equal(await panel(page).getByRole('button', { name: 'Envoyer' }).isEnabled(), true, 'Envoyer actif dès qu’on écrit');
+    await page.waitForTimeout(250); // fin du fondu du bouton Envoyer
     await shot(page, 'telephone-ouvert');
     // Clavier virtuel : la partie visible passe à 450 px de haut.
     await page.setViewportSize({ width: 390, height: 450 });

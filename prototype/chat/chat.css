@@ -5,6 +5,7 @@
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
 @import "tw-animate-css";
 @source "../components/ui/ai-prompt-box.tsx";
+@source "../components/ui/live-orb.tsx";
 @source "./ChatIA.tsx";
 
 /* Remise à zéro limitée à l'îlot et aux bulles d'aide du composant (portées dans <body>), au plus bas niveau de priorité. */
@@ -19,6 +20,32 @@
 .chat-ia-panel[hidden] { display: none; }
 @starting-style { .chat-ia-panel { opacity: 0; transform: translateY(8px) scale(.98); } }
 .chat-ia-compose textarea { max-height: 160px; }
+
+/* Les deux styles du chat (« Personnaliser le chat »). Tout passe par ces variables, lues aussi par le composant (ai-prompt-box.tsx).
+   Verre : le verre du dashboard, donc il suit déjà le mode clair/sombre, l'accent, le flou et les coins choisis dans Personnaliser. */
+.chat-ia-panel[data-style=verre] {
+  --chat-bg: var(--glass, rgba(255,255,255,.88)); --chat-ink: var(--ink, #17191c); --chat-muted: var(--slate, #55565c);
+  --chat-field: var(--paper, #fff); --chat-edge: var(--glass-edge, rgba(255,255,255,.72)); --chat-bubble: var(--tint, rgba(23,25,28,.06));
+  --chat-hover: var(--press, rgba(23,25,28,.09)); --chat-send: var(--accent, #1b6e66); --chat-on-send: var(--on-accent, #fff); --chat-error: var(--error, #b3261e);
+  --chat-choix: var(--paper, #fff);
+  border-radius: calc(var(--r-panel, 20px) + 4px);
+  -webkit-backdrop-filter: var(--glass-blur, blur(24px) saturate(1.6)); backdrop-filter: var(--glass-blur, blur(24px) saturate(1.6));
+  box-shadow: var(--glass-shine, none), var(--lift, 0 18px 40px rgba(23,25,28,.24));
+}
+.chat-ia-panel[data-style=verre] .chat-ia-compose > div { border-color: var(--edge, rgba(23,25,28,.16)); box-shadow: none; }
+/* Nuit : le panneau noir d'origine, quel que soit le thème. */
+.chat-ia-panel[data-style=nuit] {
+  --chat-bg: #141517; --chat-ink: #f3f4f6; --chat-muted: #9ca3af; --chat-field: #1F2023; --chat-edge: #333333; --chat-bubble: #2E3033;
+  --chat-hover: #2E3033; --chat-send: #fff; --chat-on-send: #1F2023; --chat-error: #fca5a5; --chat-choix: #3a3c40;
+  color-scheme: dark; box-shadow: 0 16px 48px rgba(0,0,0,.35);
+}
+/* Nuit : un fin contour garde le personnage Noir visible sur le fond noir. */
+.chat-ia-panel[data-style=nuit] [data-slot=live-orb] { border-radius: 50%; box-shadow: 0 0 0 1px rgba(255,255,255,.16); }
+/* Choix de « Personnaliser le chat » : le choix actif est une pastille pleine, un pas de ton au-dessus du fond. */
+.chat-ia-choix { color: var(--chat-muted); transition: background-color .15s, color .15s; }
+.chat-ia-choix:hover { color: var(--chat-ink); }
+.chat-ia-choix[aria-pressed=true] { background: var(--chat-choix); color: var(--chat-ink); font-weight: 600; }
+:where(#renzvi-chat) :focus-visible { outline: 2px solid var(--chat-send, var(--accent)); outline-offset: 2px; }
 
 /* Jamais par-dessus le verrou, la vue agrandie, le tiroir du menu, ni pendant qu'on dispose les widgets. */
 :is(.locked, .customizing, .pages-editing, .drawer-open, .zoom-lock) #renzvi-chat { display: none; }
