@@ -8,7 +8,7 @@ import { SplitText } from "gsap/SplitText";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger, ScrollSmoother, SplitText);
 
-/** Tout le mouvement de la page, en GSAP : défilement lissé, héros épinglé, textes révélés, scène des modes. */
+/** Tout le mouvement de la page, en GSAP : défilement lissé, textes révélés, scène des modes. */
 export default function Motion({ children }: { children: ReactNode }) {
   const root = useRef<HTMLDivElement>(null);
 
@@ -32,14 +32,6 @@ export default function Motion({ children }: { children: ReactNode }) {
         onEnter: (els) => gsap.from(els, { y: 28, autoAlpha: 0, duration: 0.8, ease: "power3.out", stagger: 0.08 }),
       });
 
-      // Héros : les trois carrés en attente du logo se remplissent, un outil chacun.
-      const wait = gsap.utils.toArray<HTMLElement>("[data-sq='wait']");
-      const fill = gsap.timeline({ defaults: { ease: "none" } });
-      wait.forEach((sq) => {
-        fill.fromTo(sq, { backgroundColor: "rgba(36,36,36,.22)", scale: 0.92 }, { backgroundColor: sq.dataset.bg!, scale: 1, immediateRender: true }, ">-0.15")
-            .from(sq.children, { autoAlpha: 0, y: 24, stagger: 0.08, immediateRender: true }, "<0.2");
-      });
-
       // Scène des modes : l'illustration reste, son état change avec la phrase active.
       const steps = gsap.utils.toArray<HTMLElement>("[data-step]");
       const states = gsap.utils.toArray<HTMLElement>("[data-state]");
@@ -52,12 +44,10 @@ export default function Motion({ children }: { children: ReactNode }) {
 
       const sized = gsap.matchMedia();
       sized.add("(min-width: 1024px)", () => {
-        ScrollTrigger.create({ animation: fill, trigger: "[data-hero]", start: "top top", end: "+=140%", pin: true, scrub: 0.6 });
         ScrollTrigger.create({ trigger: "[data-stage]", start: "top 96px", endTrigger: "[data-modes]", end: "bottom bottom", pin: true, pinSpacing: false });
         gsap.to("[data-drift]", { yPercent: -12, ease: "none", scrollTrigger: { trigger: "[data-drift]", scrub: true } });
       });
       sized.add("(max-width: 1023px)", () => {
-        ScrollTrigger.create({ animation: fill, trigger: "[data-squares]", start: "top 75%", end: "bottom 60%", scrub: 0.6 });
         ScrollTrigger.create({ trigger: "[data-stage]", start: "top 64px", endTrigger: "[data-modes]", end: "bottom bottom", pin: true, pinSpacing: false });
       });
       // Les positions se recalculent dans l'ordre de la page, et à chaque fois que sa hauteur change (polices, cartes, orbite).

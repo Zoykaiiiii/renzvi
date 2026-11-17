@@ -5,14 +5,14 @@ import { Logo, Slot } from "./Bits";
 
 // Tuiles de l'orbite : le nom de vrais widgets, dessiné en SVG (pas de fichier image à charger).
 const TOOLS: [string, string, string][] = [
-  ["Tâches", "#242424", "#fff"], ["Notes", "#d9cdbd", "#242424"], ["Minuteur", "#fff", "#242424"], ["Playlist", "#615d59", "#fff"],
-  ["Ambiance", "#eeeae4", "#242424"], ["Habitudes", "#242424", "#fff"], ["Cahier", "#d9cdbd", "#242424"], ["Flashcards", "#fff", "#242424"],
-  ["Lecture", "#615d59", "#fff"], ["Respiration", "#eeeae4", "#242424"],
+  ["Tâches", "#202124", "#fff"], ["Notes", "#e8eaed", "#202124"], ["Minuteur", "#fff", "#202124"], ["Playlist", "#5f6368", "#fff"],
+  ["Ambiance", "#f1f3f4", "#202124"], ["Habitudes", "#202124", "#fff"], ["Cahier", "#e8eaed", "#202124"], ["Flashcards", "#fff", "#202124"],
+  ["Lecture", "#5f6368", "#fff"], ["Respiration", "#f1f3f4", "#202124"],
 ];
 const tile = ([name, bg, ink]: [string, string, string]) => ({
   alt: name,
   src: `data:image/svg+xml,${encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="${bg}"/><text x="100" y="109" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif" font-size="30" font-weight="600" fill="${ink}">${name}</text></svg>`
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect x="1" y="1" width="198" height="198" rx="59" fill="${bg}" stroke="rgba(32,33,36,.1)" stroke-width="2"/><text x="100" y="109" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif" font-size="30" font-weight="600" fill="${ink}">${name}</text></svg>`
   )}`,
 });
 
@@ -39,7 +39,7 @@ const BOARDS: [string, "lin" | "sable" | "card" | "ink"][] = [
 
 export function BoardSwap() {
   return (
-    <CardSwap theme="dark" width={520} height={360} delay={3200} cardRadius={16}>
+    <CardSwap theme="light" width={520} height={360} delay={3200} cardRadius={16}>
       {BOARDS.map(([label, tone]) => (
         <Card key={label}><Slot label={label} tone={tone} /></Card>
       ))}

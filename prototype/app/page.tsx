@@ -1,11 +1,15 @@
-import FontCycle from "@/components/FontCycle";
 import Magnet from "@/components/Magnet";
 import Motion from "@/components/Motion";
 import Nav from "@/components/Nav";
+import { Hero10, type Hero10Props } from "@/components/ui/hero-10";
 import { Logo, Slot } from "@/components/Bits";
 import { BoardSwap, ToolsOrbit } from "@/components/Showcase";
 
 const LOGIN = "/login.html";
+
+// Les trois cadres du héros (gauche, centre, droite). Pour en remplir un :
+// { type: "image", src: "/landing/dashboard.webp", alt: "…" } ou { type: "video", src: "/landing/clip.mp4", poster: "…", label: "…" }.
+const HERO_MEDIA: Hero10Props["media"] = [null, null, null];
 
 const NAV = [
   ["#outils", "Outils"],
@@ -13,14 +17,6 @@ const NAV = [
   ["#modes", "Study et Chill"],
   ["#offres", "Offres"],
   ["#questions", "Questions"],
-];
-
-// Les quatre carrés du logo : un plein, trois en attente qui se remplissent au défilement.
-const SQUARES = [
-  { name: "Tâches", sample: "Relire le chapitre 4", bg: "#242424", light: true },
-  { name: "Notes", sample: "Exposé jeudi : revoir l'intro", bg: "#d9cdbd" },
-  { name: "Minuteur", sample: "18:42", bg: "#ffffff" },
-  { name: "Playlist", sample: "Pluie douce et piano", bg: "#615d59", light: true },
 ];
 
 const STEPS = [
@@ -54,31 +50,16 @@ export default function Page() {
 
       <Motion>
         <main id="contenu">
-          {/* Héros, épinglé : la carte à gauche, les quatre carrés du logo à droite. */}
-          <section id="top" data-hero className="grid min-h-svh gap-3 px-[var(--m)] pb-[var(--m)] pt-20 lg:grid-cols-2">
-            <div className="flex flex-col justify-between gap-10 rounded-box bg-card p-6 sm:p-10 lg:p-14">
-              <h1 data-split>Tes outils, au<br /><em>même endroit</em></h1>
-              <div className="flex flex-col gap-8">
-                <div data-rise><FontCycle>Et tout se règle à ton goût.</FontCycle></div>
-                <p data-rise className="max-w-[44ch]">Renzvi réunit tâches, notes, minuteur et musique sur un dashboard que tu composes comme un moodboard&nbsp;: ton fond, tes couleurs, tes widgets.</p>
-                <div data-rise className="flex flex-wrap items-center gap-3">
-                  <Magnet padding={70} magnetStrength={3}><a href={LOGIN} className="btn btn-ink">Créer mon espace</a></Magnet>
-                  <a href="#outils" className="btn btn-soft">Voir comment ça marche</a>
-                </div>
-              </div>
-            </div>
-            <div className="grid place-items-center rounded-box bg-lin p-6">
-              <div data-squares className="grid aspect-square w-[min(100%,68svh)] grid-cols-2 gap-[4%]" role="img" aria-label="Le logo de Renzvi, quatre carrés : chacun contient un outil, Tâches, Notes, Minuteur et Playlist.">
-                {SQUARES.map((s, i) => (
-                  <div key={s.name} data-sq={i ? "wait" : "full"} data-bg={s.bg} aria-hidden="true"
-                    className={`sq flex flex-col justify-end gap-1 p-[12%] ${s.light ? "text-white" : ""}`} style={{ backgroundColor: s.bg }}>
-                    <span className="text-statement font-semibold leading-none">{s.name}</span>
-                    <span className="text-small">{s.sample}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
+          {/* Héros : titre, appel bleu, puis trois cadres pour les futurs visuels du dashboard (vides pour l'instant). */}
+          <Hero10
+            id="top"
+            title="Tes outils,"
+            titleLine2Prefix="au même endroit"
+            description="Renzvi réunit tâches, notes, minuteur et musique sur un dashboard que tu composes comme un moodboard : ton fond, tes couleurs, tes widgets."
+            media={HERO_MEDIA}
+            animation="subtle"
+            primaryCTA={{ ctaEnabled: true, text: "Créer mon espace", link: LOGIN }}
+          />
 
           {/* Les outils : pleine largeur, l'orbite autour du logo. */}
           <section id="outils" className="px-[var(--m)] pt-32 lg:pt-48">
@@ -86,17 +67,17 @@ export default function Page() {
               <h2 data-split>Tout gravite autour<br />d'un <em>seul écran</em></h2>
               <p data-rise className="max-w-[46ch] lg:pt-3">Ta liste dans une fenêtre, tes notes dans une autre, le minuteur à retrouver, la musique ailleurs. Dans Renzvi, ce sont des widgets posés côte à côte. Attrape une tuile pour faire tourner l'orbite.</p>
             </div>
-            <div data-rise className="mt-10 overflow-hidden rounded-box bg-lin py-10 lg:mt-16 lg:py-20">
+            <div data-rise className="mt-10 overflow-hidden py-10 lg:mt-16 lg:py-20">
               <ToolsOrbit />
             </div>
           </section>
 
-          {/* Les dashboards : champ sombre, les cartes qui se relaient. */}
-          <section id="dashboards" className="mx-[var(--m)] mt-32 grid items-center gap-10 overflow-hidden rounded-box bg-night p-6 text-white sm:p-10 lg:mt-48 lg:min-h-[86svh] lg:grid-cols-2 lg:p-14">
+          {/* Les dashboards : sur le blanc, les cartes qui se relaient. */}
+          <section id="dashboards" className="mx-[var(--m)] mt-32 grid items-center gap-10 overflow-hidden py-6 lg:mt-48 lg:min-h-[86svh] lg:grid-cols-2">
             <div className="flex flex-col gap-6 self-start lg:self-center">
               <h2 data-split>Même app, jamais<br /><em>le même écran</em></h2>
               <p data-rise className="max-w-[44ch]">Deux personnes, deux dashboards. Tu choisis le fond ou ta propre photo, la couleur d'accent, la taille et la place de chaque widget. Tu retrouves ton espace tel que tu l'as laissé.</p>
-              <div data-rise><a href={LOGIN} className="btn btn-paper">Composer le mien</a></div>
+              <div data-rise><a href={LOGIN} className="btn btn-accent">Composer le mien</a></div>
             </div>
             <div data-rise className="relative h-[340px] sm:h-[460px] lg:h-[560px]">
               <BoardSwap />
@@ -111,7 +92,7 @@ export default function Page() {
                 <div className="relative h-[42svh] lg:h-[calc(100svh-128px)]">
                   <div data-state className="absolute inset-0"><Slot label="dashboard en mode Study" tone="card" /></div>
                   <div data-state className="absolute inset-0"><Slot label="dashboard en mode Chill" tone="sable" /></div>
-                  <div data-state className="absolute inset-0"><Slot label="passage de Study à Chill" tone="ink" /></div>
+                  <div data-state className="absolute inset-0"><Slot label="passage de Study à Chill" tone="lin" /></div>
                 </div>
               </div>
               <ol className="lg:order-1">
@@ -131,11 +112,11 @@ export default function Page() {
             <div className="flex flex-col gap-5 lg:col-span-4">
               <h2 data-split>Gratuit pour<br /><em>commencer</em></h2>
               <p data-rise className="max-w-[36ch]">Offres envisagées&nbsp;: ces prix sont des hypothèses. Aucun abonnement n'est vendu aujourd'hui et rien ne t'est facturé.</p>
-              <div data-rise><a href={LOGIN} className="btn btn-ink">Créer mon espace</a></div>
+              <div data-rise><a href={LOGIN} className="btn btn-accent">Créer mon espace</a></div>
             </div>
             <div className="grid gap-3 lg:col-span-8 lg:grid-cols-3">
               {PLANS.map((p, i) => (
-                <article key={p.name} data-rise className={`flex flex-col gap-4 rounded-box p-6 lg:p-8 ${["bg-card", "bg-sable", "bg-lin"][i]}`}>
+                <article key={p.name} data-rise className="flex flex-col gap-4 rounded-box bg-card p-6 ring-1 ring-black/[.08] lg:p-8">
                   <h3 className="text-statement font-semibold leading-none">{p.name}</h3>
                   <p><span className="font-semibold tabular-nums">{p.price}</span><br /><span className="text-small">{p.note}</span></p>
                   <ul className="flex flex-col gap-2.5 pt-2">{p.lines.map((l) => <li key={l}>{l}</li>)}</ul>
@@ -149,7 +130,7 @@ export default function Page() {
             <h2 data-split className="lg:col-span-4">Questions<br /><em>fréquentes</em></h2>
             <div data-rise className="flex flex-col gap-2 lg:col-span-8">
               {FAQ.map(([q, a], n) => (
-                <details key={q} name="faq" open={n === 0} className="faq rounded-box bg-card">
+                <details key={q} name="faq" open={n === 0} className="faq rounded-box bg-card ring-1 ring-black/[.08]">
                   <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-6 px-6 py-4 font-semibold [&::-webkit-details-marker]:hidden">
                     {q}
                     <svg viewBox="0 0 24 24" aria-hidden="true" className="faq-plus size-5 flex-none"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
@@ -163,15 +144,15 @@ export default function Page() {
           <section aria-labelledby="fin" className="px-[var(--m)] pb-[18svh] pt-[26svh]">
             <h2 id="fin" data-split className="max-w-[18ch]">Réunis tes outils <em>aujourd'hui</em></h2>
             <p data-rise className="max-w-[40ch] pt-6">Il te suffit de Google ou d'un code reçu par email. Ton espace t'attend tel que tu l'as laissé, à chaque retour.</p>
-            <div data-rise className="pt-6"><Magnet padding={90} magnetStrength={3}><a href={LOGIN} className="btn btn-ink">Créer mon espace</a></Magnet></div>
+            <div data-rise className="pt-6"><Magnet padding={90} magnetStrength={3}><a href={LOGIN} className="btn btn-accent">Créer mon espace</a></Magnet></div>
           </section>
         </main>
 
         <footer className="grid gap-3 px-[var(--m)] pb-[var(--m)] lg:min-h-[80svh] lg:grid-cols-2">
-          <div className="relative min-h-[40svh] overflow-hidden rounded-box bg-ink">
-            <div data-drift className="absolute -bottom-[18%] -left-[10%] w-[92%] lg:w-[84%]"><Logo light className="w-full" /></div>
+          <div className="relative min-h-[40svh] overflow-hidden rounded-box bg-card ring-1 ring-black/[.08]">
+            <div data-drift className="absolute -bottom-[18%] -left-[10%] w-[92%] lg:w-[84%]"><Logo className="w-full" /></div>
           </div>
-          <div className="flex flex-col justify-between gap-12 rounded-box bg-card p-6 sm:p-10 lg:p-14">
+          <div className="flex flex-col justify-between gap-12 rounded-box bg-card p-6 ring-1 ring-black/[.08] sm:p-10 lg:p-14">
             <nav aria-label="Pied de page" className="flex flex-col gap-3">
               {NAV.map(([href, label]) => <a key={href} href={href} className="w-fit text-title font-semibold leading-none tracking-tight transition-transform duration-300 [font-stretch:82%] hover:translate-x-3">{label}</a>)}
             </nav>

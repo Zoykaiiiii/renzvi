@@ -1,14 +1,17 @@
 @import "tailwindcss";
 
-/* Palette Encre (validée par Damien). Tout passe par ces variables. */
+/* Palette « blanc premium » (Damien, 17 nov.) : blanc, gris neutres, un seul accent bleu. Tout passe par ces variables. */
 @theme inline {
-  --color-paper: #f6f5f4;
+  --color-paper: #ffffff;
   --color-card: #ffffff;
-  --color-ink: #242424;
-  --color-soft: #615d59;
-  --color-lin: #eeeae4;
-  --color-sable: #d9cdbd;
+  --color-ink: #202124;
+  --color-soft: #575b63;
+  --color-lin: #f1f3f4;
+  --color-sable: #e8eaed;
   --color-night: #151515;
+  /* Accent unique : l'action principale. Texte blanc dessus : 5,2:1 (repos), 6,7:1 (survol). */
+  --color-accent: #2563eb;
+  --color-accent-deep: #1d4ed8;
   --font-sans: var(--font-instrument-sans), system-ui, sans-serif;
   --text-display: clamp(2.75rem, 5.6vw, 6rem);
   --text-title: clamp(2rem, 3.6vw, 3.5rem);
@@ -19,6 +22,22 @@
 }
 
 :root { --m: clamp(16px, 2.4vw, 32px); }
+
+/* Héros (styles limités au héros). La police du titre se change ici : Georgia (celle de la référence) là où l'appareil l'a, sinon Gelasio. */
+.hero { --hero-font: Georgia, var(--font-gelasio), serif; --hero-ink: #202124; --hero-muted: #575b63; }
+.hero-title { font-family: var(--hero-font); color: var(--hero-ink); font-weight: 400; font-stretch: 100%; font-size: clamp(2.25rem, 4.4vw, 4rem); letter-spacing: -0.025em; line-height: 1.08; text-wrap: balance; }
+.hero-title-compact { font-size: clamp(2rem, 3.6vw, 3.25rem); }
+.hero-text { color: var(--hero-muted); }
+/* Cadres : surface presque blanche, contour fin, ombre légère pour lire leur silhouette sur le blanc.
+   Inclinaison et décalage en CSS (rotate/translate s'ajoutent à l'animation) : réduits sur téléphone. */
+.hero-frame { border-radius: 14px; background: #fbfbfc; outline: 1px solid rgba(32,33,36,.1); outline-offset: -1px; box-shadow: 0 18px 40px -22px rgba(32,33,36,.28), 0 2px 6px rgba(32,33,36,.05); }
+.hero-frame[data-hero-slot="0"] { rotate: -6deg; translate: 0 24px; }
+.hero-frame[data-hero-slot="1"] { translate: 0 -8px; }
+.hero-frame[data-hero-slot="2"] { rotate: 6deg; translate: 0 24px; }
+@media (max-width: 639px) {
+  .hero-frame[data-hero-slot="0"] { rotate: -3deg; translate: 0 14px; }
+  .hero-frame[data-hero-slot="2"] { rotate: 3deg; translate: 0 14px; }
+}
 
 html { background: var(--color-paper); color: var(--color-ink); scroll-padding-top: 80px; }
 body { font-family: var(--font-sans); font-size: var(--text-body); line-height: 1.55; -webkit-font-smoothing: antialiased; }
@@ -32,6 +51,9 @@ h2 { font-size: var(--text-title); }
 .btn:active { transform: scale(.97); }
 .btn-ink { background: var(--color-ink); color: #fff; }
 .btn-ink:hover { background: #000; }
+.btn-accent { background: var(--color-accent); color: #fff; }
+.btn-accent:hover { background: var(--color-accent-deep); }
+.btn-accent:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
 .btn-soft { background: var(--color-lin); color: var(--color-ink); }
 .btn-soft:hover { background: var(--color-sable); }
 .btn-paper { background: #fff; color: var(--color-ink); }
