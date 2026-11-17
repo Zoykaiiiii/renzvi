@@ -772,3 +772,11 @@ Damien a confié à Codex la préparation technique des prompts pour pouvoir se 
 - **Bug corrigé** : depuis l'espace Study, « Importer un premier cours » ouvrait le livre vide au lieu du formulaire d'import (`data.importer` passé par `etude.js`).
 - **Tests** : `carnet`, `cahier`, `cartes` (×2), `constellations`, `etude-scene`, `arbre`, `agrandi`, `personnalisation` passent. Tests adaptés au livre (on ouvre le carnet avant de sélectionner). `cartes` reste parfois instable à l'étape « dessiner une zone » (ligne ~877), déjà le cas avant ce travail.
 - **Icônes des widgets** : 3 pistes maquettées (`.taste-skill/icones/`, non commité). Damien choisit **A, trait fin**, à mettre dans le **catalogue** et dans l'**état vide** des widgets (grande icône + bouton d'action). À construire.
+
+## 38. Icônes des widgets, accents du carnet, arbre qui grandit, cours de test — Claude, 17 novembre 2026
+
+- **Icônes « trait fin »** (`site/dash/icones.js`, 37 widgets) : devant chaque widget du catalogue, et en grand au-dessus de chaque état vide (`.empty`) par un masque CSS posé par `iconeVide` dans `mount` et l'aperçu (aucun widget modifié). Pas encore de bouton d'action dans les états vides (plusieurs widgets ont déjà leur champ ou bouton juste au-dessus). Maquettes : `.taste-skill/icones/`.
+- **Carnet** : curseurs comme « Verre des widgets » (nom et valeur, puis la barre ; plus de fond de champ derrière), **couleur d'accent** au choix dans « Personnaliser » (teinte foncée sur Papier, claire sur Verre/Sombre ; `look.accent`, sur l'appareil).
+- **Arbre** (`arbre.js`, `etude.css`) : tronc et feuillage suivent le nombre de chapitres (`maturity`, plein vers 60) ; un cours jamais vu sur l'appareil pousse en animation (`renzvi:arbre-connus` dans localStorage ; première visite : rien ne pousse ; rien en mouvement réduit).
+- **Cours de test** : `exemples/cours-wikipedia/` (10 articles Wikipédia CC BY-SA, 4 matières, 87 chapitres détectés). Constat : avec 10 cours, Constellations replie tout (10 étoiles isolées) et l'arbre devient très large et plat → à retravailler.
+- Tests : `menu-lateral` échoue aussi sur main avant ce travail (« un clic à côté ferme ») ; `constellations` (dense, chevauchement) instable, passe en relance.

@@ -146,7 +146,9 @@ window.cahierCarnet = function cahierCarnet(api) {
   // Gardée sur cet appareil (localStorage), limitée au carnet : le tableau, le logo et le reste de l'appli ne changent pas.
   // Tout s'applique tout de suite (aperçu en direct) ; « Réinitialiser » revient au réglage de départ (Verre).
   const LOOK_KEY = 'renzvi:carnet-look';
-  const LOOK0 = { surface: 'verre', opacite: 72, flou: 24, police: 'editoriale', taille: 19, interligne: 1.55 };
+  const LOOK0 = { surface: 'verre', opacite: 72, flou: 24, police: 'editoriale', taille: 19, interligne: 1.55, accent: 'auto' };
+  // Couleur d'accent (onglet actif, boutons, signet…) : une teinte foncée pour le papier, une claire pour le verre et le sombre.
+  const ACCENTS = [['auto', 'Par défaut', '#55653a', '#f1d6a3'], ['vert', 'Vert', '#2e6b4f', '#9fd6b8'], ['bleu', 'Bleu', '#2f5d8a', '#a9c7e8'], ['brique', 'Brique', '#9a3b2e', '#f0a99c'], ['prune', 'Prune', '#6a4c93', '#cdb8ec'], ['rose', 'Rose', '#9c3d6b', '#f2b3cf']];
   const SURFACES = [['papier', 'Papier'], ['verre', 'Verre'], ['sombre', 'Sombre']];
   const POLICES = [['editoriale', 'Éditoriale'], ['sans', 'Sans empattement']];
   const INTERLIGNES = [[1.45, 'Serré'], [1.55, 'Normal'], [1.8, 'Aéré']];
@@ -159,6 +161,7 @@ window.cahierCarnet = function cahierCarnet(api) {
       opacite: clampN(l.opacite, 40, 96, LOOK0.opacite), flou: clampN(l.flou, 0, 40, LOOK0.flou),
       police: POLICES.some(([k]) => k === l.police) ? l.police : LOOK0.police,
       taille: clampN(l.taille, 15, 24, LOOK0.taille), interligne: INTERLIGNES.some(([v]) => v === l.interligne) ? l.interligne : LOOK0.interligne,
+      accent: ACCENTS.some(([k]) => k === l.accent) ? l.accent : LOOK0.accent,
     };
   } catch {}
   function applyLook(keep = true) {
@@ -168,6 +171,9 @@ window.cahierCarnet = function cahierCarnet(api) {
     box.style.setProperty('--cn-blur', `${look.flou}px`);
     box.style.setProperty('--cn-size', `${look.taille}px`);
     box.style.setProperty('--cn-lh', String(look.interligne));
+    const acc = ACCENTS.find(([k]) => k === look.accent), clair = look.surface === 'papier';
+    if (acc && look.accent !== 'auto') { box.style.setProperty('--accent', clair ? acc[2] : acc[3]); box.style.setProperty('--on-accent', clair ? '#fff' : '#231d16'); }
+    else { box.style.removeProperty('--accent'); box.style.removeProperty('--on-accent'); }
     if (keep) try { localStorage.setItem(LOOK_KEY, JSON.stringify(look)); } catch {}
   }
   const lookBtn = labelBtn('carnet-look-btn', ICONS.reglages, 'Personnaliser', () => { lookView = 'main'; setLook(lookPanel.hidden || lookView !== 'main'); });
@@ -202,8 +208,9 @@ window.cahierCarnet = function cahierCarnet(api) {
     const wrap = el('label', 'carnet-look-range');
     const val = el('span', 'carnet-look-val', `${value}${unit}`);
     const input = Object.assign(el('input'), { type: 'range', min, max, value });
+    input.style.setProperty('--p', `${(value - min) / (max - min) * 100}%`); // partie remplie dès l'ouverture
     input.oninput = () => { onInput(+input.value); val.textContent = `${input.value}${unit}`; applyLook(); };
-    wrap.append(el('span', 'carnet-look-label', label), input, val);
+    wrap.append(el('span', 'carnet-look-label', label), val, input); // comme « Verre des widgets » : nom et valeur, puis la barre
     return wrap;
   }
   function drawLook() {
@@ -211,6 +218,19 @@ window.cahierCarnet = function cahierCarnet(api) {
     if (lookView === 'main') {
       parts.push(el('h3', '', 'Apparence du cahier'), choix('Surface', SURFACES, look.surface, v => { look.surface = v; }, 'carnet-look-surfaces'));
       if (look.surface === 'verre') parts.push(curseur('Opacité', 40, 96, look.opacite, ' %', v => { look.opacite = v; }), curseur('Flou', 0, 40, look.flou, ' px', v => { look.flou = v; }));
+      const teintes = el('div', 'carnet-look-row carnet-look-accents');
+      teintes.setAttribute('role', 'group');
+      teintes.ariaLabel = 'Couleur d’accent';
+      for (const [k, nom, papier, sombre] of ACCENTS) {
+        const b = button('carnet-look-teinte', '', () => { look.accent = k; applyLook(); drawLook(); lookPanel.querySelector(`.carnet-look-accents [data-v="${k}"]`)?.focus(); });
+        b.dataset.v = k;
+        b.ariaLabel = nom;
+        b.title = nom;
+        b.setAttribute('aria-pressed', String(k === look.accent));
+        b.style.setProperty('--t', look.surface === 'papier' ? papier : sombre);
+        teintes.append(b);
+      }
+      parts.push(el('p', 'carnet-look-label', 'Couleur d’accent'), teintes);
       const police = button('carnet-look-link', '', () => { lookView = 'texte'; drawLook(); lookPanel.querySelector('button')?.focus(); });
       police.append(el('span', '', `Police · ${POLICES.find(([k]) => k === look.police)[1]}`));
       police.insertAdjacentHTML('beforeend', icon(ICONS.chevron));

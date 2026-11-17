@@ -39,6 +39,10 @@ window.etudeVues.arbre = function arbreVue(ctx) {
   stage.replaceChildren(...(mini ? [world] : [world, controls]));
 
   let view = !mini && ctx.view() ? { ...ctx.view() } : null, bounds = { x: 0, y: 0, w: 1, h: 1 }, spots = new Map(), boxes = new Map();
+  // L'arbre grandit avec les cours : tronc plus épais et feuillage plus dense à mesure que les chapitres s'ajoutent
+  // (maturity, de 0 à 1 vers 60 chapitres). Un cours arrivé depuis la dernière visite pousse sous les yeux (fresh).
+  const KNOWN = 'renzvi:arbre-connus';
+  let maturity = 1, fresh = new Set(), freshTimer = 0, seen = null;
 
   // --- Géométrie -----------------------------------------------------------------------------------------------
   const hash = text => { let h = 2166136261; for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619); return h >>> 0; };
@@ -73,7 +77,7 @@ window.etudeVues.arbre = function arbreVue(ctx) {
       const ex = x + Math.cos(a) * l, ey = y + Math.sin(a) * l;
       const mx = x + Math.cos(a - .25) * l * .55, my = y + Math.sin(a - .25) * l * .55;
       out.push(`M${x.toFixed(1)} ${y.toFixed(1)}Q${mx.toFixed(1)} ${my.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`);
-      if (leaves && depth === 1) leaves.push(leaf(ex, ey, a, 7 + r(i + 3) * 4));
+      if (leaves && depth === 1 && r(i + 4) < .3 + .7 * maturity) leaves.push(leaf(ex, ey, a, (7 + r(i + 3) * 4) * (.75 + .3 * maturity)));
       if (depth > 1) sprigs(ex, ey, a + (r(i + 1) - .5), hash(`${seed}${i}`), out, depth - 1, len * .6, leaves);
     }
   }
@@ -99,13 +103,30 @@ window.etudeVues.arbre = function arbreVue(ctx) {
     };
     const add = (kind, key, text, px, py, side, extra = {}) => nodes.push({ kind, key, text, x: px, y: py, side, ...extra });
     const solo = subjects.length === 1, only = solo && subjects[0].courses.length === 1 ? subjects[0].courses[0] : null;
+    const all = subjects.flatMap(sub => sub.courses);
+    maturity = Math.min(1, all.reduce((n, c) => n + c.chapters.length, 0) / 60);
+    // Les cours déjà vus sur cet appareil. Première visite : rien ne pousse (tout était déjà là). Ensuite, un cours
+    // jamais vu pousse une fois, qu'il arrive au chargement ou pendant que l'espace est ouvert (import depuis la feuille).
+    if (!mini && all.length) try {
+      if (!seen) {
+        const known = JSON.parse(localStorage.getItem(KNOWN) || 'null');
+        seen = new Set(Array.isArray(known) ? known : all.map(c => c.id));
+      }
+      const nouveaux = all.map(c => c.id).filter(id => !seen.has(id));
+      if (nouveaux.length) {
+        if (!reduced()) { fresh = new Set([...fresh, ...nouveaux]); clearTimeout(freshTimer); freshTimer = setTimeout(() => { fresh = new Set(); }, 2500); }
+        nouveaux.forEach(id => seen.add(id));
+      }
+      localStorage.setItem(KNOWN, JSON.stringify(all.map(c => c.id)));
+    } catch {}
+    const pousses = [];
 
     if (only && !ctx.folded(only.id)) {
       // Un seul cours : le tronc porte directement les chapitres.
       const n = only.chapters.length, H = 300 + Math.max(0, n - 1) * 62, seed = hash(only.id);
       // Le tronc monte droit au pied puis ondule légèrement : pas de coude à la base.
       const trunk = [[26, H + 4], [24, H * .7], [36, H * .36], [-6, 0]];
-      const tw = 30 + Math.min(10, n);
+      const tw = (30 + Math.min(10, n)) * (.6 + .4 * maturity);
       only.chapters.forEach((ch, j) => {
         // Le premier chapitre en bas, les suivants plus haut ; les côtés alternent, les branches raccourcissent vers la cime.
         const side = j % 2 ? 1 : -1, y = H * .74 - (n > 1 ? j * (H * .66) / (n - 1) : 0);
@@ -138,7 +159,7 @@ window.etudeVues.arbre = function arbreVue(ctx) {
       const cursor = { [-1]: GAP, 1: GAP };
       const tiers = Math.ceil(groups.length / 2);
       const rootY = (tiers - 1) * TIER + 250;
-      const trunkW = 30 + Math.min(14, groups.length * 2);
+      const trunkW = (30 + Math.min(14, groups.length * 2)) * (.65 + .35 * maturity);
       const trunk = [[6, rootY], [-14, rootY * .62], [12, rootY * .3 + 40], [0, 70]];
       groups.forEach((g, i) => {
         const side = i % 2 ? 1 : -1, y = Math.floor(i / 2) * TIER + (side > 0 ? TIER * .4 : 0);
@@ -172,9 +193,12 @@ window.etudeVues.arbre = function arbreVue(ctx) {
           const base = cubic(bough, tAt(bough, 0, side * cx)), seed = hash(c.id), sway = ((seed % 21) - 10) * 1.4;
           const n = fold ? 0 : c.chapters.length, h = fold ? 54 : HEAD + n * STEP;
           const tipX = base[0] + side * 6 + sway, tipY = base[1] - h;
+          const pz = fresh.has(c.id) ? { x: base[0], y: base[1], wood: [], fine: [], leaves: [], dots: [] } : null;
+          if (pz) pousses.push(pz);
+          const W = pz?.wood ?? wood, F = pz?.fine ?? fine, Lv = pz?.leaves ?? leaves, D = pz?.dots ?? dots;
           const stem = [[base[0] - side * 2, base[1] + 6], [base[0] + side * 3, base[1] - h * .35], [tipX + sway * .6, base[1] - h * .65], [tipX, tipY]];
-          wood.push(limb(stem, 7, 1.3));
-          sprigs(tipX, tipY, -Math.PI / 2 + side * .25, seed, fine, 2, fold ? 22 : 30, leaves);
+          W.push(limb(stem, 7, 1.3));
+          sprigs(tipX, tipY, -Math.PI / 2 + side * .25, seed, F, 2, fold ? 22 : 30, Lv);
           add('cours', c.id, g.merged && !solo ? g.name : c.title, tipX + side * 30, tipY - 12, side, { fold, small: fold ? plural(c.chapters.length, 'chapitre') : '', big: g.merged });
           spots.set(c.id, [tipX, tipY]);
           for (const k of [c.id, g.id]) { grow(k, tipX, tipY - 40, 200); grow(k, base[0], base[1], 40); }
@@ -182,9 +206,9 @@ window.etudeVues.arbre = function arbreVue(ctx) {
             // Le premier chapitre est en bas, près du bois ; les suivants montent le long de la branche.
             const at = cubic(stem, tAt(stem, 1, base[1] - (HEAD - 22) - j * STEP));
             const len = 26 + (j % 2) * 12, tx = at[0] + side * len, ty = at[1] - 9;
-            fine.push(`M${at[0].toFixed(1)} ${at[1].toFixed(1)}C${(at[0] + side * len * .35).toFixed(1)} ${(at[1] + 1).toFixed(1)} ${(at[0] + side * len * .7).toFixed(1)} ${(at[1] - 3).toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)}`);
+            F.push(`M${at[0].toFixed(1)} ${at[1].toFixed(1)}C${(at[0] + side * len * .35).toFixed(1)} ${(at[1] + 1).toFixed(1)} ${(at[0] + side * len * .7).toFixed(1)} ${(at[1] - 3).toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)}`);
             const on = sel?.course === c.id && sel.chapter === ch.id;
-            dots.push({ x: tx, y: ty, on });
+            D.push({ x: tx, y: ty, on });
             add('chapitre', `${c.id}/${ch.id}`, ch.title, tx + side * 10, ty, side, { on, course: c.id, chapter: ch.id, due: ctx.due(c.id, ch.id), linked: ctx.linked(c.id, ch.id) });
             spots.set(`${c.id}/${ch.id}`, [tx, ty]);
             for (const k of [c.id, g.id]) grow(k, tx, ty, 200);
@@ -204,8 +228,13 @@ window.etudeVues.arbre = function arbreVue(ctx) {
 
     svg.setAttribute('viewBox', `${bounds.x} ${bounds.y} ${bounds.w} ${bounds.h}`);
     Object.assign(svg.style, { left: `${bounds.x}px`, top: `${bounds.y}px`, width: `${bounds.w}px`, height: `${bounds.h}px` });
-    svg.innerHTML = `<path class="arbre-wood" d="${wood.join('')}"/><path class="arbre-fine" d="${fine.join('')}"/><path class="arbre-leaf" d="${leaves.join('')}"/>`
-      + dots.map(d => `<circle class="arbre-dot${d.on ? ' on' : ''}" cx="${d.x.toFixed(1)}" cy="${d.y.toFixed(1)}" r="4.2"/>${d.on ? `<circle class="arbre-ring" cx="${d.x.toFixed(1)}" cy="${d.y.toFixed(1)}" r="9"/>` : ''}`).join('');
+    const dessin = (w, f, l, d) => `<path class="arbre-wood" d="${w.join('')}"/><path class="arbre-fine" d="${f.join('')}"/><path class="arbre-leaf" d="${l.join('')}"/>`
+      + d.map(p => `<circle class="arbre-dot${p.on ? ' on' : ''}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.2"/>${p.on ? `<circle class="arbre-ring" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="9"/>` : ''}`).join('');
+    // Une pousse grandit depuis son point d'attache (origine en unités du dessin, comptées depuis le coin du viewBox).
+    const pousse = (x, y, inner) => `<g class="arbre-pousse" style="transform-origin:${(x - bounds.x).toFixed(1)}px ${(y - bounds.y).toFixed(1)}px">${inner}</g>`;
+    const neuf = only && fresh.has(only.id);
+    svg.innerHTML = (neuf ? pousse(26, bounds.y + bounds.h - 40, dessin(wood, fine, leaves, dots)) : dessin(wood, fine, leaves, dots))
+      + pousses.map(pz => pousse(pz.x, pz.y, dessin(pz.wood, pz.fine, pz.leaves, pz.dots))).join('');
 
     // Un seul cours : de la place autour de chaque branche, les noms passent sur deux lignes. Sinon, une ligne
     // (les branches sont serrées) ; le titre complet reste dans l'infobulle, le nom accessible et le panneau.
@@ -221,6 +250,7 @@ window.etudeVues.arbre = function arbreVue(ctx) {
       if (nd.small) b.append(el('small', '', nd.small));
       b.dataset.key = nd.key;
       b.dataset.side = nd.side > 0 ? 'd' : 'g';
+      if (fresh.has(nd.course ?? nd.key)) b.classList.add('arbre-neuf');
       b.title = nd.text;
       Object.assign(b.style, { left: `${nd.x}px`, top: `${nd.y}px` });
       if (mini) { b.tabIndex = -1; return [b]; }
@@ -364,9 +394,10 @@ window.etudeVues.arbre = function arbreVue(ctx) {
   resized.observe(stage);
 
   render();
-  if (view) { view.k = clampK(view.k); apply(false, false); } else fit(false, FAR);
+  // Un cours vient d'arriver : on recule pour voir l'arbre entier pousser.
+  if (view && !fresh.size) { view.k = clampK(view.k); apply(false, false); } else fit(false, FAR);
   return {
-    update: render,
+    update() { const n = fresh.size; render(); if (fresh.size > n) fit(true, FAR); },
     reveal() { const s = ctx.selected(); if (s) aim(`${s.course}/${s.chapter}`); },
     leave() { off.abort(); resized.disconnect(); world.remove(); controls.remove(); delete stage.dataset.lod; stage.classList.remove('grabbing'); },
   };

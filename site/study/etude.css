@@ -241,6 +241,12 @@ h4>.etude-fold{font-size:15px;font-weight:600}
 .arbre-wood{fill:var(--et-ink)}
 .arbre-fine{fill:none;stroke:var(--et-ink);stroke-width:1.3;stroke-linecap:round}
 .arbre-leaf{fill:var(--et-ink);opacity:.85}
+/* Un cours arrivé depuis la dernière visite : sa branche pousse depuis le bois, puis ses noms apparaissent. */
+.arbre-pousse{transform-box:view-box;animation:arbre-pousse 1.6s cubic-bezier(.2,.7,.2,1) .25s both}
+@keyframes arbre-pousse{from{transform:scale(.04);opacity:0}25%{opacity:1}to{transform:none;opacity:1}}
+.arbre-neuf{animation:arbre-neuf .5s ease-out 1.5s both}
+@keyframes arbre-neuf{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.arbre-pousse,.arbre-neuf{animation:none}}
 .arbre-dot{fill:var(--et-ink)}
 .arbre-ring{fill:none;stroke:var(--et-ink);stroke-width:1.4}
 .arbre-label{position:absolute;margin:0;display:inline-flex;align-items:baseline;gap:8px;width:max-content;max-width:210px;padding:3px 9px;border:1px solid transparent;border-radius:9px;background:none;color:var(--et-ink);font:inherit;font-size:15px;line-height:1.3;cursor:pointer;transform:translateY(-50%)}

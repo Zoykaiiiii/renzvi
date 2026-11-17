@@ -1,0 +1,229 @@
+# Introduction
+
+La thermodynamique est la branche de la physique qui traite de la dépendance des propriétés physiques des corps à la température, des phénomènes où interviennent des échanges thermiques, et des transformations de l'énergie entre différentes formes.
+La thermodynamique peut être abordée selon deux approches différentes et complémentaires : phénoménologique et statistique.
+La thermodynamique phénoménologique ou classique a été l'objet de nombreuses avancées dès le XVIIe siècle. Elle s'appuie sur des considérations macroscopiques pour établir un nombre réduit de principes et de lois, issus d'observations expérimentales.
+La thermodynamique statistique, qui s'est développée à partir du milieu du XIXe siècle, s'appuie quant à elle sur des considérations moléculaires et sur le calcul des probabilités appliqué à un grand nombre de particules. Elle s'attache à analyser la structure de la matière et à établir un lien entre ses propriétés et les principes de la thermodynamique phénoménologique.
+L'étude des gaz parfaits et celle des machines thermiques, qui échangent de l'énergie avec l'extérieur sous forme de travail et de chaleur, occupent une place centrale dans la thermodynamique : elles ont permis le développement de très nombreuses machines et méthodes industrielles, et servi de base à d'importantes découvertes en chimie, en astrophysique et dans de nombreux autres domaines scientifiques.
+
+# Histoire
+
+Les notions de chaud et de froid ont existé de tout temps, mais ce n'est véritablement qu'à partir du XVIIIe siècle que la notion de chaleur entre dans le domaine des sciences. En 1780, Pierre Simon de Laplace et Antoine Laurent de Lavoisier écrivent ainsi conjointement : « Quelle que soit la cause qui produit la sensation de la chaleur, elle est susceptible d’accroissement et de diminution, et, sous ce point de vue, elle peut être soumise au calcul. Il ne paraît pas que les anciens aient eu l’idée de mesurer ses rapports, et ce n’est que dans le dernier siècle que l’on a imaginé des moyens pour y parvenir. » Centrée initialement sur les notions de chaleur et de température, la thermodynamique phénoménologique se préoccupe à partir de la fin du XVIIIe siècle de définir les différentes formes d'énergie, de comprendre les transferts entre ces différentes formes et d'expliquer l'impact de ces transferts sur les propriétés physiques de la matière. Essentiellement basée sur des expérimentations, elle est complétée à partir du XIXe siècle par les apports de la physique statistique qui, s'appuyant sur la théorie atomique de la matière, la physique quantique et de puissants outils mathématiques, lui donnent une assise théorique solide qui permettra notamment de comprendre la notion d'irréversibilité de certaines transformations, ou encore le comportement de la matière dans des conditions extrêmes de pression ou de température.
+L'apparente simplicité des concepts de base de la thermodynamique, l'immensité de ses champs d'application, et la profondeur des approfondissements théoriques qu'elle suscite ont fasciné de très nombreux scientifiques et notamment conduit Albert Einstein à déclarer :
+
+« Une théorie est d'autant plus impressionnante que ses fondements sont simples, qu'elle se rapporte à des domaines variés et que son champ d'application est vaste. C'est pourquoi la thermodynamique classique me fait une si forte impression. C'est la seule théorie physique de portée universelle dont je suis persuadé que, dans le cadre où ses concepts de base s'appliquent, elle ne sera jamais mise en défaut. »
+
+À la fin des années 2010 commence à se développer la thermodynamique quantique, une extension de la thermodynamique aux phénomènes quantiques. Elle se distingue de la physique statistique quantique par l'accent mis sur les processus dynamiques hors d'équilibre ainsi que par son éventuelle application à un système quantique individuel. L'une de ses premières applications concerne les moteurs quantiques.
+
+# Gaz parfaits : du phénoménologique à la statistique
+
+L'étude des gaz parfaits et de leur comportement lorsqu'on fait varier leur température, leur pression ou leur volume est un des principaux fondements historiques de la thermodynamique. Son déroulement fournit une illustration des méthodes expérimentales mises au point pour cette science, ainsi que du lien entre thermodynamique phénoménologique et statistique.
+
+Découvertes et méthodes phénoménologiques
+
+Dès 1662, le physicien irlandais Robert Boyle démontre expérimentalement qu'un gaz maintenu à température constante vérifie la relation suivante entre sa pression P et son volume V : PV=constante. C'est la loi de Boyle-Mariotte, qui établit les résultats des transformations isothermes d'un système gazeux.
+
+En 1787, le physicien français Jacques Charles démontre qu'un gaz à pression constante vérifie la relation suivante entre son volume V et sa température T : V/T=constante. C'est la loi de Charles, qui établit les résultats des transformations isobares d'un système gazeux.
+En 1802, le physicien français Joseph Louis Gay-Lussac démontre qu'un gaz à volume constant vérifie la relation suivante entre sa pression P et sa température T : P/T=constante. C'est la loi de Gay-Lussac, qui établit les résultats des transformations isochores d'un système gazeux.
+En 1811, le physicien italien Amedeo Avogadro démontre que des volumes égaux de gaz parfaits différents, aux mêmes conditions de température et de pression, contiennent le même nombre de molécules. C'est la loi d'Avogadro.
+Et en 1834 le physicien français Émile Clapeyron énonce la loi des gaz parfaits, qui synthétise les quatre lois précédentes et lie entre elles les quatre variables d'état que sont la pression P, le volume V, la température T et la quantité de matière n (nombre de moles) d'un système thermodynamique constitué de gaz parfait :
+
+où R est la constante des gaz parfaits, valant 8,314 462 1 J/(mole·K).
+Les expériences qui ont conduit à ce résultat relèvent toutes de la même méthode : le physicien fige deux variables pour étudier les liens entre les deux autres. Boyle a ainsi figé n et T pour étudier les liens entre P et V, Charles n et P pour étudier V et T, Gay-Lussac n et V pour étudier P et T, et Avogadro P et T pour étudier V et n.
+
+Théorie atomique et physique statistique
+
+En parallèle du développement de ces études de nature phénoménologique, la théorie atomique de la matière fait des avancées remarquables, sous l'impulsion, notamment, du britannique John Dalton, qui énonce dès 1803 une théorie précise de la structure atomique de la matière, explique les réactions chimiques par l'interaction entre atomes, et jette les bases du tableau périodique des éléments, et de l'écossais Robert Brown qui décrit le mouvement brownien en 1827.
+Les thermodynamiciens utilisent leurs résultats et les méthodes correspondantes pour créer l'approche statistique de la discipline : le physicien allemand Rudolf Clausius invente en 1850 le terme « entropie », définit la variable d'état correspondante comme une grandeur d'origine statistique, et énonce ce qui devient la formulation moderne du deuxième principe de la thermodynamique. Quelques années plus tard, l'écossais James Clerk Maxwell et l'autrichien Ludwig Boltzmann établissent la statistique de Maxwell-Boltzmann qui détermine la répartition des particules entre différents niveaux d'énergie. L'américain Willard Gibbs, dans les années 1870, est actif à la fois dans la thermodynamique classique et dans son approche statistique : il définit l'enthalpie libre, le potentiel chimique, la notion de variance et la formule pour la calculer, ainsi que le terme « mécanique statistique » avec les notions statistiques correspondantes (ensembles canonique, micro-canonique et grand-canonique) encore utilisées depuis lors.
+Leurs travaux débouchent notamment sur la théorie cinétique des gaz, qui conforte les résultats de l'approche phénoménologique en expliquant la nature et l'origine de deux variables d'état fondamentales : la température, qui est une mesure de l'énergie cinétique statistique des molécules agitées par le mouvement brownien, et la pression, qui est créée par les chocs statistiques des molécules sur la paroi du récipient contenant le gaz. Cette théorie explique en outre pourquoi les formules établies par la thermodynamique phénoménologique ne sont applicables que pour des pressions relativement faibles.
+Cette complémentarité entre approches macroscopique et microscopique est une caractéristique importante de la thermodynamique, qui est non seulement une science des transformations de l'énergie, mais aussi des changements d'échelle.
+
+# Machines thermiques
+
+Les notions de chaleur et de température sont essentielles en thermodynamique. De très nombreuses avancées de cette science sont basées sur l'étude des phénomènes qui dépendent de la température et de ses changements.
+
+Chaleur et température
+
+Chacun a une connaissance intuitive de la notion de température et de chaleur : un corps est chaud ou froid, selon que sa température est plus ou moins élevée. Mais la définition précise et scientifique de ces deux concepts n'a pu être établie qu'à partir de la moitié du XIXe siècle.
+L’un des grands succès de la thermodynamique classique est d'avoir défini la température absolue d’un corps, qui a mené à la création de l'échelle kelvin. Celle-ci donne la température minimale théorique valable pour tous les corps : zéro kelvin, soit −273,15 °C. Il s'agit du zéro absolu dont le concept apparaît pour la première fois en 1702 avec le physicien français Guillaume Amontons et qui fut formalisé en 1848 par William Thomson, plus connu sous le nom de Lord Kelvin.
+La chaleur fut plus difficile à définir scientifiquement. Une ancienne théorie, défendue notamment par Lavoisier, attribuait à un fluide spécial (invisible, impondérable ou presque) les propriétés de la chaleur, le calorique, qui circulerait d’un corps à un autre. Plus un corps est chaud, plus il contiendrait de calorique. Cette théorie est fausse au sens où le calorique ne peut pas être identifié à une quantité physique conservée. La thermodynamique statistique a permis de définir la chaleur comme un transfert d'énergie désordonnée d'un système vers le milieu extérieur : l'énergie thermique d'un système correspond à l'énergie cinétique de molécules se déplaçant selon le mouvement brownien, en subissant des chocs de manière aléatoire. L'énergie transférée est dite désordonnée au niveau microscopique, par opposition au transfert d'énergie ordonnée au niveau macroscopique réalisé par le biais d'un travail.
+
+Machines thermiques
+
+La thermodynamique classique a connu de nombreux succès comme science des machines thermiques ou science de la puissance motrice du feu.
+
+La chaleur peut être produite par le frottement entre corps macroscopiques : les techniques ancestrales de production du feu par frottement de deux pièces de bois, ou par le choc entre deux pierres, montrent que cette propriété est connue de l'humanité depuis très longtemps.
+
+Inversement, la chaleur peut mettre des corps macroscopiques en mouvement. Les systèmes visant à créer et exploiter ce mouvement sont appelées machines à feu ou machines thermiques. Ces machines restent en mouvement tant qu’une différence de température entre une partie chaude et une partie froide existe.
+Sadi Carnot a initié les études modernes des machines thermiques dans un mémoire fondateur : Réflexions sur la puissance motrice du feu et sur les machines propres à développer cette puissance (1824). Le cycle de Carnot, étudié dans ce mémoire, reste le principal exemple d’étude théorique de ces machines qui transforment de l'énergie thermique en travail en suivant un cycle de quatre étapes réversibles. Sadi Carnot y calcule les performances optimales théoriques des machines thermiques, auxquelles les machines réelles peuvent être comparées par le biais du rendement et y décrit les principes utilisés depuis dans de nombreuses machines: moteurs thermiques, pompes à chaleur, climatiseurs et machines frigorifiques, ou encore turbines à vapeur et à gaz. Ce mémoire a également esquissé la notion d'irréversibilité, qui est le fondement du deuxième principe de la thermodynamique.
+
+De la chaleur au mouvement
+
+L'étude des machines thermiques est à la base de nombreuses applications majeures, comme les moteurs thermiques ou les turbines à vapeur, et a contribué à une meilleure compréhension de certains phénomènes naturels, notamment météorologiques.
+Cette section présente quelques exemples dans lesquels la puissance thermique (ou puissance du feu) met de la matière en mouvement.
+
+Une bougie allumée met en mouvement l’air qui l’entoure. Un courant ascendant est créé au-dessus de la flamme. Il est perpétuellement renouvelé par un courant d’air froid arrivant par en dessous. Il s'agit d'un courant de convection.
+L’eau dans une casserole sur le feu se met en mouvement comme l’air au-dessus de la bougie et comme tous les fluides au-dessus de surfaces suffisamment chaudes. Si on met un couvercle, un nouveau phénomène se produit : la vapeur soulève le couvercle, qui retombe ensuite pour être à nouveau soulevé sans cesse jusqu’à épuisement du feu ou de l'eau, donc de la production de vapeur. L'invention des machines à vapeur pourrait être liée à cette simple observation. Si on remplace le couvercle par un piston dans un cylindre, on obtient un système avec piston qui peut être poussé par la vapeur ou tout autre gaz sur une longue course, et qui est la base d'un moteur. Les machines à vapeur et les moteurs thermiques ne sont pas toujours construits sur le principe du piston et du cylindre, mais les autres solutions ne sont pas très différentes. On peut donc considérer que l’expérience du couvercle de la casserole est à l’origine des inventions de tous ces moteurs.
+Les hommes connaissaient la turbine à vapeur bien avant les travaux de Sadi Carnot. Une des premières réalisations en fut l'éolipyle qui se compose d'une boule de métal en rotation sur un axe. L’eau contenue dans la boule est chauffée par en dessous : elle produit deux jets de vapeur tangentiels et opposés qui mettent la boule en mouvement. Ce système n’a pratiquement pas été amélioré avant les temps modernes. Les réacteurs des avions d’aujourd’hui (turbines à gaz) fonctionnent en grande partie sur le même principe que cet ancêtre de la turbine.
+La puissance motrice du feu a été beaucoup développée pour faire des armes. Dans une arme à feu, le projectile (balle, obus ou autre) est poussé dans le canon par l'expansion très rapide du gaz très chaud produit par la combustion de la poudre ou de tout autre explosif. Le canon forme un cylindre dans lequel circule le projectile qui joue le rôle du piston.
+L’atmosphère terrestre est mise en mouvement par la chaleur du Soleil : les différences de température à la surface de la terre et dans l'atmosphère créent des différences de pression qui engendrent le vent. La puissance du vent est donc aussi une forme de la puissance du feu.
+
+# Système thermodynamique typique
+
+Un système thermodynamique typique est un sous ensemble de l'univers constitué d'un grand nombre de particules. Pour l'étude de ce système, la thermodynamique s'intéresse à des propriétés d'ensemble et non aux comportements individuels de chaque particule ou sous ensemble de particules. Il est donc nécessaire de créer et de raisonner sur des grandeurs macroscopiques, comme la température, la pression ou l'entropie, qui rendent cohérente la description macroscopique de la matière.
+Les caractéristiques essentielles d’un système thermodynamique sont définies comme suit :
+
+le système est macroscopique : il comporte un très grand nombre de particules (typiquement un nombre au moins proche du nombre d'Avogadro NA) ;
+le système est pur ou est un mélange selon qu'il est constitué de particules identiques ou non ;
+le système est homogène ou hétérogène selon qu'il est constitué d'une seule phase ou non.
+Le système est en outre défini par ses relations avec son environnement, et peut par exemple être :
+
+isolé s'il n'y a aucun transfert avec l'environnement ;
+fermé s'il n'échange pas de matière avec l'environnement ;
+ouvert s'il n'est ni isolé ni fermé.
+On étudie généralement des systèmes fermés homogènes pour chercher ensuite à généraliser les résultats à des systèmes plus complexes.
+La définition très générale d'un système thermodynamique permet d'en concevoir et étudier de toutes tailles : un tel système peut en effet être constitué de quelques centimètres cubes de gaz ou quelques grammes de solide, mais peut aussi s'étendre à l'univers tout entier. C'est ce qui permit à Clausius au milieu du XIXe siècle d'affirmer que : « L'énergie de l'univers est constante. Et l'entropie de l'univers tend vers un maximum ».
+
+Caractérisation d'un système thermodynamique
+
+Représentation
+
+Lorsque l’on détermine les variables permettant de caractériser le système, on fait la « représentation du système ».
+
+Variance
+
+La variance d'un système est définie comme le nombre maximal de variables intensives indépendantes qu'un expérimentateur peut fixer sans rompre l'équilibre du système. Elle peut être calculée par la règle de Gibbs.
+Par exemple la variance d'un gaz parfait est de 2 : l'expérimentateur peut choisir librement les valeurs de la pression et de la température.
+
+Variables intensives et extensives
+
+Les variables d'état sont des grandeurs qui servent à définir le système et dont il suffit de fixer la valeur pour reconstituer un système exactement identique. Parmi ces grandeurs physiques on distingue les variables extensives et intensives.
+Une variable d'état est extensive lorsque sa valeur pour le système entier est la somme de ses valeurs pour chacune de ses parties. Les grandeurs extensives sont proportionnelles à la quantité de matière dans le système. On dit aussi qu'une variable extensive est une variable homogène de degré 1 par rapport à la quantité de matière.
+Les principales variables extensives utilisées en thermodynamique sont : le volume (noté V et mesuré en mètres cubes, de symbole m3), la masse (m, en kilogrammes, kg), la quantité de matière (n, en moles, mol) ou le nombre de particules d'une espèce donnée (notée N, sans dimension), l'énergie interne (U, en joules, J) et l'entropie (S, en joules par kelvin, J/K), ou encore l'enthalpie (H, en joules, J).
+Une variable d'état est intensive lorsque dans un système homogène sa valeur est la même pour le système entier et pour chacune de ses parties, indépendamment de la quantité de matière dans le système. On dit aussi qu'une variable intensive est une variable homogène de degré 0 par rapport à la quantité de matière.
+Les principales variables intensives utilisées en thermodynamique sont : la pression (P, mesurée en pascals, de symbole Pa), la température absolue (T, en kelvins, K), la viscosité (mesurée en pascals seconde, Pa·s), ou encore la masse volumique (ρ, en kilogrammes par mètre cube, kg/m3) et l'énergie par unité de volume ou de masse (en joules par mètre cube ou par kilogramme).
+
+Équilibre et transformation
+
+Un système est en équilibre thermodynamique s'il est simultanément en équilibre thermique, mécanique et chimique.
+Le but de la thermodynamique est de caractériser la transformation de l’état d'un système entre un temps initial et un temps final, correspondant à deux états d'équilibre.
+Cette transformation peut avoir différentes caractéristiques, notamment :
+
+isobare (à pression du système constante) ;
+isochore (à volume constant) ;
+isotherme (à température constante) ;
+adiabatique (sans échange thermique avec l'extérieur).
+Elle peut être en outre être cyclique ou non, réversible ou non, enfin elle peut être brutale ou quasi statique.
+Les transformations quasi statiques sont fondamentales en thermodynamique : le passage de l'état initial à l'état final se fait de façon suffisamment lente pour que les variables d'état du système puissent être considérées comme évoluant de façon continue et restant homogènes dans le système durant la transformation. Le système se comporte alors comme passant par une succession d'états d'équilibre très proches les uns des autres. Il est alors possible de lui appliquer les différents principes de la thermodynamique, et d'utiliser les outils du calcul infinitésimal et des probabilités, comme la loi des grands nombres, pour prédire son évolution.
+Cette méthode a une telle importance que certains définissent la thermodynamique comme la science de la transformation des grands systèmes en équilibre.
+
+# Principes de la thermodynamique
+
+La thermodynamique repose sur quatre principes complétant celui de la conservation de la masse :
+
+le principe zéro concerne la notion d'équilibre thermique ;
+le premier principe (principe d'équivalence) porte sur le caractère conservatif de l'énergie ;
+le deuxième principe (principe de Carnot) affirme la notion d'irréversibilité et le concept d'entropie ;
+le troisième principe (principe de Nernst) s'intéresse enfin aux propriétés de la matière dans le voisinage du zéro absolu.
+Les premier et deuxième principes sont fondamentaux. Les autres principes (0 et 3) peuvent être déduits des principes 1 et 2 et des formules de la physique statistique.
+
+Premier principe de la thermodynamique
+
+Le premier principe de la thermodynamique permet d'étudier les transferts et les transformations de l'énergie entre un état initial (I) et un état final (F). Il affirme que l'énergie totale d'un système isolé est préservée dans toutes les transformations subies par ce système.
+
+Énoncé
+
+Pour tout système thermodynamique on peut définir à une constante près une fonction U, appelée énergie interne et ayant les propriétés suivantes :
+
+U est une fonction d'état (elle ne dépend que des états initial et final de la transformation). Elle est décrite par des variables nécessaires et suffisantes ;
+U est extensive ;
+U se conserve dans un système isolé.
+Au cours d'une transformation infinitésimale entre un état initial et un état final, la variation ΔU de l'énergie interne d'un système fermé vérifie :
+
+dEc+dEp+dU=δW+δQ
+où :
+
+dEc désigne la variation de l'énergie cinétique ;
+dEp la variation de l'énergie potentielle extérieure ;
+δW le travail des forces du milieu extérieur sur le système (contrairement aux précédentes cette forme différentielle n'est pas une forme différentielle exacte, son intégrale dépend du chemin) ;
+δQ la quantité de chaleur reçue du milieu extérieur au système (ce n'est pas non plus une forme différentielle exacte, son intégrale dépend du chemin).
+
+Explication du premier principe
+
+Le premier principe de la thermodynamique, ou principe de conservation de l'énergie, affirme que l'énergie est toujours conservée. Autrement dit, l’énergie totale d’un système isolé reste constante. Les événements qui s’y produisent ne se traduisent que par des transformations de certaines formes d’énergie en d’autres formes d’énergie. L’énergie ne peut donc pas être produite ex nihilo ; elle est en quantité invariable dans la nature. Elle ne peut que se transmettre d’un système à un autre. On ne crée pas l’énergie, on la transforme.
+Ce principe est aussi une loi générale pour toutes les théories physiques (mécanique, électromagnétisme, physique nucléaire…). On ne lui a jamais trouvé la moindre exception et on sait depuis le théorème de Noether que la conservation de l'énergie est étroitement reliée à une uniformité de structure de l'espace-temps. Elle rejoint un principe promu par Lavoisier : « Rien ne se perd, rien ne se crée, tout se transforme ».
+
+Deuxième principe de la thermodynamique
+
+Le premier principe interdit toute transformation créant de l'énergie, mais autorise toutes les autres, notamment toutes celles qui sont réversibles et respectent la conservation de l'énergie. Or, dans de nombreux cas, les expérimentateurs ont pu constater que certaines transformations n'étaient pas réversibles: par exemple une goutte de colorant se diluant dans de l'eau ne redeviendra jamais une goutte de colorant. Pour expliquer cette irréversibilité, il faut un autre principe : c'est le deuxième principe de la thermodynamique qui définit une nouvelle variable d'état, l'entropie.
+
+Énoncé
+
+Il existe une fonction S appelée entropie, telle que :
+
+S est extensive ;
+S est une fonction d’état à l’équilibre
+au cours de l’évolution d’un système fermé, l’entropie du système vérifie l’inégalité suivante aux points d'échange :
+dS≥(δQT)xj
+où :
+
+dS désigne la variation d'entropie (J/K) ;
+δQ la chaleur reçue (J) ;
+T la température (K) ;
+xj le ou les points d'échange.
+Note : quand l’entropie maximale est atteinte, la température est la même partout dans le système.
+
+Explication du deuxième principe
+
+Le deuxième principe de la thermodynamique, ou principe d'évolution des systèmes, affirme la dégradation de l'énergie : l'énergie d'un système passe nécessairement et spontanément de formes concentrées et potentielles à des formes diffuses et cinétiques (frottement, chaleur, etc.). Il introduit ainsi la notion d'irréversibilité d'une transformation et la notion d'entropie. Il affirme que l'entropie d'un système isolé augmente, ou reste constante.
+Ce principe est souvent interprété comme une « mesure du désordre » et comme l'impossibilité du passage du « désordre » à l'« ordre » sans intervention extérieure. Cette interprétation est fondée sur la théorie de l'information de Claude Shannon et la mesure de cette « information » ou entropie de Shannon. Ce principe a une origine statistique : à la différence du premier principe, les lois microscopiques qui gouvernent la matière ne le contiennent qu'implicitement et de manière statistique.
+Le deuxième principe a de très nombreuses interprétations et implications qui ont conduit, au fil des années et des découvertes, à plus de 20 formulations différentes.
+
+Principe zéro de la thermodynamique
+
+Énoncé
+
+Si deux systèmes sont en équilibre thermique avec un troisième, alors ils sont aussi ensemble en équilibre thermique.
+
+Explication du principe zéro
+
+Le principe zéro de la thermodynamique concerne la température et la notion d'équilibre thermique. Il est à la base de la thermométrie : il affirme que la température est une grandeur repérable, et, qu'en conséquence, il est possible de la mesurer par comparaison, donc de concevoir des thermomètres.
+
+Troisième principe de la thermodynamique
+
+Énoncé
+
+Le troisième principe stipule que l'entropie S d'un système thermodynamique en équilibre interne se rapproche d'une constante universelle S0 quand la température absolue T tend vers zéro. Alternativement, on peut dire que S → S0 dans un état pour lequel la quantité (∂U/∂S)e tend vers 0, où {e} représente les membres restants d'un ensemble complet de variables extensives. Par convention, et en accord avec la mécanique statistique, la valeur de cette constante universelle S → S0 est considérée comme nulle. L'entropie étant une fonction de la température qui augmente de façon monotone, cette convention implique que l'entropie est une quantité positive.
+
+Explication du troisième principe
+
+Le troisième principe de la thermodynamique est associé à la descente vers son état quantique fondamental d'un système dont la température s'approche d'une limite qui définit la notion de zéro absolu. En thermodynamique classique ce principe sert, pour l'établissement de tables de données thermodynamiques, au calcul de l'entropie molaire S d'un corps pur (par intégration sur la température, à partir de S = 0 à 0 K).
+
+# Définition axiomatique de la thermodynamique
+
+La thermodynamique peut être définie de façon mathématiquement précise par un ensemble de 4 axiomes (ou postulats). Cette définition, dite axiomatique, donne une fondation mathématique solide aux principes de la thermodynamique et justifie l'utilisation en thermodynamique des méthodes du calcul différentiel et du calcul intégral.
+
+Postulat 1
+
+Les états d'équilibres macroscopiques de tout système thermodynamique sont complètement caractérisés par la spécification de l'énergie interne U du système et un nombre fini de paramètres extensifs X0,X1,X2,...,Xn.
+Ce postulat permet d'affirmer l'existence de la variable d'état « énergie interne », qu'il est possible de faire la représentation de tout système indiquée plus haut, et que tout système a une variance finie. Il est une des fondations du premier principe de la thermodynamique.
+
+Postulat 2
+
+Il existe une fonction appelée l'entropie S. L'entropie est une fonction des paramètres extensifs, elle est définie pour tous les états d'équilibres et elle a la propriété suivante : les valeurs assumées des paramètres extensifs en l'absence de contraintes extérieures sont celles qui maximisent l'entropie sur la variété des états d'équilibre contraints.
+Ce postulat est une des fondations du deuxième principe de la thermodynamique.
+
+Postulat 3
+
+Lorsque l'entropie de chaque sous-système constituant est une fonction homogène de premier ordre des paramètres extensifs, l'entropie du système global est la somme des entropies des sous-systèmes constituants. L'entropie est alors continue et différentiable et c'est une fonction monotone croissante de l'énergie.
+Ce postulat est une des fondations du deuxième principe de la thermodynamique.
+
+Postulat 4
+
+L'entropie de tout système disparaît dans l'état pour lequel :
+
+T≡(∂U/∂S)X1,X2,...=0
+Ce postulat est une fondation du deuxième principe et permet de retrouver le troisième.
+
+---
+Source : Wikipédia, article « Thermodynamique » (https://fr.wikipedia.org/wiki/Thermodynamique), licence CC BY-SA 4.0.

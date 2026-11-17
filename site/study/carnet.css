@@ -215,10 +215,12 @@
 .carnet-look-verre i{background:rgba(70,60,52,.6)}
 .carnet-look-sombre i{background:#1e1d1c}
 .carnet-look-label{margin:0;font-size:14px;color:var(--ink)}
+.carnet-look-accents{display:flex;flex-wrap:wrap;gap:8px}
+.carnet-look-teinte{width:30px;height:30px;padding:0;border:2px solid transparent;border-radius:50%;background:var(--t);background-clip:content-box;box-shadow:inset 0 0 0 3px var(--paper,#fff);cursor:pointer}
+.carnet-look-teinte[aria-pressed=true]{border-color:var(--ink)}
 .carnet-look-val{font-size:13px;font-variant-numeric:tabular-nums;color:var(--slate);text-align:right}
-.carnet-look-range{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px 12px}
-.carnet-look-range .carnet-look-label{grid-column:1 / -1}
-.carnet-look-range input{width:100%;accent-color:var(--accent)}
+.carnet-look-range{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 12px}
+.carnet-look-range input{grid-column:1 / -1;width:100%;height:24px;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;accent-color:var(--accent)}
 .carnet-look-link{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 -4px;padding:12px 4px 0;border:0;border-top:1px solid var(--rule);border-radius:0;background:none;color:var(--ink);font:inherit;font-size:14.5px;text-align:left;cursor:pointer}
 .carnet-look-back{display:inline-flex;align-items:center;gap:8px;justify-self:start;padding:2px 0;border:0;background:none;color:var(--slate);font:inherit;font-size:13.5px;cursor:pointer}
 .carnet-look-back:hover{color:var(--ink)}
@@ -244,7 +246,7 @@
   .widget.cahier-open[data-surface=verre]{--cn-surface:rgba(32,27,23,.96)}
 }
 @media (prefers-reduced-transparency:reduce){.widget.cahier-open[data-surface=verre]{--cn-surface:rgba(32,27,23,.96)}}
-.widget.cahier-open:is([data-surface=verre],[data-surface=sombre]) :is(.carnet-draft textarea,.cahier-search,input,select){background:var(--field);color:var(--ink)}
+.widget.cahier-open:is([data-surface=verre],[data-surface=sombre]) :is(.carnet-draft textarea,.cahier-search,input:not([type=range]),select){background:var(--field);color:var(--ink)}
 /* Surlignages sur fond foncé : des teintes sourdes, le texte reste clair et lisible. */
 .widget.cahier-open:is([data-surface=verre],[data-surface=sombre]) ::highlight(carnet-jaune){background-color:rgba(232,194,124,.36);color:inherit}
 .widget.cahier-open:is([data-surface=verre],[data-surface=sombre]) ::highlight(carnet-vert){background-color:rgba(150,190,120,.32);color:inherit}

@@ -334,7 +334,9 @@ dialog.cat[open]{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr
 .catalog{flex:1;min-height:0;margin-top:12px;padding:0 8px 20px 0;overflow-y:auto}
 .catalog h3{margin:16px 0 4px;font-size:12px;line-height:16px;font-weight:500;color:var(--slate)}
 .catalog ul{list-style:none;padding:0}
-.cat-item{display:block;width:100%;padding:9px 12px;border:0;border-radius:var(--r-control);background:none;text-align:left}
+.cat-item{display:grid;grid-template-columns:20px 1fr;column-gap:12px;width:100%;padding:9px 12px;border:0;border-radius:var(--r-control);background:none;text-align:left}
+.cat-item>*{grid-column:2}
+.cat-item>.w-ic{grid-column:1;grid-row:1/span 3;width:20px;height:20px;margin-top:1px}
 .cat-item:hover{background:var(--tint)}
 .cat-item[aria-pressed=true]{background:var(--press)}
 .cat-item b{display:block;font-size:14px;font-weight:600}
@@ -489,6 +491,9 @@ h2{font-family:var(--display);font-size:14px;line-height:20px;font-weight:var(--
 .body{flex:1;display:flex;flex-direction:column;margin-top:12px;min-height:0}
 /* Widget vide : un emplacement en pointillés, comme celui de la page vide, qui occupe la place du futur contenu. */
 .empty{flex:1;display:grid;place-items:center;min-height:88px;margin-top:4px;padding:16px;border:1.5px dashed var(--edge);border-radius:14px;font-size:14px;color:var(--slate);text-align:center;text-wrap:balance}
+/* L'icône du widget au-dessus de son état vide (dash/icones.js, posée par mount). */
+.widget.a-ic .empty{align-content:center;gap:10px}
+.widget.a-ic .empty::before{content:"";width:36px;height:36px;background:currentColor;opacity:.75;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
 .note{margin-top:8px;font-size:12px;color:var(--error)}
 
 .add{display:flex;gap:8px}
@@ -1239,6 +1244,7 @@ dialog.settings,dialog.settings :is(h2,h3,h4){font-family:var(--marque)}
 <p class="col msg blocked" id="blocked" role="alert" hidden></p>
 <noscript><p class="col msg blocked">Active JavaScript pour ouvrir ton écran.</p></noscript>
 
+<script src="dash/icones.js"></script>
 <script src="study/carnet.js"></script>
 <script src="study/cahier.js"></script>
 <script src="vendor/ts-fsrs-5.4.2/index.umd.js"></script>
@@ -1385,6 +1391,13 @@ const MAX_SOURCE_BYTES = 30 * 1048576, MAX_UPLOAD_BYTES = 3 * 1048576, MAX_PHOTO
 
 const $ = id => document.getElementById(id);
 const el = (tag, className, text) => Object.assign(document.createElement(tag), { className, textContent: text ?? '' });
+// L'icône du widget dans ses états vides (.empty), par un masque CSS : rien à changer dans chaque widget.
+function iconeVide(box, id) {
+  const url = window.renzviIconeUrl?.(id);
+  if (!url) return;
+  box.classList.add('a-ic');
+  box.style.setProperty('--ic', url);
+}
 const button = (className, text, onclick) => Object.assign(el('button', className, text), { type: 'button', onclick });
 const listOf = value => Array.isArray(value) ? value : [];
 // Date locale au format AAAA-MM-JJ ('sv' est la locale qui donne ce format).
@@ -3252,6 +3265,7 @@ if (!sb) {
     const box = el('section', 'widget glass');
     box.dataset.widget = w.id;
     box.dataset.size = screen.sizes[w.id] ?? w.size ?? DEFAULT_SIZE;
+    iconeVide(box, w.id);
     const title = el('h2', '', w.title);
     title.id = `title-${w.id}`;
     box.setAttribute('aria-labelledby', title.id);
@@ -4694,8 +4708,11 @@ if (!sb) {
         const item = button('cat-item', '', () => pickWidget(w, user));
         item.dataset.widget = w.id;
         item.setAttribute('aria-pressed', w.id === picked);
-        item.append(el('b', '', w.title), el('span', 'desc', w.desc));
-        if (verrouille(w.id)) item.firstChild.append(lockChip());
+        const name = el('b', '', w.title);
+        item.append(name, el('span', 'desc', w.desc));
+        if (verrouille(w.id)) name.append(lockChip());
+        const ic = window.renzviIcone?.(w.id);
+        if (ic) item.prepend(ic);
         if (screen.widgets.includes(w.id)) item.append(el('span', 'cat-where', pageOf(w.id) === currentPage ? (screen.pages.length > 1 ? 'Sur cette page' : 'Sur ton écran') : `Sur la page « ${pageName(pageOf(w.id))} »`));
         const li = el('li');
         li.append(item);
@@ -4758,6 +4775,7 @@ if (!sb) {
     // le son, l'IA et toute écriture partent d'un clic dans les widgets, donc rien de tout cela ne peut se produire ici.
     const box = el('section', 'widget glass');
     box.dataset.size = pickedSize;
+    iconeVide(box, w.id);
     const meta = el('p', 'meta'), body = el('div', 'body'), boxHead = el('div', 'head');
     boxHead.append(el('h2', '', w.title), meta);
     box.append(boxHead, body);
