@@ -43,7 +43,7 @@ const { dispose } = require('./menu.cjs');
   {
     const { page, context } = await open({ width: 1440, height: 900 }, 'bureau');
     const b = await box(launch(page));
-    assert.equal(await launch(page).getAttribute('aria-label'), 'Ouvrir le chat');
+    assert.equal(await launch(page).getAttribute('aria-label'), 'Ouvrir Zvi');
     assert.equal(await launch(page).getAttribute('aria-expanded'), 'false');
     assert.ok(inside(b, 1440, 900) && b.x + b.width > 1400 && b.y + b.height > 860, `en bas à droite (${b.x},${b.y})`);
     assert.ok(b.width >= 44 && b.height >= 44, 'cible de 44 px au moins');
@@ -62,7 +62,7 @@ const { dispose } = require('./menu.cjs');
     await launch(page).click();
     assert.equal(await isOpen(page), true);
     assert.equal(await launch(page).getAttribute('aria-expanded'), 'true');
-    assert.equal(await launch(page).getAttribute('aria-label'), 'Fermer le chat');
+    assert.equal(await launch(page).getAttribute('aria-label'), 'Fermer Zvi');
     await page.waitForFunction(() => document.activeElement?.matches('#renzvi-chat-panel textarea'), null, { timeout: 2000 }).catch(() => assert.fail('le focus va dans la saisie'));
     await page.waitForFunction(() => !document.getElementById('renzvi-chat-panel').getAnimations().length); // fin de l'animation d'ouverture
     const p = await box(panel(page));

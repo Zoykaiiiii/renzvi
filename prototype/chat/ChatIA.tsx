@@ -106,7 +106,7 @@ export function ChatIA() {
     setMsgs(m => [
       ...m,
       { id: ++id.current, role: "moi", texte: message + extra },
-      { id: ++id.current, role: "note", texte: "L'assistant n'est pas encore branché : ton message n'est parti nulle part." },
+      { id: ++id.current, role: "note", texte: "Zvi n'est pas encore branché : ton message n'est parti nulle part." },
     ]);
   };
 
@@ -132,7 +132,7 @@ export function ChatIA() {
         <header className="flex items-center gap-3 px-4 pt-4 pb-3">
           <Personnage size={36} orbe={reglages.orbe} accent={accent} />
           <div className="min-w-0 flex-1">
-            <h2 id="renzvi-chat-titre" className="text-[15px] font-semibold leading-5">Assistant</h2>
+            <h2 id="renzvi-chat-titre" className="text-[15px] font-semibold leading-5">Zvi</h2>
             <p id="renzvi-chat-statut" className="text-[13px] leading-[18px] text-[var(--chat-muted)]">Pas encore branché</p>
           </div>
           <button
@@ -193,7 +193,7 @@ export function ChatIA() {
             <div className="grid h-full content-center justify-items-center gap-2 px-4 text-center">
               <Personnage size={64} orbe={reglages.orbe} accent={accent} />
               <p className="text-[15px] font-semibold">Aucun message pour l’instant.</p>
-              <p className="text-sm leading-relaxed text-[var(--chat-muted)]">L'assistant n'est pas encore branché : tu peux écrire, mais personne ne répondra pour le moment.</p>
+              <p className="text-sm leading-relaxed text-[var(--chat-muted)]">Zvi n'est pas encore branché : tu peux écrire, mais personne ne répondra pour le moment.</p>
             </div>
           ) : (
             <ol className="flex flex-col gap-3">
@@ -215,8 +215,8 @@ export function ChatIA() {
         ref={launch}
         type="button"
         onClick={() => toggle(!open)}
-        aria-label={open ? "Fermer le chat" : "Ouvrir le chat"}
-        title={open ? "Fermer le chat" : "Ouvrir le chat"}
+        aria-label={open ? "Fermer Zvi" : "Ouvrir Zvi"}
+        title={open ? "Fermer Zvi" : "Ouvrir Zvi"}
         aria-expanded={open}
         aria-controls="renzvi-chat-panel"
         className={`chat-ia-launch grid place-items-center rounded-full shadow-[0_6px_20px_rgba(23,25,28,0.22)] transition-transform hover:-translate-y-0.5 active:scale-95 ${open ? "bg-[var(--paper,#fff)] text-[var(--ink,#1F2023)] ring-1 ring-black/5" : ""}`}
