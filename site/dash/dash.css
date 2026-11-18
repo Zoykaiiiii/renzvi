@@ -7,6 +7,13 @@
   --press-ms:600ms;
 }
 
+/* Le chrome du tableau ne fait pas partie du texte à copier. */
+:is(button:not(.cahier-hit,.carnet-go,.etude-fold,.etude-item),summary,[role=button],[role=tab],[role=menuitem],
+    .topbar a,.topbar .favs-head h2,.option-wheel,.widget>.head>h2,.widget>.head>.meta,
+    .pg-name,.pg-where,#page-current,.carnet-count,.cahier-page,.cahier-livre-foot>span,.resize-badge),
+body:is(.dragging,.layout-resizing){-webkit-user-select:none;user-select:none}
+.widget>.body ::selection{background:var(--accent);color:var(--on-accent)}
+
 /* ---------- Barres de défilement ----------
    Natives (molette, pavé, doigt, clavier intacts), seulement redessinées : piste invisible, pouce arrondi,
    plus marqué au survol de la zone. Pas de flèches. Pas de gouttière réservée sur la page : elle laissait une bande vide
@@ -108,7 +115,7 @@ dialog.mode-wheel::backdrop{background:color-mix(in srgb,var(--ground) 45%,trans
 @keyframes mw-item{from{opacity:0;transform:translateX(-28px) scale(.9)}}
 @keyframes mw-in{from{opacity:0;transform:scale(.94)}}
 @keyframes mw-out{to{opacity:0;transform:scale(.94)}}
-.option-wheel{position:relative;width:100%;height:100%;overflow:hidden;cursor:grab;user-select:none;touch-action:none;outline:none;
+.option-wheel{position:relative;width:100%;height:100%;overflow:hidden;cursor:grab;touch-action:none;outline:none;
   -webkit-mask:linear-gradient(transparent,#000 18%,#000 82%,transparent);mask:linear-gradient(transparent,#000 18%,#000 82%,transparent)} /* taste-skill-ignore : masque, les options s'effacent aux bords de la roue */
 .option-wheel:focus-visible .option-wheel__item--selected .mw-item{outline:2px solid var(--ink);outline-offset:3px}
 .option-wheel--dragging{cursor:grabbing}

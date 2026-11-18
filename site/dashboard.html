@@ -531,7 +531,6 @@ input[type=range]:disabled{opacity:.5;cursor:default}
 .edit .choices button{flex:1;min-width:0;padding:0 6px}
 .grip{display:grid;place-items:center;flex:none;width:var(--control);height:var(--control);padding:0;border:1px solid var(--edge);border-radius:var(--pill);background:var(--field);color:var(--ink);cursor:grab;touch-action:none}
 .grip svg{width:14px;height:14px;fill:currentColor}
-.dragging{user-select:none;-webkit-user-select:none}
 .dragging .grip{cursor:grabbing}
 .customizing .zoom{display:none}
 .widget.lifted{z-index:10;box-shadow:var(--lift),0 0 0 2px var(--accent);transition:none} /* taste-skill-ignore : le widget tenu flotte vraiment */
@@ -3841,7 +3840,7 @@ if (!sb) {
 
   // Pendant le glisser, seul « order » change : retirer la poignée de la page couperait le geste.
   function startDrag(e, w, box, grip) {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || !e.isPrimary || grip.onpointerup) return;
     e.preventDefault();
     grip.setPointerCapture(e.pointerId);
     const board = $('board');
@@ -3893,7 +3892,8 @@ if (!sb) {
       frame = requestAnimationFrame(scrollNearEdge);
     };
     const finish = keep => {
-      grip.onpointermove = grip.onpointerup = grip.onpointercancel = null;
+      grip.onpointermove = grip.onpointerup = grip.onpointercancel = grip.onlostpointercapture = null;
+      if (grip.hasPointerCapture(e.pointerId)) grip.releasePointerCapture(e.pointerId);
       if (!slot) return;
       cancelAnimationFrame(frame);
       slot.remove();
@@ -3908,16 +3908,17 @@ if (!sb) {
       if (changed) orderChanged(w);
     };
     grip.onpointermove = m => {
+      if (m.pointerId !== e.pointerId) return;
       x = m.clientX; y = m.clientY;
       if (slot) update();
-      else if (Math.hypot(x - startX, y - startY) > 4) lift();
+      else if (Math.hypot(x - startX, y - startY) >= LAYOUT_DRAG_PX) lift();
     };
     // Échap : le widget revient à sa place, rien n'est enregistré.
-    const esc = k => { if (k.key === 'Escape' && slot) { k.preventDefault(); k.stopPropagation(); finish(false); } };
+    const esc = k => { if (k.key === 'Escape' && slot) { k.preventDefault(); k.stopPropagation(); done(false); } };
     addEventListener('keydown', esc, true);
     const done = keep => { removeEventListener('keydown', esc, true); finish(keep); };
-    grip.onpointerup = () => done(true);
-    grip.onpointercancel = () => done(false);
+    grip.onpointerup = m => { if (m.pointerId === e.pointerId) done(true); };
+    grip.onpointercancel = grip.onlostpointercapture = m => { if (m.pointerId === e.pointerId) done(false); };
   }
 
   // Contraste WCAG entre deux couleurs hex.

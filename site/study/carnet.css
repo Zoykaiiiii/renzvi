@@ -92,7 +92,6 @@
 .widget.cahier-open .cahier-results{max-height:none;overflow:auto;margin-top:16px}
 .widget.cahier-open .cahier-note{grid-area:note;margin:0;padding:6px var(--cn-pad) 10px}
 .widget.cahier-open .cahier-note:empty{display:none}
-.widget.cahier-open .cahier-block::selection{background:rgba(85,101,58,.28)}
 .carnet-pane{overflow-y:auto;overscroll-behavior:contain;padding:30px var(--cn-pad) 80px}
 .carnet-pane>*{max-width:760px}
 .carnet-h{margin:0 0 4px;font:400 clamp(34px,3.6vw,54px)/1.08 var(--cn-serif);letter-spacing:-.015em}
@@ -254,7 +253,6 @@
 .widget.cahier-open:is([data-surface=verre],[data-surface=sombre]) ::highlight(carnet-bleu){background-color:rgba(120,170,215,.32);color:inherit}
 .widget.cahier-open:is([data-surface=verre],[data-surface=sombre]) ::highlight(carnet-rose){background-color:rgba(230,140,130,.32);color:inherit}
 .widget.cahier-open:is([data-surface=verre],[data-surface=sombre]) ::highlight(carnet-souligne){text-decoration-color:#f1d6a3}
-.widget.cahier-open:is([data-surface=verre],[data-surface=sombre]) .cahier-block::selection{background:rgba(232,194,124,.36)}
 
 /* Écrans moyens : « Mes notes » devient un panneau par-dessus le cours, ouvert par le bouton de la barre. */
 @media (max-width:1099px){

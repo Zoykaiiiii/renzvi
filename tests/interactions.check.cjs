@@ -233,9 +233,12 @@ const { custom, dispose, openMe, acctSection, modeNow, options, showMenu } = req
     const nb = await notes.boundingBox(), hb = await handle.boundingBox();
     await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
     await page.mouse.down();
+    assert.equal(await page.locator('body.layout-resizing').count(), 0, 'aucune suppression avant de bouger');
     await page.mouse.move(nb.x + nb.width * 1.55, nb.y + 360, { steps: 8 });
+    assert.equal(await page.locator('body.layout-resizing').count(), 1);
     await shot(page, 'redimensionner');
     await page.mouse.up();
+    assert.equal(await page.locator('body.layout-resizing').count(), 0);
     await saved(page);
     const { spans, heights } = db.rows.ecran;
     assert.ok(spans.notes >= 5 && spans.notes <= 7, `colonnes (${spans.notes})`);
@@ -250,6 +253,17 @@ const { custom, dispose, openMe, acctSection, modeNow, options, showMenu } = req
     await page.mouse.up();
     assert.equal(await notes.getAttribute('data-span'), String(spans.notes), 'Échap annule');
     assert.equal(await wheelOpen(page), false, 'pas de roue en mode Disposer, même après un long geste');
+    // La perte de capture annule aussi le changement et libère la sélection.
+    await handle.evaluate(n => n.addEventListener('gotpointercapture', e => { n.capturedPointer = e.pointerId; }, { once: true }));
+    const hb3 = await handle.boundingBox();
+    await page.mouse.move(hb3.x + 10, hb3.y + 10);
+    await page.mouse.down();
+    await page.mouse.move(hb3.x + 100, hb3.y + 100, { steps: 4 });
+    await handle.evaluate(n => n.releasePointerCapture(n.capturedPointer));
+    await page.mouse.move(hb3.x + 110, hb3.y + 110);
+    await page.waitForSelector('body.layout-resizing', { state: 'detached' });
+    await page.mouse.up();
+    assert.equal(await notes.getAttribute('data-span'), String(spans.notes), 'la taille revient après perte de capture');
     // Clavier.
     await handle.focus();
     await page.keyboard.press('ArrowRight');

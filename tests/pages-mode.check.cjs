@@ -44,13 +44,17 @@ const { custom, closeCustom, modeNow, goMode } = require('./menu.cjs');
     assert.equal(new Set(ids).size, ids.length, `un seul exemplaire de chaque widget (${ids.join(', ')})`);
     return ids;
   };
-  // Prend un widget (déjà en édition) par son milieu et le mène à un point ; drop: false le garde dans la main.
+  // Prend un widget (déjà en édition) par son en-tête.
   async function hold(page, id) {
+    const title = page.locator(`${W(id)} > .head > h2`);
+    await title.click({ trial: true });
     const box = await page.locator(W(id)).boundingBox();
-    const x = box.x + box.width / 2, y = box.y + Math.min(60, box.height / 2);
+    const head = await title.boundingBox();
+    const x = head.x + 4, y = head.y + head.height / 2;
     await page.mouse.move(x, y);
     await page.mouse.down();
     await page.mouse.move(x + 10, y + 6, { steps: 3 });
+    assert.equal(await page.locator(`${W(id)}.lifted`).count(), 1, 'le geste commence sur l’en-tête');
     return { x, y, box };
   }
   const toCell = async (page, from, c, r) => {
@@ -145,6 +149,7 @@ const { custom, closeCustom, modeNow, goMode } = require('./menu.cjs');
     assert.equal(await page.evaluate(() => document.body.classList.contains('bar-peek')), false, 'le menu latéral ne s’ouvre pas');
     assert.equal(await page.evaluate(() => !!document.querySelector('dialog.mode-wheel[open]')), false, 'la roue ne s’ouvre pas');
     await page.keyboard.press('Escape');
+    await page.mouse.up();
     await settle(page);
     assert.equal(await current(page), startN, 'annulé : on revient à la page de départ');
     assert.deepEqual(places('a').d.habitudes, { p: startN, c: 6, r: 2, w: places('a').d.habitudes.w, h: places('a').d.habitudes.h });
@@ -152,19 +157,20 @@ const { custom, closeCustom, modeNow, goMode } = require('./menu.cjs');
     // Bord droit au-delà de la dernière page : une page provisoire ; annuler ne laisse rien.
     h = await hold(page, 'habitudes');
     const g = await grid(page);
-    await page.mouse.move(g.right - 10, h.y, { steps: 8 });
+    await page.mouse.move(g.right - 10, h.y);
     await page.waitForFunction(() => document.querySelector('.pg-edge-right.on span')?.textContent === 'Nouvelle page');
     await page.waitForFunction(n => document.querySelectorAll('.pg-dot').length === n, startN + 2);
     assert.equal(await page.locator('.pg-dot.temp').count(), 1, 'page provisoire marquée');
     assert.ok(await page.locator(`${W('habitudes')}.lifted`).isVisible(), 'le widget reste dans la main');
     await page.keyboard.press('Escape');
+    await page.mouse.up();
     await page.waitForFunction(n => document.querySelectorAll('.pg-dot').length === n, startN + 1);
     assert.equal(places('a').n, startN + 1, 'aucune page orpheline');
     assert.equal(places('a').d.habitudes.p, startN);
 
     // Bord droit, puis poser : la page provisoire devient une vraie page.
     h = await hold(page, 'habitudes');
-    await page.mouse.move(g.right - 10, h.y, { steps: 8 });
+    await page.mouse.move(g.right - 10, h.y);
     await page.waitForFunction(n => document.querySelectorAll('.pg-dot').length === n, startN + 2);
     await settle(page);
     await toCell(page, h, 0, 0);
@@ -173,13 +179,14 @@ const { custom, closeCustom, modeNow, goMode } = require('./menu.cjs');
     assert.equal(await page.locator('.pg-dot.temp').count(), 0);
     // Vers une page existante : bord gauche, la page d'avant.
     h = await hold(page, 'habitudes');
-    await page.mouse.move(g.left + 8, h.y, { steps: 8 });
+    await page.mouse.move(g.left + 8, h.y);
     await page.waitForFunction(() => document.querySelector('.pg-edge-left.on span')?.textContent === 'Révisions du soir');
     await page.waitForFunction(n => [...document.querySelectorAll('.pg-dot')].findIndex(d => d.getAttribute('aria-current') === 'page') === n, startN);
     await settle(page);
     await toCell(page, h, 2, 1);
     await page.mouse.up();
     await until(() => places('a').d.habitudes.p === startN && places('a').d.habitudes.c === 2 && places('a').d.habitudes.r === 1, 'posé sur la page existante');
+    assert.equal(await page.evaluate(() => String(getSelection())), '', 'aucun texte sélectionné en passant de page');
     assert.equal(places('a').n, startN + 2, 'la page devenue vide reste (créée exprès)');
     // Sans glisser : « Déplacer vers une page ».
     const pick = page.locator(`${W('habitudes')} .pg-to select`);

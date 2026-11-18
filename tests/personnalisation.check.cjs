@@ -233,12 +233,15 @@ async function photo(browser, kind) {
     await mouseDrag(page, 'taches', 'heure', false);
     assert.equal(await page.locator('.widget.lifted').count(), 1);
     assert.equal(await page.locator('.drop-slot').count(), 1);
+    assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).userSelect), 'none');
     assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.widget.lifted')).zIndex), '10');
     assert.equal(db.saves, 0, 'rien n\'est enregistré tant que le widget est tenu');
     assert.deepEqual(await order(page), SMALL, 'la page ne bouge pas pendant le geste');
     await page.mouse.up();
     assert.equal(await page.locator('.drop-slot').count(), 0);
     assert.equal(await page.locator('.widget.lifted').count(), 0);
+    assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).userSelect), 'auto');
+    assert.equal(await page.evaluate(() => String(getSelection())), '', 'le glisser ne sélectionne aucun texte');
     const moved = ['notes', 'heure', 'taches', 'minuteur'];
     assert.deepEqual(await order(page), moved);
     assert.deepEqual(await shown(page), moved, 'l\'ordre de lecture suit l\'ordre affiché');
@@ -257,11 +260,17 @@ async function photo(browser, kind) {
   {
     const rows = { ...everything(), ecran: { wallpaper: 'blanc', widgets: ['notes', 'taches', 'ambiance', 'heure'], done: true } };
     const { page, db, context } = await openBoard(browser, base, desk, rows);
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    const [hx, hy] = await center(page.locator('[data-widget=notes] .head h2'));
+    const target = page.locator('[data-widget=taches]');
+    const [targetX, targetY] = await center(target);
+    await page.mouse.move(hx, hy); await page.mouse.down(); await page.mouse.move(targetX, targetY, { steps: 8 }); await page.mouse.up();
+    assert.equal(await page.evaluate(() => String(getSelection())), '', 'le titre du widget ne démarre pas une sélection');
     await dispose(page);
     const before = await order(page);
     const notes = page.locator('.notes');
     const n = await notes.boundingBox();
-    const [tx, ty] = await center(page.locator('[data-widget=taches]'));
+    const [tx, ty] = await center(target);
     // Sous la barre d'édition, qui flotte par-dessus le haut du contenu ; des lignes de texte remplissent les notes jusque-là.
     await notes.fill('Une ligne de notes assez longue pour être sélectionnée\n'.repeat(20));
     const bar = await page.locator('[data-widget=notes] .edit').boundingBox();
@@ -271,6 +280,15 @@ async function photo(browser, kind) {
     await page.mouse.up();
     assert.ok(await page.evaluate(() => { const n = document.querySelector('.notes'); return n.selectionEnd > n.selectionStart; }), 'le texte est sélectionné');
     await notes.fill('Texte écrit en mode Personnaliser');
+    await notes.press('End');
+    for (let i = 0; i < 'Personnaliser'.length; i++) await notes.press('Shift+ArrowLeft');
+    await notes.press('ControlOrMeta+c');
+    assert.equal(await page.evaluate(() => navigator.clipboard.readText()), 'Personnaliser');
+    assert.deepEqual(await notes.evaluate(n => [document.activeElement === n, n.selectionStart, n.selectionEnd]), [true, 20, 33]);
+    await notes.press('ArrowRight');
+    await page.keyboard.insertText(' !');
+    await notes.press('ControlOrMeta+a');
+    assert.deepEqual(await notes.evaluate(n => [document.activeElement === n, n.selectionStart, n.selectionEnd]), [true, 0, 35]);
     await page.locator('[data-widget=taches] input[type=checkbox]').first().check();
     assert.ok(await page.locator('[data-widget=taches] input[type=checkbox]').first().isChecked());
     const range = page.locator('[data-widget=ambiance] input[type=range]').first();
@@ -281,7 +299,12 @@ async function photo(browser, kind) {
     assert.ok(Number(await range.inputValue()) < 100);
     assert.deepEqual(await order(page), before);
     await saved(page, 'Enregistré');
-    assert.equal(db.rows.notes.text, 'Texte écrit en mode Personnaliser');
+    assert.equal(db.rows.notes.text, 'Texte écrit en mode Personnaliser !');
+    await page.locator('#custom-done').click();
+    await page.getByRole('button', { name: 'Agrandir Notes' }).click();
+    const expanded = page.locator('.widget.zoomed textarea.notes');
+    await expanded.press('ControlOrMeta+a');
+    assert.deepEqual(await expanded.evaluate(n => [n.selectionStart, n.selectionEnd]), [0, 35]);
     await context.close();
   }
 
@@ -316,6 +339,7 @@ async function photo(browser, kind) {
     await touch('touchMove', ax, ay + 300);
     await touch('touchCancel');
     assert.equal(await page.locator('.widget.lifted').count(), 0);
+    assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).userSelect), 'auto');
     assert.deepEqual(await order(page), kept);
     assert.equal(await page.locator(`[data-widget=${id}]`).evaluate(b => b.style.transform), '');
     assert.equal(db.saves, saves);

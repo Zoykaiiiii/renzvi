@@ -4,6 +4,7 @@
 // ctx.get(id) → { span, h, collapsed }, ctx.set(id, patch, final) (final : enregistrer), ctx.flip(change, skip),
 // ctx.board(), ctx.say(texte), ctx.title(id).
 // Les réglages ne s'appliquent qu'à partir de 728 px de large : sur téléphone, chaque widget prend toute la largeur.
+const LAYOUT_DRAG_PX = 4;
 (() => {
   const MIN_SPAN = 3, MAX_SPAN = 12, MIN_H = 140, MAX_H = 1200, SNAP = 8;
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -73,15 +74,22 @@
         apply(box, w.id);
       }
       grip.addEventListener('pointerdown', e => {
-        if (e.button !== 0 || !wide()) return;
+        if (e.button !== 0 || !e.isPrimary || !wide() || grip.onpointerup) return;
         e.preventDefault();
         e.stopPropagation();
         grip.setPointerCapture(e.pointerId);
         const start = current(), saved = { ...ctx.get(w.id) }, rect = box.getBoundingClientRect();
-        let last = start;
-        box.classList.add('resizing');
-        show(start.span, start.h);
+        let last = start, resizing = false;
         const move = m => {
+          if (m.pointerId !== e.pointerId) return;
+          if (!resizing) {
+            if (Math.hypot(m.clientX - e.clientX, m.clientY - e.clientY) < LAYOUT_DRAG_PX) return;
+            resizing = true;
+            clearTimeout(grip.t);
+            box.classList.add('resizing');
+            document.body.classList.add('layout-resizing');
+            show(start.span, start.h);
+          }
           const { col, gap } = pitch();
           const span = clamp(Math.round((m.clientX - rect.left + gap) / (col + gap)), MIN_SPAN, MAX_SPAN);
           const h = clamp(Math.round((m.clientY - rect.top) / SNAP) * SNAP, MIN_H, MAX_H);
@@ -92,8 +100,11 @@
         };
         const end = keep => {
           grip.removeEventListener('pointermove', move);
-          grip.onpointerup = grip.onpointercancel = null;
+          grip.onpointerup = grip.onpointercancel = grip.onlostpointercapture = null;
+          if (grip.hasPointerCapture(e.pointerId)) grip.releasePointerCapture(e.pointerId);
           removeEventListener('keydown', esc, true);
+          if (!resizing) return;
+          document.body.classList.remove('layout-resizing');
           box.classList.remove('resizing');
           if (!keep) { ctx.set(w.id, { span: saved.span ?? null, h: saved.h ?? null }, false); apply(box, w.id); ctx.say('Taille annulée'); return; }
           ctx.set(w.id, {}, true);
@@ -101,8 +112,8 @@
         };
         const esc = k => { if (k.key === 'Escape') { k.preventDefault(); k.stopPropagation(); end(false); } };
         grip.addEventListener('pointermove', move);
-        grip.onpointerup = () => end(true);
-        grip.onpointercancel = () => end(false);
+        grip.onpointerup = m => { if (m.pointerId === e.pointerId) end(true); };
+        grip.onpointercancel = grip.onlostpointercapture = m => { if (m.pointerId === e.pointerId) end(false); };
         addEventListener('keydown', esc, true);
       });
       grip.addEventListener('keydown', e => {

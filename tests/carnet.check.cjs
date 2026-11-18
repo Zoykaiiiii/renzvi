@@ -54,6 +54,20 @@ const select = (page, phrase, nth = 0) => page.evaluate(([phrase, nth]) => {
   }
   return false;
 }, [phrase, nth]);
+const passagePoints = (page, phrase) => page.locator('.cahier-block').filter({ hasText: phrase.split('\n')[0] }).first().evaluate((b, phrase) => {
+  const text = b.firstChild, start = text.textContent.indexOf(phrase);
+  const range = document.createRange();
+  range.setStart(text, start);
+  range.setEnd(text, start + 1);
+  const reader = b.closest('.cahier-text');
+  reader.scrollTop += range.getBoundingClientRect().top - reader.getBoundingClientRect().top - 24;
+  return [start, start + phrase.length - 1].map((offset, i) => {
+    range.setStart(text, offset);
+    range.setEnd(text, offset + 1);
+    const r = range.getBoundingClientRect();
+    return [r.left + r.width * (i ? .85 : .15), r.top + r.height / 2];
+  });
+}, phrase);
 const bar = page => page.locator('.carnet-bar');
 const painted = (page, name) => page.evaluate(n => [...(CSS.highlights.get(n) ?? [])].map(r => r.toString()), name);
 const topText = page => page.evaluate(() => { const r = document.querySelector('[data-widget=cahier] .cahier-text'); const t = carnetTop(r); return t ? `${t.page}:${t.pos}` : null; });
@@ -76,6 +90,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     assert.strictEqual(await page.locator('.carnet-top, .carnet-side, .carnet-margin').evaluateAll(a => a.filter(n => n.checkVisibility()).length), 0, 'aucun élément du carnet dans le widget compact');
     // Widget fermé : un livre ouvert (le cours à gauche, mes notes à droite), « Ouvrir le cahier » en bas.
     assert.match(await cahier(page).locator('.cahier-livre-titre').textContent(), /La cellule/);
+    assert.notEqual(await cahier(page).locator('.cahier-livre-titre').evaluate(n => getComputedStyle(n).userSelect), 'none');
     assert.strictEqual(await cahier(page).locator('.cahier-livre-foot span').textContent(), 'Chapitre 1 sur 2');
     assert.strictEqual(await cahier(page).locator('.cahier-text').isVisible(), false, 'la lecture se fait dans le carnet');
     await shot(page, 'carnet-compact');
@@ -115,6 +130,10 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     const col = await cahier(page).locator('.cahier-block').first().boundingBox();
     assert.ok(col.width <= 780, `colonne de lecture lisible (${col.width})`);
     assert.strictEqual(await cahier(page).locator('.cahier-block').first().evaluate(n => getComputedStyle(n).fontSize), '21px', 'la taille choisie dans Personnaliser');
+    assert.deepStrictEqual(await cahier(page).locator('.cahier-block').first().evaluate(n => {
+      const s = getComputedStyle(n, '::selection');
+      return [s.backgroundColor, s.color];
+    }), ['rgb(85, 101, 58)', 'rgb(255, 255, 255)']);
     assert.strictEqual(await cahier(page).locator('.cahier-tools').isVisible(), false, 'plus de ligne de liens de gestion');
     await shot(page, 'carnet-ouvert');
     console.log('ok compact inchangé, carnet ouvert');
@@ -135,13 +154,30 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     assert.deepStrictEqual(await painted(page, 'carnet-jaune'), ['La cellule est vivante.']);
     assert.strictEqual(await page.evaluate(() => { const r = [...CSS.highlights.get('carnet-jaune')][0]; return r.startOffset; }), second - TEXT.indexOf('\n') - 1, 'peint sur la seconde occurrence');
     assert.strictEqual(await bar(page).isVisible(), false);
-    // Souligner un passage sur plusieurs lignes : un geste distinct.
-    await select(page, 'La membrane régule\nles échanges avec le milieu.');
+    // Surligner et souligner exactement ce que la souris sélectionne sur plusieurs lignes.
+    const passage = 'La membrane régule\nles échanges avec le milieu.';
+    const [from, to] = await passagePoints(page, passage);
+    assert.ok(to[1] > from[1], 'le passage s’étend sur plusieurs lignes');
+    await page.mouse.move(...from);
+    await page.mouse.down();
+    await page.mouse.move(...to, { steps: 12 });
+    await page.mouse.up();
+    assert.strictEqual(await page.evaluate(() => String(getSelection())), passage);
+    await bar(page).getByRole('button', { name: 'Surligner', exact: true }).click();
+    await saved(page);
+    assert.strictEqual(db.marks[1].quote, passage);
+    assert.strictEqual(db.marks[1].pos, TEXT.indexOf(passage));
+    assert.deepStrictEqual(await painted(page, 'carnet-jaune'), ['La cellule est vivante.', passage]);
+    await select(page, passage);
     await bar(page).getByRole('button', { name: 'Souligner' }).click();
     await saved(page);
     assert.strictEqual(db.marks.length, 2);
-    assert.ok(db.marks[1].souligne && !db.marks[1].surligne);
-    assert.deepStrictEqual(await painted(page, 'carnet-souligne'), ['La membrane régule\nles échanges avec le milieu.']);
+    assert.ok(db.marks[1].souligne && db.marks[1].surligne);
+    assert.deepStrictEqual(await painted(page, 'carnet-souligne'), [passage]);
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await select(page, passage);
+    await bar(page).getByRole('button', { name: 'Copier' }).click();
+    assert.strictEqual(await page.evaluate(() => navigator.clipboard.readText()), passage);
     // Cliquer sur une annotation : changer sa couleur, puis la souligner aussi, puis la retirer.
     const clickMark = async name => {
       const p = await page.evaluate(n => { const b = [...CSS.highlights.get(n)][0].getClientRects()[0]; return [b.left + 8, b.top + b.height / 2]; }, name);
@@ -156,7 +192,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     await saved(page);
     assert.strictEqual(db.marks[0].color, 'vert');
     assert.deepStrictEqual(await painted(page, 'carnet-vert'), ['La cellule est vivante.']);
-    assert.deepStrictEqual(await painted(page, 'carnet-jaune'), []);
+    assert.deepStrictEqual(await painted(page, 'carnet-jaune'), [passage]);
     await clickMark('carnet-souligne');
     await bar(page).getByRole('button', { name: 'Plus' }).click();
     await bar(page).getByRole('button', { name: 'Supprimer' }).click();
@@ -419,7 +455,8 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     await page.locator('.carnet-chapter', { hasText: 'Le noyau' }).tap();
     await page.waitForFunction(() => document.querySelector('[data-widget=cahier] .cahier-title').textContent === 'Le noyau');
     assert.strictEqual(await page.locator('.carnet-side').isVisible(), false, 'le panneau se referme après le choix');
-    await select(page, 'Le noyau contient');
+    assert.notEqual(await page.locator('.cahier-block').first().evaluate(n => getComputedStyle(n).userSelect), 'none');
+    await select(page, 'noyau');
     await bar(page).waitFor();
     const mb = await bar(page).boundingBox();
     assert.ok(mb.x >= 0 && mb.x + mb.width <= 390, 'barre dans l’écran');
@@ -433,6 +470,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     await page.locator('.carnet-draft').getByRole('button', { name: 'Enregistrer la note' }).tap();
     await saved(page);
     assert.strictEqual(db4.marks[0].note, 'Note au téléphone');
+    assert.strictEqual(db4.marks[0].quote, 'noyau');
     await shot(page, 'carnet-telephone-note');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     assert.deepStrictEqual(errors, []);

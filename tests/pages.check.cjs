@@ -48,7 +48,8 @@ const { start } = require('./demo.cjs');
   // Glisser un widget (déjà en édition) pour poser son coin haut-gauche sur une case de la page affichée.
   async function dragTo(page, id, c, r, { drop = true } = {}) {
     const g = await grid(page), box = await page.locator(W(id)).boundingBox();
-    const sx = box.x + box.width / 2, sy = box.y + 60;
+    const head = await page.locator(`${W(id)} > .head > h2`).boundingBox();
+    const sx = head.x + 4, sy = head.y + head.height / 2;
     const tx = g.left + c * (g.cw + g.gap), ty = g.top + r * (g.ch + g.gap);
     await page.mouse.move(sx, sy);
     await page.mouse.down();
@@ -142,6 +143,14 @@ const { start } = require('./demo.cjs');
     const before = { ...places('p1').d.compte };
     await page.getByRole('button', { name: `Aller à la page ${before.p + 1}` }).click();
     await page.waitForFunction(n => Math.abs(document.getElementById('board').scrollLeft - n * document.getElementById('board').clientWidth) < 2, before.p);
+    const notes = page.locator(`${W('notes')} textarea`);
+    const text = await notes.boundingBox();
+    await page.mouse.move(text.x + 16, text.y + 19);
+    await page.mouse.down();
+    await page.mouse.move(text.x + 100, text.y + 19, { steps: 8 });
+    await page.mouse.up();
+    assert.ok(await notes.evaluate(n => n === document.activeElement && n.selectionEnd > n.selectionStart), 'les notes restent sélectionnables en édition');
+    assert.equal(await page.locator('.widget.lifted').count(), 0);
     await dragTo(page, 'compte', 6, 3);
     await saved(page);
     assert.deepEqual(places('p1').d.compte, { ...before, c: 6, r: 3 }, 'posé sur la case visée');

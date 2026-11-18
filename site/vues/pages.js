@@ -394,7 +394,7 @@ window.vuePages = function vuePages(ctx) {
   function edit(on) {
     if (on === editing) return;
     if (on && narrow()) { ctx.say('Pour disposer tes pages, ouvre Renzvi sur un écran plus large.'); return; }
-    if (!on) endGesture(false);
+    if (!on) endGesture();
     editing = on;
     document.body.classList.toggle('pages-editing', on);
     bar.hidden = !on;
@@ -455,7 +455,7 @@ window.vuePages = function vuePages(ctx) {
     if (!from.w) return;
     const start = box.getBoundingClientRect(), origin = board.getBoundingClientRect();
     let moved = false, q = from, ok = true, lastX = x0, lastY = y0, dwell = null, side = '', armX = 0;
-    try { box.setPointerCapture(pointerId); } catch {}
+    try { box.setPointerCapture(pointerId); } catch { return; }
     // La case visée : celle où tombe le coin haut-gauche du widget, sur la page affichée (pas sur le défilement en cours).
     const aim = () => {
       const c = Math.round((start.left + lastX - x0 - origin.left) / (m.cw + m.gap));
@@ -498,7 +498,7 @@ window.vuePages = function vuePages(ctx) {
       if (e.pointerId !== pointerId) return;
       lastX = e.clientX; lastY = e.clientY;
       const dx = lastX - x0, dy = lastY - y0;
-      if (!moved && Math.hypot(dx, dy) < 4) return;
+      if (!moved && Math.hypot(dx, dy) < LAYOUT_DRAG_PX) return;
       if (!moved) {
         moved = true;
         box.classList.add('lifted');
@@ -516,6 +516,8 @@ window.vuePages = function vuePages(ctx) {
       box.removeEventListener('pointermove', move);
       box.removeEventListener('pointerup', up);
       box.removeEventListener('pointercancel', cancel);
+      box.removeEventListener('lostpointercapture', lost);
+      if (box.hasPointerCapture(pointerId)) box.releasePointerCapture(pointerId);
       stopDwell();
       for (const ed of edges) ed.hidden = true;
       gesture = null;
@@ -538,10 +540,13 @@ window.vuePages = function vuePages(ctx) {
       }
       settle(box, before);
     };
-    const up = () => finish(true), cancel = () => finish(false);
+    const up = e => { if (e.pointerId === pointerId) finish(true); };
+    const cancel = e => { if (!e || e.pointerId === pointerId) finish(false); };
+    const lost = e => { if (e.target === box) cancel(e); };
     box.addEventListener('pointermove', move);
     box.addEventListener('pointerup', up);
     box.addEventListener('pointercancel', cancel);
+    box.addEventListener('lostpointercapture', lost);
     gesture = { cancel };
   }
 
@@ -549,13 +554,19 @@ window.vuePages = function vuePages(ctx) {
     const id = box.dataset.widget, from = { ...state.d[id] }, [mw, mh] = minOf(id);
     const origin = board.getBoundingClientRect();
     const left = origin.left - board.scrollLeft + (from.p * COLS + from.c) * (m.cw + m.gap), top = origin.top + from.r * (m.ch + m.gap);
-    let last = from;
+    let last = from, resizing = false;
     e.preventDefault();
     e.stopPropagation();
     const grip = e.target.closest('.pg-size');
     grip.setPointerCapture(e.pointerId);
-    box.classList.add('resizing');
     const move = ev => {
+      if (ev.pointerId !== e.pointerId) return;
+      if (!resizing) {
+        if (Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) < LAYOUT_DRAG_PX) return;
+        resizing = true;
+        box.classList.add('resizing');
+        document.body.classList.add('layout-resizing');
+      }
       const w = clamp(Math.round((ev.clientX - left + m.gap) / (m.cw + m.gap)), mw, COLS - from.c);
       const h = clamp(Math.round((ev.clientY - top + m.gap) / (m.ch + m.gap)), mh, ROWS - from.r);
       const q = { ...from, w, h };
@@ -574,19 +585,25 @@ window.vuePages = function vuePages(ctx) {
       grip.removeEventListener('pointermove', move);
       grip.removeEventListener('pointerup', up);
       grip.removeEventListener('pointercancel', cancel);
+      grip.removeEventListener('lostpointercapture', cancel);
+      if (grip.hasPointerCapture(e.pointerId)) grip.releasePointerCapture(e.pointerId);
       gesture = null;
+      if (!resizing) return;
       drop.hidden = true;
       box.classList.remove('resizing');
+      document.body.classList.remove('layout-resizing');
       if (!keep) { state.d[id] = from; paint(); ctx.say('Taille annulée.'); return; }
       if (last.w !== from.w || last.h !== from.h) commit(id, last, 'change de taille');
     };
-    const up = () => finish(true), cancel = () => finish(false);
+    const up = ev => { if (ev.pointerId === e.pointerId) finish(true); };
+    const cancel = ev => { if (!ev || ev.pointerId === e.pointerId) finish(false); };
     grip.addEventListener('pointermove', move);
     grip.addEventListener('pointerup', up);
     grip.addEventListener('pointercancel', cancel);
+    grip.addEventListener('lostpointercapture', cancel);
     gesture = { cancel };
   }
-  function endGesture(keep) { gesture?.cancel(keep); }
+  function endGesture() { gesture?.cancel(); }
 
   // Clavier : flèches pour changer de case, Maj et flèches (ou la poignée de taille) pour la taille.
   function keyMove(e, id, sizing = false) {
@@ -606,12 +623,13 @@ window.vuePages = function vuePages(ctx) {
   }
 
   board.addEventListener('pointerdown', e => {
-    if (!editing || e.button !== 0) return;
+    if (!editing || gesture || !e.isPrimary || e.button !== 0) return;
     const box = e.target.closest('.widget');
     // Toucher le fond pendant l'édition la termine, comme sur un téléphone.
     if (!box) { if (e.target === board || e.target.classList.contains('pg-cell')) edit(false); return; }
-    if (box.parentElement !== board || box.classList.contains('zoomed') || e.target.closest('.pg-to, .pg-remove')) return;
+    if (box.parentElement !== board || box.classList.contains('zoomed')) return;
     if (e.target.closest('.pg-size')) return startResize(e, box);
+    if (!e.target.closest('.pg-move') && !moveSurface(e.target, box)) return;
     e.preventDefault();
     startDrag(box, e.pointerId, e.clientX, e.clientY);
   }, { signal });
@@ -622,8 +640,11 @@ window.vuePages = function vuePages(ctx) {
   const ring = node('div', 'lp-ring');
   document.body.append(ring);
   function surface(t, box) {
-    if (!(t instanceof Element) || t.closest(NEVER)) return false;
-    return t === box || t.classList.contains('head') || t.classList.contains('body') || t.classList.contains('meta') || t.matches('.head > h2');
+    if (!(t instanceof Element)) return false;
+    return t === box || t.parentElement === box && t.classList.contains('body') || moveSurface(t, box);
+  }
+  function moveSurface(t, box) {
+    return !t.closest(NEVER) && t.closest('.head')?.parentElement === box;
   }
   const blocked = () => !!document.querySelector('dialog[open], .widget.zoomed') || document.documentElement.classList.contains('zoom-lock') || document.body.classList.contains('customizing');
   function cancelPress() {
@@ -660,7 +681,7 @@ window.vuePages = function vuePages(ctx) {
   addEventListener('keydown', e => {
     if (e.key !== 'Escape' || !editing || document.querySelector('dialog[open]')) return;
     e.preventDefault();
-    if (gesture) endGesture(false); else edit(false);
+    if (gesture) endGesture(); else edit(false);
   }, { signal });
 
   // Fenêtre tournée ou redimensionnée, menu latéral replié : les cases se recalculent, on reste sur la même page.
@@ -686,7 +707,7 @@ window.vuePages = function vuePages(ctx) {
     widths.disconnect();
     cancelAnimationFrame(frame);
     clearTimeout(rest);
-    endGesture(false);
+    endGesture();
     if (editing) edit(false);
     off.abort();
     cancelPress();

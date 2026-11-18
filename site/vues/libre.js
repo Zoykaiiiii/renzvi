@@ -88,7 +88,7 @@ window.vueLibre = function vueLibre(ctx) {
   // Glisser par la poignée ou par l'en-tête du widget. Les boutons et champs de l'en-tête gardent leur clic.
   function drag(e) {
     const box = e.target.closest('.widget');
-    if (!box || box.parentElement !== board || e.button !== 0 || narrow() || box.classList.contains('zoomed')) return;
+    if (!box || box.parentElement !== board || e.button !== 0 || !e.isPrimary || narrow() || box.classList.contains('zoomed')) return;
     const handle = e.target.closest('.vue-grip, .head');
     if (!handle || (!e.target.closest('.vue-grip') && e.target.closest('button, a, input, select, textarea, label, [contenteditable]'))) return;
     e.preventDefault();
@@ -97,8 +97,9 @@ window.vueLibre = function vueLibre(ctx) {
     let lifted = false, to = start;
     handle.setPointerCapture(e.pointerId);
     const move = m => {
+      if (m.pointerId !== e.pointerId) return;
       const dx = m.clientX - x0, dy = m.clientY - y0;
-      if (!lifted && Math.hypot(dx, dy) < 4) return;
+      if (!lifted && Math.hypot(dx, dy) < LAYOUT_DRAG_PX) return;
       if (!lifted) {
         lifted = true;
         box.classList.add('lifted');
@@ -112,6 +113,8 @@ window.vueLibre = function vueLibre(ctx) {
       handle.removeEventListener('pointermove', move);
       handle.removeEventListener('pointerup', up);
       handle.removeEventListener('pointercancel', cancel);
+      handle.removeEventListener('lostpointercapture', lost);
+      if (handle.hasPointerCapture(e.pointerId)) handle.releasePointerCapture(e.pointerId);
       if (!lifted) return;
       box.classList.remove('lifted');
       document.body.classList.remove('dragging');
@@ -121,10 +124,13 @@ window.vueLibre = function vueLibre(ctx) {
         ctx.say(`${ctx.title(id)} est posé.`);
       } else paint();
     };
-    const up = () => end(true), cancel = () => end(false);
+    const up = m => { if (m.pointerId === e.pointerId) end(true); };
+    const cancel = m => { if (m.pointerId === e.pointerId) end(false); };
+    const lost = m => { if (m.target === handle) cancel(m); };
     handle.addEventListener('pointermove', move, { signal });
     handle.addEventListener('pointerup', up, { signal });
     handle.addEventListener('pointercancel', cancel, { signal });
+    handle.addEventListener('lostpointercapture', lost, { signal });
   }
   board.addEventListener('pointerdown', drag, { signal });
   // Toucher un widget le passe devant les autres, comme une fenêtre.
