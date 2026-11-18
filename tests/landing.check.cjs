@@ -37,6 +37,27 @@ const into = (page, sel) => page.evaluate(s => document.querySelector(s).scrollI
     return { context, page, errors };
   };
 
+  // Le logo, la navigation et l’appel principal restent utilisables sans infobulle.
+  {
+    const { context, page } = await open({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
+    const logo = page.locator('#nav').getByRole('link', { name: 'Renzvi, haut de page', exact: true });
+    const nav = page.getByRole('navigation', { name: 'Sections de la page' }).getByRole('link', { name: 'Composer' });
+    const cta = page.locator('#nav').getByRole('link', { name: 'Créer mon espace' });
+    for (const link of [logo, nav, cta]) {
+      await link.hover();
+      await link.focus();
+      assert.ok(await link.evaluate(el => el === document.activeElement));
+      assert.equal(await page.locator('body [title], svg title, [role=tooltip]').count(), 0);
+    }
+    await nav.click();
+    await page.waitForURL('**/#composer');
+    await logo.press('Enter');
+    await page.waitForURL('**/#top');
+    await cta.press('Enter');
+    await page.waitForURL('**/login.html');
+    await context.close();
+  }
+
   // Le premier écran répond aux quatre questions, à toutes les largeurs, sans débordement.
   for (const [width, height] of WIDTHS) {
     const { context, page, errors } = await open({ viewport: { width, height } });

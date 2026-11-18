@@ -422,7 +422,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
       (stage.querySelector(`[data-key="${CSS.escape(`${c.id}/${ch.id}`)}"]`) ?? panel.querySelector('button') ?? closeBtn).focus({ preventScroll: true });
     }), 'fermer');
     x.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
-    x.ariaLabel = x.title = 'Fermer le chapitre';
+    x.ariaLabel = 'Fermer le chapitre';
     head.append(el('p', 'etude-crumb', `${c.subject} / ${c.title}`), x);
     const idx = c.chapters.indexOf(ch), here = peer('cahier')?.at?.[c.id]?.chapter === ch.id;
     const where = el('p', 'etude-where', `Chapitre ${idx + 1} sur ${c.chapters.length}${here ? ' · ta lecture s’est arrêtée ici' : ''}`);

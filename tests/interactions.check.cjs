@@ -195,6 +195,7 @@ const { custom, dispose, openMe, acctSection, modeNow, options, showMenu } = req
     const dlg = page.locator('dialog.mode-create');
     await dlg.getByRole('button', { name: 'Créer le mode' }).click();
     assert.equal(await dlg.locator('.mc-err').textContent(), 'Donne un nom à ce mode.');
+    assert.equal(await dlg.locator('[title], svg title, [role=tooltip]').count(), 0);
     await dlg.getByLabel('Nom du mode').fill('study');
     await dlg.getByRole('button', { name: 'Créer le mode' }).click();
     assert.equal(await dlg.locator('.mc-err').textContent(), 'Un mode porte déjà ce nom.');
@@ -281,7 +282,10 @@ const { custom, dispose, openMe, acctSection, modeNow, options, showMenu } = req
     const t = timer(page);
     await t.getByRole('button', { name: 'Démarrer' }).click();
     const h0 = (await t.boundingBox()).height;
-    await t.getByRole('button', { name: 'Replier Minuteur focus' }).click();
+    const fold = t.getByRole('button', { name: 'Replier Minuteur focus' });
+    await fold.hover();
+    assert.equal(await fold.getAttribute('title'), null);
+    await fold.press('Enter');
     assert.equal(await t.locator('.body').isVisible(), false);
     assert.match(await t.locator('.meta').textContent(), /^En cours/);
     await page.waitForTimeout(300);

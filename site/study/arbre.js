@@ -247,7 +247,7 @@ window.etudeVues.arbre = function arbreVue(ctx) {
       + pousses.map(pz => pousse(pz.x, pz.y, dessin(pz.wood, pz.fine, pz.leaves, pz.dots))).join('');
 
     // Un seul cours : de la place autour de chaque branche, les noms passent sur deux lignes. Sinon, une ligne
-    // (les branches sont serrées) ; le titre complet reste dans l'infobulle, le nom accessible et le panneau.
+    // (les branches sont serrées) ; le titre complet reste dans le nom accessible et le panneau.
     labels.dataset.place = only && !ctx.folded(only.id) ? 'large' : 'serre';
     labels.replaceChildren(...nodes.flatMap(nd => {
       if (nd.kind === 'titre') {
@@ -261,7 +261,6 @@ window.etudeVues.arbre = function arbreVue(ctx) {
       b.dataset.key = nd.key;
       b.dataset.side = nd.side > 0 ? 'd' : 'g';
       if (fresh.has(nd.course ?? nd.key)) b.classList.add('arbre-neuf');
-      b.title = nd.text;
       Object.assign(b.style, { left: `${nd.x}px`, top: `${nd.y}px` });
       if (mini) { b.tabIndex = -1; return [b]; }
       if (nd.kind === 'chapitre') {
@@ -276,7 +275,6 @@ window.etudeVues.arbre = function arbreVue(ctx) {
       fold.dataset.side = b.dataset.side;
       fold.setAttribute('aria-expanded', !nd.fold);
       fold.ariaLabel = `${nd.fold ? 'Déplier' : 'Replier'} ${nd.text}`;
-      fold.title = fold.ariaLabel;
       Object.assign(fold.style, { left: `${nd.x}px`, top: `${nd.y}px` });
       return [b, fold];
     }));

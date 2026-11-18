@@ -59,6 +59,11 @@ const { custom, closeCustom } = require('./menu.cjs');
     {
       const { page, context } = await open('gratuit');
       await custom(page);
+      const hint = page.locator('#wall-video-hint');
+      assert.ok(await hint.isVisible());
+      assert.match(await hint.textContent(), /MP4, WebM ou MOV, 20 Mo maximum/);
+      assert.equal(await tile(page).getAttribute('aria-describedby'), 'wall-video-hint');
+      assert.equal(await tile(page).getAttribute('title'), null);
       await tile(page).click();
       await page.waitForSelector('#paywall[open]');
       assert.match(await page.textContent('#pw-why'), /^Ton fond d’écran en vidéo fait partie de Pro/);

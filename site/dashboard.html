@@ -346,6 +346,7 @@ body.has-wall .hello{margin:16px 0;padding:16px 24px;border:1px solid var(--glas
 .tile span{position:relative;width:100%;padding:4px 10px;background:var(--wall-glass);font-size:13px;font-weight:500;text-align:left}
 .tile[aria-pressed=true]{outline:2px solid var(--ink);outline-offset:2px}
 .tile:disabled{cursor:progress}
+#wall-video-hint{margin-top:8px}
 .pick-note{margin-top:12px;font-size:14px;color:var(--error)}
 .pick-note:empty{display:none}
 .base{list-style:none;padding:0;margin-top:20px}
@@ -2853,7 +2854,7 @@ const WIDGETS = [
         let frame = null;
         const load = button('primary', 'Charger le lecteur', () => {
           frame = Object.assign(el('iframe', current.provider === 'youtube' ? 'player yt' : 'player'), {
-            src: embedUrl(current), title: `Lecteur ${name}`, loading: 'lazy', allowFullscreen: true,
+            src: embedUrl(current), ariaLabel: `Lecteur ${name}`, loading: 'lazy', allowFullscreen: true,
             referrerPolicy: 'strict-origin-when-cross-origin', // YouTube refuse de jouer (erreur 153) sans cet en-tête
             allow: 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture',
           });
@@ -3519,7 +3520,6 @@ if (!sb) {
     const many = screen.pages.length > 1, name = pageNow().name;
     $('mode-now').textContent = `Mode : ${name}`;
     $('bar-mode-name').textContent = name;
-    $('bar-mode').title = name;
     $('bar-mode').ariaLabel = `Mode ${name}. Changer de mode`;
     $('open-modes').ariaLabel = `Changer de mode. Mode actuel : ${name}`;
     for (const n of document.querySelectorAll('.page-name')) n.textContent = name;
@@ -3743,7 +3743,6 @@ if (!sb) {
     const trash = button('ghost edit-remove', '', () => retirerWidget(w.id));
     trash.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5h11M6.5 4.5V3h3v1.5M4 4.5l.7 8.5h6.6l.7-8.5M6.8 7v4M9.2 7v4"/></svg>';
     trash.ariaLabel = `Retirer ${w.title} de la page`;
-    trash.title = 'Retirer de la page';
     const after = button('ghost', 'Après', () => nudge(w, 1));
     after.ariaLabel = `Déplacer ${w.title} après le widget suivant`;
     const sizes = el('div', 'choices');
@@ -4365,7 +4364,6 @@ if (!sb) {
   }
   function drawSwatches() {
     const pick = el('label', 'swatch swatch-pick');
-    pick.title = 'Toutes les couleurs';
     const input = Object.assign(el('input'), { type: 'color', id: 'accent-pick', value: '#1b6e66' });
     input.ariaLabel = 'Choisir une couleur libre';
     input.oninput = () => { if (HEX.test(input.value)) setAccent(input.value); };
@@ -4374,7 +4372,6 @@ if (!sb) {
       const b = button('swatch', '', () => setAccent(a.id));
       b.dataset.accent = a.id;
       b.ariaLabel = a.name;
-      b.title = a.name;
       b.append(el('i'));
       return b;
     }), pick);
@@ -4382,8 +4379,8 @@ if (!sb) {
   }
   // ---------- Menu latéral : une pastille, le menu complet s'ouvre par-dessus l'écran ----------
   // Ouvert exprès, au clic, au toucher ou au clavier (drawer-open : voile qui avale le toucher à côté, Échap, reste de l'écran inerte).
-  // L'ouverture au survol (bar-peek) est retirée le 17 nov. à la demande de Damien ; la classe reste lue pour ne rien casser.
   const narrow = matchMedia('(max-width:1023px)');
+  const canHover = matchMedia('(hover:hover) and (pointer:fine)');
   const sidebar = $('bar'), accountMenu = $('menu'), accountButton = $('me');
   function placeAccount() {
     if (narrow.matches) return;
@@ -4412,7 +4409,7 @@ if (!sb) {
   function syncToggle() {
     const on = menuShown(), t = $('bar-toggle');
     t.setAttribute('aria-expanded', on);
-    t.ariaLabel = t.title = on ? 'Masquer le menu' : 'Afficher le menu';
+    t.ariaLabel = on ? 'Masquer le menu' : 'Afficher le menu';
   }
   function openDrawer() {
     document.body.classList.remove('bar-peek');
@@ -4443,7 +4440,32 @@ if (!sb) {
   // Échap : seulement si aucune fenêtre ni le menu du compte ne l'a pris pour lui.
   addEventListener('keydown', e => { if (e.key === 'Escape' && menuShown() && !e.defaultPrevented && !document.querySelector('dialog[open]') && !$('menu').matches(':popover-open')) closeDrawer(drawerOpen() || $('bar').contains(document.activeElement), true); });
   narrow.addEventListener('change', () => { closeDrawer(false, false, true); hush = null; syncToggle(); });
-  addEventListener('pointermove', e => { if (hush && (e.clientX > hush.right + 8 || e.clientY > hush.bottom + 8)) hush = null; }, { passive: true });
+  addEventListener('pointermove', e => {
+    if (hush && (e.clientX < hush.left - 8 || e.clientX > hush.right + 8 || e.clientY < hush.top - 8 || e.clientY > hush.bottom + 8)) hush = null;
+  }, { passive: true });
+
+  // Le survol ouvre la navigation sans bloquer le tableau. Un clic direct ouvre le tiroir.
+  sidebar.addEventListener('pointerenter', e => {
+    clearTimeout(peekT);
+    if (e.pointerType !== 'mouse' || narrow.matches || !canHover.matches || hush || menuShown() || e.buttons) return;
+    peekT = setTimeout(() => {
+      if (hush || menuShown() || !sidebar.matches(':hover') || document.querySelector('dialog[open], .widget.lifted, .widget.resizing')) return;
+      document.body.classList.add('bar-peek');
+      syncToggle();
+    }, 180);
+  });
+  sidebar.addEventListener('pointerdown', () => clearTimeout(peekT));
+  function closePeekLater() {
+    clearTimeout(peekT);
+    if (!peeked()) return;
+    peekT = setTimeout(() => {
+      if (inZone() || accountMenu.matches(':popover-open') || sidebar.querySelector(':focus-visible')) return;
+      closeDrawer(false);
+    }, 300);
+  }
+  sidebar.addEventListener('pointerleave', closePeekLater);
+  sidebar.addEventListener('focusout', closePeekLater);
+  accountMenu.addEventListener('toggle', e => { if (e.newState === 'closed') closePeekLater(); });
 
   syncToggle();
   // Où rendre le focus après une fenêtre ouverte depuis le menu : le bouton s'il est encore visible, sinon celui qui ouvre le menu.
@@ -4503,7 +4525,7 @@ if (!sb) {
     const icon = (k, label, path, onclick, disabled) => {
       const b = button('fav-act', '', onclick);
       b.innerHTML = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="${path}"/></svg>`;
-      b.ariaLabel = b.title = label;
+      b.ariaLabel = label;
       b.dataset.k = k;
       b.disabled = disabled;
       return b;
@@ -5083,7 +5105,9 @@ if (!sb) {
       return tile;
     });
     const photoTile = entries.at(-2), videoTile = entries.at(-1);
-    videoTile.title = 'MP4, WebM ou MOV, 20 Mo maximum. Une courte boucle de quelques secondes suffit.';
+    const videoHint = el('p', 'desc', 'Vidéo : MP4, WebM ou MOV, 20 Mo maximum. Une courte boucle de quelques secondes suffit.');
+    videoHint.id = 'wall-video-hint';
+    videoTile.setAttribute('aria-describedby', videoHint.id);
     const zoom = inlineSlider({
       label: 'Zoom du fond', min: FOND_MIN, max: 100, step: 5, value: screen.look.fond ?? 100, format: v => `${v} %`,
       onInput: v => { screen.look = { ...screen.look, fond: v }; sizeWall(); },
@@ -5158,7 +5182,7 @@ if (!sb) {
       mark();
     };
     mark();
-    box.append(tiles, zoomBox, file, videoFile, note);
+    box.append(tiles, videoHint, zoomBox, file, videoFile, note);
     return box;
   }
 

@@ -203,9 +203,9 @@ h4>.etude-fold{font-size:15px;font-weight:600}
 /* Le chapitre choisi : son nom dans une capsule fine, en plus de l'anneau autour de l'étoile. */
 .cst-chap[aria-current] .cst-txt{border-color:var(--et-ink)}
 .cst-chap:hover .cst-txt,.cst-chap:focus-visible .cst-txt{border-color:color-mix(in srgb,var(--et-ink) 40%,transparent)}
-/* Pas de place libre pour le nom : il n'apparaît qu'à la demande, par-dessus les autres. */
+/* Pas de place libre pour le nom : on l'affiche quand le chapitre est sélectionné. */
 .cst-quiet .cst-txt{visibility:hidden}
-.cst-quiet:is(:hover,:focus-visible,[aria-current]) .cst-txt{visibility:visible;z-index:2;background:var(--et-ground)}
+.cst-quiet[aria-current] .cst-txt{visibility:visible;z-index:2;background:var(--et-ground)}
 .cst-due{flex:none;font-family:var(--sans);padding:1px 8px;border-radius:var(--pill);background:rgba(235,232,223,.14);color:var(--et-ink);font-size:12px;font-weight:500;font-variant-numeric:tabular-nums}
 .cst-chap:focus-visible{outline:none}
 .cst-chap:focus-visible .cst-hit{outline:2px solid var(--et-ink);outline-offset:-6px}

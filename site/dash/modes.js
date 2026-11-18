@@ -212,7 +212,6 @@
         const s = node('span');
         s.innerHTML = svg(body);
         l.append(r, s);
-        l.title = label;
         iconRow.append(l);
       });
       icons.append(iconRow);
@@ -230,7 +229,6 @@
         const s = node('span');
         s.style.setProperty('--c', a.hex);
         l.append(r, s);
-        l.title = a.name;
         accRow.append(l);
       }
       acc.append(accRow);

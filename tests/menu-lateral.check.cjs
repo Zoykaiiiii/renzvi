@@ -26,8 +26,7 @@ const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, show
   const settle = page => page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running'));
   const toggle = page => page.locator('#bar-toggle');
 
-  // 1. Grand écran : un rail d'icônes compact, centré à gauche. Le survol ne l'ouvre plus (Damien, 17 nov.) ; le clic l'ouvre
-  // par-dessus l'écran, sans rien déplacer. Le mode est écrit en gras en haut à gauche, hors du menu, et ouvre la roue.
+  // 1. Grand écran : survoler le rail révèle la navigation, cliquer ouvre le tiroir. Le mode ouvre la roue.
   {
     const { page, context } = await open({ width: 1440, height: 900 }, 'survol');
     const nav = page.getByRole('navigation', { name: 'Menu de ton écran' });
@@ -49,13 +48,18 @@ const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, show
     const boxes = () => page.locator('#board .widget:not([hidden])').evaluateAll(w => w.map(x => { const r = x.getBoundingClientRect(); return [r.x, r.y, r.width, r.height].map(Math.round).join(','); }));
     const before = await boxes();
     await shot(page, 'menu-rail');
-    // Le survol (rail ou bord gauche) n'ouvre plus rien.
+    assert.equal(await page.locator('body [title], svg title, [role=tooltip]').count(), 0);
+    const logo = page.getByRole('link', { name: 'Renzvi, accueil' });
+    await logo.focus();
+    assert.equal(await logo.evaluate(el => el === document.activeElement), true);
+    await logo.blur();
     await toggle(page).hover();
-    await page.waitForTimeout(500);
-    assert.equal(await shown(), false, 'le survol n’ouvre plus');
+    await page.waitForSelector('body.bar-peek');
+    assert.equal(await toggle(page).getAttribute('aria-expanded'), 'true');
+    assert.equal(await page.locator('#app').evaluate(el => el.inert), false);
+    assert.equal(await shown(), false, 'le survol ouvre la navigation sans tiroir');
     await page.mouse.move(4, 450);
-    await page.waitForTimeout(400);
-    assert.equal(await shown(), false, 'le bord gauche non plus');
+    await page.waitForSelector('body.bar-peek', { state: 'detached' });
     // Clic : ouvert par-dessus l'écran, avec les libellés.
     await toggle(page).click();
     await settle(page);

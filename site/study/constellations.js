@@ -172,7 +172,6 @@ window.etudeVues.constellations = function constellationsVue(ctx) {
         if (nd.due) txt.append(el('span', 'cst-due', `${nd.due} à revoir`));
         b.append(el('span', 'cst-hit'), txt);
         b.dataset.key = nd.key;
-        b.title = nd.text;
         b.ariaLabel = `${nd.text}${nd.due ? `, ${nd.due} à revoir` : nd.linked ? `, ${plural(nd.linked, 'paquet')}` : ''}`;
         if (nd.on) b.setAttribute('aria-current', 'true');
         if (mini) b.tabIndex = -1;
@@ -184,14 +183,13 @@ window.etudeVues.constellations = function constellationsVue(ctx) {
       b.append(el('span', '', nd.text));
       if (nd.small) b.append(el('small', '', nd.small));
       b.dataset.key = nd.key;
-      b.title = nd.text;
       b.ariaLabel = nd.fold ? `${nd.text}, ${nd.small}, déplier et cadrer` : `${nd.text}, cadrer`;
       Object.assign(b.style, { left: `${nd.x}px`, top: `${nd.y}px` });
       if (mini) { b.tabIndex = -1; return [b]; }
       const fold = button('cst-plier', '', () => ctx.toggleFold(nd.key));
       fold.dataset.key = `${nd.key}:plier`;
       fold.setAttribute('aria-expanded', !nd.fold);
-      fold.ariaLabel = fold.title = `${nd.fold ? 'Déplier' : 'Replier'} ${nd.text}`;
+      fold.ariaLabel = `${nd.fold ? 'Déplier' : 'Replier'} ${nd.text}`;
       Object.assign(fold.style, { left: `${nd.x}px`, top: `${nd.y}px` });
       return [b, fold];
     }).flat());

@@ -48,6 +48,13 @@ const overlaps = page => page.locator('.cst-txt, .cst-label').evaluateAll(all =>
     console.log('ok ciel dessiné depuis les cours');
 
     // 2. Choisir une étoile : panneau en onglets, extrait réel, fermeture visible.
+    const chapter = star(page, 'La membrane');
+    const wasQuiet = await chapter.evaluate(el => el.classList.contains('cst-quiet'));
+    if (!wasQuiet) await chapter.evaluate(el => el.classList.add('cst-quiet'));
+    await chapter.locator('.cst-hit').hover();
+    assert.equal(await chapter.locator('.cst-txt').isVisible(), false);
+    assert.equal(await chapter.getAttribute('title'), null);
+    if (!wasQuiet) await chapter.evaluate(el => el.classList.remove('cst-quiet'));
     await pick(page, 'La membrane');
     assert.strictEqual(await page.locator('.etude-panel h3').textContent(), 'La membrane');
     assert.strictEqual(await page.locator('.etude-panel .etude-crumb').textContent(), 'Biologie / La cellule');

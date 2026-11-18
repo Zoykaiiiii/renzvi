@@ -139,7 +139,6 @@ export function ChatIA() {
             type="button"
             onClick={() => setPerso(v => !v)}
             aria-label="Personnaliser le chat"
-            title="Personnaliser le chat"
             aria-expanded={perso}
             aria-controls="renzvi-chat-perso"
             className="chat-ia-icon grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--chat-muted)] transition-colors hover:bg-[var(--chat-hover)] hover:text-[var(--chat-ink)]"
@@ -150,7 +149,6 @@ export function ChatIA() {
             type="button"
             onClick={() => toggle(false)}
             aria-label="Réduire le chat"
-            title="Réduire le chat"
             className="chat-ia-icon grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--chat-muted)] transition-colors hover:bg-[var(--chat-hover)] hover:text-[var(--chat-ink)]"
           >
             <X className="h-5 w-5" />
@@ -216,7 +214,6 @@ export function ChatIA() {
         type="button"
         onClick={() => toggle(!open)}
         aria-label={open ? "Fermer Zvi" : "Ouvrir Zvi"}
-        title={open ? "Fermer Zvi" : "Ouvrir Zvi"}
         aria-expanded={open}
         aria-controls="renzvi-chat-panel"
         className={`chat-ia-launch grid place-items-center rounded-full shadow-[0_6px_20px_rgba(23,25,28,0.22)] transition-transform hover:-translate-y-0.5 active:scale-95 ${open ? "bg-[var(--paper,#fff)] text-[var(--ink,#1F2023)] ring-1 ring-black/5" : ""}`}

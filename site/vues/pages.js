@@ -214,7 +214,6 @@ window.vuePages = function vuePages(ctx) {
     const add = node('button', 'pg-add');
     add.type = 'button';
     add.ariaLabel = 'Ajouter une page';
-    add.title = 'Ajouter une page';
     add.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>';
     add.disabled = state.n >= MAX_PAGES || temp >= 0;
     add.onclick = () => addPage();
@@ -386,7 +385,6 @@ window.vuePages = function vuePages(ctx) {
     const del = node('button', 'pg-remove');
     del.type = 'button';
     del.ariaLabel = `Retirer ${title} de la page`;
-    del.title = 'Retirer de la page';
     del.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path class="pg-lid" d="M2.5 4.5h11M6.5 4.5V3h3v1.5"/><path d="M4 4.5l.7 8.5h6.6l.7-8.5M6.8 7v4M9.2 7v4"/></svg>';
     del.addEventListener('click', () => ctx.remove?.(id), { signal });
     box.append(del, move, size, to);

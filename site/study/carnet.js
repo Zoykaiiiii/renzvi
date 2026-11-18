@@ -83,7 +83,7 @@ window.cahierCarnet = function cahierCarnet(api) {
   const iconBtn = (cls, d, label, onClick) => {
     const b = button(`carnet-icon ${cls}`.trim(), '', onClick);
     b.innerHTML = icon(d);
-    if (label) b.ariaLabel = b.title = label;
+    if (label) b.ariaLabel = label;
     return b;
   };
   // Un bouton avec icône et libellé visible.
@@ -140,7 +140,7 @@ window.cahierCarnet = function cahierCarnet(api) {
   }
   const marginBtn = iconBtn('carnet-margin-btn', ICONS.notes, '', () => { marginOn = !marginOn; layout(); if (marginOn) margin.querySelector('button, textarea')?.focus(); });
   const aaBtn = button('carnet-icon carnet-aa', 'Aa', () => { lookView = 'texte'; setLook(lookPanel.hidden || lookView !== 'texte'); });
-  aaBtn.ariaLabel = aaBtn.title = 'Police et taille du texte';
+  aaBtn.ariaLabel = 'Police et taille du texte';
   aaBtn.setAttribute('aria-haspopup', 'dialog');
   // --- Apparence du carnet : Papier, Verre (le fond d'écran se devine derrière), Sombre ; police, taille, interligne.
   // Gardée sur cet appareil (localStorage), limitée au carnet : le tableau, le logo et le reste de l'appli ne changent pas.
@@ -236,7 +236,6 @@ window.cahierCarnet = function cahierCarnet(api) {
           const b = button('carnet-look-teinte', '', () => { onPick(k); applyLook(); drawLook(); lookPanel.querySelector(`.${cls} [data-v="${k}"]`)?.focus(); });
           b.dataset.v = k;
           b.ariaLabel = item[1];
-          b.title = item[1];
           b.setAttribute('aria-pressed', String(k === value));
           b.style.setProperty('--t', color(item));
           g.append(b);
@@ -338,7 +337,7 @@ window.cahierCarnet = function cahierCarnet(api) {
     sideBtn.setAttribute('aria-expanded', sideOn);
     marginBtn.setAttribute('aria-expanded', marginOn);
     const n = marks.filter(m => m.kind === 'passage' && here(m)).length;
-    marginBtn.ariaLabel = marginBtn.title = `${marginOn ? 'Masquer' : 'Afficher'} mes notes${n ? ` (${n} sur ce chapitre)` : ''}`;
+    marginBtn.ariaLabel = `${marginOn ? 'Masquer' : 'Afficher'} mes notes${n ? ` (${n} sur ce chapitre)` : ''}`;
     marginBtn.dataset.n = n || '';
     // « Enregistré » s'affiche au pied de « Mes notes » quand la colonne est là, sinon en haut.
     placeStatus();
@@ -502,7 +501,7 @@ window.cahierCarnet = function cahierCarnet(api) {
     for (const [id, label] of CARNET.colors) {
       const d = button('carnet-dot', '', () => style(ctx, 'surligne', id));
       d.dataset.color = id;
-      d.ariaLabel = d.title = `Surligner en ${label}`;
+      d.ariaLabel = `Surligner en ${label}`;
       d.setAttribute('aria-pressed', !!m?.surligne && m.color === id);
       dots.append(d);
     }
@@ -760,7 +759,7 @@ window.cahierCarnet = function cahierCarnet(api) {
     const on = signetHere(), c = api.course();
     signetBtn.disabled = !c?.text_chars || tab !== 'cours' || !reader();
     signetBtn.setAttribute('aria-pressed', !!on);
-    signetBtn.ariaLabel = signetBtn.title = on ? 'Retirer le signet de cet endroit' : 'Ajouter un signet ici';
+    signetBtn.ariaLabel = on ? 'Retirer le signet de cet endroit' : 'Ajouter un signet ici';
   }
   async function toggleSignet() {
     const on = signetHere(), r = reader();
@@ -885,7 +884,6 @@ window.cahierCarnet = function cahierCarnet(api) {
     const c = api.course();
     name.replaceChildren();
     if (c) name.append(el('span', '', c.subject), el('span', 'carnet-crumb-sep', '/'), el('span', '', c.title));
-    name.title = c ? `${c.subject} / ${c.title}` : '';
     for (const b of tabBtns) { b.setAttribute('aria-selected', b.dataset.tab === tab); b.tabIndex = b.dataset.tab === tab ? 0 : -1; }
     view.hidden = tab !== 'cours';
     pane.hidden = tab === 'cours';
@@ -902,7 +900,7 @@ window.cahierCarnet = function cahierCarnet(api) {
       const li = el('li'), n = marks.filter(m => m.kind === 'passage' && chapterOf(m) === i).length;
       const b = button('carnet-chapter', '', () => { back = null; if (tab !== 'cours') { tab = 'cours'; keepTop = null; } sideOn = false; api.openChapter(i); layout(); sideBtn.focus(); });
       b.append(el('span', '', ch.title));
-      if (n) { const k = el('small', '', String(n)); k.title = plural(n, 'annotation'); b.append(k); b.ariaLabel = `${ch.title}, ${plural(n, 'annotation')}`; }
+      if (n) { b.append(el('small', '', String(n))); b.ariaLabel = `${ch.title}, ${plural(n, 'annotation')}`; }
       b.dataset.i = i;
       if (i === api.chapter()) b.setAttribute('aria-current', 'true');
       li.append(b);

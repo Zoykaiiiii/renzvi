@@ -52,7 +52,6 @@
     function sync() {
       const o = sel.options[sel.selectedIndex];
       value.textContent = o ? o.label : '';
-      btn.title = o && o.label.length > 28 ? o.label : '';
       btn.disabled = sel.disabled;
       btn.hidden = sel.hidden;
       const name = labelOf(sel);

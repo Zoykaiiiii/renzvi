@@ -257,7 +257,7 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
   const livre = el('div', 'cahier-livre');
   const addBtn = button('zoom cahier-add', '', () => { mode = 'import'; draw(); });
   addBtn.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.200"/><path d="M8 5.200v5.600M5.200 8h5.600"/></svg>';
-  addBtn.ariaLabel = addBtn.title = 'Importer un cours';
+  addBtn.ariaLabel = 'Importer un cours';
   meta?.after(addBtn);
   body.append(bar, nav, cardBar, livre, view, note, tools);
 

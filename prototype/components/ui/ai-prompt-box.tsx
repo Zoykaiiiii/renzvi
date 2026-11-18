@@ -1,5 +1,4 @@
 import React from "react";
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { ArrowUp, Paperclip, Square, X } from "lucide-react";
 import { motion } from "framer-motion";
@@ -50,26 +49,6 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ classNa
 ));
 Textarea.displayName = "Textarea";
 
-// Tooltip Components
-const TooltipProvider = TooltipPrimitive.Provider;
-const Tooltip = TooltipPrimitive.Root;
-const TooltipTrigger = TooltipPrimitive.Trigger;
-const TooltipContent = React.forwardRef<
-  React.ElementRef<typeof TooltipPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
-  <TooltipPrimitive.Content
-    ref={ref}
-    sideOffset={sideOffset}
-    className={cn(
-      "z-50 overflow-hidden rounded-md border border-[#333333] bg-[#1F2023] px-3 py-1.5 text-sm text-white shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
-      className
-    )}
-    {...props}
-  />
-));
-TooltipContent.displayName = TooltipPrimitive.Content.displayName;
-
 // Dialog Components
 const Dialog = DialogPrimitive.Root;
 const DialogPortal = DialogPrimitive.Portal;
@@ -105,7 +84,7 @@ const DialogContent = React.forwardRef<
       {children}
       <DialogPrimitive.Close className="absolute right-4 top-4 z-10 rounded-full bg-[#2E3033]/80 p-2 hover:bg-[#2E3033] transition-all">
         <X className="h-5 w-5 text-gray-200 hover:text-white" />
-        <span className="sr-only">Close</span>
+        <span className="sr-only">Fermer l’aperçu</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </DialogPortal>
@@ -246,32 +225,30 @@ const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       onValueChange?.(newValue);
     };
     return (
-      <TooltipProvider>
-        <PromptInputContext.Provider
-          value={{
-            isLoading,
-            value: value ?? internalValue,
-            setValue: onValueChange ?? handleChange,
-            maxHeight,
-            onSubmit,
-            disabled,
-          }}
+      <PromptInputContext.Provider
+        value={{
+          isLoading,
+          value: value ?? internalValue,
+          setValue: onValueChange ?? handleChange,
+          maxHeight,
+          onSubmit,
+          disabled,
+        }}
+      >
+        <div
+          ref={ref}
+          className={cn(
+            "rounded-3xl border border-[var(--chat-edge,#444444)] bg-[var(--chat-field,#1F2023)] p-2 shadow-[0_8px_30px_rgba(0,0,0,0.24)] transition-all duration-300",
+            isLoading && "border-red-500/70",
+            className
+          )}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
         >
-          <div
-            ref={ref}
-            className={cn(
-              "rounded-3xl border border-[var(--chat-edge,#444444)] bg-[var(--chat-field,#1F2023)] p-2 shadow-[0_8px_30px_rgba(0,0,0,0.24)] transition-all duration-300",
-              isLoading && "border-red-500/70",
-              className
-            )}
-            onDragOver={onDragOver}
-            onDragLeave={onDragLeave}
-            onDrop={onDrop}
-          >
-            {children}
-          </div>
-        </PromptInputContext.Provider>
-      </TooltipProvider>
+          {children}
+        </div>
+      </PromptInputContext.Provider>
     );
   }
 );
@@ -328,32 +305,6 @@ const PromptInputActions: React.FC<PromptInputActionsProps> = ({ children, class
     {children}
   </div>
 );
-
-interface PromptInputActionProps extends React.ComponentProps<typeof Tooltip> {
-  tooltip: React.ReactNode;
-  children: React.ReactNode;
-  side?: "top" | "bottom" | "left" | "right";
-  className?: string; // Renzvi : seul ajout au composant fourni (sans lui, next build échoue au contrôle des types)
-}
-const PromptInputAction: React.FC<PromptInputActionProps> = ({
-  tooltip,
-  children,
-  className,
-  side = "top",
-  ...props
-}) => {
-  const { disabled } = usePromptInput();
-  return (
-    <Tooltip {...props}>
-      <TooltipTrigger asChild disabled={disabled}>
-        {children}
-      </TooltipTrigger>
-      <TooltipContent side={side} className={className}>
-        {tooltip}
-      </TooltipContent>
-    </Tooltip>
-  );
-};
 
 // Main PromptInputBox Component
 // Renzvi : boutons Search / Think / Canvas et micro retirés (ils ne faisaient rien de réel), textes en français,
@@ -490,38 +441,35 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
         <PromptInputTextarea placeholder={placeholder} className="text-base" />
 
         <PromptInputActions className="flex items-center justify-between gap-2 p-0 pt-2">
-          <PromptInputAction tooltip="Joindre une image">
-            <button
-              type="button"
-              aria-label="Joindre une image"
-              onClick={() => uploadInputRef.current?.click()}
-              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-[var(--chat-muted,#9CA3AF)] transition-colors hover:bg-[var(--chat-hover,rgba(75,85,99,0.3))] hover:text-[var(--chat-ink,#D1D5DB)]"
-            >
-              <Paperclip className="h-5 w-5 transition-colors" />
-              <input
-                ref={uploadInputRef}
-                type="file"
-                className="hidden"
-                onChange={(e) => {
-                  if (e.target.files && e.target.files.length > 0) processFile(e.target.files[0]);
-                  if (e.target) e.target.value = "";
-                }}
-                accept="image/*"
-              />
-            </button>
-          </PromptInputAction>
+          <button
+            type="button"
+            aria-label="Joindre une image"
+            disabled={isLoading}
+            onClick={() => uploadInputRef.current?.click()}
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-[var(--chat-muted,#9CA3AF)] transition-colors hover:bg-[var(--chat-hover,rgba(75,85,99,0.3))] hover:text-[var(--chat-ink,#D1D5DB)]"
+          >
+            <Paperclip className="h-5 w-5 transition-colors" />
+            <input
+              ref={uploadInputRef}
+              type="file"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) processFile(e.target.files[0]);
+                if (e.target) e.target.value = "";
+              }}
+              accept="image/*"
+            />
+          </button>
 
-          <PromptInputAction tooltip={isLoading ? "Arrêter" : "Envoyer"}>
-            <button
-              type="button"
-              aria-label={isLoading ? "Arrêter" : "Envoyer"}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--chat-send,#fff)] text-[var(--chat-on-send,#1F2023)] transition-opacity duration-200 hover:opacity-85 disabled:opacity-35"
-              onClick={handleSubmit}
-              disabled={!hasContent && !isLoading}
-            >
-              {isLoading ? <Square className="h-4 w-4 fill-current animate-pulse" /> : <ArrowUp className="h-4 w-4" />}
-            </button>
-          </PromptInputAction>
+          <button
+            type="button"
+            aria-label={isLoading ? "Arrêter" : "Envoyer"}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--chat-send,#fff)] text-[var(--chat-on-send,#1F2023)] transition-opacity duration-200 hover:opacity-85 disabled:opacity-35"
+            onClick={handleSubmit}
+            disabled={!hasContent && !isLoading}
+          >
+            {isLoading ? <Square className="h-4 w-4 fill-current animate-pulse" /> : <ArrowUp className="h-4 w-4" />}
+          </button>
         </PromptInputActions>
       </PromptInput>
 

@@ -21,6 +21,7 @@
 
 ## 3. Design
 - **Tout écran passe par le skill `design-taste-frontend`** (`.claude/skills/`).
+- Do not introduce automatic tooltips on hover, keyboard focus or long press. Use visible labels for essential information and accessible names for icon-only controls.
 - Je déteste le look « vibecodé par IA » ou enfantin : propre, sobre, moderne.
 - Référence d'ambiance : liquidjournal.app (inspiration, **jamais copie**).
 - **Décision (2 nov. 2026) : dashboard en glassmorphism clair pour démarrer** (fond blanc/gris clair, panneaux givrés, image de fond floue, choisissable). Le style changera ensuite → tout passe par des variables CSS. Cette décision prime sur l'interdiction du glass dans le skill, pour le dashboard. Landing : à trancher.
