@@ -24,6 +24,63 @@ const { openMe, acctSection } = require('./menu.cjs');
   // Un écouteur de la page, comme ceux des widgets : il ne doit rien recevoir du toucher qui ferme la carte.
   const spy = page => page.evaluate(() => { window.__hits = 0; document.addEventListener('click', () => { window.__hits++; }); });
 
+  // Le bord visible du rail sert d'ancre, y compris pendant sa transition de largeur.
+  {
+    const { page, context } = await open({ width: 1440, height: 900 }, 'ancre');
+    const account = page.locator('#menu');
+    const done = () => page.waitForFunction(() => !document.getAnimations().some(
+      a => a.playState === 'running' && ['bar', 'menu'].includes(a.effect?.target?.id)
+    ));
+    const gap = () => account.evaluate(n => n.getBoundingClientRect().left - document.querySelector('#bar').getBoundingClientRect().right);
+    await page.locator('#me').click();
+    await done();
+    assert.ok(Math.abs(await gap() - 12) <= 1, 'rail replié : 12 px');
+
+    // Le survol automatique est désactivé. On reproduit les états de sa transition CSS en gardant la carte ouverte.
+    for (const expanded of [true, false]) {
+      const transition = await page.locator('#bar').evaluateHandle((bar, expanded) => {
+        document.body.classList.toggle('bar-peek', expanded);
+        const width = bar.getAnimations().find(a => a.transitionProperty === 'width');
+        width.pause();
+        return width;
+      }, expanded);
+      await transition.evaluate(a => { a.currentTime = a.effect.getTiming().duration / 3; });
+      await page.waitForFunction(() => {
+        const rail = document.querySelector('#bar').getBoundingClientRect();
+        const card = document.querySelector('#menu').getBoundingClientRect();
+        return rail.width > 61 && rail.width < 243 && Math.abs(card.left - rail.right - 12) <= 1;
+      });
+      const bar = await page.locator('#bar').boundingBox();
+      const button = await page.locator('#me').boundingBox();
+      const y = button.y + button.height / 2;
+      await page.mouse.move(bar.x + bar.width + 6, y, { steps: 6 });
+      assert.ok(await isOpen(page), 'la carte reste ouverte dans l’espace entre le rail et la carte');
+      const card = await account.boundingBox();
+      await page.mouse.move(card.x + 24, y, { steps: 6 });
+      assert.ok(await account.evaluate(n => n.matches(':hover')), 'la souris entre dans la carte');
+      assert.ok(await isOpen(page));
+      await transition.evaluate(a => a.play());
+      await transition.dispose();
+      await done();
+      assert.ok(Math.abs(await gap() - 12) <= 1);
+      await page.locator('#me').hover();
+    }
+    await page.keyboard.press('Escape');
+    await openMe(page);
+    await done();
+    assert.ok(Math.abs(await gap() - 12) <= 1, 'menu déplié au clic : 12 px');
+    await acctSection(page, 'Verrouillage');
+    for (const viewport of [{ width: 1200, height: 380 }, { width: 1200, height: 240 }, { width: 390, height: 380 }]) {
+      await page.setViewportSize(viewport);
+      await done();
+      assert.ok(await isOpen(page), 'la carte reste ouverte au redimensionnement');
+      await page.locator('#logout').click({ trial: true });
+      const logout = await page.locator('#logout').boundingBox();
+      assert.ok(logout.y >= 12 && logout.y + logout.height <= viewport.height - 12);
+    }
+    await context.close();
+  }
+
   // 1. Identité et premier écran : nom, adresse, initiales, plan ; tout est replié.
   {
     const { page, context } = await open({ width: 1440, height: 900 }, 'carte');

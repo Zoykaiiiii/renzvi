@@ -225,10 +225,11 @@ body:not(.bar-peek,.drawer-open) .mark span{display:none}
 
 /* Carte du compte : sort du bouton « Mon compte ». Surface, bord et lumière : SpotlightCard (dash/spotlight.css), posée à l'ouverture.
    En-tête et déconnexion restent en place ; seule la liste défile quand un réglage déplié dépasse la hauteur de l'écran. */
-#menu{position:fixed;inset:auto auto 12px 268px;margin:0;width:min(340px,100vw - 24px);max-height:calc(100dvh - 24px);padding:0;border:0;border-radius:var(--r-panel);color:var(--ink);transform-origin:bottom left;transition:transform .25s var(--ease),opacity .18s,display .25s allow-discrete,overlay .25s allow-discrete}
+#menu{position:fixed;inset:auto auto var(--account-bottom,12px) calc(var(--account-edge,0px) + 12px);margin:0;width:min(340px,100vw - 24px);max-height:calc(100dvh - 24px);padding:0;border:0;border-radius:var(--r-panel);color:var(--ink);transform-origin:bottom left;transition:transform .25s var(--ease),opacity .18s,display .25s allow-discrete,overlay .25s allow-discrete}
 #menu:popover-open{display:flex;flex-direction:column}
 #menu:not(:popover-open){opacity:0;transform:scale(.96) translateY(-6px)}
 @starting-style{#menu:popover-open{opacity:0;transform:scale(.96) translateY(-6px)}}
+@media (min-width:1024px){#menu{overflow-y:auto;overscroll-behavior:contain}}
 @media (max-width:1023px){#menu{inset:auto 12px calc(12px + env(safe-area-inset-bottom)) 12px;width:auto;max-width:440px;max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));margin-inline:auto;transform-origin:bottom center}}
 .acct-head{flex:none;padding:20px 20px 12px}
 .acct-av{display:grid;place-items:center;width:56px;height:56px;overflow:hidden;border-radius:50%;background:var(--tint);font-size:19px;font-weight:600;letter-spacing:.02em}
@@ -4296,6 +4297,28 @@ if (!sb) {
   // Ouvert exprès, au clic, au toucher ou au clavier (drawer-open : voile qui avale le toucher à côté, Échap, reste de l'écran inerte).
   // L'ouverture au survol (bar-peek) est retirée le 17 nov. à la demande de Damien ; la classe reste lue pour ne rien casser.
   const narrow = matchMedia('(max-width:1023px)');
+  const sidebar = $('bar'), accountMenu = $('menu'), accountButton = $('me');
+  function placeAccount() {
+    if (narrow.matches) return;
+    const edge = sidebar.getBoundingClientRect().right;
+    // Garde la marge basse tant que la carte arrive à hauteur du bouton.
+    const height = accountMenu.offsetHeight;
+    const buttonTop = Math.max(12, accountButton.getBoundingClientRect().top);
+    accountMenu.style.setProperty('--account-edge', `${edge}px`);
+    accountMenu.style.setProperty('--account-bottom', `${height ? Math.max(12, innerHeight - buttonTop - height) : 12}px`);
+  }
+  const accountPosition = new ResizeObserver(placeAccount);
+  accountMenu.addEventListener('beforetoggle', e => {
+    if (e.newState === 'open') {
+      placeAccount();
+      accountPosition.observe(sidebar);
+      accountPosition.observe(accountMenu);
+      addEventListener('resize', placeAccount);
+    } else {
+      accountPosition.disconnect();
+      removeEventListener('resize', placeAccount);
+    }
+  });
   const drawerOpen = () => document.body.classList.contains('drawer-open');
   const peeked = () => document.body.classList.contains('bar-peek');
   const menuShown = () => drawerOpen() || peeked();
@@ -4317,14 +4340,14 @@ if (!sb) {
   const zones = [$('bar'), $('menu')];
   const inZone = () => zones.some(z => z.matches(':hover'));
   // explicit : fermé par le bouton, Échap ou un clic à côté (pas par le choix d'une action du menu).
-  function closeDrawer(refocus = true, explicit = refocus) {
+  function closeDrawer(refocus = true, explicit = refocus, keepAccount = false) {
     clearTimeout(peekT);
     if (!menuShown()) return;
     hush = explicit && inZone() ? $('bar').getBoundingClientRect() : null;
     document.body.classList.remove('bar-peek', 'drawer-open');
     $('bar-scrim').hidden = true;
     $('app').inert = false;
-    if ($('menu').matches(':popover-open')) $('menu').hidePopover();
+    if (!keepAccount && accountMenu.matches(':popover-open')) accountMenu.hidePopover();
     syncToggle();
     if (refocus) $('bar-toggle').focus();
   }
@@ -4332,7 +4355,7 @@ if (!sb) {
   $('bar-scrim').onclick = () => closeDrawer();
   // Échap : seulement si aucune fenêtre ni le menu du compte ne l'a pris pour lui.
   addEventListener('keydown', e => { if (e.key === 'Escape' && menuShown() && !e.defaultPrevented && !document.querySelector('dialog[open]') && !$('menu').matches(':popover-open')) closeDrawer(drawerOpen() || $('bar').contains(document.activeElement), true); });
-  narrow.addEventListener('change', () => { closeDrawer(false); hush = null; syncToggle(); });
+  narrow.addEventListener('change', () => { closeDrawer(false, false, true); hush = null; syncToggle(); });
   addEventListener('pointermove', e => { if (hush && (e.clientX > hush.right + 8 || e.clientY > hush.bottom + 8)) hush = null; }, { passive: true });
 
   syncToggle();
