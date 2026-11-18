@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useRef } from "react";
 import CardSwap, { Card } from "./CardSwap";
 import OrbitImages from "./OrbitImages";
 import { Logo, Slot } from "./Bits";
@@ -37,11 +38,29 @@ const BOARDS: [string, "lin" | "sable" | "card" | "ink"][] = [
   ["dashboard Study", "card"], ["dashboard Chill", "sable"], ["dashboard avec ta photo en fond", "lin"], ["dashboard sombre", "ink"],
 ];
 
+// Clip de video/dashboard-sombre/ (8 s, muet). L'affiche montre déjà le résultat ; « réduire les animations » : pas de lecture.
+function ClipSombre() {
+  const ref = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const v = ref.current;
+    if (v && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) v.play().catch(() => {});
+  }, []);
+  return (
+    <video ref={ref} className="h-full w-full rounded-box bg-ink object-cover" src="/landing/renzvi-dashboard-sombre.mp4"
+      poster="/landing/renzvi-dashboard-sombre-poster.webp" muted loop playsInline preload="metadata"
+      aria-label="Le dashboard sombre : on ouvre l'espace Study, on choisit le chapitre « La cellule » et son panneau s'ouvre." />
+  );
+}
+
 export function BoardSwap() {
   return (
     <CardSwap theme="light" width={520} height={360} delay={3200} cardRadius={16}>
       {BOARDS.map(([label, tone]) => (
-        <Card key={label}><Slot label={label} tone={tone} /></Card>
+        <Card key={label}>
+          {label === "dashboard sombre" ? (
+            <ClipSombre />
+          ) : <Slot label={label} tone={tone} />}
+        </Card>
       ))}
     </CardSwap>
   );

@@ -1,0 +1,172 @@
+<!doctype html>
+<!-- Clip « Dashboard sombre » de la landing (8 s, 30 i/s, 240 images 0–239), 1560 × 1080 (13:9, la carte du carrousel fait 520 × 360).
+     Tout est calculé à partir du numéro d'image : render(f) donne toujours la même image (pas d'horloge, pas de transition CSS).
+     Calques : fond.jpg (le fond d'écran seul, même cadrage), dash.png (le vrai dashboard sombre capturé, aperçu des étoiles masqué),
+     puis tout ce qui bouge en vrai texte et en vectoriel : étoiles, traits, noms, panneau du chapitre, curseur.
+     Rendu : NODE_PATH=~/pw/node_modules node video/dashboard-sombre/render.cjs   (voir render.cjs). -->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face{font-family:"Hanken Grotesk";src:url(../../site/fonts/hanken-grotesk-latin.woff2) format("woff2");font-weight:100 900}
+@font-face{font-family:"Source Serif 4";src:url(../../site/fonts/source-serif-4-latin.woff2) format("woff2");font-weight:200 900}
+@font-face{font-family:"Source Serif 4 Italique";src:url(../../site/fonts/source-serif-4-italic-latin.woff2) format("woff2");font-weight:200 900;font-style:italic}
+:root{--sans:"Hanken Grotesk",system-ui,sans-serif;--serif:"Source Serif 4",Georgia,serif;--ink:#f3f1ea;--soft:rgba(243,241,234,.62);--label:rgba(12,12,14,.62);--line:rgba(255,255,255,.14)}
+*{box-sizing:border-box}
+html,body{margin:0;background:#000}
+#film{position:relative;width:1560px;height:1080px;overflow:hidden;font-family:var(--sans);color:var(--ink)}
+#film>*{position:absolute}
+#fond{inset:0;width:100%;height:100%}
+#dash{left:0;top:0;width:1560px;height:1080px}
+#cadre{border-radius:46px;background:rgba(24,24,26,.84);border:2px solid rgba(255,255,255,.1)}
+#pressoir{border-radius:999px;background:#000}
+#ciel{left:0;top:0;width:1560px;height:1080px;transform-origin:0 0}
+#ciel svg{position:absolute;left:0;top:0;overflow:visible}
+.ligne{fill:none;stroke:rgba(243,241,234,.5);stroke-width:2.2}
+.halo{fill:rgba(243,241,234,.08)}.lueur{fill:rgba(243,241,234,.26)}.rayon{stroke:rgba(243,241,234,.55);stroke-width:1.6;stroke-linecap:round}
+.coeur{fill:var(--ink)}.anneau{fill:none;stroke:var(--ink);stroke-width:2.8}
+.nom{position:absolute;padding:4px 16px 8px;border-radius:16px;background:var(--label);font:400 46px/1.15 var(--serif);white-space:nowrap;transform:translateY(-50%);border:2px solid transparent}
+.nom.choisi{border-color:rgba(243,241,234,.7);background:rgba(10,10,12,.78)}
+.matiere{position:absolute;font:italic 400 62px/1 "Source Serif 4 Italique",var(--serif);color:rgba(243,241,234,.85);white-space:nowrap}
+#barre{left:0;top:0;width:1560px;height:120px;display:flex;align-items:center;justify-content:space-between;padding:0 56px}
+#barre b{font-weight:600;font-size:32px}#barre b span{font-weight:400;color:var(--soft)}
+.onglets{display:flex;gap:6px;padding:6px;border-radius:999px;background:rgba(12,12,14,.55);font-size:27px}
+.onglets i{font-style:normal;padding:10px 24px;border-radius:999px;color:var(--soft)}
+.onglets i.on{background:rgba(255,255,255,.14);color:var(--ink);font-weight:600}
+.retour{padding:14px 26px;border:2px solid var(--line);border-radius:16px;background:rgba(12,12,14,.55);font-size:27px;font-weight:600}
+#panneau{left:880px;top:150px;width:640px;padding:46px 48px 52px;border-radius:44px;background:rgba(20,20,22,.8);border:2px solid var(--line);-webkit-backdrop-filter:blur(30px) saturate(1.3);backdrop-filter:blur(30px) saturate(1.3)}
+#panneau .kick{font-size:34px;color:var(--soft)}
+#panneau h3{margin:6px 0 0;font:400 92px/1.05 var(--serif);letter-spacing:-.01em}
+#panneau .tabs{display:flex;gap:44px;margin-top:34px;font-size:36px;color:var(--soft)}
+#panneau .tabs span.on{color:var(--ink);font-weight:600;box-shadow:inset 0 -4px 0 var(--ink);padding-bottom:12px}
+#panneau .extrait{margin-top:36px;padding-left:28px;border-left:4px solid rgba(243,241,234,.55);font-size:38px;line-height:1.35;color:rgba(243,241,234,.9)}
+#panneau .extrait em{display:block;margin-bottom:8px;font:400 32px/1.2 var(--serif);font-style:normal;color:var(--ink)}
+#panneau .cta{display:inline-block;margin-top:42px;padding:24px 44px;border-radius:999px;background:var(--ink);color:#141416;font-size:40px;font-weight:600}
+#curseur{left:0;top:0;width:44px;height:62px;transform-origin:4px 4px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}
+</style>
+</head>
+<body>
+<div id="film">
+  <img id="fond" src="fond.jpg" alt="">
+  <img id="dash" src="dash.png" alt="">
+  <div id="cadre"></div>
+  <div id="pressoir"></div>
+  <div id="ciel"><svg id="traits" width="1560" height="1080"></svg><div id="noms"></div></div>
+  <div id="barre"><b>Mon espace <span>· Study</span></b><div class="onglets"><i>Arbre</i><i class="on">Constellations</i><i>Liste</i></div><div class="retour">Retour au tableau</div></div>
+  <div id="panneau">
+    <div class="kick" data-r="0">Biologie</div>
+    <h3 data-r="0">La cellule</h3>
+    <div class="tabs" data-r="1"><span class="on">Lire</span><span>Notes</span><span>Réviser</span></div>
+    <div class="extrait" data-r="2">La membrane régule les échanges entre la cellule et son milieu.</div>
+    <div class="cta" data-r="3">Ouvrir le cahier</div>
+  </div>
+  <svg id="curseur" viewBox="0 0 22 31"><path d="M2 2v23.5l6.2-5.8 4.2 9.3 4-1.8-4.1-9.1h8.4z" fill="#fff" stroke="#111" stroke-width="1.6" stroke-linejoin="round"/></svg>
+</div>
+<script>
+// ——— Données faciles à changer ———
+const R = { widget: { x: 344, y: 33, w: 712, h: 1006 }, bouton: { x: 702, y: 925, w: 312, h: 72 }, apercu: { x: 386, y: 243, w: 628, h: 662 } };
+// Chapitres dans l'ordre du cours (les traits suivent cet ordre). Positions de la vue d'ensemble, en pixels de l'image.
+const ETOILES = [
+  { nom: 'La membrane', x: 300, y: 770 },
+  { nom: 'La cellule', x: 470, y: 600, choisi: true },
+  { nom: 'Le noyau', x: 780, y: 470 },          // après la caméra, passe juste derrière le panneau (pas de nom coupé)
+  { nom: 'Les mitochondries', x: 900, y: 280 },
+];
+const MATIERE = { nom: 'Biologie', x: 200, y: 870 };
+const CAMERA = { zoom: 1.2, cible: { x: 1560 * 0.35, y: 560 } }; // l'étoile choisie finit à 35 % de la largeur
+const T = { // numéros d'image
+  bouge: [12, 30], clic: 33, relache: 37, ouvre: [42, 77], vers: [78, 96], survol: 96, choix: 105, anneau: 8,
+  camera: [117, 158], panneau: [123, 158], contenu: [148, 160],
+};
+// Aperçu du widget : la même constellation, réduite et centrée dans la zone de dessin.
+const MINI = 0.56, C0 = { x: 600, y: 525 }, CA = { x: R.apercu.x + R.apercu.w / 2, y: R.apercu.y + R.apercu.h / 2 - 20 };
+const mini = p => ({ x: CA.x + (p.x - C0.x) * MINI, y: CA.y + (p.y - C0.y) * MINI });
+
+// ——— Outils ———
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const prog = (f, [a, b]) => clamp((f - a) / (b - a));
+const lerp = (a, b, t) => a + (b - a) * t;
+const inOut = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const out = t => 1 - Math.pow(1 - t, 3);
+const $ = id => document.getElementById(id);
+const css = (n, o) => Object.assign(n.style, o);
+
+// Noms des étoiles (créés une fois).
+for (const s of ETOILES) { s.el = Object.assign(document.createElement('div'), { className: 'nom', textContent: s.nom }); $('noms').append(s.el); }
+const matiere = Object.assign(document.createElement('div'), { className: 'matiere', textContent: MATIERE.nom });
+$('noms').append(matiere);
+
+function etoile(x, y, k, choisi, anneau) {
+  const r = 22 * k;
+  return `<circle class="halo" cx="${x}" cy="${y}" r="${30 * k}"/><circle class="lueur" cx="${x}" cy="${y}" r="${12 * k}"/>`
+    + `<path class="rayon" d="M${x - r} ${y}H${x + r}M${x} ${y - r}V${y + r}" style="stroke-width:${1.6 * Math.max(k, .6)}"/>`
+    + `<circle class="coeur" cx="${x}" cy="${y}" r="${(choisi ? 8 : 7) * k}"/>`
+    + (anneau ? `<circle class="anneau" cx="${x}" cy="${y}" r="${anneau}"/>` : '');
+}
+
+function render(f) {
+  // 1. Ouverture : l'aperçu devient la scène (étoiles interpolées, traits accrochés).
+  const u = inOut(prog(f, T.ouvre));
+  const premier = clamp(u / .5), second = clamp((u - .5) / .5);
+  css($('dash'), { opacity: 1 - premier });
+  // Le cadre du widget s'éloigne et s'efface pendant la première moitié.
+  const g = 1 + premier * .35, w = R.widget;
+  css($('cadre'), { left: `${w.x + w.w / 2 - w.w * g / 2}px`, top: `${w.y + w.h / 2 - w.h * g / 2}px`, width: `${w.w * g}px`, height: `${w.h * g}px`, opacity: f < T.ouvre[0] ? 0 : (1 - premier) * .9 });
+  // Bouton pressé (retour visuel du clic), puis relâché.
+  const b = R.bouton, presse = f >= T.clic && f < T.relache;
+  css($('pressoir'), { left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px`, opacity: presse ? .28 : 0 });
+  css($('dash'), { transformOrigin: `${b.x + b.w / 2}px ${b.y + b.h / 2}px` });
+
+  // 2. Caméra : seule la constellation se déplace (zoom doux vers l'étoile choisie).
+  const c = out(prog(f, T.camera)), sel = ETOILES.find(s => s.choisi);
+  const z = lerp(1, CAMERA.zoom, c), tx = lerp(0, CAMERA.cible.x - sel.x * CAMERA.zoom, c), ty = lerp(0, CAMERA.cible.y - sel.y * CAMERA.zoom, c);
+  css($('ciel'), { transform: `translate(${tx}px,${ty}px) scale(${z})` });
+
+  // 3. Étoiles et traits.
+  const pos = s => { const m = mini(s); return { x: lerp(m.x, s.x, u), y: lerp(m.y, s.y, u) }; };
+  const k = lerp(MINI * .9, 1, u) / z; // taille à l'écran stable pendant le zoom
+  const ring = f >= T.choix ? lerp(11, 30, out(clamp((f - T.choix) / T.anneau))) : 0;
+  const P = ETOILES.map(pos);
+  let svg = `<path class="ligne" style="stroke-width:${2.2 / z}" d="${P.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join('')}"/>`;
+  ETOILES.forEach((s, i) => { svg += etoile(P[i].x, P[i].y, k, s.choisi, s.choisi && ring ? ring / z : 0); });
+  $('traits').innerHTML = svg;
+
+  // Noms : lisibles pendant la seconde moitié de l'ouverture ; les autres restent discrets dès qu'on vise « La cellule ».
+  const vise = prog(f, T.vers), survol = f >= T.survol, choisi = f >= T.choix;
+  ETOILES.forEach((s, i) => {
+    const calme = s.choisi ? 1 : lerp(1, .55, vise);
+    css(s.el, { left: `${P[i].x + 34 / z}px`, top: `${P[i].y}px`, opacity: second * calme, transform: `translateY(-50%) scale(${1 / z})`, transformOrigin: '0 50%' });
+    if (s.choisi) { s.el.classList.toggle('choisi', choisi); css(s.el, { background: survol && !choisi ? 'rgba(40,40,44,.82)' : '', color: survol ? '#fff' : '' }); }
+  });
+  // « Biologie » : petit sous l'aperçu, puis à sa place dans la scène.
+  const mm = mini(MATIERE);
+  css(matiere, { left: `${lerp(mm.x, MATIERE.x, u)}px`, top: `${lerp(mm.y, MATIERE.y, u)}px`, transform: `scale(${lerp(.42, 1, u) / z})`, transformOrigin: '0 0', opacity: lerp(.8, .85, u) });
+
+  // 4. Barre de l'espace : arrive avec la scène.
+  css($('barre'), { opacity: second * .92 });
+
+  // 5. Panneau du chapitre : ancré à l'écran, glisse un peu et apparaît ; son contenu suit.
+  const p = out(prog(f, T.panneau));
+  css($('panneau'), { opacity: p, transform: `translateX(${lerp(56, 0, p)}px)` });
+  for (const n of $('panneau').querySelectorAll('[data-r]')) {
+    const r = +n.dataset.r;
+    const v = r === 0 ? 1 : out(prog(f, [T.contenu[0] + (r - 1) * 3, T.contenu[0] + (r - 1) * 3 + 8]));
+    css(n, { opacity: v, transform: `translateY(${lerp(10, 0, v)}px)` });
+  }
+
+  // 6. Curseur : vers le bouton, clic ; puis vers « La cellule », survol, clic, et s'écarte un peu.
+  const B = { x: b.x + b.w * .55, y: b.y + b.h * .55 }, D = { x: 1150, y: 800 };
+  const N = { x: sel.x + 120, y: sel.y + 8 }, E = { x: N.x + 26, y: N.y + 44 };
+  let x, y;
+  if (f < T.vers[0]) { const t = inOut(prog(f, T.bouge)); x = lerp(D.x, B.x, t); y = lerp(D.y, B.y, t); }
+  else if (f < T.choix + 2) {
+    const t = inOut(prog(f, T.vers)); x = lerp(B.x, N.x, t); y = lerp(B.y, N.y, t) - Math.sin(t * Math.PI) * 90; // trajet légèrement courbe
+  } else { const t = out(prog(f, [T.choix + 2, T.choix + 10])); x = lerp(N.x, E.x, t); y = lerp(N.y, E.y, t); }
+  const appui = (f >= T.clic && f < T.relache) || (f >= T.choix && f < T.choix + 3);
+  css($('curseur'), { transform: `translate(${x - 4}px,${y - 4}px) scale(${appui ? .88 : 1})` });
+}
+window.render = render;
+render(0);
+</script>
+</body>
+</html>
