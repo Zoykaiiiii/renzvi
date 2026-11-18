@@ -2,7 +2,7 @@
 // et la création d'un mode (partagée avec Personnaliser). Un mode est une page de l'écran : ce fichier ne garde aucune donnée, il passe par ctx :
 //   ctx.pages() → [{ id, name, icon?, accent? }], ctx.current() → id, ctx.show(id), ctx.remove(id), ctx.canCreate() → bool,
 //   ctx.create({ name, icon, accent, wall }) → page, ctx.accents() → [{ id, name, hex }], ctx.wallName() → nom du fond,
-//   ctx.blocked() → vrai si un autre geste ou le verrou a la main, ctx.say(texte).
+//   ctx.blocked() → vrai si un autre geste ou le verrou a la main, ctx.say(texte, annonceSeule?).
 (() => {
   const PRESS_MS = 550, MOVE_PX = 10;
   // Icônes 16×16 au trait, dans le style de la barre.
@@ -169,7 +169,7 @@
         if (id !== ctx.current()) {
           ctx.show(id);
           const page = ctx.pages().find(p => p.id === id);
-          ctx.say(`Mode « ${page?.name ?? ''} »`);
+          ctx.say(`Mode « ${page?.name ?? ''} »`, true);
         }
         lastFocus?.isConnected && lastFocus.focus();
       });

@@ -150,9 +150,10 @@ body{--side:0px;padding-left:var(--side)}
 .mark{flex:1;min-width:0;display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 8px;border-radius:10px;font-family:var(--marque);font-size:17px;font-weight:600;text-decoration:none}
 .mark svg{flex:none;width:22px;height:22px}
 /* Le mode actuel, en gras à côté du logo, hors du menu : il ouvre la roue des modes. Caché quand le menu est ouvert (« Changer de mode » y est). */
-.bar-mode{position:fixed;top:20px;left:130px;z-index:38;display:inline-flex;align-items:center;min-height:44px;padding:0 10px;border:0;border-radius:10px;background:none;color:var(--ink);font-family:var(--marque);font-size:17px;font-weight:700;white-space:nowrap;transition:background-color .15s}
+.bar-mode{--mode-left:130px;position:fixed;top:20px;left:var(--mode-left);z-index:38;display:inline-flex;align-items:center;max-width:calc(100% - var(--mode-left) - 12px);min-height:44px;padding:0 10px;border:0;border-radius:10px;background:none;color:var(--ink);font-family:var(--display);font-size:clamp(22px,2vw,32px);font-weight:600;line-height:1.12;text-align:left;transition:background-color .15s}
+.bar-mode__name{display:-webkit-box;min-width:0;overflow:hidden;overflow-wrap:anywhere;-webkit-box-orient:vertical;-webkit-line-clamp:2}
 .bar-mode:hover{background:var(--tint)}
-body.has-wall .bar-mode{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.35)}
+body.has-wall .bar-mode{color:#fff;text-shadow:0 1px 2px #000,0 0 6px #0009}
 /* Icône d'un favori : celle du widget, en masque. */
 .fav-ic{flex:none;width:18px;height:18px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
 :is(.bar-peek,.drawer-open) .bar-mode{display:none}
@@ -205,7 +206,7 @@ body:not(.bar-peek,.drawer-open) .mark span{display:none}
   .bar-top{flex-direction:column}
   .mark{justify-content:center;padding:0;width:44px;white-space:nowrap}
   .mark span{display:none}
-  .bar-mode{left:20px}
+  .bar-mode{--mode-left:20px}
   /* Rail fermé : les favoris en icônes seulement, sans titre ni aide. */
   body:not(.bar-peek,.drawer-open) :is(.favs-head,.favs-empty){display:none}
   body:not(.bar-peek,.drawer-open) .favs-list{align-items:center}
@@ -1022,7 +1023,7 @@ dialog.settings,dialog.settings :is(h2,h3,h4){font-family:var(--marque)}
     </div>
   </nav>
 </header>
-<button class="bar-mode" id="bar-mode" type="button" hidden></button>
+<button class="bar-mode" id="bar-mode" type="button" hidden><span class="bar-mode__name" id="bar-mode-name"></span></button>
 <div class="bar-scrim" id="bar-scrim" hidden></div>
 <!-- Carte du compte : SpotlightCard (site/dash/spotlight.js) posée à l'ouverture. Les réglages se déplient un à la fois. -->
 <div id="menu" popover aria-labelledby="acct-name">
@@ -3464,7 +3465,8 @@ if (!sb) {
   function drawPages() {
     const many = screen.pages.length > 1, name = pageNow().name;
     $('mode-now').textContent = `Mode : ${name}`;
-    $('bar-mode').textContent = name;
+    $('bar-mode-name').textContent = name;
+    $('bar-mode').title = name;
     $('bar-mode').ariaLabel = `Mode ${name}. Changer de mode`;
     $('open-modes').ariaLabel = `Changer de mode. Mode actuel : ${name}`;
     for (const n of document.querySelectorAll('.page-name')) n.textContent = name;
@@ -4585,7 +4587,7 @@ if (!sb) {
         wallName: () => { const w = wallNow(); return w === 'blanc' ? 'blanc' : w === 'perso' ? 'ta photo' : w === 'video' ? 'ta vidéo' : (WALLPAPERS.find(x => x.id === w)?.name ?? w).toLowerCase(); },
         // En mode Disposer, l'appui long laisse la main au glisser et aux poignées de taille.
         blocked: () => !!lock?.isLocked() || !!zoomed || document.documentElement.classList.contains('zoom-lock') || $('screen').hidden || document.body.classList.contains('dragging') || document.body.classList.contains('customizing') || document.body.classList.contains('pages-editing') || !!document.querySelector('dialog[open]'),
-        say: text => { $('page-note').textContent = text; },
+        say: (text, announceOnly = false) => { $(announceOnly ? 'custom-live' : 'page-note').textContent = text; },
         afterCreate: () => $('board-empty').querySelector('.primary')?.focus(),
       });
       drawPages();
