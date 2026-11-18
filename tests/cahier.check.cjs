@@ -236,7 +236,9 @@ async function importFile(page, name, buffer, mimeType, subject = 'Droit civil')
       assert.match(await w.locator('.cahier-livre-foot').innerText(), /Chapitre 3 sur 4/, 'le livre montre le chapitre où l’on s’est arrêté');
       await w.locator('.cahier-livre-open').click();
       await page.waitForFunction(() => !document.querySelector('[data-widget=cahier]').getAnimations().length);
-      assert.strictEqual(await page.locator('.cahier-text').evaluate(e => e.scrollTop), 300, 'reprise à la dernière position');
+      // Le carnet rouvre sur la même ligne du texte, pas au pixel près.
+      const y = await page.locator('.cahier-text').evaluate(e => e.scrollTop);
+      assert.ok(Math.abs(y - 300) <= 4, `reprise à la dernière position (${y})`);
 
       // Corriger les chapitres (depuis « Gérer ce cours ») : renommer, couper à un endroit choisi, retirer.
       await page.getByRole('button', { name: 'Chapitres', exact: true }).click();
