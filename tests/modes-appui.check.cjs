@@ -48,12 +48,15 @@ const { start } = require('./demo.cjs');
         await page.mouse.move(p.x, p.y);
         await page.mouse.down();
         await holding.waitFor();
+        const cross = holding.locator('.mw-hold-mark');
+        assert.ok(await cross.isVisible());
+        assert.equal(await cross.evaluate(el => getComputedStyle(el).color), 'rgb(255, 255, 255)');
         await page.waitForFunction(() => {
           const row = document.querySelector('.is-holding .mw-item');
           if (!row) return false;
           const style = getComputedStyle(row, '::after');
-          const scale = new DOMMatrixReadOnly(style.transform).a;
-          return style.animationDuration === '3s' && scale > .17 && scale < .9;
+          const remaining = parseFloat(style.clipPath.split(' ')[1]);
+          return style.animationDuration === '3s' && style.inset === '0px' && remaining > 10 && remaining < 83;
         });
         if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/mode-appui.png` });
         await page.mouse.up();

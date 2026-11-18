@@ -19,6 +19,7 @@
     etoile: ['Étoile', '<path d="m8 2 1.800 3.800 4.200.500-3.100 2.900.800 4.200L8 11.300l-3.700 2.100.800-4.200L2 6.300l4.200-.500z"/>'],
   };
   const PLUS = '<path d="M8 3v10M3 8h10"/>';
+  const CROSS = '<path d="m4 4 8 8M12 4l-8 8"/>';
   const svg = body => `<svg viewBox="0 0 16 16" aria-hidden="true">${body}</svg>`;
   const iconOf = page => ICONS[page.icon]?.[1] ?? null;
   const letter = page => [...page.name.trim()][0]?.toUpperCase() ?? '·';
@@ -112,7 +113,10 @@
       const body = iconOf(page);
       if (body) ic.innerHTML = svg(body); else ic.textContent = letter(page);
       if (page.accent) ic.style.setProperty('--mw-c', page.accent);
-      row.append(ic, node('span', 'mw-name', page.name));
+      const cross = node('span', 'mw-icon mw-hold-mark');
+      cross.setAttribute('aria-hidden', 'true');
+      cross.innerHTML = svg(CROSS);
+      row.append(ic, cross, node('span', 'mw-name', page.name));
       if (current) row.append(node('span', 'mw-now', 'Actuel'));
       return row;
     }
