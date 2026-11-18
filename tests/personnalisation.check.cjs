@@ -222,7 +222,7 @@ async function photo(browser, kind) {
     assert.deepEqual(db.rows.taches, CONTENT.taches, 'le contenu des widgets n\'est pas touché');
     await page.click('#custom-done');
     assert.equal(await page.isVisible('.grip'), false);
-    assert.equal(await page.evaluate(() => document.activeElement.id), 'bar-toggle', 'menu refermé : retour au bouton de la pastille');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'open-custom', 'Personnaliser refermé : retour au bouton qui l\'a ouvert (visible dans le rail)');
     await context.close();
   }
 

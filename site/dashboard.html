@@ -278,8 +278,9 @@ body.has-wall .hello{margin:16px 0;padding:16px 24px;border:1px solid var(--glas
 .board{position:relative;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:var(--gap)}
 
 /* Page vide : l'invitation prend la place du premier widget. Le dessin reprend les quatre carrés du logo. */
-#board-empty{display:grid;justify-items:center;gap:8px;padding:48px 24px 44px;border-radius:var(--r-panel);text-align:center}
-#board-empty svg{width:min(264px,70%);height:auto;margin-bottom:12px;color:var(--ink)}
+/* Page vide : une petite carte au centre, le fond reste visible autour (Damien, 18 nov.). */
+#board-empty{display:grid;justify-items:center;gap:8px;width:min(420px,100%);margin:clamp(24px,10vh,120px) auto 0;padding:32px 28px 28px;border-radius:var(--r-panel);text-align:center}
+#board-empty svg{width:min(180px,60%);height:auto;margin-bottom:12px;color:var(--ink)}
 #board-empty .tile-a{fill:var(--accent)}
 #board-empty h2{font-size:22px;line-height:1.2;font-weight:600;letter-spacing:-.015em}
 #board-empty p{max-width:46ch;font-size:15px;color:var(--slate)}
