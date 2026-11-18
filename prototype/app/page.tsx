@@ -14,7 +14,7 @@ const LOGIN = "/login.html";
 // Un cadre peut aussi recevoir { type: "video", src, poster, label } ou null (vide).
 const HERO_MEDIA: Hero10Props["media"] = [
   { type: "image", src: planConstellations.src, alt: "Mon espace Study en constellations : les chapitres de chaque cours reliés comme des étoiles, sur un ciel étoilé." },
-  { type: "image", src: planCentre.src, alt: "Le dashboard Renzvi en thème clair sur un lac de montagne : le Cahier ouvert sur un cours de maths, Mon espace Study en arbre et le minuteur de focus." },
+  { type: "image", src: planCentre.src, alt: "Le dashboard Renzvi en thème sombre sur un trou noir : vol de focus, Cahier ouvert sur un cours de biologie, playlist et temps de focus de la semaine." },
   { type: "image", src: planLofi.src, alt: "Le dashboard en thème clair : minuteur de focus et tâches, posés sur une illustration de chambre." },
 ];
 
