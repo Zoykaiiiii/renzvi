@@ -3642,20 +3642,31 @@ if (!sb) {
     $('page-dialog').showModal();
     input.select();
   }
-  function askDeletePage() {
-    const page = screen.pages.find(p => p.id === currentPage);
+  function modeDeleteTarget(page) {
     const i = screen.pages.indexOf(page);
-    const target = screen.pages[i - 1] ?? screen.pages[1];
+    return screen.pages[i - 1] ?? screen.pages[1];
+  }
+  function deleteMode(id) {
+    const page = screen.pages.find(p => p.id === id);
+    if (!page || screen.pages.length < 2) return;
+    const target = modeDeleteTarget(page);
+    const where = { ...screen.where };
+    for (const widget of Object.keys(where)) if (where[widget] === id) where[widget] = target.id;
+    screen.where = where;
+    changeWalls(() => { screen.pages = screen.pages.filter(p => p !== page); });
+    if (currentPage === id) showPage(target.id); else drawPages();
+    saveScreen();
+    $('custom-live').textContent = `Mode « ${page.name} » supprimé. Ses widgets restent dans « ${target.name} ».`;
+  }
+  function askDeletePage() {
+    const page = pageNow();
+    const target = modeDeleteTarget(page);
+    if (!target) return;
     const count = onPage().length;
     const actions = el('div', 'actions');
     actions.append(button('ghost', 'Annuler', () => $('page-dialog').close()), button('primary', 'Supprimer le mode', () => {
-      const where = { ...screen.where };
-      for (const id of Object.keys(where)) if (where[id] === page.id) where[id] = target.id;
-      screen.where = where;
-      changeWalls(() => { screen.pages = screen.pages.filter(p => p !== page); });
       $('page-dialog').close();
-      showPage(target.id);
-      saveScreen();
+      deleteMode(page.id);
     }));
     $('page-title').textContent = `Supprimer le mode « ${page.name} » ?`;
     $('page-slot').replaceChildren(el('p', 'desc', `${count ? `${plural(count, 'widget')} et leur contenu passeront sur « ${target.name} ». Rien n'est perdu.` : 'Ce mode est vide.'} Le choix de fond de ce mode est oublié.`), actions);
@@ -4562,6 +4573,7 @@ if (!sb) {
         pages: () => screen.pages,
         current: () => currentPage,
         show: id => showPage(id),
+        remove: deleteMode,
         canCreate: () => screen.pages.length < MAX_SCREEN_PAGES,
         create: ({ name, icon, accent, sameWall }) => {
           const page = { id: crypto.randomUUID(), name: name.slice(0, MAX_PAGE_NAME), icon, ...(accent && { accent }), wall: sameWall ? wallNow() : 'blanc' };

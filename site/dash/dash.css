@@ -88,7 +88,7 @@ dialog.mode-wheel[open]{display:grid;place-items:center}
 dialog.mode-wheel::backdrop{background:color-mix(in srgb,var(--ground) 45%,transparent);-webkit-backdrop-filter:blur(20px) saturate(1.2);backdrop-filter:blur(20px) saturate(1.2)}
 .mode-wheel__panel{display:grid;justify-items:center;gap:8px;width:min(440px,100vw - 32px);padding:16px 0}
 .mode-wheel__title{font-size:15px;font-weight:600;color:var(--slate)}
-.mode-wheel__hint{font-size:13px;color:var(--slate)}
+.mode-wheel__hint{font-size:13px;color:var(--slate);text-align:center}
 .mode-wheel__slot{width:100%;height:min(320px,56dvh)}
 .mode-wheel .option-wheel__item{left:50%;right:auto;margin-left:-120px;width:min(320px,100vw - 64px)}
 /* Entrée : le flou se pose, le titre descend, chaque mode glisse vers sa place (l'actuel d'abord), l'aide arrive en dernier.
@@ -114,7 +114,14 @@ dialog.mode-wheel::backdrop{background:color-mix(in srgb,var(--ground) 45%,trans
 .option-wheel--dragging{cursor:grabbing}
 .option-wheel__item{position:absolute;top:50%;left:var(--ow-inset);right:16px;font-size:var(--ow-font-size);line-height:1;transform-origin:left center;cursor:pointer;will-change:transform,opacity,filter;
   color:color-mix(in srgb,var(--ink) calc(var(--ow-p,0) * 100%),var(--slate))}
-.mw-item{display:flex;align-items:center;gap:12px;width:fit-content;max-width:100%;padding:6px 14px 6px 6px;border-radius:var(--pill);transition:background-color .15s,transform .2s var(--spring)}
+.mw-item{position:relative;display:flex;align-items:center;gap:12px;width:fit-content;max-width:100%;padding:6px 14px 6px 6px;border-radius:var(--pill);transition:background-color .15s,transform .2s var(--spring);-webkit-touch-callout:none}
+.is-holding .mw-item::before,.is-holding .mw-item::after{content:"";position:absolute;inset-inline:12px;bottom:3px;height:3px;border-radius:var(--pill);pointer-events:none}
+.is-holding .mw-item::before{background:var(--edge)}
+.is-holding .mw-item::after{background:var(--error);transform-origin:left center}
+@media (prefers-reduced-motion:no-preference){
+  .is-holding .mw-item::after{animation:mw-hold var(--ow-hold) linear both}
+}
+@keyframes mw-hold{from{transform:scaleX(0)}}
 .option-wheel__item:hover .mw-item{background:var(--tint)}
 .option-wheel__item--selected .mw-item{background:var(--tint);font-weight:600}
 .mw-icon{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--mw-c,var(--accent));color:var(--on-accent);font-size:15px;font-weight:600}

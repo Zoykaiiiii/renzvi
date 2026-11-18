@@ -1,6 +1,6 @@
 // Modes : la roue (OptionWheel, option-wheel.js) ouverte par un appui long ou par le bouton « Changer de mode » du menu,
 // et la création d'un mode (partagée avec Personnaliser). Un mode est une page de l'écran : ce fichier ne garde aucune donnée, il passe par ctx :
-//   ctx.pages() → [{ id, name, icon?, accent? }], ctx.current() → id, ctx.show(id), ctx.canCreate() → bool,
+//   ctx.pages() → [{ id, name, icon?, accent? }], ctx.current() → id, ctx.show(id), ctx.remove(id), ctx.canCreate() → bool,
 //   ctx.create({ name, icon, accent, wall }) → page, ctx.accents() → [{ id, name, hex }], ctx.wallName() → nom du fond,
 //   ctx.blocked() → vrai si un autre geste ou le verrou a la main, ctx.say(texte).
 (() => {
@@ -96,7 +96,8 @@
     const panel = node('div', 'mode-wheel__panel');
     const title = node('h2', 'mode-wheel__title', 'Changer de mode');
     title.id = 'mode-wheel-title';
-    const hint = node('p', 'mode-wheel__hint', 'Fais défiler, puis choisis.');
+    const hint = node('p', 'mode-wheel__hint');
+    hint.id = 'mode-wheel-hint';
     const slot = node('div', 'mode-wheel__slot');
     panel.append(title, slot, hint);
     dlg.append(panel);
@@ -119,7 +120,9 @@
       if (wheel) return;
       lastFocus = back instanceof HTMLElement && back !== document.body ? back : null;
       const pages = ctx.pages(), cur = ctx.current(), canCreate = ctx.canCreate();
-      const items = pages.map(p => ({ id: p.id, node: itemNode(p, p.id === cur), className: p.id === cur ? 'is-current' : '' }));
+      const canRemove = pages.length > 1;
+      hint.textContent = canRemove ? 'Choisis un mode ou maintiens-le 3 s pour le supprimer.' : 'Fais défiler, puis choisis.';
+      const items = pages.map(p => ({ id: p.id, node: itemNode(p, p.id === cur), className: p.id === cur ? 'is-current' : '', hold: canRemove }));
       const create = node('span', 'mw-item mw-create');
       const ci = node('span', 'mw-icon');
       ci.innerHTML = svg(PLUS);
@@ -127,8 +130,11 @@
       items.push({ id: '+', node: create, className: canCreate ? 'is-create' : 'is-create is-off' });
       wheel = window.OptionWheel({
         items, fontSize: 1.6, spacing: 2.2, enter: 1.6, smoothing: 220, selected: Math.max(0, pages.findIndex(p => p.id === cur)), label: 'Modes',
+        holdMs: 3000,
+        onHold: item => { if (wheel) close(() => { ctx.remove(item.id); lastFocus?.focus(); }); },
         onPick: (i, item) => choose(item, wheel.el.children[i]),
       });
+      wheel.el.setAttribute('aria-describedby', hint.id);
       slot.replaceChildren(wheel.el);
       // Ordre d'apparition : le mode actuel d'abord, puis ses voisins.
       const sel = wheel.selected;
