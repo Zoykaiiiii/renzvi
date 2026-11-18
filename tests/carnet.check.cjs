@@ -67,6 +67,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
   try {
     // 1. Le widget compact ne change pas ; Agrandir ouvre le carnet dans la page (pas le plein écran du navigateur).
     const db = newDb();
+    db.rows.ecran.look = { fini: 'poli' };
     const course = addCourse(db);
     db.cards.push({ ...card('La cellule', 'Rôle de la membrane ?', '2026-11-12T08:00:00.000Z'), course_id: course }, { ...card('La cellule', 'Où est l’ADN ?'), course_id: course }, card('Autre paquet', 'Sans rapport'));
     let { context, page, errors } = await openBoard(browser, base, db);
@@ -88,7 +89,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     assert.match(await cahier(page).evaluate(n => getComputedStyle(n).backdropFilter), /blur\(24px\)/);
     await shot(page, 'carnet-verre');
     // Personnaliser : Papier, puis taille du texte ; gardé sur l'appareil, limité au carnet.
-    await page.getByRole('button', { name: 'Personnaliser' }).click();
+    await cahier(page).getByRole('button', { name: 'Personnaliser' }).click();
     await page.waitForSelector('.carnet-look:not([hidden])');
     await shot(page, 'carnet-personnaliser');
     await page.locator('.carnet-look').getByRole('button', { name: 'Papier' }).click();

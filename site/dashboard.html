@@ -66,7 +66,7 @@
 @font-face{font-family:"Geologica";src:url(fonts/geologica-latin.woff2) format("woff2");font-weight:400 700;font-display:swap}</style>
 <script>
 // Apparence choisie dans les Réglages, lue avant l'affichage pour éviter un flash clair en mode sombre. La version du compte la remplace au chargement.
-try { const l = JSON.parse(localStorage.getItem('renzvi:look') || '{}'); for (const k of ['theme', 'accent', 'titre', 'texte', 'coins', 'densite']) if (typeof l[k] === 'string' && /^[a-z0-9-]{1,20}$/.test(l[k])) document.documentElement.dataset[k] = l[k]; for (const [k, v] of Object.entries(l.vars || {})) if (/^--(display|display-weight|sans|accent|on-accent|glass-blur|boost)$/.test(k) && typeof v === 'string' && /^[\w\s",.()#-]{1,200}$/.test(v)) document.documentElement.style.setProperty(k, v); } catch {}
+try { const l = JSON.parse(localStorage.getItem('renzvi:look') || '{}'); for (const k of ['theme', 'accent', 'titre', 'texte', 'coins', 'densite', 'fini']) if (typeof l[k] === 'string' && /^[a-z0-9-]{1,20}$/.test(l[k])) document.documentElement.dataset[k] = l[k]; for (const [k, v] of Object.entries(l.vars || {})) if (/^--(display|display-weight|sans|accent|on-accent|glass-blur|boost|poli-alpha|poli-flou)$/.test(k) && typeof v === 'string' && /^[\w\s",.()#-]{1,200}$/.test(v)) document.documentElement.style.setProperty(k, v); } catch {}
 </script>
 <style>
 /* Tous les choix visuels passent par ces variables : changer de style = changer ce bloc. */
@@ -267,6 +267,44 @@ h1{font-family:var(--display);font-size:28px;line-height:1.15;font-weight:var(--
 .today{margin-top:4px;font-size:15px;color:var(--slate)}
 .today:empty{display:none}
 body.has-wall .hello{margin:16px 0;padding:16px 24px;border:1px solid var(--glass-edge);border-radius:var(--r-panel);background:var(--glass);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shine)}
+/* Verre poli : le fond est filtré par la coque, les surfaces de lecture n'ajoutent qu'une teinte. */
+:root{
+  --poli-rgb:250 251 253; --poli-default:.78; --poli-edge:rgb(255 255 255 / .58);
+  --poli-shine:inset 0 1px 0 rgb(255 255 255 / .92),0 6px 20px rgb(16 23 36 / .12);
+  --poli-slate:#3b4551; --poli-line:rgb(27 42 57 / .25); --poli-chart:#596d83;
+  --poli-surface:rgb(var(--poli-rgb) / max(var(--poli-min,.68),var(--poli-alpha,var(--poli-default))));
+  --poli-filter:blur(var(--poli-flou,12px)) saturate(1.12);
+  --poli-inset:rgb(var(--poli-rgb) / .48); --poli-read:rgb(var(--poli-rgb) / .68);
+}
+:root[data-theme=dark]{
+  --poli-rgb:20 22 27; --poli-default:.72; --poli-edge:rgb(215 229 247 / .24);
+  --poli-shine:inset 0 1px 0 rgb(238 247 255 / .24),0 7px 24px rgb(0 0 0 / .28);
+  --poli-slate:#dce1e9; --poli-line:rgb(231 239 250 / .37); --poli-chart:#a8b7c9;
+}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  :root{--poli-min:.96;--poli-filter:none}
+}
+@media (prefers-reduced-transparency:reduce){
+  :root{--poli-min:.96;--poli-filter:none}
+}
+:root[data-fini=poli] :is(.hello,.widget.glass:not(.zoomed,.cahier-open,.etude-open)),
+.fini-apercu[data-fini=poli] .fini-carte{
+  --glass:var(--poli-surface); --glass-blur:var(--poli-filter); --glass-edge:var(--poli-edge); --glass-shine:var(--poli-shine);
+  --slate:var(--poli-slate); --edge:var(--poli-line); --field:var(--poli-read); --field-hover:rgb(var(--poli-rgb) / .94);
+}
+:root[data-fini=poli] body:not(.has-wall) .hello{position:relative;isolation:isolate}
+:root[data-fini=poli] body:not(.has-wall) .hello::before{
+  content:"";position:absolute;z-index:-1;inset:-8px -12px;border:1px solid var(--glass-edge);border-radius:var(--r-panel);
+  background:var(--glass);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shine);pointer-events:none
+}
+:root[data-fini=poli] .widget .boarding{background:var(--poli-inset);box-shadow:inset 0 0 0 1px var(--edge)}
+:root[data-fini=poli] .widget .bstub svg{fill:currentColor}
+:root[data-fini=poli] .widget .week{color:var(--ink)}
+:root[data-fini=poli] .widget .week li:not(.today) .week-bar i{background:var(--poli-chart)}
+:root[data-fini=poli] .widget:not(.cahier-open) :is(.notes,.cahier-text,.cahier-feuille){background:var(--poli-read)}
+:root[data-fini=poli] .widget .notes{padding:10px;border-radius:var(--r-control);box-shadow:inset 0 0 0 1px var(--edge)}
+:root[data-fini=poli] .widget:not(.cahier-open) .cahier-text{padding-inline:10px}
+:root[data-fini=poli] .widget:not(.cahier-open) :is(button,input,textarea,select,[tabindex]):focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 #saved{font-size:12px;color:var(--slate)}
 #saved.bad{color:var(--error)}
 .msg{color:var(--error)}
@@ -886,6 +924,12 @@ dialog.settings::backdrop{background:transparent}
 .theme-name{display:flex;align-items:center;gap:8px;padding:0 4px;font-size:14px;font-weight:500}
 .theme-name svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .theme-btn[aria-pressed=true] .theme-name::after{content:"";width:6px;height:6px;margin-left:auto;margin-right:2px;border-radius:50%;background:var(--accent)}
+.fini-apercu{position:relative;display:grid;align-items:center;justify-items:center;min-height:88px;isolation:isolate;overflow:hidden;border-radius:max(4px,calc(var(--r-control) - 6px));background:var(--ground) var(--wall,none) center/cover no-repeat}
+.fini-apercu video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+.fini-carte{position:relative;display:grid;gap:3px;width:min(86%,120px);padding:8px 9px;border-radius:9px;font-size:11px;line-height:1.2;color:var(--ink)}
+.fini-carte strong{font:600 17px/1.15 var(--display);color:var(--accent)}
+.fini-reglages{margin-top:14px}
+#fini-reset{margin-top:10px}
 .settings .swatches{margin:-4px 0 0 -10px}
 /* Polices : chaque choix s'écrit dans sa propre police. */
 .fonts{position:relative;display:flex;gap:16px;margin:-2px;padding:2px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
@@ -1097,9 +1141,16 @@ dialog.settings,dialog.settings :is(h2,h3,h4){font-family:var(--marque)}
         <div class="set-row"><span id="set-densite">Espacement</span><div class="choices" id="look-densite" role="group" aria-labelledby="set-densite"></div></div>
       </section>
       <section class="set-sec" aria-labelledby="set-verre">
-        <h4 id="set-verre">Verre des widgets</h4>
-        <div class="set-slider"><label for="look-flou">Flou</label><output id="flou-val" for="look-flou"></output><input type="range" id="look-flou" min="0" max="40" step="1"></div>
-        <div class="set-slider"><label for="look-opacite">Opacité</label><output id="opacite-val" for="look-opacite"></output><input type="range" id="look-opacite" min="0" max="100" step="5"></div>
+        <h4 id="set-verre">Finition des widgets</h4>
+        <div class="themes" id="look-fini" role="group" aria-labelledby="set-verre">
+          <button class="theme-btn" type="button" data-value="classique"><span class="fini-apercu" aria-hidden="true"><span class="fini-carte glass">Temps de focus<strong>25 min</strong></span></span><span class="theme-name">Classique</span></button>
+          <button class="theme-btn" type="button" data-value="poli"><span class="fini-apercu" id="fini-poli" data-fini="poli" aria-hidden="true"><span class="fini-carte glass">Temps de focus<strong>25 min</strong></span></span><span class="theme-name">Verre poli</span></button>
+        </div>
+        <div class="fini-reglages">
+          <div class="set-slider"><label for="look-flou">Flou</label><output id="flou-val" for="look-flou"></output><input type="range" id="look-flou" min="0" max="40" step="1"></div>
+          <div class="set-slider"><label for="look-opacite">Opacité</label><output id="opacite-val" for="look-opacite"></output><input type="range" id="look-opacite" min="0" max="100" step="5"></div>
+          <button class="link" id="fini-reset" type="button" hidden>Rétablir les valeurs par défaut</button>
+        </div>
       </section>
       <div class="set-foot">
         <button class="link" id="look-reset" type="button">Revenir à l'apparence d'origine</button>
@@ -1382,9 +1433,12 @@ const LOOK = {
   ],
   coins: [['nets', 'Nets'], ['doux', 'Doux'], ['ronds', 'Ronds']],
   densite: [['compacte', 'Serré'], ['normale', 'Normal'], ['aeree', 'Aéré']],
+  fini: [['classique', 'Classique'], ['poli', 'Verre poli']],
 };
 // flou : null = réglage d'origine (24 px, 12 px sur téléphone), sinon 0 à 40 px. opacite : 0 (givré, le plus transparent encore lisible) à 100 (plein).
-const LOOK_DEFAULT = { theme: 'light', titre: 'defaut', texte: 'systeme', coins: 'doux', densite: 'normale', flou: null, opacite: 0, fond: 100 };
+const POLI_DEFAULT = { poliFlou: 12, poliOpacite: null };
+const POLI_OPACITY_MIN = 68;
+const LOOK_DEFAULT = { theme: 'light', titre: 'defaut', texte: 'systeme', coins: 'doux', densite: 'normale', fini: 'classique', flou: null, opacite: 0, ...POLI_DEFAULT, fond: 100 };
 const FOND_MIN = 40; // zoom du fond d'écran, en % de la taille qui couvre l'écran
 const FLOU_MAX = 40, BOOST_MAX = .26;
 const SIZES = [{ id: 's', name: 'Petit' }, { id: 'm', name: 'Moyen' }, { id: 'l', name: 'Grand' }];
@@ -3916,6 +3970,8 @@ if (!sb) {
       '--accent': accentColor(accentNow()), '--on-accent': screen.look.theme === 'dark' ? '#141414' : '#ffffff',
       '--glass-blur': screen.look.flou == null ? null : screen.look.flou ? `blur(${screen.look.flou}px) saturate(1.6)` : 'none',
       '--boost': String(Math.round(screen.look.opacite / 100 * BOOST_MAX * 1000) / 1000),
+      '--poli-flou': `${look.poliFlou}px`,
+      '--poli-alpha': look.poliOpacite == null ? null : String(look.poliOpacite / 100),
     };
   };
   function rememberLook() {
@@ -3926,13 +3982,20 @@ if (!sb) {
     for (const key of Object.keys(LOOK)) root.dataset[key] = screen.look[key];
     for (const [name, value] of Object.entries(lookVars())) value == null ? root.style.removeProperty(name) : root.style.setProperty(name, value);
     applyAccent();
-    const flou = screen.look.flou ?? (matchMedia('(max-width:760px)').matches ? 12 : 24);
+    const polished = screen.look.fini === 'poli';
+    const flou = polished ? screen.look.poliFlou : screen.look.flou ?? (matchMedia('(max-width:760px)').matches ? 12 : 24);
+    const opacite = polished ? screen.look.poliOpacite ?? (screen.look.theme === 'dark' ? 72 : 78) : screen.look.opacite;
+    const opacitySlider = $('look-opacite');
     $('look-flou').value = flou;
     $('flou-val').textContent = flou ? `${flou} px` : 'Aucun';
-    $('look-opacite').value = screen.look.opacite;
+    opacitySlider.min = polished ? POLI_OPACITY_MIN : 0;
+    opacitySlider.step = polished ? 1 : 5;
+    opacitySlider.value = opacite;
     fillRange($('look-flou'));
-    fillRange($('look-opacite'));
-    $('opacite-val').textContent = screen.look.opacite === 0 ? 'Givré' : screen.look.opacite === 100 ? 'Plein' : `${screen.look.opacite} %`;
+    fillRange(opacitySlider);
+    $('opacite-val').textContent = !polished && opacite === 0 ? 'Givré' : !polished && opacite === 100 ? 'Plein' : `${opacite} %`;
+    $('fini-reset').hidden = !polished;
+    for (const b of $('look-fini').children) b.setAttribute('aria-pressed', b.dataset.value === screen.look.fini);
     document.querySelector('meta[name=theme-color]').content = screen.look.theme === 'dark' ? '#111112' : '#ffffff';
     for (const b of $('themes').children) b.setAttribute('aria-pressed', b.dataset.value === screen.look.theme);
     const shown = shownLook();
@@ -4248,14 +4311,23 @@ if (!sb) {
   }
   function drawSettings() {
     for (const b of $('themes').children) b.onclick = () => setLook('theme', b.dataset.value);
+    for (const b of $('look-fini').children) b.onclick = () => setLook('fini', b.dataset.value);
     for (const key of ['titre', 'texte']) drawFonts(key);
     drawMyFontTools();
     // Curseurs : l'écran suit en direct, l'enregistrement part quand on lâche.
-    for (const [key, max] of [['flou', FLOU_MAX], ['opacite', 100]]) {
+    for (const [key, poliKey] of [['flou', 'poliFlou'], ['opacite', 'poliOpacite']]) {
       const input = $(`look-${key}`);
-      input.oninput = () => { screen.look = { ...screen.look, [key]: Math.max(0, Math.min(max, Math.round(+input.value))) }; applyLook(); };
+      input.oninput = () => {
+        screen.look[screen.look.fini === 'poli' ? poliKey : key] = input.valueAsNumber;
+        applyLook();
+      };
       input.onchange = () => saveScreen();
     }
+    $('fini-reset').onclick = () => {
+      Object.assign(screen.look, POLI_DEFAULT);
+      applyLook();
+      saveScreen();
+    };
     for (const key of ['coins', 'densite']) {
       $(`look-${key}`).replaceChildren(...LOOK[key].map(([id, name]) => {
         const b = button('', name, () => setLook(key, id));
@@ -4278,6 +4350,7 @@ if (!sb) {
       closeDrawer(false);
       $('wall-slot').replaceChildren(wallpaperPicker());
       $('settings').showModal();
+      syncFiniVideo();
       $('settings').querySelector('.set-body').scrollTop = 0;
       for (const key of ['titre', 'texte']) $(`fonts-${key}`).showChoice();
       drawLayoutPages();
@@ -4286,7 +4359,7 @@ if (!sb) {
     // Un clic à côté du panneau le ferme : seul le fond invisible du dialogue reçoit ce clic.
     $('settings').onclick = e => { if (e.target === $('settings')) $('settings').close(); };
     // Retour au même endroit : le bouton Personnaliser, ou celui qui ouvre le menu s'il est replié.
-    $('settings').onclose = () => { endFontPreview(); if (!document.body.classList.contains('customizing')) (($('open-custom').checkVisibility?.() ?? true) ? $('open-custom') : $('bar-toggle')).focus(); };
+    $('settings').onclose = () => { syncFiniVideo(); endFontPreview(); if (!document.body.classList.contains('customizing')) (($('open-custom').checkVisibility?.() ?? true) ? $('open-custom') : $('bar-toggle')).focus(); };
     applyLook();
   }
   function drawSwatches() {
@@ -4873,8 +4946,16 @@ if (!sb) {
     if (!REDUCED_MOTION()) v.play().catch(() => {});
     return v;
   }
+  function syncFiniVideo() {
+    const preview = $('fini-poli'), video = preview.querySelector('video');
+    const src = $('settings').open && wallNow() === 'video' ? videoUrl : null;
+    if (video?.src === src) return;
+    video?.pause();
+    video?.remove();
+    if (src) preview.prepend(wallVideo(src));
+  }
   document.addEventListener('visibilitychange', () => {
-    for (const v of document.querySelectorAll('#wall video')) document.hidden || REDUCED_MOTION() ? v.pause() : v.play().catch(() => {});
+    for (const v of document.querySelectorAll('#wall video,#fini-poli video')) document.hidden || REDUCED_MOTION() ? v.pause() : v.play().catch(() => {});
   });
   let wallUrl = null;
   function applyWallpaper() {
@@ -4885,6 +4966,7 @@ if (!sb) {
     // shortcut: --wall (aperçus du catalogue) reste vide pour une vidéo, l'aperçu montre le fond uni ; à revoir si on veut une image de la vidéo.
     if (url && !video) document.documentElement.style.setProperty('--wall', url);
     else document.documentElement.style.removeProperty('--wall');
+    syncFiniVideo();
     document.body.classList.toggle('has-wall', !!url);
     // La nouvelle photo apparaît en fondu par-dessus l'ancienne, retirée ensuite.
     if (url !== wallUrl) {
@@ -5127,6 +5209,8 @@ if (!sb) {
     const whole = (v, max) => Number.isInteger(v) && v >= 0 && v <= max;
     screen.look.flou = whole(saved.look?.flou, FLOU_MAX) ? saved.look.flou : null;
     screen.look.opacite = whole(saved.look?.opacite, 100) ? saved.look.opacite : 0;
+    screen.look.poliFlou = whole(saved.look?.poliFlou, FLOU_MAX) ? saved.look.poliFlou : POLI_DEFAULT.poliFlou;
+    screen.look.poliOpacite = whole(saved.look?.poliOpacite, 100) && saved.look.poliOpacite >= POLI_OPACITY_MIN ? saved.look.poliOpacite : POLI_DEFAULT.poliOpacite;
     screen.look.fond = whole(saved.look?.fond, 100) && saved.look.fond >= FOND_MIN ? saved.look.fond : 100;
     screen.sizes = Object.fromEntries(Object.entries(saved.sizes ?? {}).filter(([id, size]) => known(id) && SIZES.some(s => s.id === size)));
     // Taille fine (colonnes, hauteur) et widgets repliés : une valeur abîmée est simplement oubliée.
