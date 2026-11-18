@@ -26,96 +26,72 @@ const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, show
   const settle = page => page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running'));
   const toggle = page => page.locator('#bar-toggle');
 
-  // 1. Grand écran : une pastille au départ ; le menu s'ouvre au survol par-dessus l'écran, sans rien déplacer.
+  // 1. Grand écran : un rail d'icônes compact, centré à gauche. Le survol ne l'ouvre plus (Damien, 17 nov.) ; le clic l'ouvre
+  // par-dessus l'écran, sans rien déplacer. Le mode est écrit en gras en haut à gauche, hors du menu, et ouvre la roue.
   {
     const { page, context } = await open({ width: 1440, height: 900 }, 'survol');
     const nav = page.getByRole('navigation', { name: 'Menu de ton écran' });
-    const shown = () => page.evaluate(() => document.getElementById('bar-nav').checkVisibility());
-    const away = () => page.mouse.move(720, 500);
-    const closedSoon = async what => { await page.waitForFunction(() => !document.getElementById('bar-nav').checkVisibility(), null, { timeout: 2000 }).catch(() => assert.fail(what)); };
-    // Départ : la pastille seule, un vrai bouton qui dit son état.
-    assert.equal(await shown(), false, 'au départ, la pastille seule');
+    const shown = () => page.evaluate(() => document.body.classList.contains('drawer-open'));
+    assert.equal(await shown(), false, 'au départ, le rail fermé');
     assert.equal(await toggle(page).getAttribute('aria-expanded'), 'false');
     assert.equal(await toggle(page).getAttribute('aria-label'), 'Afficher le menu');
-    const pill = await page.locator('#bar').boundingBox();
-    assert.ok(pill.width <= 64 && pill.height <= 120, `une petite pastille (${pill.width}×${pill.height})`);
-    assert.equal(await page.evaluate(() => !!document.elementFromPoint(120, 600)?.closest('#bar,#bar-edge')), false, 'rien d’invisible ne bloque les clics');
+    const rail = await page.locator('#bar').boundingBox();
+    assert.ok(rail.width <= 64, `un rail étroit (${rail.width})`);
+    assert.ok(rail.height < 800 && Math.abs(rail.y + rail.height / 2 - 450) <= 2, `compact et centré (${rail.y}, ${rail.height})`);
+    assert.equal(await page.getByRole('button', { name: 'Ajouter un widget' }).isVisible(), true, 'icônes visibles');
+    assert.ok((await page.locator('#open-add > span').evaluate(n => n.getBoundingClientRect().width)) <= 1, 'libellés cachés à l’œil, gardés pour les lecteurs d’écran');
+    const mode = page.locator('#bar-mode');
+    assert.equal(await mode.textContent(), 'Study');
+    assert.equal(await mode.evaluate(n => !n.closest('#bar')), true, 'le mode est hors du menu');
+    const mb = await mode.boundingBox();
+    assert.ok(mb.x < 40 && mb.y < 40, `en haut à gauche (${mb.x}, ${mb.y})`);
+    assert.equal(await page.evaluate(() => !!document.elementFromPoint(120, 600)?.closest('#bar')), false, 'rien d’invisible ne bloque les clics');
     const boxes = () => page.locator('#board .widget:not([hidden])').evaluateAll(w => w.map(x => { const r = x.getBoundingClientRect(); return [r.x, r.y, r.width, r.height].map(Math.round).join(','); }));
     const before = await boxes();
-    await shot(page, 'menu-pastille');
-    // Survol de la pastille : le menu s'ouvre, l'écran ne bouge pas.
+    await shot(page, 'menu-rail');
+    // Le survol (rail ou bord gauche) n'ouvre plus rien.
     await toggle(page).hover();
+    await page.waitForTimeout(500);
+    assert.equal(await shown(), false, 'le survol n’ouvre plus');
+    await page.mouse.move(4, 450);
+    await page.waitForTimeout(400);
+    assert.equal(await shown(), false, 'le bord gauche non plus');
+    // Clic : ouvert par-dessus l'écran, avec les libellés.
+    await toggle(page).click();
     await settle(page);
-    assert.equal(await shown(), true, 'le survol ouvre');
+    assert.equal(await shown(), true, 'le clic ouvre');
     assert.equal(await toggle(page).getAttribute('aria-expanded'), 'true');
     assert.deepEqual(await nav.getByRole('button').evaluateAll(b => b.filter(x => x.offsetParent).map(x => x.id || x.className)), ['open-add', 'open-modes', 'favs-edit', 'open-custom', 'me']);
     assert.equal(await page.getByRole('button', { name: 'Réglages', exact: true }).count(), 0, 'plus de bouton Réglages séparé');
     assert.equal(await page.locator('#bar').getByText('Chill', { exact: true }).count(), 0, 'les modes ne sont plus listés');
     assert.equal(await modeNow(page), 'Study');
     assert.deepEqual(await boxes(), before, 'aucun widget ne bouge');
-    assert.ok((await page.locator('#bar').boundingBox()).height >= 850, 'le menu complet, sur la hauteur');
-    await shot(page, 'menu-survol');
-    // De la pastille au menu, en plusieurs pas : il reste ouvert.
-    const target = await page.locator('#open-custom').boundingBox();
-    await page.mouse.move(target.x + 40, target.y + 20, { steps: 12 });
-    await page.waitForTimeout(500);
-    assert.equal(await shown(), true, 'reste ouvert en passant au menu');
-    // On s'en va : il se ferme après un court délai, pas instantanément.
-    await away();
-    assert.equal(await shown(), true, 'pas de fermeture immédiate (anti-clignotement)');
-    await closedSoon('se ferme quand la souris s’en va');
-    // Un aller-retour rapide dehors ne le ferme pas.
-    await toggle(page).hover();
-    await page.mouse.move(400, 300);
-    await toggle(page).hover();
-    await page.waitForTimeout(500);
-    assert.equal(await shown(), true, 'un passage bref dehors ne ferme pas');
-    await away();
-    await closedSoon('fermé');
-    // Le bord gauche, étroit, ouvre aussi.
-    await page.mouse.move(4, 600);
-    await page.waitForFunction(() => document.getElementById('bar-nav').checkVisibility());
-    assert.ok((await page.locator('#bar-edge').boundingBox()).width <= 12, 'bord étroit');
-    await away();
-    await closedSoon('fermé après le bord');
-    // Bouton « Masquer » : ferme tout de suite et ne se rouvre pas sous la souris.
-    await toggle(page).hover();
-    await page.waitForFunction(() => document.getElementById('bar-nav').checkVisibility());
+    assert.ok((await page.locator('#bar').boundingBox()).width >= 240, 'ouvert avec les libellés');
+    assert.equal(await mode.isVisible(), false, 'le mode en gras se cache pendant que le menu est ouvert');
+    await shot(page, 'menu-ouvert');
+    // « Masquer » : fermé tout de suite, la souris dessus ne le rouvre pas.
     await toggle(page).click();
     assert.equal(await shown(), false, 'fermé tout de suite');
     assert.equal(await toggle(page).getAttribute('aria-expanded'), 'false');
-    const t = await toggle(page).boundingBox();
-    await page.mouse.move(t.x + 10, t.y + 10, { steps: 3 });
-    await page.mouse.move(4, 200, { steps: 3 });
-    await page.waitForTimeout(500);
-    assert.equal(await shown(), false, 'ne se rouvre pas tant qu’on n’est pas sorti');
-    await away();
-    await page.waitForTimeout(100);
-    await toggle(page).hover();
-    await page.waitForFunction(() => document.getElementById('bar-nav').checkVisibility());
-    // Le menu du compte, ouvert depuis le menu, le garde ouvert.
+    await page.waitForTimeout(400);
+    assert.equal(await shown(), false, 'reste fermé sous la souris');
+    // Le menu du compte s'ouvre aussi depuis le rail fermé ; Échap rend le focus.
     await page.click('#me');
     await page.waitForSelector('#menu:popover-open');
-    const m = await page.locator('#menu').boundingBox();
-    await page.mouse.move(m.x + m.width / 2, m.y + 20, { steps: 8 });
-    await page.waitForTimeout(500);
-    assert.equal(await shown(), true, 'le menu du compte garde le menu ouvert');
     await page.keyboard.press('Escape');
     await page.waitForSelector('#menu:popover-open', { state: 'detached' }).catch(() => {});
     assert.equal(await page.evaluate(() => document.activeElement.id), 'me', 'Échap rend le focus à « Mon compte »');
-    await away();
-    await page.waitForTimeout(500);
-    assert.equal(await shown(), true, 'focus clavier dedans : reste ouvert');
+    // Le mode ouvre la roue des modes.
+    await mode.click();
+    await page.waitForSelector('dialog.mode-wheel[open]');
     await page.keyboard.press('Escape');
-    assert.equal(await shown(), false, 'second Échap : fermé');
-    assert.equal(await toggle(page).evaluate(n => n === document.activeElement), true, 'le focus revient au bouton');
     await context.close();
   }
 
-  // 1 bis. Clavier : ouvrir, parcourir, fermer ; le focus revient au bouton. Le focus clavier garde le menu ouvert au survol.
+  // 1 bis. Clavier : ouvrir, parcourir, fermer ; le focus revient au bouton.
   {
     const { page, context } = await open({ width: 1440, height: 900 }, 'clavier');
-    const shown = () => page.evaluate(() => document.getElementById('bar-nav').checkVisibility());
+    const shown = () => page.evaluate(() => document.body.classList.contains('drawer-open'));
     await toggle(page).focus();
     await page.keyboard.press('Enter');
     assert.equal(await shown(), true, 'Entrée ouvre');
@@ -131,23 +107,13 @@ const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, show
     // Ouvert exprès : un clic à côté ferme, sans rien activer dessous.
     await page.keyboard.press('Enter');
     await page.evaluate(() => { window.__clics = 0; document.getElementById('app').addEventListener('click', () => window.__clics++, true); });
-    const start = page.locator('[data-widget=minuteur]').getByRole('button', { name: 'Démarrer' });
-    const sb = await start.boundingBox();
-    await page.mouse.click(sb.x + sb.width / 2, sb.y + sb.height / 2);
+    // Un bouton du tableau à droite du menu ouvert (le clic tombe sur le voile, pas sur le menu).
+    const right = (await page.locator('#bar').boundingBox()).x + (await page.locator('#bar').boundingBox()).width;
+    const start = page.locator('#board .widget button:visible').filter({ hasNot: page.locator('[disabled]') });
+    const sb = (await start.evaluateAll((all, r) => all.map(b => b.getBoundingClientRect()).find(b => b.left > r + 20 && b.width > 20 && b.top > 0 && b.bottom < innerHeight), right));
+    await page.mouse.click(sb.left + sb.width / 2, sb.top + sb.height / 2);
     assert.equal(await shown(), false, 'un clic à côté ferme');
     assert.equal(await page.evaluate(() => window.__clics), 0, 'rien n’est activé dessous');
-    assert.equal(await start.count(), 1, 'le minuteur n’a pas démarré');
-    // Ouvert au survol puis focus clavier dedans : il reste ouvert quand la souris part.
-    await toggle(page).hover();
-    await page.waitForFunction(() => document.getElementById('bar-nav').checkVisibility());
-    await page.locator('#open-add').focus();
-    await page.keyboard.press('Tab');
-    await page.mouse.move(720, 500);
-    await page.waitForTimeout(600);
-    assert.equal(await shown(), true, 'le focus clavier garde le menu ouvert');
-    await page.keyboard.press('Escape');
-    assert.equal(await shown(), false, 'Échap ferme');
-    assert.equal(await toggle(page).evaluate(n => n === document.activeElement), true, 'le focus revient au bouton');
     // L'ancien choix « ouvert » gardé sur l'appareil ne laisse plus le menu ouvert en permanence.
     await page.evaluate(() => localStorage.setItem('renzvi:menu', 'ouvert'));
     await page.reload();
@@ -161,7 +127,7 @@ const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, show
     const { page, context } = await open({ width: 1440, height: 900 }, 'geste');
     await dispose(page);
     await page.mouse.move(720, 500);
-    await page.waitForFunction(() => !document.getElementById('bar-nav').checkVisibility());
+    await page.waitForFunction(() => !document.body.classList.contains('drawer-open'));
     const grip = page.locator('[data-widget=minuteur] .grip');
     const g = await grip.boundingBox();
     await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
@@ -171,7 +137,7 @@ const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, show
     await page.mouse.move(30, 60, { steps: 6 });
     await page.waitForTimeout(400);
     assert.equal(await page.evaluate(() => document.body.classList.contains('dragging')), true, 'le glisser continue');
-    assert.equal(await page.evaluate(() => document.getElementById('bar-nav').checkVisibility()), false, 'pas de menu pendant le glisser');
+    assert.equal(await page.evaluate(() => document.body.classList.contains('drawer-open')), false, 'pas de menu pendant le glisser');
     await page.mouse.up();
     assert.equal(await page.evaluate(() => document.body.classList.contains('dragging')), false, 'le glisser se termine normalement');
     await page.click('#custom-done');
@@ -272,14 +238,14 @@ const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, show
     await page.locator('#page-dialog').getByRole('button', { name: 'Annuler' }).click();
     assert.equal(await page.locator('#settings').evaluate(n => n.open), true, 'on reste dans Personnaliser');
     await closeCustom(page);
-    assert.equal(await page.evaluate(() => document.activeElement?.id), 'bar-toggle', 'menu refermé : retour au bouton de la pastille');
+    assert.equal(await page.evaluate(() => document.activeElement?.id), 'open-custom', 'Personnaliser refermé : retour au bouton qui l\'a ouvert (visible dans le rail)');
     // Disposer depuis le panneau, puis Terminer : retour au même endroit.
     await custom(page);
     await page.click('#layout-edit');
     assert.equal(await page.isVisible('#custom'), true);
     assert.equal(await page.locator('.grip').first().isVisible(), true);
     await page.click('#custom-done');
-    assert.equal(await page.evaluate(() => document.activeElement?.id), 'bar-toggle');
+    assert.equal(await page.evaluate(() => document.activeElement?.id), 'open-custom', 'Terminer : retour à Personnaliser');
     await context.close();
   }
 

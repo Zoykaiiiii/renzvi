@@ -38,8 +38,8 @@ const variantStyles = {
     description: 'max-w-xl',
     header: 'gap-5',
     content: 'gap-10 sm:gap-12',
-    // Sous 1024 px, l'éventail est resserré pour que les cadres de côté restent dans l'écran.
-    fan: 'w-[84%] max-w-3xl lg:w-full',
+    // Éventail élargi (Damien, 17 nov. : « on voit mieux le dashboard ») ; sous 1280 px, resserré pour que les cadres de côté restent dans l'écran.
+    fan: 'w-[84%] max-w-[1100px] xl:w-full',
     fanCard: 'aspect-4/5',
   },
   compact: {

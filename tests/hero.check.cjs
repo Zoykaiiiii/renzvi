@@ -47,8 +47,11 @@ const SHOTS = process.argv[2];
     for (const f of frames) assert.ok(f.y > c.y + c.height, `${name} : cadres sous l'appel`);
     for (const f of frames) assert.ok(f.x >= 0 && f.x + f.w <= w, `${name} : cadre dans l'écran (${Math.round(f.x)}, ${Math.round(f.w)})`);
     if (name === 'portable' || name === 'bureau') for (const f of frames) assert.ok(f.y + 40 <= h, `${name} : haut des trois cadres visible à l'arrivée`);
-    // Cadres vides : ni texte, ni image cassée.
-    assert.equal(await hero.locator('[data-hero-slot] img, [data-hero-slot] video').count(), 0);
+    // Cadres : une image chargée chacun (aucune cassée), avec un texte de remplacement, sans texte par-dessus.
+    const imgs = hero.locator('[data-hero-slot] img');
+    assert.equal(await imgs.count(), 3, `${name} : trois images`);
+    await page.waitForFunction(() => [...document.querySelectorAll('[data-hero-slot] img')].every(i => i.complete && i.naturalWidth > 0), null, { timeout: 5000 }).catch(() => assert.fail(`${name} : une image du héros ne charge pas`));
+    for (const alt of await imgs.evaluateAll(n => n.map(i => i.alt))) assert.ok(alt.length > 20, `${name} : texte de remplacement`);
     assert.equal((await hero.locator('[data-hero-slot]').allTextContents()).join(''), '');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${name} : pas de défilement de côté`);
     assert.equal(await page.locator('#outils h2').count(), 1, 'la section suivante est là');

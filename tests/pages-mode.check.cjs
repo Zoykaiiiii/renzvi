@@ -228,6 +228,7 @@ const { custom, closeCustom, modeNow, goMode } = require('./menu.cjs');
       await goMode(p, 'Chill');
       await p.waitForFunction(() => /Chill/.test(document.getElementById('mode-now').textContent));
       await p.waitForSelector('.board[data-vue=pages] .widget:not([hidden])');
+      await until(() => db('b').ecran.vues.places.pages.chill, 'pages de Chill enregistrées');
       const chillN = db('b').ecran.vues.places.pages.chill?.n ?? 1;
       assert.equal(await dots(p).count(), chillN, 'les points du mode Chill seulement');
       assert.equal(places('b').n, nStudy, 'les pages de Study sont gardées');

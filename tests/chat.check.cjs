@@ -39,6 +39,20 @@ const { dispose } = require('./menu.cjs');
     await context.close();
   }
 
+  // 0 bis. Plan Worker : Zvi est là sans le labo ; plan Pro : toujours rien.
+  for (const [plan, voit] of [['worker', true], ['pro', false]]) {
+    srv.bac('plein', `plan${plan}`).abonnement = { plan, statut: 'actif' };
+    const { page, context } = await open({ width: 1440, height: 900 }, `plan${plan}`, { labo: 0 });
+    if (voit) {
+      await page.waitForSelector('#renzvi-chat .chat-ia-launch', { timeout: 8000 }).catch(() => assert.fail('Worker : Zvi est chargé'));
+      assert.equal(await launch(page).getAttribute('aria-label'), 'Ouvrir Zvi');
+    } else {
+      await page.waitForTimeout(1500);
+      assert.equal(await page.locator('#renzvi-chat').count(), 0, 'Pro : pas de Zvi');
+    }
+    await context.close();
+  }
+
   // 1. Ordinateur : le personnage, l'ouverture au-dessus de lui, le dashboard toujours utilisable à côté.
   {
     const { page, context } = await open({ width: 1440, height: 900 }, 'bureau');

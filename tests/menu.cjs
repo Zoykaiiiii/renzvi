@@ -1,12 +1,11 @@
 // Aides communes aux suites : le menu latéral du dashboard (site/dashboard.html).
 // Personnaliser ouvre le panneau ; « Disposer les widgets » y passe ; un mode se change par la roue, au clavier.
 // Sur tablette et téléphone, le menu est un tiroir : chaque aide l'ouvre d'abord si besoin.
-// Sur ordinateur avec une souris, le menu s'ouvre au survol de la pastille ; ailleurs, d'un toucher sur le bouton.
+// Ouvre le menu au clic (plus d'ouverture au survol depuis le 17 nov. ; le rail fermé montre déjà ses icônes).
 const showMenu = async page => {
-  if (await page.locator('#open-custom').isVisible()) return;
-  const hover = await page.evaluate(() => matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)').matches);
-  if (hover) await page.locator('#bar-toggle').hover(); else await page.locator('#bar-toggle').click();
-  await page.locator('#open-custom').waitFor();
+  if (await page.evaluate(() => document.body.classList.contains('drawer-open'))) return;
+  await page.locator('#bar-toggle').click();
+  await page.waitForFunction(() => document.body.classList.contains('drawer-open'));
 };
 const custom = async page => { await showMenu(page); await page.locator('#open-custom').click(); await page.waitForSelector('#settings[open]'); };
 const closeCustom = async page => { await page.click('#settings-close'); await page.waitForSelector('#settings', { state: 'hidden' }); };

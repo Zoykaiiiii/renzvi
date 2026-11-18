@@ -140,14 +140,25 @@ a{color:inherit}
   :root{--glass:var(--glass-solid);--glass-wall:var(--glass-solid)}
 }
 
-/* Le menu, à gauche. Toujours une pastille (logo + bouton) au départ ; le menu complet s'ouvre par-dessus l'écran, sans rien déplacer.
-   Grand écran : au survol de la pastille ou du bord gauche, ou au clic/clavier. Tablette et téléphone : un tiroir, au toucher. Son verre est dessiné par ::before. */
+/* Le menu (demande de Damien, 17 nov.). Grand écran : un rail d'icônes compact, centré à gauche, qui ne grandit qu'avec les favoris
+   (en icônes) ; au clic, il s'ouvre par-dessus l'écran avec les libellés, sans rien déplacer (plus d'ouverture au survol). Tablette et
+   téléphone : une pastille (logo + bouton) qui ouvre un tiroir. Le mode actuel est écrit en gras en haut à gauche, hors du menu. */
 body{--side:0px;padding-left:var(--side)}
 .topbar{position:fixed;top:12px;left:12px;z-index:40;display:flex;flex-direction:column;gap:14px;padding:8px;border-radius:18px;color:var(--ink)}
 .topbar::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shine)}
 .bar-top{display:flex;align-items:center;gap:6px}
 .mark{flex:1;min-width:0;display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 8px;border-radius:10px;font-family:var(--marque);font-size:17px;font-weight:600;text-decoration:none}
 .mark svg{flex:none;width:22px;height:22px}
+/* Le mode actuel, en gras à côté du logo, hors du menu : il ouvre la roue des modes. Caché quand le menu est ouvert (« Changer de mode » y est). */
+.bar-mode{position:fixed;top:20px;left:130px;z-index:38;display:inline-flex;align-items:center;min-height:44px;padding:0 10px;border:0;border-radius:10px;background:none;color:var(--ink);font-family:var(--marque);font-size:17px;font-weight:700;white-space:nowrap;transition:background-color .15s}
+.bar-mode:hover{background:var(--tint)}
+body.has-wall .bar-mode{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.35)}
+/* Icône d'un favori : celle du widget, en masque. */
+.fav-ic{flex:none;width:18px;height:18px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+:is(.bar-peek,.drawer-open) .bar-mode{display:none}
+/* Menu fermé, sur toutes les tailles : seulement le logo, puis le mode (« Renzvi » revient quand le menu s'ouvre). */
+body:not(.bar-peek,.drawer-open) .mark{flex:none;justify-content:center;width:44px;padding:0}
+body:not(.bar-peek,.drawer-open) .mark span{display:none}
 .bar-toggle{flex:none;display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:12px;background:none;color:var(--ink);transition:background-color .15s}
 .bar-toggle:hover{background:var(--tint)}
 .bar-toggle svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round}
@@ -181,7 +192,6 @@ body{--side:0px;padding-left:var(--side)}
 /* Le widget atteint depuis un favori se signale un instant. */
 .widget.is-found{box-shadow:var(--glass-shine),0 0 0 2px var(--accent);transition:box-shadow .3s}
 @keyframes bar-in{from{opacity:0;transform:translateX(-8px)}}
-.bar-edge{display:none}
 @media (max-width:1023px){
   body{padding-top:64px}
   .bar-nav{display:none}
@@ -190,22 +200,26 @@ body{--side:0px;padding-left:var(--side)}
   .drawer-open .topbar{animation:bar-in .22s var(--ease)}
 }
 @media (min-width:1024px){
-  body{--side:84px}
-  .topbar{width:60px;height:110px;padding:8px;overflow:hidden;transition:width .24s var(--ease),height .24s var(--ease),padding .24s var(--ease),box-shadow .24s}
+  body{--side:84px;padding-top:52px}
+  .topbar{top:50%;width:60px;max-height:calc(100dvh - 24px);padding:8px;overflow:hidden;transform:translateY(-50%);transition:width .24s var(--ease),padding .24s var(--ease),box-shadow .24s}
   .bar-top{flex-direction:column}
   .mark{justify-content:center;padding:0;width:44px;white-space:nowrap}
-  .mark span,.bar-nav{display:none}
+  .mark span{display:none}
+  .bar-mode{left:20px}
+  /* Rail fermé : les favoris en icônes seulement, sans titre ni aide. */
+  body:not(.bar-peek,.drawer-open) :is(.favs-head,.favs-empty){display:none}
+  body:not(.bar-peek,.drawer-open) .favs-list{align-items:center}
+  /* Rail fermé : seulement les icônes. Les libellés restent lus par les lecteurs d'écran. */
+  body:not(.bar-peek,.drawer-open) .bar-btn > :is(span:not(.me-av,.fav-ic)){position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  body:not(.bar-peek,.drawer-open) .bar-btn{justify-content:center;width:44px;padding:0}
+  body:not(.bar-peek,.drawer-open) .me-av{margin:0}
   /* Ouvert par-dessus l'écran. Le contenu est posé à sa largeur finale : le panneau qui s'élargit le découvre, rien ne se recompose. */
-  :is(.bar-peek,.drawer-open) .topbar{width:244px;height:calc(100dvh - 24px);padding:12px;--glass:var(--glass-solid);box-shadow:0 24px 64px rgba(0,0,0,.18)}
+  :is(.bar-peek,.drawer-open) .topbar{width:244px;padding:12px;--glass:var(--glass-solid);box-shadow:0 24px 64px rgba(0,0,0,.18)}
   :is(.bar-peek,.drawer-open) .bar-top{flex-direction:row;min-width:220px}
   :is(.bar-peek,.drawer-open) .mark{justify-content:flex-start;padding:0 8px;width:auto}
   :is(.bar-peek,.drawer-open) .mark span{display:inline}
-  :is(.bar-peek,.drawer-open) .bar-nav{display:flex;min-width:220px;animation:bar-in .22s var(--ease)}
+  :is(.bar-peek,.drawer-open) .bar-nav{min-width:220px;animation:bar-in .22s var(--ease)}
   .bar-scrim{background:none}
-}
-/* Bord gauche étroit qui ouvre le menu au survol, seulement avec une souris. 12 px : il ne recouvre aucun widget. */
-@media (min-width:1024px) and (hover:hover) and (pointer:fine){
-  .bar-edge{display:block;position:fixed;top:0;bottom:0;left:0;z-index:39;width:12px}
 }
 @media (prefers-reduced-motion:reduce){.topbar,.topbar .bar-nav,.drawer-open .topbar,.bar-toggle,.bar-toggle .chev,.bar-btn,dialog.settings,#menu{transition:none;animation:none}}
 
@@ -1006,7 +1020,7 @@ dialog.settings,dialog.settings :is(h2,h3,h4){font-family:var(--marque)}
     </div>
   </nav>
 </header>
-<div class="bar-edge" id="bar-edge" aria-hidden="true"></div>
+<button class="bar-mode" id="bar-mode" type="button" hidden></button>
 <div class="bar-scrim" id="bar-scrim" hidden></div>
 <!-- Carte du compte : SpotlightCard (site/dash/spotlight.js) posée à l'ouverture. Les réglages se déplient un à la fois. -->
 <div id="menu" popover aria-labelledby="acct-name">
@@ -1405,7 +1419,8 @@ const button = (className, text, onclick) => Object.assign(el('button', classNam
 const listOf = value => Array.isArray(value) ? value : [];
 // Date locale au format AAAA-MM-JJ ('sv' est la locale qui donne ce format).
 const dayKey = date => date.toLocaleDateString('sv');
-const plural = (n, word) => `${n} ${word}${n > 1 ? 's' : ''}`;
+// Pluriel simple ; un mot qui finit déjà par s, x ou z ne change pas (« 3 cours », pas « 3 courss »).
+const plural = (n, word) => `${n} ${word}${n > 1 && !/[sxz]$/.test(word) ? 's' : ''}`;
 // Minutes de focus par jour d'un widget, gardées 14 jours. Reprend aussi le dernier jour noté avant l'existence de cet historique.
 function focusLog(data) {
   const oldest = dayKey(new Date(Date.now() - 14 * 864e5));
@@ -3447,6 +3462,8 @@ if (!sb) {
   function drawPages() {
     const many = screen.pages.length > 1, name = pageNow().name;
     $('mode-now').textContent = `Mode : ${name}`;
+    $('bar-mode').textContent = name;
+    $('bar-mode').ariaLabel = `Mode ${name}. Changer de mode`;
     $('open-modes').ariaLabel = `Changer de mode. Mode actuel : ${name}`;
     for (const n of document.querySelectorAll('.page-name')) n.textContent = name;
     drawVuePick();
@@ -4275,10 +4292,9 @@ if (!sb) {
     applyAccent();
   }
   // ---------- Menu latéral : une pastille, le menu complet s'ouvre par-dessus l'écran ----------
-  // Deux façons d'ouvrir : au survol sur grand écran (bar-peek, se referme quand la souris s'en va),
-  // ou exprès, au clic, au toucher ou au clavier (drawer-open : voile qui avale le toucher à côté, Échap, reste de l'écran inerte).
+  // Ouvert exprès, au clic, au toucher ou au clavier (drawer-open : voile qui avale le toucher à côté, Échap, reste de l'écran inerte).
+  // L'ouverture au survol (bar-peek) est retirée le 17 nov. à la demande de Damien ; la classe reste lue pour ne rien casser.
   const narrow = matchMedia('(max-width:1023px)');
-  const canHover = matchMedia('(hover:hover) and (pointer:fine)');
   const drawerOpen = () => document.body.classList.contains('drawer-open');
   const peeked = () => document.body.classList.contains('bar-peek');
   const menuShown = () => drawerOpen() || peeked();
@@ -4297,7 +4313,7 @@ if (!sb) {
   // Fermer, quelle que soit la façon dont il a été ouvert. Après une fermeture voulue avec la souris dessus, le survol ne le rouvre
   // qu'une fois la souris sortie de la place qu'occupait le menu, puis revenue (sinon il se rouvrirait sous le pointeur).
   let hush = null, peekT = 0;
-  const zones = [$('bar'), $('bar-edge'), $('menu')];
+  const zones = [$('bar'), $('menu')];
   const inZone = () => zones.some(z => z.matches(':hover'));
   // explicit : fermé par le bouton, Échap ou un clic à côté (pas par le choix d'une action du menu).
   function closeDrawer(refocus = true, explicit = refocus) {
@@ -4318,34 +4334,6 @@ if (!sb) {
   narrow.addEventListener('change', () => { closeDrawer(false); hush = null; syncToggle(); });
   addEventListener('pointermove', e => { if (hush && (e.clientX > hush.right + 8 || e.clientY > hush.bottom + 8)) hush = null; }, { passive: true });
 
-  // Survol (souris, grand écran) : la pastille, le bord gauche et le menu du compte forment une seule zone.
-  // On reste ouvert tant que la souris y est, que le focus clavier est dans le menu ou que le menu du compte est ouvert ;
-  // on ferme après un court délai pour qu'un passage de la pastille au menu ne le fasse pas clignoter.
-  // Un geste en cours (glisser ou redimensionner un widget, glisser vers un bord de page) garde la priorité : bouton enfoncé = pas d'ouverture.
-  const busy = e => !!e.buttons || document.body.classList.contains('dragging') || !!document.querySelector('.resizing');
-  const keep = () => inZone() || $('menu').matches(':popover-open') || ($('bar').contains(document.activeElement) && document.activeElement.matches(':focus-visible'));
-  function peekLater() {
-    clearTimeout(peekT);
-    peekT = setTimeout(() => {
-      if (peeked() && !keep()) { document.body.classList.remove('bar-peek'); syncToggle(); }
-    }, 300);
-  }
-  for (const z of zones) {
-    z.addEventListener('pointerenter', e => {
-      if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
-      clearTimeout(peekT);
-      if (hush || peeked() || drawerOpen() || narrow.matches || !canHover.matches || busy(e) || $('bar').inert) return;
-      if (z === $('menu')) return; // le menu du compte garde ouvert, il n'ouvre pas
-      document.body.classList.add('bar-peek');
-      syncToggle();
-    });
-    z.addEventListener('pointerleave', e => {
-      if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
-      peekLater();
-    });
-  }
-  $('bar').addEventListener('focusout', () => { if (peeked()) peekLater(); });
-  $('menu').addEventListener('toggle', e => { if (e.newState === 'closed' && peeked()) peekLater(); });
   syncToggle();
   // Où rendre le focus après une fenêtre ouverte depuis le menu : le bouton s'il est encore visible, sinon celui qui ouvre le menu.
   // Le menu se referme dès qu'on choisit une action : c'est donc presque toujours le bouton de la pastille.
@@ -4361,7 +4349,10 @@ if (!sb) {
     $('favs-list').replaceChildren(...favIds().map(id => {
       const li = el('li');
       const b = button('bar-btn', '', () => goFav(id));
-      b.append(el('span', 'fav-name', titleOf(id)));
+      const ic = el('span', 'fav-ic'), url = window.renzviIconeUrl?.(id);
+      ic.setAttribute('aria-hidden', 'true');
+      if (url) ic.style.setProperty('--ic', url);
+      b.append(ic, el('span', 'fav-name', titleOf(id)));
       if (many) b.append(el('span', 'fav-where', pageName(pageOf(id))));
       b.ariaLabel = many ? `${titleOf(id)}, mode ${pageName(pageOf(id))}` : titleOf(id);
       li.append(b);
@@ -4506,11 +4497,19 @@ if (!sb) {
       return { ok: true, slot };
     })();
   });
+  // Zvi (le chat) : pour le plan Worker (demande de Damien, 17 nov.), et en labo pour les essais. Un îlot React construit depuis
+  // prototype/chat (node scripts/build-chat.mjs), chargé à la demande pour ne rien coûter aux autres. Aucun assistant n'est encore
+  // branché côté serveur : Zvi le dit, rien n'est inventé ni payé.
+  function chargerZvi() {
+    if ($('chat-ia-js')) return;
+    document.head.append(Object.assign(document.createElement('link'), { rel: 'stylesheet', href: 'dash/chat-ia.css' }));
+    document.body.append(Object.assign(document.createElement('script'), { id: 'chat-ia-js', src: 'dash/chat-ia.js', defer: true }));
+  }
   function showScreen(user) {
     screenUser = user;
     $('setup').hidden = true;
     $('screen').hidden = false;
-    for (const id of ['open-add', 'open-modes', 'favs', 'open-custom']) $(id).hidden = false;
+    for (const id of ['open-add', 'open-modes', 'bar-mode', 'favs', 'open-custom']) $(id).hidden = false;
     // Page vide : l'invitation reprend les carrés du logo, rangés comme un écran qui se remplit.
     $('board-empty').innerHTML = '<svg viewBox="0 0 264 148" aria-hidden="true"><rect class="tile-a" x="4" y="4" width="120" height="66" rx="14"/><path d="M22 26h50M22 40h76M22 54h36" fill="none" style="stroke:var(--on-accent)" stroke-opacity=".85" stroke-width="5" stroke-linecap="round"/><rect x="136" y="4" width="124" height="66" rx="14" fill="currentColor" opacity=".1"/><rect x="4" y="82" width="74" height="62" rx="14" fill="currentColor" opacity=".1"/><rect x="90" y="82" width="74" height="62" rx="14" fill="currentColor" opacity=".16"/><rect x="177" y="83" width="82" height="60" rx="13" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="1.500" stroke-dasharray="5 5"/><path d="M218 104v18M209 113h18" fill="none" stroke="currentColor" stroke-opacity=".6" stroke-width="1.800" stroke-linecap="round"/></svg><h2 id="empty-title"></h2><p>Choisis un premier widget dans le catalogue. Tu vois un aperçu avant de l\'ajouter, et tu peux le retirer quand tu veux.</p>';
     const start = el('div', 'actions');
@@ -4522,12 +4521,7 @@ if (!sb) {
     drawToday();
     drawAide();
     $('open-add').onclick = () => { closeDrawer(false); openCatalog(user); };
-    // Chat (labo seulement tant qu'aucun assistant n'est branché) : un îlot React construit depuis prototype/chat
-    // (node scripts/build-chat.mjs), chargé à la demande pour ne rien coûter aux autres.
-    if (LABO && !$('chat-ia-js')) {
-      document.head.append(Object.assign(document.createElement('link'), { rel: 'stylesheet', href: 'dash/chat-ia.css' }));
-      document.body.append(Object.assign(document.createElement('script'), { id: 'chat-ia-js', src: 'dash/chat-ia.js', defer: true }));
-    }
+    if (LABO || planActuel === 'worker') chargerZvi();
     $('cat-search').oninput = () => drawCatalog(user);
     $('add-dialog').onclose = () => pickWidget(null, user);
     $('custom-done').onclick = () => setCustomizing(false);
@@ -4561,6 +4555,7 @@ if (!sb) {
       drawPages();
     }
     $('open-modes').onclick = e => { closeDrawer(false); modes.open(null, null, focusTarget(e.currentTarget)); };
+    $('bar-mode').onclick = () => modes.open(null, null, $('bar-mode'));
     // Une seule fenêtre de création, partagée avec la roue : nom, icône, couleur, fond de départ.
     $('page-new').onclick = () => modes.openCreate();
     $('layout-reset').onclick = () => confirmReset();
@@ -4803,7 +4798,7 @@ if (!sb) {
       b.setAttribute('aria-pressed', size.id === pickedSize);
       sizes.append(b);
     }
-    pick.append(sizes, el('p', '', `${EXAMPLES[w.id] || w.id === 'semaine' ? 'Aperçu avec des exemples' : 'Aperçu'} : rien ne joue et rien n'est enregistré. ${vue.pages ? `Sera ajouté sur « ${vue.pages()[vue.current()]?.name} »${screen.pages.length > 1 ? ` du mode ${pageName(currentPage)}` : ''}.` : screen.pages.length > 1 ? `Sera ajouté sur « ${pageName(currentPage)} ».` : 'Sera ajouté sur ton écran.'}`));
+    pick.append(sizes, el('p', '', `${EXAMPLES[w.id] || w.id === 'semaine' ? 'Aperçu avec des exemples' : 'Aperçu'} : rien ne joue et rien n'est enregistré. ${vue.pages ? (vue.pages()[vue.current()]?.count >= vue.perPage ? `« ${vue.pages()[vue.current()]?.name} » est pleine (${vue.perPage} widgets au plus) : il sera ajouté sur une page suivante.` : `Sera ajouté sur « ${vue.pages()[vue.current()]?.name} »${screen.pages.length > 1 ? ` du mode ${pageName(currentPage)}` : ''}.`) : screen.pages.length > 1 ? `Sera ajouté sur « ${pageName(currentPage)} ».` : 'Sera ajouté sur ton écran.'}`));
     if (verrouille(w.id)) {
       const open = button('primary', 'Débloquer avec Pro', () => openPaywall(w.title));
       actions.append(open);
@@ -5185,6 +5180,7 @@ if (!sb) {
     if (!plan || plan.id === 'gratuit') return;
     planActuel = plan.id;
     document.dispatchEvent(new Event('renzvi:plan'));
+    if (planActuel === 'worker' && loaded) chargerZvi();
     if (loaded && screen.widgets.some(id => PAYANT.has(id) && !mounted.has(id))) {
       for (const id of screen.widgets) if (!mounted.has(id)) mount(WIDGETS.find(w => w.id === id), screenUser);
       drawPages();

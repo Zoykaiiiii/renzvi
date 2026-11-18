@@ -54,6 +54,9 @@ h2 { font-size: var(--text-title); }
 .btn-accent { background: var(--color-accent); color: #fff; }
 .btn-accent:hover { background: var(--color-accent-deep); }
 .btn-accent:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+/* Barre de navigation : un filet fin apparaît dès qu'on défile. */
+.nav { box-shadow: 0 1px 0 transparent; transition: box-shadow .2s; }
+.nav.nav-scrolled { box-shadow: 0 1px 0 rgba(32,33,36,.08); }
 .btn-soft { background: var(--color-lin); color: var(--color-ink); }
 .btn-soft:hover { background: var(--color-sable); }
 .btn-paper { background: #fff; color: var(--color-ink); }

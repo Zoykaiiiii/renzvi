@@ -16,10 +16,13 @@ window.vuePages = function vuePages(ctx) {
   const { board } = ctx;
   const COLS = 12, ROWS = 6, PHONE_COLS = 4, NARROW = 728, PRESS_MS = 500, MOVE_PX = 8, MIN_CELL_H = 64, DOTS_MAX = 9;
   const EDGE_PX = 44, DWELL_MS = 650, MAX_PAGES = 12, MAX_NAME = 24;
+  // 4 widgets au plus par page (Damien, 17 nov.) : des widgets plus grands, une page qui respire.
+  const MAX_PER_PAGE = 4;
   // Taille minimale utile de chaque widget, en cases (colonnes, rangées), sur la grille de l'ordinateur.
   const MIN = { heure: [3, 1], minuteur: [4, 3], cartes: [4, 3], cahier: [4, 3], etude: [4, 2], vol: [4, 3], semaine: [4, 2], habitudes: [4, 2], ambiance: [4, 3], lecture: [4, 3], inspiration: [4, 3], respiration: [3, 3], playlist: [4, 2], quiz: [4, 3], schemas: [4, 3], repas: [4, 3] };
-  // Taille de départ d'un widget qui n'a pas encore de place : celle de son préréglage dans la grille habituelle.
-  const PRESET = { s: [3, 2], m: [4, 3], l: [8, 3] };
+  // Taille de départ d'un widget qui n'a pas encore de place, selon son préréglage : assez grande pour que 4 widgets
+  // remplissent une page (6 × 3 cases chacun en taille moyenne).
+  const PRESET = { s: [4, 3], m: [6, 3], l: [12, 3] };
   // Jamais un départ d'appui long : un contrôle, un champ, un texte modifiable, un dessin, un lecteur, une poignée.
   const NEVER = 'button,a,input,textarea,select,label,option,summary,[contenteditable=""],[contenteditable=true],canvas,iframe,video,audio,svg,img,[role=slider],[role=listbox],[role=option],[role=button],[tabindex],.notes,.comet-dial,.pg-move,.pg-size,.pg-to,.pg-remove';
   const off = new AbortController(), signal = off.signal;
@@ -47,7 +50,9 @@ window.vuePages = function vuePages(ctx) {
   const name = p => state.t[p] || `Page ${p + 1}`;
   const overlaps = (a, b) => a.p === b.p && a.c < b.c + b.w && b.c < a.c + a.w && a.r < b.r + b.h && b.r < a.r + a.h;
   const inside = q => q.p >= 0 && q.c >= 0 && q.r >= 0 && q.c + q.w <= COLS && q.r + q.h <= ROWS;
-  const fits = (d, id, q) => inside(q) && Object.entries(d).every(([o, x]) => o === id || !overlaps(q, x));
+  // Une place est libre si elle tient dans la page, ne chevauche rien, et si la page a encore moins de 4 autres widgets.
+  const fits = (d, id, q) => inside(q) && Object.entries(d).every(([o, x]) => o === id || !overlaps(q, x))
+    && Object.entries(d).filter(([o, x]) => o !== id && x.p === q.p).length < MAX_PER_PAGE;
   // La première place libre à partir d'une page, rangée après rangée ; la page suivante si celle-ci est pleine.
   function firstFree(d, id, w, h, from = 0) {
     for (let p = from; p < 99; p++) for (let r = 0; r + h <= ROWS; r++) for (let c = 0; c + w <= COLS; c++) {
@@ -713,6 +718,6 @@ window.vuePages = function vuePages(ctx) {
     pages: () => Array.from({ length: state.n - (temp >= 0 ? 1 : 0) }, (_, p) => ({ name: name(p), custom: !!state.t[p], count: onPageIds(p).length })),
     current: () => page,
     destination: p => destination(p),
-    add: addPage, rename: renamePage, remove: removePage, goTo: p => goTo(p), max: MAX_PAGES,
+    add: addPage, rename: renamePage, remove: removePage, goTo: p => goTo(p), max: MAX_PAGES, perPage: MAX_PER_PAGE,
   };
 };

@@ -70,8 +70,10 @@ const { start } = require('./demo.cjs');
     const d = places('p1').d;
     assert.equal(Object.keys(d).length, 9, 'les 9 widgets de Study sont placés');
     noOverlap(d);
-    assert.equal(places('p1').n, 2, 'deux pages');
-    assert.equal(await page.locator('.pg-dot').count(), 2);
+    // 4 widgets au plus par page (Damien, 17 nov.) : les 9 widgets de Study tiennent sur 3 pages.
+    assert.equal(places('p1').n, 3, 'trois pages');
+    assert.equal(await page.locator('.pg-dot').count(), 3);
+    for (let p = 0; p < 3; p++) assert.ok(Object.values(d).filter(q => q.p === p).length <= 4, `page ${p + 1} : 4 widgets au plus`);
     const g = await grid(page);
     assert.ok(g.bottom <= 900 - 40, `la page tient dans l'écran avec ses points (${g.bottom})`);
     const dots = await page.locator('.pg-dots').boundingBox();
@@ -97,16 +99,24 @@ const { start } = require('./demo.cjs');
     await page.waitForTimeout(300);
     assert.equal((await grid(page)).sl, 0, 'la molette verticale ne tourne pas les pages');
 
-    // I. Appui long sur le fond (une case vide de la page 2) : la roue des modes, pas l'édition.
-    await page.getByRole('button', { name: 'Aller à la page 2' }).click();
-    await page.waitForFunction(() => Math.abs(document.getElementById('board').scrollLeft - document.getElementById('board').clientWidth) < 2);
+    // I. Appui long sur le fond (une case vide de la dernière page) : la roue des modes, pas l'édition.
+    // La dernière page, qui a forcément une case libre (4 widgets au plus par page, et plus grands).
+    const last = places('p1').n - 1;
+    await page.getByRole('button', { name: `Aller à la page ${last + 1}` }).click();
+    await page.waitForFunction(n => Math.abs(document.getElementById('board').scrollLeft - n * document.getElementById('board').clientWidth) < 2, last);
     const g2 = await grid(page);
-    await longPress(page, g2.left + 10 * (g2.cw + g2.gap), g2.top + 4.5 * (g2.ch + g2.gap));
+    const used = Object.values(places('p1').d).filter(q => q.p === last);
+    const [fc, fr] = [...Array(72).keys()].map(i => [i % 12, Math.floor(i / 12)]).find(([c, r]) => !used.some(q => c >= q.c && c < q.c + q.w && r >= q.r && r < q.r + q.h));
+    await longPress(page, g2.left + (fc + 0.5) * (g2.cw + g2.gap), g2.top + (fr + 0.5) * (g2.ch + g2.gap));
     await page.mouse.up();
     assert.equal(await wheelOpen(page), true, 'la roue s\'ouvre sur le fond');
     assert.equal(await editing(page), false, 'pas d\'édition depuis le fond');
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => !document.querySelector('dialog.mode-wheel[open]'));
+    // Retour à la page du widget Tâches pour la suite.
+    const pt = places('p1').d.taches.p;
+    await page.getByRole('button', { name: `Aller à la page ${pt + 1}` }).click();
+    await page.waitForFunction(n => Math.abs(document.getElementById('board').scrollLeft - n * document.getElementById('board').clientWidth) < 2, pt);
 
     // Appui trop court ou qui bouge sur un widget : rien.
     const head = await page.locator(`${W('taches')} .head h2`).boundingBox();
@@ -128,11 +138,13 @@ const { start } = require('./demo.cjs');
     assert.ok(await page.locator('.pg-cell').count() > 0, 'les cases apparaissent');
     await shot(page, 'pages-3-edition');
 
-    // Déplacer « Compte à rebours » sur une case libre de la page 2.
+    // Déplacer « Compte à rebours » sur une case libre de sa page (la 3e : Notes et lui occupent le haut).
     const before = { ...places('p1').d.compte };
-    await dragTo(page, 'compte', 8, 3);
+    await page.getByRole('button', { name: `Aller à la page ${before.p + 1}` }).click();
+    await page.waitForFunction(n => Math.abs(document.getElementById('board').scrollLeft - n * document.getElementById('board').clientWidth) < 2, before.p);
+    await dragTo(page, 'compte', 6, 3);
     await saved(page);
-    assert.deepEqual(places('p1').d.compte, { ...before, c: 8, r: 3 }, 'posé sur la case visée');
+    assert.deepEqual(places('p1').d.compte, { ...before, c: 6, r: 3 }, 'posé sur la case visée');
     noOverlap(places('p1').d);
 
     // Place occupée : signalée pendant le geste, refusée au lâcher, rien d'enregistré.
@@ -142,7 +154,7 @@ const { start } = require('./demo.cjs');
     await shot(page, 'pages-4-refus');
     await page.mouse.up();
     await page.waitForTimeout(400);
-    assert.deepEqual(places('p1').d.compte, { ...before, c: 8, r: 3 }, 'rien n\'a bougé');
+    assert.deepEqual(places('p1').d.compte, { ...before, c: 6, r: 3 }, 'rien n\'a bougé');
     assert.equal(dbOf('p1').saves, saves, 'rien n\'a été enregistré');
 
     // Redimensionner à la poignée : la taille suit les cases ; vers un voisin, c'est refusé.
@@ -175,7 +187,7 @@ const { start } = require('./demo.cjs');
     await move.focus();
     await page.keyboard.press('ArrowLeft');
     await saved(page);
-    assert.equal(places('p1').d.compte.c, 7);
+    assert.equal(places('p1').d.compte.c, 5);
     await page.keyboard.press('Shift+ArrowDown');
     await saved(page);
     assert.equal(places('p1').d.compte.h, before.h);
@@ -194,7 +206,7 @@ const { start } = require('./demo.cjs');
     assert.equal(await page.locator(W('compte')).count(), 1, 'une seule fois');
     const g4 = await grid(page);
     const cb = await page.locator(W('compte')).evaluate(e => e.offsetLeft);
-    assert.ok(Math.abs(cb - (12 + 7) * (g4.cw + g4.gap)) < 2, 'à sa place après rechargement');
+    assert.ok(Math.abs(cb - (places('p1').d.compte.p * 12 + places('p1').d.compte.c) * (g4.cw + g4.gap)) < 2, 'à sa place après rechargement');
     await context.close();
   }
 
@@ -233,12 +245,13 @@ const { start } = require('./demo.cjs');
     dbOf('p2').panne = true;
     await page.locator('#layout-edit').evaluate(b => b.click());
     await page.getByRole('button', { name: /^Déplacer Compte à rebours/ }).focus();
-    await page.getByRole('button', { name: 'Aller à la page 2' }).click().catch(() => {});
-    await page.getByRole('button', { name: /^Déplacer Compte à rebours/ }).press('ArrowRight');
+    await page.getByRole('button', { name: `Aller à la page ${places('p2').d.compte.p + 1}` }).click().catch(() => {});
+    // Compte à rebours touche le bord droit (widgets plus larges) : il descend d'une rangée.
+    await page.getByRole('button', { name: /^Déplacer Compte à rebours/ }).press('ArrowDown');
     await page.waitForFunction(() => /Pas encore enregistré/.test(document.getElementById('saved').textContent));
     dbOf('p2').panne = false;
     await saved(page);
-    assert.equal(places('p2').d.compte.c, 1, 'enregistré au retour');
+    assert.equal(places('p2').d.compte.r, 1, 'enregistré au retour');
     await context.close();
   }
 

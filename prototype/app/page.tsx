@@ -2,14 +2,21 @@ import Magnet from "@/components/Magnet";
 import Motion from "@/components/Motion";
 import Nav from "@/components/Nav";
 import { Hero10, type Hero10Props } from "@/components/ui/hero-10";
+import planConstellations from "@/assets/hero/plan-constellations.jpg";
+import planCentre from "@/assets/hero/plan-centre.jpg";
+import planLofi from "@/assets/hero/plan-lofi.jpg";
 import { Logo, Slot } from "@/components/Bits";
 import { BoardSwap, ToolsOrbit } from "@/components/Showcase";
 
 const LOGIN = "/login.html";
 
-// Les trois cadres du héros (gauche, centre, droite). Pour en remplir un :
-// { type: "image", src: "/landing/dashboard.webp", alt: "…" } ou { type: "video", src: "/landing/clip.mp4", poster: "…", label: "…" }.
-const HERO_MEDIA: Hero10Props["media"] = [null, null, null];
+// Les trois cadres du héros (gauche, centre, droite), 4/5, sur les fonds choisis par Damien (17 nov.) ; au centre, le fond « Brume » du catalogue.
+// Un cadre peut aussi recevoir { type: "video", src, poster, label } ou null (vide).
+const HERO_MEDIA: Hero10Props["media"] = [
+  { type: "image", src: planConstellations.src, alt: "Mon espace Study en constellations : les chapitres de chaque cours reliés comme des étoiles, sur un ciel étoilé." },
+  { type: "image", src: planCentre.src, alt: "Le dashboard Renzvi en thème clair sur un lac de montagne : le Cahier ouvert sur un cours de maths, Mon espace Study en arbre et le minuteur de focus." },
+  { type: "image", src: planLofi.src, alt: "Le dashboard en thème clair : minuteur de focus et tâches, posés sur une illustration de chambre." },
+];
 
 const NAV = [
   ["#outils", "Outils"],
