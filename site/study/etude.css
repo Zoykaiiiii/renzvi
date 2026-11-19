@@ -135,13 +135,13 @@
 
 /* Feuilles : les outils existants (Cahier, Révisions, Flashcards) ouverts par-dessus l'espace. */
 .etude-sheets:empty{display:none}
-.etude-sheet{position:absolute;inset:0;z-index:5;margin:0;padding:16px max(20px,calc((100% - 860px)/2)) 24px;border:0;border-radius:0;overflow:auto;display:block;background:var(--et-ground);color:var(--ink);box-shadow:none;backdrop-filter:none;--glass:var(--et-raise)}
+.etude-sheet:not(.cahier-open){position:absolute;inset:0;z-index:5;margin:0;padding:16px max(20px,calc((100% - 860px)/2)) 24px;border:0;border-radius:0;overflow:auto;display:block;background:var(--et-ground);color:var(--ink);box-shadow:none;backdrop-filter:none;--glass:var(--et-raise)}
 .etude-sheet[inert]{visibility:hidden}
 .etude-sheethead{display:flex;align-items:center;gap:14px;margin-bottom:16px}
 .etude-sheethead h2{margin:0;font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .etude-sheethead .meta{margin:0 0 0 auto}
-.etude-sheet>.body{max-height:none;overflow:visible}
-.etude-sheet .cahier-text{max-height:calc(100dvh - 300px)}
+.etude-sheet:not(.cahier-open)>.body{max-height:none;overflow:visible}
+.etude-sheet:not(.cahier-open) .cahier-text{max-height:calc(100dvh - 300px)}
 .etude-note{width:100%;min-height:min(420px,50dvh);padding:16px;border:1px solid var(--et-line);border-radius:var(--r-control);background:var(--et-raise);color:var(--et-ink);font:16px/1.6 var(--et-serif);resize:vertical}
 
 /* Liste */
@@ -280,7 +280,7 @@ h4>.etude-fold{font-size:15px;font-weight:600}
   .etude-dock{left:14px;bottom:calc(var(--et-sheet,46dvh) + 12px)}
   .arbre-zoom{position:fixed;right:14px;bottom:calc(var(--et-sheet,46dvh) + 12px)}
   .etude-live{bottom:calc(var(--et-sheet,46dvh) + 64px)}
-  .etude-sheet{padding:12px 14px 20px}
+  .etude-sheet:not(.cahier-open){padding:12px 14px 20px}
 }
 @media (pointer:coarse){
   .etude-tool,.etude-space :is(.primary,.ghost),.etude-tabs button{min-height:44px}

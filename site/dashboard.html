@@ -3677,7 +3677,7 @@ if (!sb) {
   }
 
   // « Revoir dans le cours » depuis une carte : si le Cahier est sur une autre page, on y va (il fait le reste).
-  document.addEventListener('renzvi:revoir', () => { if (mounted.has('cahier') && pageOf('cahier') !== currentPage) showPage(pageOf('cahier')); });
+  document.addEventListener('renzvi:revoir', e => { if (!e.detail.reader && !document.body.classList.contains('cahier-lock') && mounted.has('cahier') && pageOf('cahier') !== currentPage) showPage(pageOf('cahier')); });
   document.addEventListener('renzvi:schema', () => { if (mounted.has('schemas') && pageOf('schemas') !== currentPage) showPage(pageOf('schemas')); });
   function askPageName(title, value, done, { label = 'Nom du mode', max = MAX_PAGE_NAME } = {}) {
     const { form, input } = addForm(value || `Page ${screen.pages.length + 1}`, max, () => {});

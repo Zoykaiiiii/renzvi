@@ -156,18 +156,21 @@ window.cahierCarnet = function cahierCarnet(api) {
   const POLICES = [['editoriale', 'Éditoriale'], ['sans', 'Sans empattement']];
   const INTERLIGNES = [[1.45, 'Serré'], [1.55, 'Normal'], [1.8, 'Aéré']];
   const clampN = (v, a, b, d) => Number.isFinite(+v) ? Math.min(b, Math.max(a, +v)) : d;
-  let look = { ...LOOK0 }, lookView = 'main';
-  try {
-    const l = JSON.parse(localStorage.getItem(LOOK_KEY) || 'null');
-    if (l) look = {
-      surface: SURFACES.some(([k]) => k === l.surface) ? l.surface : LOOK0.surface,
-      opacite: clampN(l.opacite, 40, 96, LOOK0.opacite), flou: clampN(l.flou, 0, 40, LOOK0.flou),
-      police: POLICES.some(([k]) => k === l.police) ? l.police : LOOK0.police,
-      taille: clampN(l.taille, 15, 24, LOOK0.taille), interligne: INTERLIGNES.some(([v]) => v === l.interligne) ? l.interligne : LOOK0.interligne,
-      accent: ACCENTS.some(([k]) => k === l.accent) ? l.accent : LOOK0.accent,
-      papier: PAPIERS.some(([k]) => k === l.papier) ? l.papier : LOOK0.papier,
-    };
-  } catch {}
+  let look = readLook(), lookView = 'main';
+  function readLook() {
+    try {
+      const l = JSON.parse(localStorage.getItem(LOOK_KEY) || 'null');
+      if (l) return {
+        surface: SURFACES.some(([k]) => k === l.surface) ? l.surface : LOOK0.surface,
+        opacite: clampN(l.opacite, 40, 96, LOOK0.opacite), flou: clampN(l.flou, 0, 40, LOOK0.flou),
+        police: POLICES.some(([k]) => k === l.police) ? l.police : LOOK0.police,
+        taille: clampN(l.taille, 15, 24, LOOK0.taille), interligne: INTERLIGNES.some(([v]) => v === l.interligne) ? l.interligne : LOOK0.interligne,
+        accent: ACCENTS.some(([k]) => k === l.accent) ? l.accent : LOOK0.accent,
+        papier: PAPIERS.some(([k]) => k === l.papier) ? l.papier : LOOK0.papier,
+      };
+    } catch {}
+    return { ...LOOK0 };
+  }
   function applyLook(keep = true) {
     box.dataset.surface = look.surface;
     box.dataset.police = look.police;
@@ -358,27 +361,26 @@ window.cahierCarnet = function cahierCarnet(api) {
   }
 
   // --- Annotations : chargement et repérage dans le texte ---------------------------------------------------------
+  let marksLoad;
   async function loadMarks(c) {
+    const loading = marksLoad = Symbol();
     marksFor = c.id;
     marks = [];
     marksState = 'loading';
     draft = null;
     drawMargin();
-    const [q, text] = await Promise.all([
+    const [q, text, notes] = await Promise.all([
       sb.from('study_annotations').select('id,kind,page,pos,length,quote,surligne,souligne,color,note,created_at').eq('course_id', c.id).order('page').order('pos'),
       api.loadText(c).catch(() => null),
+      sb.from('study_notes').select('chapter_id,body').eq('course_id', c.id),
     ]);
-    if (gone || marksFor !== c.id) return;
+    if (gone || marksLoad !== loading) return;
     if (q.error || !text) { marksState = 'error'; drawMargin(); return; }
     marks = listOf(q.data);
     for (const m of marks) locate(m, text.pages);
     // Notes de chapitre : un plus. Si elles ne se chargent pas, les annotations restent utilisables.
-    sb.from('study_notes').select('chapter_id,body').eq('course_id', c.id).then(({ data, error }) => {
-      if (gone || marksFor !== c.id || error) return;
-      chapNotes = new Map(listOf(data).map(n => [n.chapter_id, n.body]));
-      chapNotesFor = c.id;
-      drawMargin();
-    }, () => {});
+    chapNotes = new Map(listOf(notes.data).map(n => [n.chapter_id, n.body]));
+    chapNotesFor = c.id;
     marksState = 'ready';
     refresh();
   }
@@ -969,7 +971,12 @@ window.cahierCarnet = function cahierCarnet(api) {
       const r = reader(), keep = r && carnetTop(r), atTop = r && r.scrollTop < 4;
       open = on;
       for (const n of parts) n.hidden = !on;
-      if (on) { tab = 'cours'; sideOn = false; marginOn = wide.matches; bar.hidden = true; pane.hidden = true; }
+      if (on) {
+        look = readLook();
+        applyLook(false);
+        marksFor = null;
+        tab = 'cours'; sideOn = false; marginOn = wide.matches; bar.hidden = true; pane.hidden = true;
+      }
       else { closeSheet(false); setLook(false); setFind(false); hideBar(); view.hidden = false; back = null; box.classList.remove('carnet-find-on'); }
       layout();
       if (on) sync();

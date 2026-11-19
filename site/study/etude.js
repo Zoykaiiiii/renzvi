@@ -664,15 +664,12 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
   // Lire : le Cahier existant, ouvert au chapitre. Sa position de lecture rejoint celle du widget Cahier.
   // carnet : ouvre directement le carnet (vue agrandie du Cahier) sur ce chapitre ; son bouton ramène à la présentation
   // d'où l'on vient (« Retour à la constellation » / « à l'arbre »), avec le même cadrage et le même chapitre.
-  function openReader(c, ch, from, { carnet = false } = {}) {
+  function openReader(c, ch, from, { carnet = false, passage } = {}) {
     const saved = peer('cahier') ?? {};
-    const at = { ...(saved.at ?? {}) };
-    if (c && ch && at[c.id]?.chapter !== ch.id) at[c.id] = { chapter: ch.id, y: 0 };
     const retour = carnet && c ? { label: vueId === 'constellations' ? 'Retour à la constellation' : vueId === 'arbre' ? 'Retour à l’arbre' : 'Retour à mon espace', apres: () => closeSheet() } : undefined;
     const entry = openSheet(c ? `${c.subject} / ${c.title}` : 'Importer un cours', ({ body: b, meta: m }) => cahierWidget({
-      body: b, meta: m, user, sb, data: { course: c?.id ?? null, at, retour, importer: !c },
-      // shortcut: si le widget Cahier est aussi sur l'écran, sa prochaine sauvegarde reprend ses propres positions ; unifier si ça gêne.
-      save: d => savePeer('cahier', { course: (peer('cahier') ?? {}).course ?? d.course, at: { ...((peer('cahier') ?? {}).at ?? {}), ...d.at } }),
+      body: b, meta: m, user, sb, data: { course: c?.id ?? null, chapter: ch?.id, at: saved.at, retour, passage, importer: !c },
+      save: d => savePeer('cahier', d),
     }), from);
     entry.reader = true;
     return entry;
@@ -817,14 +814,15 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
   // « Revoir dans le cours » depuis une révision ouverte ici : le passage s'ouvre dans une feuille, par-dessus.
   const onRevoir = e => {
     const above = sheets.at(-1);
-    if (!open || !above || above.reader) return;
+    if (!open || !above) return;
+    if (above.reader) { e.detail.reader = above.sheet; return; }
     const c = courseOf(e.detail.course);
     if (!c) return;
     e.detail.found = true;
     const ch = c.chapters[cahierChapterAt(c.chapters, e.detail.page ?? 0, e.detail.offset ?? 0)];
-    openReader(c, ch, document.activeElement);
+    e.detail.reader = openReader(c, ch, document.activeElement, { carnet: true, passage: e.detail }).sheet;
   };
-  document.addEventListener('renzvi:revoir', onRevoir);
+  document.addEventListener('renzvi:revoir', onRevoir, true);
   const onChange = () => { if (!sheets.length) load(true); };
   document.addEventListener('renzvi:cours', onChange);
   document.addEventListener('renzvi:cartes', onChange);
@@ -841,7 +839,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
     clearTimeout(liveTimer);
     offSon();
     document.removeEventListener('keydown', onKey, true);
-    document.removeEventListener('renzvi:revoir', onRevoir);
+    document.removeEventListener('renzvi:revoir', onRevoir, true);
     document.removeEventListener('renzvi:cours', onChange);
     document.removeEventListener('renzvi:cartes', onChange);
     document.removeEventListener('renzvi:reponse', onChange);

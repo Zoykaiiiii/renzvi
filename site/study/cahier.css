@@ -50,6 +50,7 @@
 .widget.cahier-open .cahier-text>*{max-width:70ch;margin-inline:auto}
 .widget.cahier-open .cahier-text{font-size:17px}
 body.cahier-lock{overflow:hidden}
+body.cahier-lock>[inert]{opacity:0}
 @media (max-width:640px){
   .widget.cahier-open{inset:0;border-radius:0;padding:16px}
   .cahier-pick,.cahier-pick + .dd-trigger,.cahier-search,.cahier-field input{height:44px}

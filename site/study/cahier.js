@@ -191,7 +191,7 @@ async function cahierReadPdf(file, onProgress, signal) {
   }
 }
 
-function cahierWidget({ body, meta, data, save, user, sb }) {
+function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
   const box = body.closest('.widget');
   const store = sb.storage.from('cours');
   const pathOf = (course, name) => `${user.id}/${course.id}/${name}`;
@@ -200,8 +200,12 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
   let gone = false, job = null, saveTimer, searchTimer, lastPick = null, armed = null, lastSel = null, cardDraft = null, explainSel = null;
   const texts = new Map();
   let current = typeof data?.course === 'string' ? data.course : null;
-  const at = Object.fromEntries(Object.entries(data?.at ?? {})
+  const positions = saved => Object.fromEntries(Object.entries(saved?.at ?? {})
     .filter(([, v]) => typeof v?.chapter === 'string' && Number.isFinite(v?.y)).slice(-CAHIER.positions));
+  let at = positions(data);
+  if (current && typeof data?.chapter === 'string' && at[current]?.chapter !== data.chapter) {
+    at[current] = { chapter: data.chapter, y: 0 };
+  }
   const course = () => courses.find(c => c.id === current);
   const persist = () => {
     for (const id of Object.keys(at)) if (!courses.some(c => c.id === id)) delete at[id];
@@ -277,17 +281,32 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     explain: () => { if (!lastSel || window.renzviVerrou?.('L’IA')) return; explainSel = lastSel; mode = 'explain'; draw(); },
     // Ouvert depuis l'espace Study (data.retour) : le bouton dit d'où l'on vient et y ramène.
     retour: data?.retour?.label ?? null,
-    close: () => { expand(false); if (data?.retour?.apres) return data.retour.apres(); focusOpen(); },
+    close: closeReader,
   }) ?? null;
   // Ouvrir et réduire en glissant depuis la place du widget (comme la vue agrandie des autres widgets), pas d'un coup.
   // Transform seulement ; rien en mouvement réduit.
-  let glisse = null;
+  let glisse = null, anchor = null, inerted = [];
   function expand(open) {
     if (open === box.classList.contains('cahier-open')) return;
+    if (open && (box.closest('[inert]') || document.body.classList.contains('cahier-lock'))) return;
     const from = box.getBoundingClientRect();
     glisse?.cancel();
     box.classList.toggle('cahier-open', open);
     document.body.classList.toggle('cahier-lock', open);
+    if (open) {
+      // Le verre ne doit échantillonner que le fond d'écran, y compris quand Study reste monté derrière.
+      anchor = document.createComment('Cahier');
+      box.before(anchor);
+      document.body.append(box);
+      inerted = [...document.body.children].filter(n => n !== box && !n.inert && !n.matches('#wall,script,style,link,dialog,[popover]'));
+      for (const n of inerted) n.inert = true;
+    } else {
+      anchor.replaceWith(box);
+      anchor = null;
+      for (const n of inerted) n.inert = false;
+      inerted = [];
+      if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; persist(); }
+    }
     grow.textContent = open ? 'Réduire' : 'Agrandir';
     // Retour du carnet : le livre relit les notes et surlignages qui viennent peut-être de changer.
     const c = course();
@@ -300,17 +319,24 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     const to = box.getBoundingClientRect();
     if (matchMedia('(prefers-reduced-motion: reduce)').matches || !from.width || !to.width || !box.animate) return;
     box.style.zIndex = '61';
-    glisse = box.animate([
+    const animation = glisse = box.animate([
       { transformOrigin: '0 0', transform: `translate(${from.left - to.left}px,${from.top - to.top}px) scale(${from.width / to.width},${from.height / to.height})` },
       { transformOrigin: '0 0', transform: 'none' },
     ], { duration: open ? 380 : 320, easing: 'cubic-bezier(.22,1,.36,1)' });
-    glisse.finished.catch(() => {}).finally(() => { box.style.zIndex = ''; glisse = null; });
+    animation.finished.catch(() => {}).finally(() => {
+      if (glisse === animation) { box.style.zIndex = ''; glisse = null; }
+    });
+  }
+  function closeReader() {
+    expand(false);
+    if (data?.retour?.apres) { persist(); data.retour.apres(); }
+    else focusOpen();
   }
   const onKey = e => {
     if (e.key !== 'Escape' || !box.classList.contains('cahier-open')) return;
-    if (carnet?.escape()) return e.stopPropagation();
-    expand(false);
-    focusOpen();
+    if (e.target.closest?.('dialog[open]')) return;
+    e.stopPropagation();
+    if (!carnet?.escape()) closeReader();
   };
   // Aller à un passage (résultat de recherche, annotation, signet) : son chapitre s'ouvre, le passage vient en vue.
   function reveal(r, brief = false) {
@@ -351,7 +377,8 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     if (!course()) current = courses.at(-1)?.id ?? null;
     openCourse(current, false);
     // « Ouvrir le cahier » depuis l'espace Study : le carnet s'ouvre tout de suite, sur le chapitre choisi.
-    if (data?.retour && course() && !box.classList.contains('cahier-open')) expand(true);
+    if (data?.retour && course()) expand(true);
+    if (data?.passage && data.passage.course === course()?.id) reveal(data.passage, true);
   }
 
   function loadText(c) {
@@ -535,10 +562,12 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
     if (mode === 'explain' && explainSel) items.unshift(iaExplication({ sb, page: text.pages[explainSel.page], sel: explainSel, close: back }));
     view.replaceChildren(...items);
     reader.onscroll = () => {
+      if (!reader.isConnected || !reader.clientHeight) return;
+      delete at[c.id];
+      at[c.id] = { chapter: ch.id, y: Math.round(reader.scrollTop) };
       clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
-        delete at[c.id];
-        at[c.id] = { chapter: ch.id, y: Math.round(reader.scrollTop) };
+        saveTimer = null;
         persist();
       }, 800);
     };
@@ -853,6 +882,7 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
   // « Revoir dans le cours » depuis une carte : ouvre le cours au chapitre du passage et le surligne.
   const onRevoir = e => {
     const d = e.detail;
+    if ((d.reader && d.reader !== box) || (!d.reader && box.closest('[inert]'))) return;
     if (state !== 'ready') return;
     const c = courses.find(x => x.id === d.course);
     if (!c) { d.found ||= 'absent'; return; }
@@ -883,9 +913,22 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
       if (box.classList.contains('cahier-livre-on')) expand(true);
       drawReader(c, t, d);
     }, () => {});
-    box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (!box.classList.contains('cahier-open')) box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   };
   document.addEventListener('renzvi:revoir', onRevoir);
+
+  const onSaved = e => {
+    if (e.detail.widget !== 'cahier' || e.detail.from !== 'etude') return;
+    const saved = peer('cahier');
+    if (!saved) return;
+    at = positions(saved);
+    current = saved.course;
+    livreData.clear();
+    if (state !== 'ready') return;
+    if (current && !course()) loadCourses();
+    else openCourse(current, false);
+  };
+  if (!apercu && box.dataset.widget === 'cahier') document.addEventListener('renzvi:donnees', onSaved);
 
   pick.onchange = () => { say(''); openCourse(pick.value); };
   chapterPick.onchange = () => openChapter(Number(chapterPick.value));
@@ -903,13 +946,14 @@ function cahierWidget({ body, meta, data, save, user, sb }) {
   return () => {
     gone = true;
     job?.abort();
-    clearTimeout(saveTimer);
     clearTimeout(searchTimer);
     expand(false);
+    clearTimeout(saveTimer);
     carnet?.destroy();
     document.removeEventListener('keydown', onKey);
     document.removeEventListener('selectionchange', onSelect);
     document.removeEventListener('renzvi:revoir', onRevoir);
+    document.removeEventListener('renzvi:donnees', onSaved);
     document.removeEventListener('renzvi:importer', onPrefill);
   };
 }
