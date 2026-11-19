@@ -83,7 +83,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
     const out = [];
     for (const c of courses) {
       const key = cahierFold(c.subject.trim());
-      (out.find(s => s.key === key) ?? out[out.push({ key, id: `m:${key}`, name: c.subject.trim(), courses: [] }) - 1]).courses.push(c);
+      (out.find(s => s.key === key) ?? out[out.push({ key, id: `m:${key}`, name: cahierSubjectName(c.subject.trim()), courses: [] }) - 1]).courses.push(c);
     }
     return out;
   }
@@ -305,7 +305,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
       const vide = el('div', 'etude-preview-vide');
       vide.innerHTML = '<svg viewBox="0 0 120 120" aria-hidden="true"><path d="M60 108V58M60 76c-10-4-18-12-20-24M60 66c9-3 16-10 18-20M60 58c-2-10 0-18 6-24"/><path d="M38 108h44"/></svg>';
       // Sans cours : l'espace s'ouvre directement sur l'import d'un premier cours.
-      vide.append(el('p', '', 'Aucun cours pour l’instant'), button('ghost', 'Importer un premier cours', e => { e.stopPropagation(); setOpen(true); openReader(null, null, closeBtn); }));
+      vide.append(el('p', '', 'Aucun cours pour l’instant'), button('ghost', renzviT('importFirstCourse'), e => { e.stopPropagation(); setOpen(true); openReader(null, null, closeBtn); }));
       preview.replaceChildren(vide);
       return;
     }
@@ -326,7 +326,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
       : ['Ton arbre pousse avec tes cours', 'Importe un premier cours : ses chapitres deviennent des branches, et tes flashcards s’y rattachent.'];
     box.dataset.etudeVue = stage.dataset.vue = prefs.vue;
     empty.append(el('h3', '', h), el('p', '', p),
-      button('primary', 'Importer un premier cours', e => openReader(null, null, e.currentTarget)));
+      button('primary', renzviT('importFirstCourse'), e => openReader(null, null, e.currentTarget)));
     stage.replaceChildren(empty);
   }
 
@@ -423,7 +423,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
     }), 'fermer');
     x.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
     x.ariaLabel = 'Fermer le chapitre';
-    head.append(el('p', 'etude-crumb', `${c.subject} / ${c.title}`), x);
+    head.append(el('p', 'etude-crumb', `${cahierSubjectName(c.subject)} / ${c.title}`), x);
     const idx = c.chapters.indexOf(ch), here = peer('cahier')?.at?.[c.id]?.chapter === ch.id;
     const where = el('p', 'etude-where', `Chapitre ${idx + 1} sur ${c.chapters.length}${here ? ' · ta lecture s’est arrêtée ici' : ''}`);
 
@@ -546,7 +546,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
   function openPicker(c, ch, from, preset = []) {
     const dialog = el('dialog', 'etude-picker');
     const head = el('div', 'etude-pickhead');
-    head.append(el('h3', '', 'Associer un paquet'), el('p', 'etude-crumb', `${c.subject} / ${c.title} / ${ch.title}`));
+    head.append(el('h3', '', 'Associer un paquet'), el('p', 'etude-crumb', `${cahierSubjectName(c.subject)} / ${c.title} / ${ch.title}`));
     dialog.setAttribute('aria-labelledby', head.firstChild.id = `etude-pick-${crypto.randomUUID().slice(0, 8)}`);
     const find = Object.assign(el('input', 'etude-search'), { type: 'search', placeholder: 'Chercher un paquet', ariaLabel: 'Chercher un paquet', autocomplete: 'off', maxLength: 60 });
     const list = el('ul', 'etude-picklist');
@@ -666,8 +666,9 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
   // d'où l'on vient (« Retour à la constellation » / « à l'arbre »), avec le même cadrage et le même chapitre.
   function openReader(c, ch, from, { carnet = false, passage } = {}) {
     const saved = peer('cahier') ?? {};
-    const retour = carnet && c ? { label: vueId === 'constellations' ? 'Retour à la constellation' : vueId === 'arbre' ? 'Retour à l’arbre' : 'Retour à mon espace', apres: () => closeSheet() } : undefined;
-    const entry = openSheet(c ? `${c.subject} / ${c.title}` : 'Importer un cours', ({ body: b, meta: m }) => cahierWidget({
+    const origine = vueId ?? prefs.vue;
+    const retour = carnet || !c ? { label: origine === 'constellations' ? 'Retour à la constellation' : origine === 'arbre' ? 'Retour à l’arbre' : 'Retour à mon espace', apres: () => closeSheet() } : undefined;
+    const entry = openSheet(c ? `${cahierSubjectName(c.subject)} / ${c.title}` : renzviT('importCourse'), ({ body: b, meta: m }) => cahierWidget({
       body: b, meta: m, user, sb, data: { course: c?.id ?? null, chapter: ch?.id, at: saved.at, retour, passage, importer: !c },
       save: d => savePeer('cahier', d),
     }), from);
@@ -705,7 +706,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
       area.oninput = () => { status.textContent = 'Modifications non enregistrées'; clearTimeout(timer); timer = setTimeout(store, 1500); };
       const acts = el('div', 'cahier-actions');
       acts.append(button('primary', 'Enregistrer', store));
-      b.append(el('p', 'etude-crumb', `${c.subject} / ${c.title}`), area, status, acts);
+      b.append(el('p', 'etude-crumb', `${cahierSubjectName(c.subject)} / ${c.title}`), area, status, acts);
       sb.from('study_notes').select('body').match(key).maybeSingle().then(({ data, error }) => {
         if (dead) return;
         if (error) { status.classList.add('bad'); status.textContent = linksOk ? "Tes notes n'ont pas pu se charger. Reviens en arrière et réessaie." : 'Les notes de chapitre ne sont pas encore activées sur ce compte (mise à jour de la base en attente).'; return; }

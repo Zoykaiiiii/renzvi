@@ -13,6 +13,8 @@ const CAHIER_KEYWORD = /^(chapitre|chapter|partie|part|leçon|lecon|séance|sean
 const CAHIER_NUMBER = /^([0-9]{1,2}|[IVXLC]{1,7})\s*[.)–—-]\s+[A-ZÀ-ÖØ-Þ]/;
 const CAHIER_MARKDOWN = /^#{1,2}\s+\S/;
 const cahierUserError = text => Object.assign(new Error(text), { user: true });
+const CAHIER_UNCLASSIFIED = 'Sans matière';
+const cahierSubjectName = subject => subject === CAHIER_UNCLASSIFIED ? renzviT('unclassified') : subject;
 
 // Sans accents ni majuscules, mais de la même longueur que le texte : une position trouvée vaut aussi dans le texte d'origine.
 function cahierFold(text) {
@@ -156,17 +158,18 @@ async function cahierReadText(blob) {
 async function cahierReadPdf(file, onProgress, signal) {
   const lib = await import(new URL(`${CAHIER.pdfjs}pdf.min.js`, location.href).href);
   lib.GlobalWorkerOptions.workerSrc = new URL(`${CAHIER.pdfjs}pdf.worker.min.js`, location.href).href;
-  const task = lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false, enableXfa: false, disableFontFace: true });
+  const bytes = await file.arrayBuffer();
+  signal.throwIfAborted();
+  const task = lib.getDocument({ data: new Uint8Array(bytes), isEvalSupported: false, enableXfa: false, disableFontFace: true });
   const abort = () => task.destroy();
   signal.addEventListener('abort', abort);
   try {
     let pdf;
     try { pdf = await task.promise; } catch (e) {
       if (signal.aborted) throw e;
-      if (e?.name === 'PasswordException') throw cahierUserError('Ce PDF est protégé par un mot de passe. Enlève la protection puis réessaie.');
-      throw cahierUserError("Ce fichier n'a pas pu être lu comme un PDF.");
+      throw cahierUserError(renzviT(e?.name === 'PasswordException' ? 'pdfPassword' : 'pdfUnreadable'));
     }
-    if (pdf.numPages > CAHIER.pdfPages) throw cahierUserError(`Ce PDF a ${pdf.numPages} pages, le cahier en accepte ${CAHIER.pdfPages} au plus. Coupe-le en plusieurs parties.`);
+    if (pdf.numPages > CAHIER.pdfPages) throw cahierUserError(renzviT('pdfTooManyPages', pdf.numPages, CAHIER.pdfPages));
     const pages = [];
     for (let n = 1; n <= pdf.numPages; n++) {
       if (signal.aborted) throw new DOMException('Import annulé', 'AbortError');
@@ -209,8 +212,8 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
   const store = sb.storage.from('cours');
   const pathOf = (course, name) => `${user.id}/${course.id}/${name}`;
   const originalName = course => course.kind === 'pdf' ? 'original.pdf' : 'original.txt';
-  let courses = [], state = 'loading', mode = data?.importer ? 'import' : 'read', chapterIndex = 0, query = '';
-  let gone = false, job = null, saveTimer, searchTimer, lastPick = null, armed = null, lastSel = null, cardDraft = null, explainSel = null;
+  let courses = [], state = 'loading', mode = 'read', chapterIndex = 0, query = '';
+  let gone = false, job = null, importDialog = null, saveTimer, searchTimer, lastPick = null, armed = null, lastSel = null, cardDraft = null, explainSel = null;
   const texts = new Map();
   let current = typeof data?.course === 'string' ? data.course : null;
   const positions = saved => Object.fromEntries(Object.entries(saved?.at ?? {})
@@ -227,7 +230,7 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
 
   const bar = el('div', 'cahier-bar');
   const pick = Object.assign(el('select', 'cahier-pick'), { ariaLabel: 'Cours' });
-  const importBtn = button('ghost', 'Importer un cours', () => { mode = 'import'; draw(); });
+  const importBtn = button('ghost', renzviT('importCourse'), () => openImport());
   const grow = button('ghost', 'Agrandir', () => expand(!box.classList.contains('cahier-open')));
   bar.append(pick, importBtn, grow);
   const nav = el('div', 'cahier-nav');
@@ -251,6 +254,7 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
   const note = el('p', 'zone cahier-note');
   note.setAttribute('role', 'status');
   const tools = el('div', 'cahier-tools');
+  const subjectBtn = button('link', renzviT('editCourseSubject'), () => { mode = 'subject'; draw(); });
   const editBtn = button('link', 'Modifier les chapitres', () => { mode = mode === 'edit' ? 'read' : 'edit'; draw(); });
   const originalBtn = button('link', "Télécharger l'original", downloadOriginal);
   const removeBtn = button('link cahier-danger', 'Supprimer ce cours', removeCourse);
@@ -267,14 +271,14 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
     // Le widget Schémas est sur le tableau, derrière le carnet : on referme le carnet pour qu'il se voie.
     if (d.found && box.classList.contains('cahier-open')) expand(false);
   });
-  tools.append(iaBtn, schemaBtn, editBtn, originalBtn, removeBtn);
+  tools.append(iaBtn, schemaBtn, editBtn, subjectBtn, originalBtn, removeBtn);
   // Widget fermé : un livre ouvert (maquette de Damien, 17 nov.). Le cours à gauche, mes notes à droite, « Ouvrir le
-  // cahier » en bas. Le lecteur reste dessous, caché : le carnet l'ouvre tel quel. Import, scan, erreurs : l'interface
+  // cahier » en bas. Le lecteur reste dessous, caché : le carnet l'ouvre tel quel. Scan, erreurs : l'interface
   // habituelle revient.
   const livre = el('div', 'cahier-livre');
-  const addBtn = button('zoom cahier-add', '', () => { mode = 'import'; draw(); });
+  const addBtn = button('zoom cahier-add', '', () => openImport());
   addBtn.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.200"/><path d="M8 5.200v5.600M5.200 8h5.600"/></svg>';
-  addBtn.ariaLabel = 'Importer un cours';
+  addBtn.ariaLabel = renzviT('importCourse');
   meta?.after(addBtn);
   body.append(bar, nav, cardBar, livre, view, note, tools);
 
@@ -289,7 +293,7 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
     selection: () => selectionRange(),
     reveal: r => reveal(r, true),
     search: text => { search.value = text; search.oninput(); },
-    tools: () => [importBtn, iaBtn, schemaBtn, editBtn, originalBtn, removeBtn],
+    tools: () => [importBtn, iaBtn, schemaBtn, editBtn, subjectBtn, originalBtn, removeBtn],
     makeCard,
     explain: () => { if (!lastSel || window.renzviVerrou?.('L’IA')) return; explainSel = lastSel; mode = 'explain'; draw(); },
     // Ouvert depuis l'espace Study (data.retour) : le bouton dit d'où l'on vient et y ramène.
@@ -390,7 +394,8 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
     if (!course()) current = courses.at(-1)?.id ?? null;
     openCourse(current, false);
     // « Ouvrir le cahier » depuis l'espace Study : le carnet s'ouvre tout de suite, sur le chapitre choisi.
-    if (data?.retour && course()) expand(true);
+    if (data?.importer) openImport({}, data.retour?.apres);
+    else if (data?.retour && course()) expand(true);
     if (data?.passage && data.passage.course === course()?.id) reveal(data.passage, true);
   }
 
@@ -414,7 +419,7 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
     const c = course();
     query = search.value = '';
     chapterIndex = c ? Math.max(0, c.chapters.findIndex(ch => ch.id === at[c.id]?.chapter)) : 0;
-    if (mode !== 'import') mode = 'read';
+    mode = 'read';
     draw();
     if (remember) persist();
   }
@@ -458,26 +463,29 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
     if (!c) {
       book.classList.add('cahier-book-vide');
       book.append(feuille('gauche', lignes(8)), feuille('droite', signet(), lignes(2)));
-      const go = button('cahier-livre-open', 'Importer un cours', () => { mode = 'import'; draw(); });
-      foot.append(el('span', '', 'PDF ou texte'), go);
+      const go = button('cahier-livre-open', renzviT('importCourse'), () => openImport());
+      foot.append(el('span', '', renzviT('pdfOrText')), go);
       livre.replaceChildren(book, el('p', 'cahier-livre-mot', 'Tes cours, tes notes, ton cahier.'), foot);
       if (focused) go.focus();
       return;
     }
     const ch = c.chapters[chapterIndex];
-    const parts = cahierSlices(text.pages, ch, c.chapters[chapterIndex + 1]);
-    const raw = parts.map(p => text.pages[p.page].slice(p.start, p.end)).join('\n');
-    // Le début du chapitre, sans sa ligne de titre ni ses sous-titres : une ou deux phrases.
-    const corps = raw.split('\n').map(l => l.trim()).filter((l, i) => l && !(i === 0 && cahierFold(l).endsWith(cahierFold(ch.title))) && !/^#/.test(l) && /[.!?…»]$/.test(l)).join(' ');
-    const debut = (corps.match(/^.{20,140}?[.!?…](\s|$)/) ?? [corps.slice(0, 120)])[0].trim();
-    const titre = el('h3', 'cahier-livre-titre', c.title);
-    const gauche = feuille('gauche', titre, el('p', 'cahier-livre-matiere', c.subject), el('p', 'cahier-livre-texte', debut));
-    const droite = feuille('droite', signet(), el('p', 'cahier-livre-notes', 'Mes notes'));
+    const pages = text?.pages ?? [];
+    const parts = pages.length ? cahierSlices(pages, ch, c.chapters[chapterIndex + 1]) : [];
+    const raw = parts.map(p => pages[p.page].slice(p.start, p.end)).join('\n');
+    const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines[0] && cahierFold(lines[0]).endsWith(cahierFold(ch.title))) lines.shift();
+    const corps = lines.filter(l => !l.startsWith('#')).join(' ').replace(/\s+/g, ' ');
+    const debut = corps.length <= 140 ? corps
+      : (corps.match(/^.{20,140}?[.!?…](?=\s)/)?.[0] ?? `${corps.slice(0, 140).replace(/\s+\S*$/, '')}…`);
+    const titre = el('h3', 'cahier-livre-titre', ch.title);
+    const gauche = feuille('gauche', titre, el('p', 'cahier-livre-matiere', ch.title === c.title ? cahierSubjectName(c.subject) : c.title), el('p', 'cahier-livre-texte', debut));
+    const droite = feuille('droite', signet(), el('p', 'cahier-livre-notes', renzviT('myNotes')));
     const liste = el('ul', 'cahier-livre-liste');
     droite.append(liste, lignes(2));
     book.append(gauche, droite);
-    const go = button('cahier-livre-open', 'Ouvrir le cahier', () => expand(true));
-    foot.append(el('span', '', `Chapitre ${chapterIndex + 1} sur ${c.chapters.length}`), go);
+    const go = button('cahier-livre-open', renzviT('openNotebook'), () => expand(true));
+    foot.append(el('span', '', renzviT('chapterPosition', chapterIndex + 1, c.chapters.length)), go);
     livre.replaceChildren(book, foot);
     if (focused) go.focus();
     // Un passage surligné et mes notes du chapitre, s'il y en a (rien n'est inventé sinon).
@@ -487,8 +495,9 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
       const hl = marks.find(m => inCh(m) && m.surligne);
       if (hl) gauche.append(el('p', 'cahier-livre-texte', ''), Object.assign(el('mark', 'cahier-livre-marque', hl.quote.length > 90 ? `${hl.quote.slice(0, 88)}…` : hl.quote)));
       const court = t => (t.length > 60 ? `${t.slice(0, 58)}…` : t);
-      const mine = [...notes.filter(n => n.chapter_id === ch.id).map(n => n.body), ...marks.filter(m => inCh(m) && m.note).map(m => m.note)].slice(0, 2);
-      liste.replaceChildren(...mine.map(t => el('li', '', court(t.split('\n')[0]))));
+      const mine = [...notes.filter(n => n.chapter_id === ch.id).map(n => n.body), ...marks.filter(m => inCh(m) && m.note).map(m => m.note)];
+      const preview = mine.map(t => t.trim().split('\n')[0]).filter(Boolean).slice(0, 2);
+      liste.replaceChildren(...preview.map(t => el('li', '', court(t))));
     });
   }
 
@@ -496,24 +505,23 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
     const c = course();
     const ready = state === 'ready';
     setLivre(false);
-    if (state !== 'ready' || mode === 'import' || !c) expand(false);
+    if (state !== 'ready' || !c) expand(false);
     carnet?.sync();
     bar.hidden = !ready;
-    pick.hidden = grow.hidden = !courses.length || mode === 'import';
-    importBtn.hidden = mode === 'import';
-    nav.hidden = tools.hidden = !ready || !c || mode === 'import';
+    pick.hidden = grow.hidden = !courses.length;
+    nav.hidden = tools.hidden = !ready || !c;
     pick.replaceChildren(...[...new Set(courses.map(x => x.subject))].sort((a, b) => a.localeCompare(b, 'fr')).map(subject => {
-      const group = Object.assign(el('optgroup'), { label: subject });
+      const group = Object.assign(el('optgroup'), { label: cahierSubjectName(subject) });
       group.append(...courses.filter(x => x.subject === subject).map(x => Object.assign(el('option', '', x.title), { value: x.id, selected: x.id === current })));
       return group;
     }));
-    meta.textContent = ready && courses.length ? `${courses.length} cours` : '';
+    const count = courses.length === 1 ? renzviT('oneCourse') : renzviT('courseCount', courses.length);
+    meta.textContent = ready && courses.length ? count : '';
     if (state === 'loading') return view.replaceChildren(el('p', 'empty', 'Chargement de tes cours…'));
     if (state === 'error') {
       const retry = button('ghost', 'Réessayer', loadCourses);
       return view.replaceChildren(el('p', 'msg', "Tes cours n'ont pas pu se charger."), retry);
     }
-    if (mode === 'import') return drawImport();
     if (!c) {
       const start = el('div', 'empty cahier-start');
       start.append(el('p', '', 'Importe un cours une fois : un PDF ou ton texte. Tu le retrouves ici, rangé par chapitres.'));
@@ -529,14 +537,22 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
     schemaBtn.hidden = c.kind !== 'pdf' || !c.text_chars || !WIDGETS.some(w => w.id === 'schemas');
     prev.hidden = next.hidden = !c.text_chars || c.chapters.length < 2;
     meta.textContent = c.text_chars ? `Chapitre ${chapterIndex + 1} / ${c.chapters.length}` : '';
+    if (mode === 'subject') return view.replaceChildren(subjectEditor(c));
+    const showPreview = text => {
+      if (mode !== 'read' || query) return;
+      drawLivre(c, text);
+      setLivre(true);
+      meta.textContent = count;
+    };
     if (!c.text_chars) {
+      showPreview();
       return view.replaceChildren(el('p', 'cahier-alert', "Ce PDF ne contient pas de texte lisible : c'est sans doute un scan ou des photos. Il est bien gardé, mais le cahier ne lit pas encore les scans. Tu peux télécharger l'original ci-dessous."));
     }
     view.replaceChildren(el('p', 'empty', 'Ouverture du cours…'));
     loadText(c).then(text => {
-      if (gone || course() !== c || mode === 'import') return;
+      if (gone || course() !== c || mode === 'subject') return;
       if (query) drawResults(c, text); else drawReader(c, text);
-      if (mode === 'read' && !query) { drawLivre(c, text); setLivre(true); meta.textContent = `${courses.length} cours`; }
+      showPreview(text);
     }, () => {
       if (gone || course() !== c) return;
       const retry = button('ghost', 'Réessayer', draw);
@@ -737,96 +753,202 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
     return panel;
   }
 
-  // Le guide Study peut préremplir l'import (cours d'exemple clairement nommé) ; la personne lance l'import elle-même.
-  let prefill = null;
-  const onPrefill = e => { if (state !== 'ready') return; e.detail.found = true; prefill = e.detail; mode = 'import'; say(''); draw(); box.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
-  document.addEventListener('renzvi:importer', onPrefill);
+  function subjectEditor(c) {
+    const form = el('form', 'cahier-edit cahier-subject-editor');
+    const label = el('label', 'cahier-field', renzviT('courseSubject'));
+    const input = Object.assign(el('input'), { type: 'text', maxLength: CAHIER.subject, autocomplete: 'off',
+      value: c.subject === CAHIER_UNCLASSIFIED ? '' : c.subject, placeholder: renzviT('unclassified') });
+    label.append(input);
+    const actions = el('div', 'cahier-actions');
+    const submit = Object.assign(el('button', 'primary', renzviT('save')), { type: 'submit' });
+    const done = () => { mode = 'read'; say(''); draw(); };
+    actions.append(submit, button('ghost', renzviT('cancel'), done));
+    form.append(label, actions);
+    form.onsubmit = async e => {
+      e.preventDefault();
+      if (submit.disabled) return;
+      const subject = input.value.trim() || CAHIER_UNCLASSIFIED;
+      if (subject === c.subject) return done();
+      submit.disabled = true;
+      const { error } = await sb.from('study_courses').update({ subject, updated_at: new Date().toISOString() }).eq('id', c.id);
+      if (gone) return;
+      submit.disabled = false;
+      if (error) return say(renzviT('importSaveError'), true);
+      c.subject = subject;
+      if (course() === c) done();
+      document.dispatchEvent(new CustomEvent('renzvi:cours', { detail: { classified: c } }));
+    };
+    queueMicrotask(() => input.focus({ preventScroll: true }));
+    return form;
+  }
 
-  function drawImport() {
+  // Le guide peut préremplir un cours d'exemple. L'import attend toujours la confirmation de la personne.
+  const onPrefill = e => {
+    if (e.detail.found || state !== 'ready' || box.closest('[hidden],[inert]')) return;
+    e.detail.found = true;
+    openImport(e.detail);
+  };
+  document.addEventListener('renzvi:importer', onPrefill);
+  const onClassified = e => {
+    const changed = e.detail?.classified;
+    const c = changed && courses.find(x => x.id === changed.id);
+    if (!c || c === changed) return;
+    c.subject = changed.subject;
+    draw();
+  };
+  document.addEventListener('renzvi:cours', onClassified);
+
+  function closeImport() {
+    if (!importDialog) return;
+    importDialog.close();
+    importDialog.remove();
+    importDialog = null;
+  }
+
+  function openImport(preset = {}, onCancel) {
+    if (importDialog?.open) return;
+    const dialog = importDialog = el('dialog', 'glass cahier-import-dialog');
+    const heading = Object.assign(el('h2', '', renzviT('importCourse')), { tabIndex: -1, autofocus: true });
+    dialog.ariaLabel = heading.textContent;
     const form = el('form', 'cahier-import');
     form.noValidate = true;
-    const quota = el('p', 'zone');
-    const quotaText = limit => limit === Infinity ? 'Nombre de cours illimité avec Worker.' : `Ton plan permet de garder ${limit} cours dans le Cahier.`;
-    const quotaFull = limit => `Limite atteinte : ${limit} cours maximum avec ton plan. Supprime un cours ou change de plan pour continuer.`;
-    quota.textContent = quotaText(CAHIER_LIMITS[planActuel]);
-    const field = (label, input) => { const f = el('label', 'cahier-field', label); f.append(input); return f; };
-    const subjects = Object.assign(el('datalist'), { id: 'cahier-subjects' });
-    subjects.append(...[...new Set(courses.map(c => c.subject))].map(s => Object.assign(el('option'), { value: s })));
-    const subject = Object.assign(el('input'), { type: 'text', maxLength: CAHIER.subject, autocomplete: 'off', value: course()?.subject ?? '', placeholder: 'Droit civil, Biologie…' });
-    subject.setAttribute('list', subjects.id);
-    const title = Object.assign(el('input'), { type: 'text', maxLength: CAHIER.title, autocomplete: 'off', placeholder: 'Chapitre 3, Les contrats…' });
-    const file = Object.assign(el('input'), { type: 'file', accept: '.pdf,.txt,.md,application/pdf,text/plain,text/markdown', hidden: true });
-    const hint = Object.assign(el('p', 'zone', 'PDF qui contient du texte (20 Mo et 200 pages au plus) ou fichier texte. Les scans et les photos ne sont pas encore lus.'), { id: 'cahier-hint' });
-    const choose = button('ghost cahier-file', 'Choisir un fichier', () => file.click());
-    choose.setAttribute('aria-describedby', hint.id);
-    const chosen = el('p', 'cahier-chosen');
-    const paste = Object.assign(el('textarea', 'cahier-paste'), { placeholder: 'Ou colle ici le texte de ton cours', ariaLabel: 'Texte du cours à coller', maxLength: CAHIER.textBytes / 2 });
-    const progress = Object.assign(el('progress', 'cahier-progress'), { hidden: true, max: 1, value: 0 });
-    progress.ariaLabel = "Progression de l'import";
-    const status = el('p', 'zone');
-    status.setAttribute('role', 'status');
-    const submit = Object.assign(el('button', 'primary', 'Importer'), { type: 'submit' });
-    const cancel = button('ghost', 'Annuler', () => {
+    const title = Object.assign(el('input'), { type: 'text', maxLength: CAHIER.title, autocomplete: 'off', value: preset.title ?? '', required: true });
+    const label = el('label', 'cahier-field', renzviT('courseName'));
+    label.append(title);
+
+    const file = Object.assign(el('input'), { type: 'file', hidden: true });
+    const choose = button('ghost cahier-file', '', () => file.click());
+    const chosen = el('span', 'cahier-chosen');
+    const fileRow = el('div', 'cahier-filerow');
+    fileRow.append(choose, chosen, file);
+    const source = el('div', 'cahier-source');
+    const uid = crypto.randomUUID();
+    const feedback = (key, role) => {
+      const p = el('p', 'cahier-import-feedback');
+      p.id = `cahier-import-${key}-${uid}`;
+      p.setAttribute('role', role);
+      return p;
+    };
+    const titleError = feedback('nom', 'alert'), sourceError = feedback('source', 'alert'), status = feedback('status', 'status');
+    title.setAttribute('aria-describedby', titleError.id);
+    choose.setAttribute('aria-describedby', sourceError.id);
+    const progress = Object.assign(el('progress', 'cahier-progress'), { hidden: true, max: 1, value: 0, ariaLabel: renzviT('importing') });
+    const submit = Object.assign(el('button', 'primary', renzviT('import')), { type: 'submit' });
+    const cancel = button('ghost', renzviT('cancel'), () => {
+      if (cancel.disabled) return;
       if (job) { job.abort(); return; }
-      mode = 'read';
-      say('');
-      draw();
+      closeImport();
+      onCancel?.();
     });
+    dialog.oncancel = e => { e.preventDefault(); cancel.click(); };
     const actions = el('div', 'cahier-actions');
     actions.append(submit, cancel);
-    const fileRow = el('div', 'cahier-filerow');
-    fileRow.append(choose, chosen);
-    form.append(quota, field('Matière', subject), field('Titre du cours', title), fileRow, hint, file, subjects, paste, progress, status, actions);
+    let isText = false, paste = null;
+    const toggle = button('link cahier-import-toggle', '', () => setSource(!isText, true));
+    const clear = (control, message) => { control?.removeAttribute('aria-invalid'); message.textContent = ''; };
+    const report = (message, text, control) => {
+      message.textContent = text;
+      message.classList.add('msg');
+      control?.setAttribute('aria-invalid', 'true');
+      control?.focus();
+    };
+    function showFile() {
+      const name = file.files[0]?.name ?? '';
+      chosen.hidden = !name;
+      chosen.title = chosen.textContent = name;
+      const prompt = renzviT(isText ? 'chooseText' : 'choosePdf');
+      choose.textContent = name ? renzviT('replaceFile') : prompt;
+      choose.ariaLabel = name ? renzviT('replaceNamedFile', name) : prompt;
+    }
+    function setSource(text, focus = false) {
+      isText = text;
+      file.value = '';
+      file.accept = text ? '.txt,.md,text/plain,text/markdown' : '.pdf,application/pdf';
+      showFile();
+      clear(choose, sourceError);
+      clear(paste, sourceError);
+      status.textContent = '';
+      toggle.textContent = renzviT(text ? 'importPdf' : 'pasteText');
+      if (text && !paste) {
+        paste = Object.assign(el('textarea', 'cahier-paste'), { ariaLabel: renzviT('courseText'),
+          placeholder: renzviT('courseText'), maxLength: CAHIER.textBytes / 2, value: preset.text ?? '' });
+        paste.setAttribute('aria-describedby', sourceError.id);
+        paste.oninput = () => clear(paste, sourceError);
+      }
+      source.replaceChildren(...(text ? [paste, fileRow] : [fileRow]), sourceError);
+      if (focus) (text ? paste : choose).focus({ preventScroll: true });
+    }
+    form.append(label, titleError, source, actions, progress, status, toggle);
+    dialog.append(heading, form);
+    setSource(Boolean(preset.text));
+    title.oninput = () => clear(title, titleError);
     file.onchange = () => {
-      const f = file.files[0];
-      chosen.textContent = f ? f.name : '';
-      if (f && !title.value.trim()) title.value = f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim().slice(0, CAHIER.title);
+      showFile();
+      clear(choose, sourceError);
+      if (!title.value.trim() && file.files[0]) {
+        const ext = isText ? /\.(txt|md)$/i : /\.pdf$/i;
+        title.value = file.files[0].name.replace(ext, '').trim().slice(0, CAHIER.title);
+        if (title.value) clear(title, titleError);
+      }
+    };
+    const setBusy = busy => {
+      submit.textContent = renzviT(busy ? 'importing' : 'import');
+      for (const input of [submit, title, file, choose, toggle, paste].filter(Boolean)) input.disabled = busy;
+      if (!busy) { cancel.disabled = false; progress.hidden = true; }
     };
     form.onsubmit = async e => {
       e.preventDefault();
       if (job) return;
-      const f = file.files[0], pasted = paste.value.trim();
-      const isPdf = !!f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
-      const fail = (text, focus) => { status.textContent = text; status.classList.add('msg'); focus?.focus(); };
+      const f = file.files[0], pasted = isText ? paste.value.trim() : '', name = title.value.trim();
+      const isPdf = !isText, field = f || isPdf ? choose : paste;
+      status.textContent = '';
       status.classList.remove('msg');
-      if (!subject.value.trim()) return fail('Indique la matière de ce cours.', subject);
-      if (!f && !pasted) return fail('Choisis un fichier ou colle le texte de ton cours.', choose);
-      if (f && !isPdf && !/^text\//.test(f.type) && !/\.(txt|md)$/i.test(f.name)) return fail('Ce type de fichier n’est pas encore lu : choisis un PDF ou un fichier texte (.txt).', choose);
-      if (f && f.size > (isPdf ? CAHIER.pdfBytes : CAHIER.textBytes)) return fail(isPdf ? 'Ce PDF est trop lourd : 20 Mo au plus.' : 'Ce fichier texte est trop lourd : 2 Mo au plus.', choose);
+      clear(title, titleError);
+      clear(choose, sourceError);
+      clear(paste, sourceError);
+      if (!name) return report(titleError, renzviT('courseNameRequired'), title);
+      if (!f && !pasted) return report(sourceError, renzviT(isPdf ? 'pdfRequired' : 'textRequired'), field);
+      if (isPdf && f.type !== 'application/pdf' && !/\.pdf$/i.test(f.name)) return report(sourceError, renzviT('pdfRequired'), choose);
+      if (!isPdf && f && !/^text\//.test(f.type) && !/\.(txt|md)$/i.test(f.name)) return report(sourceError, renzviT('textFileType'), choose);
       const original = f ?? new Blob([pasted], { type: 'text/plain' });
-      if (!f && original.size > CAHIER.textBytes) return fail('Ce texte est trop long : 2 Mo au plus.', paste);
+      const max = isPdf ? CAHIER.pdfBytes : CAHIER.textBytes;
+      if (original.size > max) return report(sourceError, renzviT(isPdf ? 'pdfTooLarge' : 'textTooLarge', max / 1048576), field);
+
       job = new AbortController();
       const signal = job.signal;
-      submit.disabled = true;
-      for (const input of [subject, title, paste, choose]) input.disabled = true;
-      status.textContent = 'Vérification de ton plan…';
+      setBusy(true);
+      let saving = false;
       try {
         const { data: plan } = await sb.rpc('renzvi_plan');
         const limit = CAHIER_LIMITS[plan];
-        if (limit) quota.textContent = quotaText(limit);
         if (Number.isFinite(limit)) {
           const { count } = await sb.from('study_courses').select('id', { count: 'exact', head: true });
-          if (count >= limit) throw cahierUserError(quotaFull(limit));
+          signal.throwIfAborted();
+          if (count >= limit) return report(status, renzviT('importQuota', limit));
         }
-        if (signal.aborted) throw new DOMException('Import annulé', 'AbortError');
-        progress.hidden = !isPdf;
-        status.textContent = isPdf ? 'Ouverture du PDF…' : 'Lecture du texte…';
+        signal.throwIfAborted();
         const read = isPdf
-          ? await cahierReadPdf(f, (n, total) => { progress.max = total; progress.value = n; status.textContent = `Lecture de la page ${n} sur ${total}…`; }, signal)
+          ? await cahierReadPdf(f, (n, total) => {
+            progress.hidden = false;
+            progress.max = total;
+            progress.value = n;
+            status.textContent = renzviT('importProgress', n, total);
+          }, signal)
           : await cahierReadText(original);
-        if (signal.aborted) throw new DOMException('Import annulé', 'AbortError');
+        signal.throwIfAborted();
         const chars = read.pages.reduce((n, p) => n + p.trim().length, 0);
         // Un scan n'a presque pas de texte : au mieux des numéros de page.
         const usable = isPdf ? chars >= 20 * read.pages.length : chars > 0;
-        if (!isPdf && !usable) throw cahierUserError('Ce fichier est vide.');
+        if (!isPdf && !usable) throw cahierUserError(renzviT('emptyText'));
         const c = {
-          id: crypto.randomUUID(), subject: subject.value.trim().slice(0, CAHIER.subject),
-          title: (title.value.trim() || (f ? f.name.replace(/\.[^.]+$/, '') : 'Mon cours')).slice(0, CAHIER.title),
+          id: crypto.randomUUID(), subject: preset.subject?.trim().slice(0, CAHIER.subject) || CAHIER_UNCLASSIFIED,
+          title: name.slice(0, CAHIER.title),
           kind: isPdf ? 'pdf' : 'texte', file_name: (f?.name || 'texte-colle.txt').slice(-200), file_size: original.size,
           page_count: read.pages.length, text_chars: usable ? chars : 0,
           chapters: usable ? cahierGuess(read.pages, read.outline) : [{ id: crypto.randomUUID(), title: 'Tout le cours', page: 0, offset: 0 }],
         };
-        status.textContent = 'Enregistrement sur ton compte…';
+        saving = true;
+        status.textContent = renzviT('importSaving');
         cancel.disabled = true; // l'envoi est court : l'interrompre laisserait des fichiers sans cours
         const files = [pathOf(c, originalName(c)), pathOf(c, 'texte.json')];
         let error = (await store.upload(files[0], original, { contentType: isPdf ? 'application/pdf' : 'text/plain', upsert: false })).error;
@@ -834,39 +956,34 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
         if (!error) error = (await sb.from('study_courses').insert(c)).error;
         if (error) {
           await store.remove(files);
-          if (error.code === 'P0001' && error.message === 'study_course_quota') {
-            throw cahierUserError(quotaFull(Number(error.details)));
-          }
-          throw cahierUserError("L'enregistrement n'a pas abouti. Vérifie ta connexion et réessaie.");
+          throw cahierUserError(error.code === 'P0001' && error.message === 'study_course_quota'
+            ? renzviT('importQuota', Number(error.details)) : renzviT('importSaveError'));
         }
         if (gone) return;
+        closeImport();
         courses.push(c);
         texts.set(c.id, Promise.resolve({ pages: read.pages, folded: null }));
-        mode = 'read';
         openCourse(c.id);
+        expand(true);
+        carnet?.showCourse?.();
         document.dispatchEvent(new CustomEvent('renzvi:cours'));
-        say(!usable ? '' : c.chapters.length > 1 ? `${c.chapters.length} chapitres trouvés. Vérifie-les avec « Modifier les chapitres ».` : 'Aucun titre de chapitre trouvé : crée tes chapitres avec « Modifier les chapitres ».');
+        say(usable && c.chapters.length > 1 ? renzviT('importedChapters', c.chapters.length) : '');
       } catch (err) {
         if (gone) return;
-        if (err?.name === 'AbortError' || signal.aborted) { status.textContent = 'Import annulé. Rien n’a été enregistré.'; status.classList.remove('msg'); }
-        else { if (!err?.user) console.error(err); fail(err?.user ? err.message : "Ce fichier n'a pas pu être lu. Essaie un autre PDF ou colle le texte."); }
+        if (err?.name === 'AbortError' || signal.aborted) status.textContent = renzviT('importCancelled');
+        else {
+          if (!err?.user) console.error(err);
+          const message = err?.user ? err.message : renzviT(saving ? 'importSaveError' : isPdf ? 'pdfUnreadable' : 'textUnreadable');
+          setBusy(false);
+          report(saving ? status : sourceError, message, saving ? null : field);
+        }
       } finally {
         job = null;
-        if (!gone && mode === 'import') {
-          submit.disabled = cancel.disabled = false;
-          for (const input of [subject, title, paste, choose]) input.disabled = false;
-          progress.hidden = true;
-        }
+        if (dialog.open) setBusy(false);
       }
     };
-    if (prefill) {
-      subject.value = prefill.subject;
-      title.value = prefill.title;
-      paste.value = prefill.text;
-      prefill = null;
-    }
-    view.replaceChildren(form);
-    subject.focus({ preventScroll: true });
+    box.append(dialog);
+    dialog.showModal();
   }
 
   async function downloadOriginal() {
@@ -911,7 +1028,7 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
   const onRevoir = e => {
     const d = e.detail;
     if ((d.reader && d.reader !== box) || (!d.reader && box.closest('[inert]'))) return;
-    if (state !== 'ready') return;
+    if (state !== 'ready' || importDialog?.open) return;
     const c = courses.find(x => x.id === d.course);
     if (!c) { d.found ||= 'absent'; return; }
     d.found = true;
@@ -974,6 +1091,7 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
   return () => {
     gone = true;
     job?.abort();
+    closeImport();
     clearTimeout(searchTimer);
     expand(false);
     clearTimeout(saveTimer);
@@ -983,5 +1101,6 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
     document.removeEventListener('renzvi:revoir', onRevoir);
     document.removeEventListener('renzvi:donnees', onSaved);
     document.removeEventListener('renzvi:importer', onPrefill);
+    document.removeEventListener('renzvi:cours', onClassified);
   };
 }

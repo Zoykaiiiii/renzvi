@@ -68,7 +68,7 @@ function guideWidget({ body, meta, data, save, sb }) {
     list.append(
       step(1, 'Ajoute un cours', done.cours, now === 0, [
         el('p', 'zone', 'Un PDF qui contient du texte, ou ton texte collé. Tu l’importes une fois.'),
-        button('primary', 'Importer mon cours', () => { if (!open({ subject: '', title: '', text: '' })) say('Ajoute d’abord le Cahier à cette page.', true); }),
+        button('primary', renzviT('importMyCourse'), () => { if (!open({})) say('Ajoute d’abord le Cahier à cette page.', true); }),
         button('ghost', "Essayer avec un cours d'exemple", () => { if (!open(GUIDE_EXEMPLE)) say('Ajoute d’abord le Cahier à cette page.', true); }),
         el('p', 'zone', "Le cours d'exemple est nommé « Exemple » : supprime-le quand tu veux."),
       ]),

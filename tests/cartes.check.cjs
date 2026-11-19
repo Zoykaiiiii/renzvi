@@ -1004,7 +1004,8 @@ const select = (page, word) => page.evaluate(w => {
       dbg.failCourses = true;
       await g.getByRole('button', { name: "Essayer avec un cours d'exemple" }).click();
       const c = cahier(page);
-      assert.strictEqual(await c.getByLabel('Matière').inputValue(), 'Exemple', 'cours d’exemple clairement nommé');
+      assert.strictEqual(await c.getByLabel('Nom du cours').inputValue(), "Cours d'exemple : la cellule", 'cours d’exemple clairement nommé');
+      assert.match(await c.getByLabel('Texte du cours à coller').inputValue(), /membrane plasmique/i);
       await c.getByRole('button', { name: 'Importer', exact: true }).click();
       await page.waitForFunction(() => /enregistrement n'a pas abouti/.test(document.querySelector('.cahier-import').innerText));
       assert.match(await g.locator('.meta').innerText(), /Étape 1 \/ 4/);
@@ -1012,6 +1013,8 @@ const select = (page, word) => page.evaluate(w => {
       await c.getByRole('button', { name: 'Importer', exact: true }).click();
       await page.waitForFunction(() => /Étape 2 \/ 4/.test(document.querySelector('[data-widget=guide] .meta').textContent));
       assert.strictEqual(dbg.courses[0].title, "Cours d'exemple : la cellule");
+      assert.strictEqual(dbg.courses[0].subject, 'Exemple');
+      await c.getByRole('button', { name: 'Retour au tableau' }).click();
       await g.getByRole('button', { name: 'Mes chapitres sont bons' }).click();
       assert.match(await g.locator('.meta').innerText(), /Étape 3 \/ 4/);
       assert.match(await gText(), /Gratuit[\s\S]*Avec crédits[\s\S]*Le coût est affiché avant de lancer/, 'gratuit et payant distingués avant l’action');
@@ -1024,6 +1027,7 @@ const select = (page, word) => page.evaluate(w => {
       await c.getByLabel('Question').fill('Qu’entoure la membrane plasmique ?');
       await c.getByRole('button', { name: 'Créer la carte' }).click();
       await page.waitForFunction(() => /Étape 4 \/ 4/.test(document.querySelector('[data-widget=guide] .meta').textContent));
+      await c.getByRole('button', { name: 'Retour au tableau' }).click();
       const r = page.locator('[data-widget=revisions]');
       await r.getByRole('button', { name: 'Voir la réponse' }).click();
       await r.getByRole('button', { name: /^Bien/ }).click();

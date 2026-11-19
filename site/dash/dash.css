@@ -98,6 +98,8 @@ dialog.mode-wheel[open]{display:grid;place-items:center}
 /* Tout l'écran passe derrière un flou, la roue seule au milieu. */
 dialog.mode-wheel::backdrop{background:color-mix(in srgb,var(--ground) 45%,transparent);-webkit-backdrop-filter:blur(20px) saturate(1.2);backdrop-filter:blur(20px) saturate(1.2)}
 .mode-wheel__panel{display:grid;justify-items:center;gap:8px;width:min(440px,100vw - 32px);padding:16px 0}
+.mode-wheel__panel,.mode-wheel__panel :is(.mode-wheel__title,.mode-wheel__hint,.mw-name,.mw-now),.bar-mode{-webkit-user-select:none;user-select:none}
+.mode-wheel :is(.option-wheel__item,.mode-wheel__hint,.mode-wheel__title),.bar-mode{-webkit-touch-callout:none}
 .mode-wheel__title{font-size:15px;font-weight:600;color:var(--slate)}
 .mode-wheel__hint{font-size:13px;color:var(--slate);text-align:center}
 .mode-wheel__slot{width:100%;height:min(320px,56dvh)}

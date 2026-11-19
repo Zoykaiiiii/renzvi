@@ -885,13 +885,13 @@ window.cahierCarnet = function cahierCarnet(api) {
     if (!open) return;
     const c = api.course();
     name.replaceChildren();
-    if (c) name.append(el('span', '', c.subject), el('span', 'carnet-crumb-sep', '/'), el('span', '', c.title));
+    if (c) name.append(el('span', '', cahierSubjectName(c.subject)), el('span', 'carnet-crumb-sep', '/'), el('span', '', c.title));
     for (const b of tabBtns) { b.setAttribute('aria-selected', b.dataset.tab === tab); b.tabIndex = b.dataset.tab === tab ? 0 : -1; }
     view.hidden = tab !== 'cours';
     pane.hidden = tab === 'cours';
     const all = api.courses();
     coursePick.replaceChildren(...[...new Set(all.map(x => x.subject))].sort((a, b) => a.localeCompare(b, 'fr')).map(subject => {
-      const g = Object.assign(el('optgroup'), { label: subject });
+      const g = Object.assign(el('optgroup'), { label: cahierSubjectName(subject) });
       g.append(...all.filter(x => x.subject === subject).map(x => Object.assign(el('option', '', x.title), { value: x.id, selected: x.id === c?.id })));
       return g;
     }));
@@ -930,7 +930,7 @@ window.cahierCarnet = function cahierCarnet(api) {
     // Le texte ne doit pas glisser sous les yeux (signet, passage retrouvé) : on compense la hauteur ajoutée.
     const y = title.getBoundingClientRect().top;
     r.querySelector('.carnet-kicker')?.remove();
-    if (open && c) title.before(el('p', 'carnet-kicker', `Chapitre ${String(api.chapter() + 1).padStart(2, '0')} · ${c.subject}`));
+    if (open && c) title.before(el('p', 'carnet-kicker', `Chapitre ${String(api.chapter() + 1).padStart(2, '0')} · ${cahierSubjectName(c.subject)}`));
     if (r.scrollTop > 0) r.scrollTop += title.getBoundingClientRect().top - y;
   }
   // Progression dans le cours : chapitres déjà passés + la part lue du chapitre ouvert.
@@ -955,6 +955,7 @@ window.cahierCarnet = function cahierCarnet(api) {
 
   return {
     isOpen: () => open,
+    showCourse: () => setTab('cours'),
     // Le Cahier vient de redessiner son lecteur.
     drawn(r) {
       if (!open) return;

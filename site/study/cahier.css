@@ -33,12 +33,29 @@
 .cahier-alert{padding:16px;border-radius:18px;background:var(--tint);font-size:15px;line-height:1.5}
 .cahier-start{padding:24px 0}
 .cahier-start p{max-width:36ch}
+dialog.glass.cahier-import-dialog{width:min(420px,100vw - 24px);max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));padding:clamp(16px,4vw,24px)}
+.widget.cahier-open dialog.glass.cahier-import-dialog{--glass:var(--cn-raise);border-color:var(--edge)}
+.cahier-import-dialog h2{margin:0 0 16px}
 .cahier-import{display:grid;gap:12px}
 .cahier-field{display:grid;gap:6px;font-size:13px;font-weight:600}
 .cahier-field input{font-weight:400}
+.cahier-import :is(.cahier-field input,button:not(.link)){min-height:44px;font-size:16px}
+.cahier-source{display:grid;gap:8px}
 .cahier-filerow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
 .cahier-chosen{min-width:0;font-size:14px;overflow-wrap:anywhere}
-.cahier-import .zone{margin-top:0}
+.cahier-import .cahier-filerow{flex-wrap:nowrap;min-width:0}
+.cahier-import .cahier-file{flex:none}
+.cahier-import .cahier-chosen{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cahier-import-feedback{margin:0;font-size:14px;line-height:1.35}
+.cahier-import-feedback:not(.msg){color:var(--slate)}
+.cahier-import-feedback:empty{display:none}
+.cahier-import [aria-invalid=true]{border-color:var(--error)}
+.cahier-import-toggle{justify-self:start;min-height:32px}
+@media (max-height:400px){
+  dialog.glass.cahier-import-dialog{padding:12px}
+  .cahier-import-dialog h2{margin-bottom:8px}
+  .cahier-import{gap:8px}
+}
 .cahier-paste{min-height:120px;padding:12px 14px;border:1px solid var(--edge);border-radius:18px;background:var(--field);font:inherit;font-size:14px;line-height:1.5;resize:vertical}
 .cahier-progress{width:100%;height:6px;accent-color:var(--accent)}
 .cahier-actions{display:flex;flex-wrap:wrap;gap:8px}
@@ -88,20 +105,64 @@ body.cahier-lock>[inert]{opacity:0}
 .cahier-livre-liste li::marker{font-size:.8em}
 .cahier-livre-liste:empty{display:none}
 .cahier-livre-liste:not(:empty)+.cahier-lignes{padding-top:16px}
+.cahier-book:has(.cahier-livre-liste:empty){grid-template-columns:1fr}
+.cahier-book:has(.cahier-livre-liste:empty) .cahier-feuille.gauche{border-radius:20px;border-right-width:1px}
+.cahier-book:has(.cahier-livre-liste:empty) .cahier-feuille.droite{display:none}
 .cahier-livre-mot{margin:0;text-align:center;font:italic clamp(19px,4.6cqi,24px)/1.3 var(--livre-serif)}
 .cahier-livre-foot{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;border-top:1px solid var(--edge);font-size:15px;color:var(--slate)}
-/* Vue Pages : le widget a une hauteur imposée. Le livre rétrécit pour que « Ouvrir le cahier » reste visible sans
-   faire défiler ; trop bas pour un livre lisible, il disparaît (phrase et bouton seuls, pas une bande écrasée).
-   Pas en grille : là, le widget prend la hauteur de son contenu. */
+/* En vue Pages, le livre rétrécit pour laisser le bouton visible. Un widget vide à hauteur fixe
+   fait de même en grille pour garder « Importer un cours » accessible. */
 .board[data-vue=pages] .widget:not(.cahier-open) .cahier-livre{container-type:size}
 .board[data-vue=pages] .cahier-book{flex:1 1 0;min-height:0;overflow:hidden}
-@container (max-height:250px){.cahier-book{display:none}.cahier-livre-mot{margin-block:auto}}
+@media (min-width:728px){
+  .board .widget[data-h]:not(.cahier-open) .cahier-livre:has(.cahier-book-vide){container-type:size}
+}
+@container (max-height:250px){
+  .cahier-book-vide{display:none}
+  .cahier-livre-mot{margin-block:auto}
+  .cahier-book:not(.cahier-book-vide) .cahier-feuille{padding:12px}
+  .cahier-livre-titre{font-size:24px}
+  .cahier-livre-texte{-webkit-line-clamp:2}
+}
+@container (max-height:125px){
+  .cahier-livre-mot,.cahier-book-vide~.cahier-livre-foot>span{display:none}
+  .cahier-book-vide~.cahier-livre-foot{padding-top:0;border-top:0}
+}
+@container (max-width:290px){
+  .cahier-book-vide~.cahier-livre-foot>span{display:none}
+  .cahier-book-vide~.cahier-livre-foot .cahier-livre-open{max-width:100%;padding-inline:14px}
+}
 .cahier-livre-open{height:46px;padding:0 28px;border:0;border-radius:999px;background:var(--ink);color:var(--ground,#fff);font:inherit;font-size:16px;font-weight:600;white-space:nowrap;cursor:pointer;transition:transform .15s}
 .cahier-livre-open:hover{transform:translateY(-1px)}
 .cahier-livre-open:active{transform:translateY(0) scale(.98)}
 @container (max-width:430px){
-  .cahier-book{grid-template-columns:1fr}
-  .cahier-feuille.gauche{border-radius:20px;border-right-width:1px}
-  .cahier-feuille.droite{display:none}
+  .cahier-book-vide{grid-template-columns:1fr}
+  .cahier-book-vide .cahier-feuille.gauche{border-radius:20px;border-right-width:1px}
+  .cahier-book-vide .cahier-feuille.droite{display:none}
+}
+@media (max-width:727px){
+  /* Le livre rempli contribue à la hauteur de la carte. Le formulaire reste dans son dialogue. */
+  .board[data-vue=pages] .widget.cahier-livre-on .cahier-livre:has(.cahier-book:not(.cahier-book-vide)){container-type:inline-size}
+  .cahier-livre:has(.cahier-book:not(.cahier-book-vide)){gap:12px}
+  .board .cahier-book:not(.cahier-book-vide){flex:0 0 auto;min-height:0;margin-top:0}
+  .cahier-book:not(.cahier-book-vide):has(.cahier-livre-liste:not(:empty)){grid-template-columns:minmax(0,3fr) minmax(0,2fr)}
+  .cahier-book:not(.cahier-book-vide) .cahier-feuille{padding:12px}
+  .cahier-livre-titre{font-size:clamp(24px,7cqi,30px);line-height:1.12}
+  .cahier-livre-matiere{margin-top:4px;padding-bottom:8px;font-size:15px;overflow-wrap:anywhere}
+  .cahier-livre-texte{margin-top:8px;-webkit-line-clamp:3}
+  .cahier-livre-marque,.cahier-livre-liste+.cahier-lignes{display:none}
+  .cahier-livre-notes{margin-top:18px;padding-bottom:6px;font-size:18px}
+  .cahier-livre-liste{margin-top:8px;padding-left:12px}
+  .cahier-book:not(.cahier-book-vide)~.cahier-livre-foot{flex-wrap:wrap;gap:8px;padding-top:10px}
+  .cahier-livre-open{max-width:100%;height:auto;min-height:46px;padding:8px 14px;white-space:normal}
+}
+@container (max-width:290px){
+  .cahier-book:not(.cahier-book-vide):has(.cahier-livre-liste){grid-template-columns:1fr}
+  .cahier-book:not(.cahier-book-vide) .cahier-feuille.gauche{border-radius:20px;border-right-width:1px}
+  .cahier-book:not(.cahier-book-vide) .cahier-feuille.droite{display:none}
+  .cahier-livre-texte{-webkit-line-clamp:2}
+}
+@media (max-width:640px) and (max-height:650px){
+  .cahier-book-vide{min-height:140px}
 }
 @media (prefers-reduced-motion:reduce){.cahier-livre-open{transition:none}}

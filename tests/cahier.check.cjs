@@ -50,7 +50,8 @@ async function openBoard(browser, base, db, options = { viewport: { width: 1440,
   await context.route(`${SUPABASE}/rest/v1/rpc/*`, route => {
     const req = route.request();
     if (req.method() === 'OPTIONS') return preflight(route);
-    return json(route, 200, req.url().endsWith('/renzvi_plan') ? db.plan ?? 'pro' : []);
+    if (!req.url().endsWith('/renzvi_plan')) return json(route, 200, []);
+    return Promise.resolve(db.planGate).then(() => json(route, 200, db.plan ?? 'pro'));
   });
   await context.route(`${SUPABASE}/rest/v1/study_courses*`, route => {
     const req = route.request();
@@ -112,12 +113,20 @@ const fresh = () => ({ rows: { ecran: { wallpaper: 'blanc', widgets: ALL, done: 
 const cahier = page => page.locator('[data-widget=cahier]');
 const state = page => page.evaluate(() => document.querySelector('[data-widget=cahier] .cahier-view').innerText);
 
-async function importFile(page, name, buffer, mimeType, subject = 'Droit civil') {
+async function openImport(page) {
   const w = cahier(page);
-  await w.getByRole('button', { name: 'Importer un cours' }).click();
-  await w.getByLabel('Matière').fill(subject);
-  await w.locator('input[type=file]').setInputFiles({ name, mimeType, buffer });
-  await w.getByRole('button', { name: 'Importer', exact: true }).click();
+  if (await w.evaluate(n => n.classList.contains('cahier-open')) && !await w.locator('.carnet-menu').isVisible()) {
+    await w.getByRole('button', { name: 'Chapitres', exact: true }).click();
+  }
+  await w.getByRole('button', { name: 'Importer un cours', exact: true }).click();
+  return w.getByRole('dialog', { name: 'Importer un cours' });
+}
+
+async function importFile(page, name, buffer, mimeType) {
+  const dialog = await openImport(page);
+  if (mimeType !== 'application/pdf') await dialog.getByRole('button', { name: 'Coller du texte' }).click();
+  await dialog.locator('input[type=file]').setInputFiles({ name, mimeType, buffer });
+  await dialog.getByRole('button', { name: 'Importer', exact: true }).click();
 }
 
 (async () => {
@@ -164,6 +173,85 @@ async function importFile(page, name, buffer, mimeType, subject = 'Droit civil')
 
     // 2. Premier cours en texte collé, puis un PDF de 7 pages, lecture, recherche, reprise après rechargement.
     const pdf = await makePdf(browser, COURSE_HTML, { displayHeaderFooter: true, headerTemplate: '<div style="font-size:9px;margin-left:1cm">Cours de droit civil — L1</div>', footerTemplate: '<div></div>', margin: { top: '2cm', bottom: '2cm' } });
+    for (const width of [1440, 320]) {
+      const mobile = width < 500;
+      const sample = fresh();
+      Object.assign(sample.rows.ecran, { sizes: { cahier: 's' }, heights: { cahier: 140 } });
+      const gate = Promise.withResolvers();
+      sample.planGate = gate.promise;
+      const { page, context } = await openBoard(browser, base, sample, {
+        viewport: { width, height: mobile ? 568 : 900 }, isMobile: mobile, hasTouch: mobile, reducedMotion: 'reduce',
+      });
+      try {
+        const w = cahier(page);
+        const hit = w.locator('.cahier-livre-open');
+        await hit.waitFor();
+        assert.ok(await hit.evaluate(n => {
+          const r = n.getBoundingClientRect(), body = n.closest('.body'), bounds = body.getBoundingClientRect();
+          return body.scrollTop === 0 && r.top >= bounds.top && r.bottom <= bounds.bottom && r.bottom <= innerHeight;
+        }), 'l’ouverture est accessible sans faire défiler le widget');
+        const dialog = await openImport(page);
+        const name = dialog.getByLabel('Nom du cours');
+        const submit = dialog.getByRole('button', { name: 'Importer', exact: true });
+        const fits = () => dialog.evaluate(d => d.scrollHeight <= d.clientHeight && d.scrollWidth <= d.clientWidth && d.scrollTop === 0 &&
+          [...d.querySelectorAll('button,input[type=text]')].every(n => {
+            const r = n.getBoundingClientRect();
+            return r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth;
+          }));
+        assert.ok(await fits(), `formulaire visible en entier à ${width}px`);
+        assert.equal(await dialog.locator('textarea').count(), 0);
+        assert.equal(await dialog.locator('input[type=text]').count(), 1);
+        await shot(page, `cahier-import-${width}`);
+        const chooser = page.waitForEvent('filechooser');
+        await dialog.getByRole('button', { name: 'Choisir un PDF' }).click();
+        await (await chooser).setFiles({ name: 'Mon cours.PDF', mimeType: 'application/pdf', buffer: pdf });
+        assert.equal(await name.inputValue(), 'Mon cours');
+        await name.fill('Mon titre personnalisé');
+        const replace = page.waitForEvent('filechooser');
+        await dialog.getByRole('button', { name: 'Remplacer Mon cours.PDF' }).click();
+        const filename = 'Polycopié très détaillé sur les sources du droit et la responsabilité civile.pdf';
+        await (await replace).setFiles({ name: filename, mimeType: 'application/pdf', buffer: pdf });
+        assert.equal(await name.inputValue(), 'Mon titre personnalisé');
+        assert.equal(await dialog.locator('.cahier-filerow .cahier-chosen').textContent(), filename);
+        assert.ok(await fits(), 'le nom du fichier reste dans la ligne');
+        await shot(page, `cahier-import-${width}-fichier`);
+        await submit.click();
+        const busy = dialog.getByRole('button', { name: 'Importation…', exact: true });
+        assert.ok(await busy.isVisible() && await busy.isDisabled() && await fits());
+        await dialog.locator('form').dispatchEvent('submit');
+        gate.resolve();
+        await w.locator('.cahier-title').waitFor();
+        assert.match(await w.getAttribute('class'), /cahier-open/);
+        assert.match(await w.locator('.carnet-name').textContent(), /Mon titre personnalisé/);
+        assert.equal(sample.courses.length, 1, 'la double soumission ne crée pas de doublon');
+        assert.equal(sample.courses[0].file_name, filename);
+      } finally {
+        gate.resolve();
+        await context.close();
+      }
+    }
+    console.log('ok import PDF sans défilement à 1440 et 320 px, remplacement et double soumission');
+
+    for (const [locale, entry, title, choose, submit, cancel, paste] of [
+      ['en-GB', 'Import a course', 'Course name', 'Choose a PDF', 'Import', 'Cancel', 'Paste text'],
+      ['es', 'Importar un curso', 'Nombre del curso', 'Elegir un PDF', 'Importar', 'Cancelar', 'Pegar texto'],
+    ]) {
+      const { page, context } = await openBoard(browser, base, fresh());
+      await page.route('**/dashboard.html*', async route => {
+        const response = await route.fetch();
+        await route.fulfill({ response, body: (await response.text()).replace('lang="fr"', `lang="${locale}"`) });
+      });
+      await page.reload();
+      await cahier(page).getByRole('button', { name: entry, exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: entry });
+      assert.ok(await dialog.getByLabel(title).isVisible());
+      for (const name of [choose, submit, cancel, paste]) assert.ok(await dialog.getByRole('button', { name, exact: true }).isVisible());
+      await dialog.getByRole('button', { name: cancel, exact: true }).click();
+      assert.equal(await dialog.count(), 0);
+      await context.close();
+    }
+    console.log('ok libellés FR, EN et ES');
+
     const db = fresh();
     {
       const { page, context, errors } = await openBoard(browser, base, db);
@@ -172,42 +260,48 @@ async function importFile(page, name, buffer, mimeType, subject = 'Droit civil')
       assert.strictEqual(await w.getAttribute('data-size'), 'l', 'le cahier est grand par défaut');
       await shot(page, 'cahier-vide');
 
-      await w.getByRole('button', { name: 'Importer un cours' }).click();
+      const dialog = await openImport(page);
+      assert.strictEqual(await dialog.locator('textarea').count(), 0);
       await w.getByRole('button', { name: 'Importer', exact: true }).click();
-      await page.waitForFunction(() => /matière/.test(document.querySelector('.cahier-import').innerText));
-      await w.getByLabel('Matière').fill('Biologie');
+      assert.match(await dialog.getByLabel('Nom du cours').getAttribute('aria-invalid'), /true/);
+      assert.match(await dialog.getByText('Indique le nom du cours.').innerText(), /nom du cours/);
+      await w.getByLabel('Nom du cours').fill('La cellule');
       await w.getByRole('button', { name: 'Importer', exact: true }).click();
-      assert.match(await state(page), /Choisis un fichier ou colle/);
-      await w.getByLabel('Titre du cours').fill('La cellule');
+      assert.ok(await dialog.getByText('Choisis un PDF.', { exact: true }).isVisible());
+      await dialog.getByRole('button', { name: 'Coller du texte' }).click();
       await w.getByLabel('Texte du cours à coller').fill('# La membrane\nElle entoure la cellule.\n\n# Le noyau\nIl contient l’ADN, présent chez l’être vivant.');
       await w.getByRole('button', { name: 'Importer', exact: true }).click();
       await page.waitForFunction(() => document.querySelector('[data-widget=cahier] .cahier-title')?.textContent === 'La membrane');
       assert.match(await w.locator('.cahier-note').innerText(), /2 chapitres trouvés/);
       assert.strictEqual(db.courses.length, 1);
+      assert.strictEqual(db.courses[0].subject, 'Sans matière');
       assert.ok(db.files[`cours/u1/${db.courses[0].id}/original.txt`] && db.files[`cours/u1/${db.courses[0].id}/texte.json`], 'original et texte gardés');
+      await w.getByRole('button', { name: 'Chapitres', exact: true }).click();
+      await w.getByRole('button', { name: 'Modifier la matière' }).click();
+      await w.getByLabel('Matière du cours').fill('Biologie');
+      await w.locator('.cahier-subject-editor').getByRole('button', { name: 'Enregistrer' }).click();
+      await w.locator('.carnet-name').getByText('Biologie').waitFor();
 
-      await shot(page, 'cahier-import');
       await importFile(page, 'droit-civil.pdf', pdf, 'application/pdf');
       await page.waitForFunction(() => document.querySelector('[data-widget=cahier] .cahier-title')?.textContent === 'Début', null, { timeout: 30000 });
       const c = db.courses.find(x => x.kind === 'pdf');
-      assert.strictEqual(c.title, 'droit civil', 'titre tiré du nom du fichier');
+      assert.strictEqual(c.title, 'droit-civil', 'titre tiré du nom du fichier');
+      assert.strictEqual(c.subject, 'Sans matière');
       assert.ok(c.page_count >= 4, `pages : ${c.page_count}`);
       assert.deepStrictEqual(c.chapters.map(x => x.title), ['Début', 'Chapitre 1 Les sources du droit', 'Chapitre 2 Le contrat', 'Chapitre 3 La responsabilité']);
       assert.match(await state(page), /Page 1/);
       assert.ok(!/Cours de droit civil — L1[\s\S]*Chapitre 1/.test(c.chapters.map(x => x.title).join()), "l'en-tête répété n'est pas un chapitre");
 
       // Les cours sont rangés par matière dans le choix du cours.
-      assert.deepStrictEqual(await w.locator('.cahier-bar select optgroup').evaluateAll(g => g.map(x => x.label)), ['Biologie', 'Droit civil']);
-      // Widget fermé : un livre ouvert. La lecture, la recherche et les chapitres se font dans le carnet.
-      assert.strictEqual(await w.locator('.cahier-text').isVisible(), false);
-      await w.locator('.cahier-livre-open').click();
+      assert.deepStrictEqual(await w.locator('.cahier-bar select optgroup').evaluateAll(g => g.map(x => x.label)), ['Biologie', 'Sans matière']);
+      assert.strictEqual(await w.locator('.cahier-text').isVisible(), true, 'l’import ouvre le lecteur');
       await page.waitForFunction(() => !document.querySelector('[data-widget=cahier]').getAnimations().length);
       await page.getByRole('button', { name: 'Chapitres', exact: true }).click();
       // Menu stylé (dash/select.js) : mêmes groupes et options que le <select>, l'option choisie cochée.
       const coursePick = w.getByRole('combobox', { name: 'Cours' });
       await coursePick.click();
       const lb = page.getByRole('listbox', { name: 'Cours' });
-      assert.deepStrictEqual(await lb.getByRole('group').evaluateAll(g => g.map(x => x.getAttribute('aria-labelledby') && document.getElementById(x.getAttribute('aria-labelledby')).textContent)), ['Biologie', 'Droit civil']);
+      assert.deepStrictEqual(await lb.getByRole('group').evaluateAll(g => g.map(x => x.getAttribute('aria-labelledby') && document.getElementById(x.getAttribute('aria-labelledby')).textContent)), ['Biologie', 'Sans matière']);
       assert.strictEqual(await lb.getByRole('option', { selected: true }).innerText(), await w.locator('.carnet-course').evaluate(s => s.selectedOptions[0].label));
       await page.waitForTimeout(200);
       await shot(page, 'cahier-menu-cours-ouvert');
@@ -312,6 +406,7 @@ async function importFile(page, name, buffer, mimeType, subject = 'Droit civil')
       await page.waitForFunction(() => /pas de texte lisible/.test(document.querySelector('[data-widget=cahier] .cahier-view').innerText), null, { timeout: 15000 });
       assert.strictEqual(db2.courses[0].text_chars, 0);
       assert.ok(db2.files[`cours/u1/${db2.courses[0].id}/original.pdf`], "l'original du scan est gardé");
+      await w.getByRole('button', { name: 'Chapitres', exact: true }).click();
       assert.ok(await w.getByRole('button', { name: "Télécharger l'original" }).isVisible());
       const download = page.waitForEvent('download');
       await w.getByRole('button', { name: "Télécharger l'original" }).click();
@@ -328,7 +423,7 @@ async function importFile(page, name, buffer, mimeType, subject = 'Droit civil')
 
       await w.locator('input[type=file]').setInputFiles({ name: 'photo.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('x') });
       await w.getByRole('button', { name: 'Importer', exact: true }).click();
-      assert.match(await w.locator('.cahier-import').innerText(), /pas encore lu/);
+      assert.match(await w.locator('.cahier-import').innerText(), /Choisis un PDF\./);
 
       await w.locator('input[type=file]').setInputFiles({ name: 'faux.pdf', mimeType: 'application/pdf', buffer: Buffer.from('pas un pdf') });
       await w.getByRole('button', { name: 'Importer', exact: true }).click();
@@ -345,6 +440,7 @@ async function importFile(page, name, buffer, mimeType, subject = 'Droit civil')
 
       // Panne à l'enregistrement : les fichiers envoyés sont retirés.
       db2.failRows = true;
+      await w.getByRole('button', { name: 'Coller du texte' }).click();
       await w.locator('input[type=file]').setInputFiles({ name: 'cours.txt', mimeType: 'text/plain', buffer: Buffer.from('Chapitre 1 Un\nA\nChapitre 2 Deux\nB') });
       await w.getByRole('button', { name: 'Importer', exact: true }).click();
       await page.waitForFunction(() => /enregistrement n'a pas abouti/.test(document.querySelector('.cahier-import').innerText));
@@ -353,8 +449,8 @@ async function importFile(page, name, buffer, mimeType, subject = 'Droit civil')
       db2.failRows = false;
 
       // Un fichier texte enregistré sous Windows (pas en UTF-8) garde ses accents.
+      await w.getByLabel('Nom du cours').fill('');
       await w.locator('input[type=file]').setInputFiles({ name: 'windows.txt', mimeType: 'text/plain', buffer: Buffer.from('Chapitre 1 Écologie\nLes élèves étudient.\n', 'latin1') });
-      await w.getByLabel('Titre du cours').fill('');
       await w.getByRole('button', { name: 'Importer', exact: true }).click();
       await page.waitForFunction(() => document.querySelector('[data-widget=cahier] .cahier-title')?.textContent === 'Chapitre 1 Écologie');
       assert.match(await state(page), /Les élèves étudient/);
@@ -381,7 +477,7 @@ async function importFile(page, name, buffer, mimeType, subject = 'Droit civil')
       assert.equal(await w.getByLabel('Cours', { exact: true }).locator('option').count(), count);
       await importFile(page, 'cours.txt', Buffer.from('Le texte du cours.'), 'text/plain');
       if (allowed) {
-        await w.locator('.cahier-pick option', { hasText: /^cours$/ }).waitFor({ state: 'attached' });
+        await w.locator('.cahier-bar .cahier-pick option', { hasText: /^cours$/ }).waitFor({ state: 'attached' });
         assert.equal(quotaDb.courses.length, count + 1);
         assert.equal(Object.keys(quotaDb.files).length, 2);
       } else {

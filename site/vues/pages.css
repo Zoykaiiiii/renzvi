@@ -13,6 +13,17 @@
 .board[data-vue=pages]>.widget>.body{overflow:auto;overscroll-behavior:contain}
 .board[data-vue=pages]>.widget[data-collapsed]{align-self:start}
 .pg-snap{grid-row:1/-1;scroll-snap-align:start;pointer-events:none}
+@media (max-width:727px){
+  .board[data-vue=pages]{
+    height:auto;grid-template-rows:repeat(var(--pg-rows,6),minmax(var(--pg-ch),auto))
+  }
+  .board[data-vue=pages]>.widget:is(.cahier-livre-on:has(.cahier-book:not(.cahier-book-vide)),[data-widget=vol],[data-widget=semaine]):not([data-collapsed],.zoomed){
+    min-height:min-content
+  }
+  .board[data-vue=pages]>.widget:is(.cahier-livre-on:has(.cahier-book:not(.cahier-book-vide)),[data-widget=vol],[data-widget=semaine]):not([data-collapsed],.zoomed)>.body{
+    overflow:visible
+  }
+}
 
 /* Points de pagination, sous la page : un par page, le point actif plus long. */
 .pg-dots{display:flex;align-items:center;justify-content:center;gap:2px;width:fit-content;max-width:100%;margin:10px auto 0;padding:2px 4px 2px 6px;border-radius:var(--pill);background:var(--glass);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)} /* taste-skill-ignore : verre du dashboard (décision du 2 nov.), les points restent lisibles sur une photo */
@@ -75,7 +86,7 @@
 .pg-drop.bad{border-color:var(--error);background:color-mix(in srgb,var(--error) 12%,transparent);color:var(--error)}
 .pg-drop[hidden]{display:none}
 /* La barre d'édition : en haut, pour ne jamais couvrir les poignées du bas des widgets. */
-.pg-bar{position:fixed;top:12px;left:50%;z-index:40;display:flex;align-items:center;gap:16px;width:max-content;max-width:calc(100vw - 32px);padding:8px 8px 8px 18px;border-radius:var(--r-panel);background:var(--glass-solid);transform:translateX(-50%);box-shadow:0 1px 2px rgba(23,25,28,.08),0 10px 30px rgba(23,25,28,.16)} /* taste-skill-ignore : la barre flotte au-dessus de l'écran, le temps de disposer */
+.pg-bar{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;z-index:40;display:flex;align-items:center;gap:16px;width:max-content;max-width:calc(100vw - 32px);padding:8px 8px 8px 18px;border-radius:var(--r-panel);background:var(--glass-solid);transform:translateX(-50%);box-shadow:0 1px 2px rgba(23,25,28,.08),0 10px 30px rgba(23,25,28,.16)} /* taste-skill-ignore : la barre flotte au-dessus de l'écran, le temps de disposer */
 .pg-bar[hidden]{display:none}
 /* Bords de l'écran pendant un glisser : on y tient le widget pour passer à la page voisine. */
 .pg-edge{position:fixed;top:0;bottom:0;z-index:45;display:grid;place-items:center;width:44px;pointer-events:none;transition:background-color .2s}

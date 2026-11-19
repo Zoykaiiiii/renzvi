@@ -95,7 +95,7 @@
     const dlg = node('dialog', 'mode-wheel');
     dlg.setAttribute('aria-labelledby', 'mode-wheel-title');
     const panel = node('div', 'mode-wheel__panel');
-    const title = node('h2', 'mode-wheel__title', 'Changer de mode');
+    const title = node('h2', 'mode-wheel__title', renzviT('changeMode'));
     title.id = 'mode-wheel-title';
     const hint = node('p', 'mode-wheel__hint');
     hint.id = 'mode-wheel-hint';
@@ -117,7 +117,7 @@
       cross.setAttribute('aria-hidden', 'true');
       cross.innerHTML = svg(CROSS);
       row.append(ic, cross, node('span', 'mw-name', page.name));
-      if (current) row.append(node('span', 'mw-now', 'Actuel'));
+      if (current) row.append(node('span', 'mw-now', renzviT('currentMode')));
       return row;
     }
     function open(x, y, back) {
@@ -125,12 +125,12 @@
       lastFocus = back instanceof HTMLElement && back !== document.body ? back : null;
       const pages = ctx.pages(), cur = ctx.current(), canCreate = ctx.canCreate();
       const canRemove = pages.length > 1;
-      hint.textContent = canRemove ? 'Choisis un mode ou maintiens-le 3 s pour le supprimer.' : 'Fais défiler, puis choisis.';
+      hint.textContent = renzviT(canRemove ? 'modeHoldHint' : 'modeScrollHint');
       const items = pages.map(p => ({ id: p.id, node: itemNode(p, p.id === cur), className: p.id === cur ? 'is-current' : '', hold: canRemove }));
       const create = node('span', 'mw-item mw-create');
       const ci = node('span', 'mw-icon');
       ci.innerHTML = svg(PLUS);
-      create.append(ci, node('span', 'mw-name', canCreate ? 'Créer un mode' : 'Créer un mode (6 au maximum)'));
+      create.append(ci, node('span', 'mw-name', renzviT(canCreate ? 'createMode' : 'createModeLimit')));
       items.push({ id: '+', node: create, className: canCreate ? 'is-create' : 'is-create is-off' });
       wheel = window.OptionWheel({
         items, fontSize: 1.6, spacing: 2.2, enter: 1.6, smoothing: 220, selected: Math.max(0, pages.findIndex(p => p.id === cur)), label: 'Modes',
@@ -188,7 +188,7 @@
       const back = document.activeElement;
       const form = node('form', 'mc-form');
       form.noValidate = true;
-      const h = node('h2', '', 'Créer un mode');
+      const h = node('h2', '', renzviT('createMode'));
       h.id = 'mode-create-title';
       // Nom
       const nameRow = node('div', 'mc-field');

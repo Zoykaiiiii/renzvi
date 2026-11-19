@@ -158,6 +158,21 @@ const settle = page => page.waitForFunction(() => ![...document.querySelectorAll
     await v.page.waitForSelector('.etude-preview-vide');
     assert.match(await W(v.page).innerText(), /Aucun cours pour l’instant/);
     assert.equal(await W(v.page).locator('.arbre-chapitre').count(), 0, 'aucun faux cours');
+    await W(v.page).locator('.etude-closed').getByRole('button', { name: 'Ouvrir mon espace' }).click();
+    const firstImport = v.page.locator('.etude-empty').getByRole('button', { name: 'Importer un premier cours' });
+    await firstImport.click();
+    const importer = v.page.locator('dialog.cahier-import-dialog');
+    await importer.getByRole('button', { name: 'Choisir un PDF' }).waitFor();
+    await v.page.keyboard.press('Escape');
+    await v.page.locator('.etude-sheet').waitFor({ state: 'detached' });
+    await firstImport.click();
+    await importer.getByLabel('Nom du cours').fill('Mon premier cours');
+    await importer.getByRole('button', { name: 'Coller du texte' }).click();
+    await importer.getByLabel('Texte du cours à coller').fill('La membrane entoure la cellule et régule ses échanges.');
+    await importer.getByRole('button', { name: 'Importer', exact: true }).click();
+    await v.page.locator('.cahier-open .cahier-text').getByText(/La membrane entoure/).waitFor();
+    await v.page.getByRole('button', { name: 'Retour à l’arbre' }).click();
+    await v.page.locator('.etude-open .arbre-chapitre').waitFor();
     await v.context.close();
     console.log('ok téléphone et compte vide');
   }

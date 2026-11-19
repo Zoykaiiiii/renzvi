@@ -2,12 +2,13 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon écran — Renzvi</title>
 <meta name="robots" content="noindex">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#f1f2f4">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Renzvi">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -112,7 +113,8 @@ try { const l = JSON.parse(localStorage.getItem('renzvi:look') || '{}'); for (co
 :root[data-densite=aeree]{--gap:24px;--pad:28px}
 *{box-sizing:border-box;margin:0}
 [hidden]{display:none!important}
-body{font:400 16px/1.5 var(--sans);letter-spacing:-.008em;color:var(--ink);background:var(--ground);min-height:100dvh;-webkit-font-smoothing:antialiased}
+html{background:var(--ground)}
+body{isolation:isolate;font:400 16px/1.5 var(--sans);letter-spacing:-.008em;color:var(--ink);background:var(--ground);min-height:100dvh;padding-bottom:env(safe-area-inset-bottom);-webkit-font-smoothing:antialiased}
 /* Le fond : une couche par photo, pour passer de l'une à l'autre en fondu quand on change de mode. */
 #wall{position:fixed;inset:0;z-index:-1;background:var(--ground);overflow:hidden}
 #wall i{position:absolute;inset:0;overflow:hidden;background:var(--img) center/cover no-repeat;opacity:0;transition:opacity .7s ease}
@@ -124,6 +126,12 @@ body{font:400 16px/1.5 var(--sans);letter-spacing:-.008em;color:var(--ink);backg
 #wall i.recul::after{inset:0;background-size:var(--size)}
 #wall i.on{opacity:1}
 #wall video,.tile video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+/* iOS affiche des indicateurs blancs avec black-translucent, même sur une photo claire. */
+@supports (-webkit-touch-callout:none){
+  @media (display-mode:standalone){
+    #wall::after{content:"";position:absolute;inset:0 0 auto;height:calc(env(safe-area-inset-top) * 1.25);background:linear-gradient(rgba(0,0,0,.58) 80%,transparent);pointer-events:none}
+  }
+}
 /* Sur une photo (même noire), le verre garde 4,5:1 avec le gris secondaire et 3:1 avec l'accent, vérifié par tests/personnalisation.check.cjs. */
 body.has-wall{--glass:var(--glass-wall);--slate:var(--slate-wall)}
 body.has-wall :is(.credit,#load-error,#page-note:not(:empty)){padding:4px 14px;border-radius:14px;background:var(--wall-glass);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
@@ -150,7 +158,7 @@ body{--side:0px;padding-left:var(--side)}
 .mark{flex:1;min-width:0;display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 8px;border-radius:10px;font-family:var(--marque);font-size:17px;font-weight:600;text-decoration:none}
 .mark svg{flex:none;width:22px;height:22px}
 /* Le mode actuel, en gras à côté du logo, hors du menu : il ouvre la roue des modes. Caché quand le menu est ouvert (« Changer de mode » y est). */
-.bar-mode{--mode-left:130px;position:fixed;top:20px;left:var(--mode-left);z-index:38;display:inline-flex;align-items:center;max-width:calc(100% - var(--mode-left) - 12px);min-height:44px;padding:0 10px;border:0;border-radius:10px;background:none;color:var(--ink);font-family:var(--display);font-size:clamp(22px,2vw,32px);font-weight:600;line-height:1.12;text-align:left;transition:background-color .15s}
+.bar-mode{--mode-left:130px;position:fixed;top:calc(20px + env(safe-area-inset-top));left:var(--mode-left);z-index:38;display:inline-flex;align-items:center;max-width:calc(100% - var(--mode-left) - 12px);min-height:44px;padding:0 10px;border:0;border-radius:10px;background:none;color:var(--ink);font-family:var(--display);font-size:clamp(22px,2vw,32px);font-weight:600;line-height:1.12;text-align:left;transition:background-color .15s}
 .bar-mode__name{display:-webkit-box;min-width:0;overflow:hidden;overflow-wrap:anywhere;-webkit-box-orient:vertical;-webkit-line-clamp:2}
 .bar-mode:hover{background:var(--tint)}
 body.has-wall .bar-mode{color:#fff;text-shadow:0 1px 2px #000,0 0 6px #0009}
@@ -194,14 +202,16 @@ body:not(.bar-peek,.drawer-open) .mark span{display:none}
 .widget.is-found{box-shadow:var(--glass-shine),0 0 0 2px var(--accent);transition:box-shadow .3s}
 @keyframes bar-in{from{opacity:0;transform:translateX(-8px)}}
 @media (max-width:1023px){
-  body{padding-top:64px}
+  body{padding-top:calc(64px + env(safe-area-inset-top))}
+  .topbar{top:calc(12px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left))}
+  .bar-mode{left:calc(var(--mode-left) + env(safe-area-inset-left));max-width:calc(100% - var(--mode-left) - 12px - env(safe-area-inset-left) - env(safe-area-inset-right))}
   .bar-nav{display:none}
-  .drawer-open .topbar{top:0;bottom:0;left:0;width:min(300px,86vw);padding:12px 12px calc(12px + env(safe-area-inset-bottom));border-radius:0 18px 18px 0;--glass:var(--glass-solid);box-shadow:0 24px 64px rgba(0,0,0,.22)}
+  .drawer-open .topbar{top:0;bottom:0;left:0;width:min(300px,86vw);padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));border-radius:0 18px 18px 0;--glass:var(--glass-solid);box-shadow:0 24px 64px rgba(0,0,0,.22)}
   .drawer-open .bar-nav{display:flex}
   .drawer-open .topbar{animation:bar-in .22s var(--ease)}
 }
 @media (min-width:1024px){
-  body{--side:84px;padding-top:52px}
+  body{--side:84px;padding-top:calc(52px + env(safe-area-inset-top))}
   .topbar{top:50%;width:60px;max-height:calc(100dvh - 24px);padding:8px;overflow:hidden;transform:translateY(-50%);transition:width .24s var(--ease),padding .24s var(--ease),box-shadow .24s}
   .bar-top{flex-direction:column}
   .mark{justify-content:center;padding:0;width:44px;white-space:nowrap}
@@ -590,11 +600,13 @@ h2{font-family:var(--display);font-size:14px;line-height:20px;font-weight:var(--
 .bar i{display:block;height:100%;border-radius:inherit;background:var(--accent);transform-origin:left;transform:scaleX(0)}
 .week-total{font-size:32px;line-height:1.1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:16px;padding:0;list-style:none;font-size:12px;color:var(--slate);font-variant-numeric:tabular-nums;text-align:center}
-.week-bar{display:flex;flex-direction:column;justify-content:flex-end;gap:4px;height:96px;border-bottom:1px solid var(--edge)}
-.week-bar i{display:block;background:var(--week-bar);border-radius:4px 4px 0 0}
+.week-bar{display:flex;flex-direction:column;justify-content:flex-end;gap:4px;height:96px;border-bottom:1px solid var(--edge);overflow-wrap:anywhere}
+.week-bar i{display:block;height:calc(var(--week-value)*var(--week-scale,72px));background:var(--week-bar);border-radius:4px 4px 0 0}
 .week-day{display:block;margin-top:4px}
 .week .today{color:var(--ink);font-weight:600}
 .week .today i{background:var(--accent)}
+.week-period{max-width:100%;padding:4px;border:0;border-radius:var(--r-control);background:var(--field);color:inherit;font:inherit}
+.week-period option{background:var(--paper);color:var(--ink)}
 .ctrl{display:flex;gap:8px;margin-top:16px}
 
 .habit{padding:8px 0;border-bottom:1px solid var(--rule)}
@@ -730,9 +742,24 @@ h2{font-family:var(--display);font-size:14px;line-height:20px;font-weight:var(--
 .vol-go{align-self:flex-start;margin-top:10px}
 .vol-said{margin-top:8px;font-size:13px;line-height:1.4;color:var(--slate)}
 .vol-said:empty{display:none}
+@media (max-width:727px){
+  html{scroll-padding-block:calc(76px + env(safe-area-inset-top)) calc(72px + env(safe-area-inset-bottom))}
+  [data-widget=vol]>.head,[data-widget=semaine]>.head{flex-wrap:wrap}
+  [data-widget=vol]>.head .meta{white-space:normal}
+  [data-widget=semaine]>.head h2{margin-right:auto}
+  [data-widget=semaine]>.head .meta{order:1;flex-basis:100%;min-width:0;margin-left:0}
+  .week-period{min-height:36px;font-size:16px}
+  [data-widget=vol]>.body .vol-time{flex-wrap:wrap;gap:8px}
+  [data-widget=vol]>.body .dial-pm button{width:44px;height:44px}
+  [data-widget=vol]>.body .vol-go{height:auto;min-height:44px}
+  [data-widget=vol]>.body .boarding{grid-template-columns:minmax(0,72fr) minmax(0,28fr)}
+  [data-widget=vol]>.body .broute{font-size:clamp(23px,9cqi,31px)}
+  [data-widget=vol]>.body .bmain{padding-inline:clamp(10px,4cqi,16px)}
+  [data-widget=vol]>.body .bfields{gap:.35em .8em}
+}
 
 /* Le vol : plein écran, au-dessus de tout. */
-#flight{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:24px 16px;background:var(--flight-bg);color:#fff;overflow:hidden;--flight-bg:#0e1116;--flight-muted:#b4b8c0;--flight-btn:#f4f5f7;--flight-btn-hover:#dcdfe4;--flight-btn-ink:#0e1116;--flight-line:rgba(255,255,255,.4);--flight-off:rgba(255,255,255,.12);--flight-off-ink:#a3a8b1}
+#flight{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:calc(24px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));background:var(--flight-bg);color:#fff;overflow:hidden;--flight-bg:#0e1116;--flight-muted:#b4b8c0;--flight-btn:#f4f5f7;--flight-btn-hover:#dcdfe4;--flight-btn-ink:#0e1116;--flight-line:rgba(255,255,255,.4);--flight-off:rgba(255,255,255,.12);--flight-off-ink:#a3a8b1}
 #flight::backdrop{background:#0e1116}
 #flight h2,#flight p{letter-spacing:-.008em}
 .scene{position:absolute;inset:0;display:grid;place-items:center;perspective:1100px;pointer-events:none}
@@ -1314,6 +1341,7 @@ dialog.settings,dialog.settings :is(h2,h3,h4){font-family:var(--marque)}
 <noscript><p class="col msg blocked">Active JavaScript pour ouvrir ton écran.</p></noscript>
 
 <script src="dash/icones.js"></script>
+<script src="dash/strings.js"></script>
 <script src="study/carnet.js"></script>
 <script src="study/cahier.js"></script>
 <script src="vendor/ts-fsrs-5.4.2/index.umd.js"></script>
@@ -1511,12 +1539,12 @@ function boardingPass(ticket) {
   const pass = el('div', 'boarding');
   const main = el('div', 'bmain');
   const fields = el('dl', 'bfields');
-  for (const [label, value] of [['Passager', ticket.passenger], ['Durée', durationLabel(ticket.minutes)], ['Vol', ticket.number]]) {
+  for (const [label, value] of [['passenger', ticket.passenger], ['duration', durationLabel(ticket.minutes)], ['flight', ticket.number]]) {
     const field = el('div');
-    field.append(el('dt', '', label), el('dd', '', value));
+    field.append(el('dt', '', renzviT(label)), el('dd', '', value));
     fields.append(field);
   }
-  main.append(el('p', 'blabel', "Carte d'embarquement"), el('p', 'broute', `PAR → ${ticket.route.code}`), el('p', 'bcity', `Paris → ${ticket.route.city}`), fields);
+  main.append(el('p', 'blabel', renzviT('boardingPass')), el('p', 'broute', `PAR → ${ticket.route.code}`), el('p', 'bcity', `Paris → ${ticket.route.city}`), fields);
   const stub = el('div', 'bstub');
   // Code-barres purement décoratif, tiré du numéro de vol pour rester le même d'un affichage à l'autre.
   let x = 0, seed = ticket.minutes * 7 + 3, bars = '';
@@ -2278,7 +2306,7 @@ const WIDGETS = [
     render: ctx => chillLazy('study/etude.js', 'etudeWidget')(ctx),
   },
   {
-    id: 'vol', title: 'Vol de focus', desc: 'Déchire ton ticket et décolle en plein écran.',
+    id: 'vol', title: renzviT('focusFlight'), desc: 'Déchire ton ticket et décolle en plein écran.',
     render({ body, meta, data, save, user }) {
       const validLength = Number.isInteger(data?.length) && data.length >= MIN_FLIGHT && data.length <= MAX_FLIGHT;
       let length = validLength ? data.length : 25;
@@ -2290,7 +2318,7 @@ const WIDGETS = [
       const slot = el('div');
       const label = el('div', 'vol-time');
       const output = el('output');
-      const title = el('div', '', 'Durée du vol');
+      const title = el('div', '', renzviT('flightDuration'));
       title.append(output);
       const persist = () => save({ length, day, minutes, flights, log });
       const ticket = () => ({
@@ -2302,15 +2330,15 @@ const WIDGETS = [
       function draw() {
         output.textContent = durationLabel(length);
         slot.replaceChildren(boardingPass(ticket()));
-        meta.textContent = `Aujourd'hui : ${plural(flights, 'vol')} · ${minutes} min`;
+        meta.textContent = renzviT('flightToday', flights === 1 ? renzviT('oneFlight') : renzviT('flightCount', flights), minutes);
       }
-      const makeDial = () => minuteDial({ value: length, min: MIN_FLIGHT, max: MAX_FLIGHT, step: 5, label: 'Durée du vol, en minutes', onInput: v => { length = v; draw(); }, onCommit: persist });
+      const makeDial = () => minuteDial({ value: length, min: MIN_FLIGHT, max: MAX_FLIGHT, step: 5, label: renzviT('flightDurationMinutes'), onInput: v => { length = v; draw(); }, onCommit: persist });
       let dial = makeDial();
       label.append(title, dial);
       // Après une annulation : le dire ici, au retour sur le dashboard (effacé au prochain départ).
       const said = el('p', 'vol-said');
       said.setAttribute('role', 'status');
-      const go = button('primary vol-go', 'Déchirer et décoller', () => {
+      const go = button('primary vol-go', renzviT('takeOff'), () => {
         said.textContent = '';
         startFlight(ticket(), flightMinutes => {
           const today = dayKey(new Date());
@@ -2436,35 +2464,43 @@ const WIDGETS = [
     render: ctx => window.renzviMinuteur(ctx),
   },
   {
-    id: 'semaine', title: 'Temps de focus', desc: 'Tes minutes de la semaine, vols et minuteur réunis.',
+    id: 'semaine', title: renzviT('focusTime'), desc: 'Tes minutes de la semaine, vols et minuteur réunis.',
     render({ body, meta, focusLogs }) {
       const total = el('div', 'week-total');
-      const hint = el('p', 'desc', 'Termine un vol ou une session de minuteur pour remplir ta semaine.');
+      const hint = el('p', 'desc', renzviT('emptyFocusWeek'));
       const week = el('ol', 'week');
-      week.ariaLabel = 'Minutes de focus par jour';
+      week.ariaLabel = renzviT('focusPerDay');
+      const period = el('select', 'week-period');
+      period.dataset.native = '';
+      period.ariaLabel = renzviT('focusPeriod');
+      period.append(new Option(renzviT('thisWeek'), '0'), new Option(renzviT('lastWeek'), '7'));
+      period.onchange = draw;
+      meta.append(period);
+      const locale = document.documentElement.lang || 'fr';
+      const weekday = new Intl.DateTimeFormat(locale, { weekday: 'long' });
+      const shortDay = new Intl.DateTimeFormat(locale, { weekday: 'short' });
       function draw() {
         const now = new Date(), today = dayKey(now), logs = focusLogs();
         const days = Array.from({ length: 7 }, (_, i) => {
-          const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (now.getDay() + 6) % 7 + i);
+          const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (now.getDay() + 6) % 7 - Number(period.value) + i);
           const key = dayKey(date);
           return { date, key, minutes: logs.reduce((sum, log) => sum + (log[key] ?? 0), 0) };
         });
         const sum = days.reduce((all, d) => all + d.minutes, 0);
         const top = Math.max(60, ...days.map(d => d.minutes));
-        meta.textContent = 'Cette semaine';
         total.textContent = durationLabel(sum);
         hint.hidden = sum > 0;
         week.replaceChildren(...days.map(d => {
           const li = el('li', d.key === today ? 'today' : '');
-          const name = d.date.toLocaleDateString('fr-FR', { weekday: 'long' });
+          const name = weekday.format(d.date);
           const future = d.key > today;
-          li.ariaLabel = future ? `${name} : à venir` : `${name} : ${d.minutes} min`;
+          li.ariaLabel = future ? renzviT('futureFocusDay', name) : `${name}: ${d.minutes} min`;
           const column = el('div', 'week-bar');
           column.setAttribute('aria-hidden', 'true');
           const bar = el('i');
-          bar.style.height = `${d.minutes / top * 72}px`;
+          bar.style.setProperty('--week-value', d.minutes / top);
           column.append(el('span', '', future ? '–' : String(d.minutes)), bar);
-          const letter = el('span', 'week-day', name[0].toUpperCase());
+          const letter = el('span', 'week-day', shortDay.format(d.date).replace(/\.$/, ''));
           letter.setAttribute('aria-hidden', 'true');
           li.append(column, letter);
           return li;
@@ -3996,7 +4032,7 @@ if (!sb) {
     $('opacite-val').textContent = !polished && opacite === 0 ? 'Givré' : !polished && opacite === 100 ? 'Plein' : `${opacite} %`;
     $('fini-reset').hidden = !polished;
     for (const b of $('look-fini').children) b.setAttribute('aria-pressed', b.dataset.value === screen.look.fini);
-    document.querySelector('meta[name=theme-color]').content = screen.look.theme === 'dark' ? '#111112' : '#ffffff';
+    document.querySelector('meta[name=theme-color]').content = getComputedStyle(root).getPropertyValue('--ground').trim();
     for (const b of $('themes').children) b.setAttribute('aria-pressed', b.dataset.value === screen.look.theme);
     const shown = shownLook();
     for (const key of ['titre', 'texte']) {

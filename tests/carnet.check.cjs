@@ -328,7 +328,7 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
 
     // 8. « Gérer ce cours », dans le tiroir des chapitres : les actions du widget compact ; Échap ferme le tiroir d'abord.
     await page.getByRole('button', { name: 'Chapitres', exact: true }).click();
-    assert.deepStrictEqual(await page.locator('.carnet-menu button').allTextContents(), ['Importer un cours', 'IA : cartes et résumé du chapitre', 'Modifier les chapitres', "Télécharger l'original", 'Supprimer ce cours']);
+    assert.deepStrictEqual(await page.locator('.carnet-menu button').allTextContents(), ['Importer un cours', 'IA : cartes et résumé du chapitre', 'Modifier les chapitres', 'Modifier la matière', "Télécharger l'original", 'Supprimer ce cours']);
     await page.keyboard.press('Escape');
     assert.strictEqual(await page.locator('.carnet-menu').isVisible(), false);
     assert.ok(await page.locator('.carnet-top').isVisible());

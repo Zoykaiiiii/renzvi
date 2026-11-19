@@ -61,6 +61,12 @@
 .widget.zoomed[data-widget=semaine] .week-total{font-size:clamp(40px,6cqi,72px)}
 .widget.zoomed[data-widget=semaine] .week{gap:12px;margin-top:32px;font-size:14px}
 .widget.zoomed[data-widget=semaine] .week-bar{height:min(44cqh,360px)}
+@media (max-width:727px){
+  .widget.zoomed:is([data-widget=vol],[data-widget=semaine])>.head .zoom-back{margin-left:auto}
+  .widget.zoomed[data-widget=semaine] .body{justify-content:safe center}
+  .widget.zoomed[data-widget=semaine] .week{--week-scale:clamp(42px,15cqh,112px);gap:4px;margin-top:16px;font-size:12px}
+  .widget.zoomed[data-widget=semaine] .week-bar{height:calc(var(--week-scale) + 24px)}
+}
 
 /* Un widget encore vide : l'emplacement en pointillés reste à taille humaine, au milieu de la place. */
 .widget.zoomed .body>.empty,.widget.zoomed .body .empty{flex:0 0 auto;min-height:220px;margin-block:auto;font-size:15px}
