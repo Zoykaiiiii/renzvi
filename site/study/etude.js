@@ -49,7 +49,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
   async function load(quiet = false) {
     if (!quiet) { state = 'loading'; draw(); }
     const [c, k, l, n] = await Promise.all([
-      sb.from('study_courses').select('id,subject,title,chapters,created_at').order('created_at').order('id'),
+      cahierLoadCourses(sb, 'id,subject,title,chapters,created_at'),
       cartesLoad(sb).then(data => ({ data }), error => ({ error })),
       sb.from('study_links').select('id,course_id,chapter_id,deck').order('created_at'),
       sb.from('study_notes').select('course_id,chapter_id'),

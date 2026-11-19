@@ -3165,9 +3165,9 @@ const PAYANT = new Set(['quiz', 'schemas', 'etude', 'dictee', 'jardin', 'dessin'
 // shortcut: les cadenas sont côté navigateur seulement ; l'IA est déjà protégée par les crédits du serveur, le reste est cosmétique.
 // À vérifier côté serveur (renzvi_plan) avant d'ouvrir le paiement.
 const PLANS = {
-  gratuit: { nom: 'Gratuit', prix: 0, tag: 'Ton espace, sans payer.', inclus: ['Les widgets de base : minuteur, tâches, notes, habitudes…', 'Cahier, Flashcards et Révisions du jour', 'Modes, pages et fonds d’écran'] },
-  pro: { nom: 'Pro', prix: 999, tag: 'Pour réviser avec l’IA.', inclus: ['Tout Gratuit', 'L’IA sur tes cours : cartes, quiz et résumés', 'Quiz, Schémas et Mon espace Study', 'Dictée et les widgets Chill', 'Tes propres polices', 'Ton fond d’écran en vidéo'] },
-  worker: { nom: 'Worker', prix: 1799, tag: 'Pour les gros volumes de cours.', inclus: ['Tout Pro', '4 fois plus d’IA que Pro', 'PDF jusqu’à 300 pages (60 avec Pro)', 'Le chat IA sur tous tes cours'] },
+  gratuit: { nom: 'Gratuit', prix: 0, tag: 'Ton espace, sans payer.', inclus: ['Les widgets de base : minuteur, tâches, notes, habitudes…', `${CAHIER_LIMITS.gratuit} cours dans le Cahier`, 'Flashcards et Révisions du jour', 'Modes, pages et fonds d’écran'] },
+  pro: { nom: 'Pro', prix: 999, tag: 'Pour réviser avec l’IA.', inclus: ['Tout Gratuit', `Jusqu’à ${CAHIER_LIMITS.pro} cours dans le Cahier`, 'L’IA sur tes cours : cartes, quiz et résumés', 'Quiz, Schémas et Mon espace Study', 'Dictée et les widgets Chill', 'Tes propres polices', 'Ton fond d’écran en vidéo'] },
+  worker: { nom: 'Worker', prix: 1799, tag: 'Pour les gros volumes de cours.', inclus: ['Tout Pro', 'Cours illimités dans le Cahier', '4 fois plus d’IA que Pro', 'PDF jusqu’à 300 pages (60 avec Pro)', 'Le chat IA sur tous tes cours'] },
 };
 let planActuel = 'gratuit';
 // Le labo (?labo=1, ?chill=1) sert aux essais : il ouvre tout, comme avant.

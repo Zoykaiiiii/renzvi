@@ -47,13 +47,24 @@ async function openBoard(browser, base, db, options = { viewport: { width: 1440,
     for (const row of req.postDataJSON()) db.rows[row.widget] = row.data;
     return route.fulfill({ status: 201, headers: CORS });
   });
-  await context.route(`${SUPABASE}/rest/v1/rpc/*`, route => route.request().method() === 'OPTIONS' ? preflight(route) : json(route, 200, []));
+  await context.route(`${SUPABASE}/rest/v1/rpc/*`, route => {
+    const req = route.request();
+    if (req.method() === 'OPTIONS') return preflight(route);
+    return json(route, 200, req.url().endsWith('/renzvi_plan') ? db.plan ?? 'pro' : []);
+  });
   await context.route(`${SUPABASE}/rest/v1/study_courses*`, route => {
     const req = route.request();
-    const id = new URL(req.url()).searchParams.get('id')?.replace(/^eq\./, '');
+    const params = new URL(req.url()).searchParams;
+    const id = params.get('id')?.replace(/^eq\./, '');
     if (req.method() === 'OPTIONS') return preflight(route);
-    if (req.method() === 'GET') return json(route, 200, db.courses);
-    if (db.failRows) return json(route, 500, { message: 'panne' });
+    if (req.method() === 'HEAD') return route.fulfill({ status: 200, headers: {
+      ...CORS, 'access-control-expose-headers': 'content-range', 'content-range': `*/${db.courses.length}`,
+    } });
+    if (req.method() === 'GET') {
+      const from = Number(params.get('offset') ?? 0);
+      return json(route, 200, db.courses.slice(from, from + Number(params.get('limit') ?? 1000)));
+    }
+    if (db.failRows) return json(route, 500, db.failRows === true ? { message: 'panne' } : db.failRows);
     if (req.method() === 'POST') { db.courses.push(...[req.postDataJSON()].flat()); return route.fulfill({ status: 201, headers: CORS }); }
     if (req.method() === 'PATCH') { Object.assign(db.courses.find(c => c.id === id), req.postDataJSON()); return route.fulfill({ status: 204, headers: CORS }); }
     if (req.method() === 'DELETE') { db.courses = db.courses.filter(c => c.id !== id); return route.fulfill({ status: 204, headers: CORS }); }
@@ -355,6 +366,32 @@ async function importFile(page, name, buffer, mimeType, subject = 'Droit civil')
       await context.close();
       console.log('ok scan, limites, annulation, panne, accents, HTML inerte');
     }
+
+    // Quotas : le contrôle précède les fichiers. Worker importe au-delà d'une page de cours.
+    for (const [plan, count, allowed] of [['gratuit', 1, false], ['pro', 10, false], ['worker', 501, true]]) {
+      const quotaDb = fresh();
+      quotaDb.plan = plan;
+      quotaDb.courses = Array.from({ length: count }, (_, i) => ({
+        id: `cours-${i}`, subject: 'Biologie', title: `Cours ${i + 1}`, kind: 'pdf',
+        file_name: 'scan.pdf', file_size: 10, page_count: 1, text_chars: 0, chapters: [],
+      }));
+      const { page, context } = await openBoard(browser, base, quotaDb);
+      const w = cahier(page);
+      await w.locator('.cahier-pick option').last().waitFor({ state: 'attached' });
+      assert.equal(await w.getByLabel('Cours', { exact: true }).locator('option').count(), count);
+      await importFile(page, 'cours.txt', Buffer.from('Le texte du cours.'), 'text/plain');
+      if (allowed) {
+        await w.locator('.cahier-pick option', { hasText: /^cours$/ }).waitFor({ state: 'attached' });
+        assert.equal(quotaDb.courses.length, count + 1);
+        assert.equal(Object.keys(quotaDb.files).length, 2);
+      } else {
+        await w.getByRole('status').getByText(`Limite atteinte : ${count} cours maximum`, { exact: false }).waitFor();
+        assert.equal(Object.keys(quotaDb.files).length, 0);
+        assert.equal(quotaDb.courses.length, count);
+      }
+      await context.close();
+    }
+    console.log('ok quotas Gratuit, Pro et Worker');
 
     // 4. Les quatre largeurs : rien ne déborde, le texte reste lisible.
     for (const [width, height] of [[320, 568], [390, 844], [768, 1024], [1440, 900]]) {

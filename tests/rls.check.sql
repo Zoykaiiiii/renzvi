@@ -24,6 +24,15 @@ begin
   insert into widget_state(user_id,widget,data) values (a,'notes','{"t":"secret A"}');
   insert into storage.objects(bucket_id,name,owner) values ('cours', a||'/'||ca||'/original.txt', a);
   select count(*) into n from study_courses; r := array_append(r, (('A voit ses cours: '||n))::text);
+  begin
+    insert into study_courses(user_id,subject,title,kind,file_name,file_size,page_count,text_chars) values (a,'Bio','Cours Gratuit en trop','texte','a.txt',10,1,10);
+    r := array_append(r, 'limite: 2e cours Gratuit ACCEPTE');
+  exception when raise_exception then
+    r := array_append(r, 'ok refus précis du 2e cours Gratuit: '||(sqlerrm='study_course_quota')::int);
+  end;
+  reset role;
+  insert into abonnements(user_id,plan,statut) values (a,'pro','actif');
+  set local role authenticated;
 
   -- Les écritures de l'app, colonnes exactes (sans user_id quand l'app ne l'envoie pas).
   -- dashboard.html:2108 : upsert de chaque widget qui enregistre, dont le Guide.
@@ -105,8 +114,8 @@ begin
 
   -- Quotas : un lot qui remplit jusqu'au plafond passe, une ligne de plus est refusée.
   select count(*) into n from study_courses;
-  for i in n+1..30 loop insert into study_courses(user_id,subject,title,kind,file_name,file_size,page_count,text_chars) values (a,'Bio','Cours '||i,'texte','a.txt',10,1,10); end loop;
-  begin insert into study_courses(user_id,subject,title,kind,file_name,file_size,page_count,text_chars) values (a,'Bio','Cours 31','texte','a.txt',10,1,10); r := array_append(r, 'limite: 31e cours de A ACCEPTE'); exception when others then r := array_append(r, 'limite: 31e cours de A refusé'); end;
+  for i in n+1..10 loop insert into study_courses(user_id,subject,title,kind,file_name,file_size,page_count,text_chars) values (a,'Bio','Cours '||i,'texte','a.txt',10,1,10); end loop;
+  begin insert into study_courses(user_id,subject,title,kind,file_name,file_size,page_count,text_chars) values (a,'Bio','Cours 11','texte','a.txt',10,1,10); r := array_append(r, 'limite: 11e cours Pro ACCEPTE'); exception when raise_exception then r := array_append(r, 'ok refus précis du 11e cours Pro: '||(sqlerrm='study_course_quota')::int); end;
   select count(*) into n from study_cards; insert into study_cards(deck,kind,front,back) select 'Q','qa','f'||g,'b' from generate_series(n+1,3000) g;
   begin insert into study_cards(deck,kind,front,back) values ('Q','qa','f','b'); r := array_append(r, 'limite: 3001e carte de A ACCEPTE'); exception when others then r := array_append(r, 'limite: 3001e carte de A refusé'); end;
   select count(*) into n from study_questions; insert into study_questions(deck,question,choix,bonnes) select 'Q','q'||g,'["a","b"]','[0]' from generate_series(n+1,3000) g;
@@ -114,15 +123,16 @@ begin
   select count(*) into n from study_schemas; insert into study_schemas(deck,titre,largeur,hauteur) select 'Q','s'||g,10,10 from generate_series(n+1,200) g;
   begin insert into study_schemas(deck,titre,largeur,hauteur) values ('Q','s',10,10); r := array_append(r, 'limite: 201e schéma de A ACCEPTE'); exception when others then r := array_append(r, 'limite: 201e schéma de A refusé'); end;
   -- Un seul envoi de plusieurs lignes ne doit pas dépasser le plafond (l'import CSV envoie jusqu'à 500 lignes d'un coup).
-  delete from study_courses where title='Cours 30';
+  delete from study_courses where title='Cours 10';
   begin insert into study_courses(user_id,subject,title,kind,file_name,file_size,page_count,text_chars) values (a,'Bio','Lot 1','texte','a.txt',10,1,10), (a,'Bio','Lot 2','texte','a.txt',10,1,10), (a,'Bio','Lot 3','texte','a.txt',10,1,10);
-    select count(*) into n from study_courses; r := array_append(r, 'limite: lot de 3 cours à 29/30 ACCEPTE, total '||n); exception when others then r := array_append(r, 'limite: lot de 3 cours à 29/30 refusé'); end;
+    select count(*) into n from study_courses; r := array_append(r, 'limite: lot de 3 cours à 9/10 ACCEPTE, total '||n); exception when raise_exception then r := array_append(r, 'ok refus précis du lot de cours Pro: '||(sqlerrm='study_course_quota')::int); end;
 
   -- IA : le navigateur ne peut que lire (ia.js:26, :29, :38). Toute écriture passe par la fonction serveur.
   begin perform ia_reserver(a, gen_random_uuid(), 'cartes', 100); r := array_append(r, 'interdit: A appelle ia_reserver: ACCEPTE'); exception when insufficient_privilege then r := array_append(r, 'interdit: A appelle ia_reserver: refusé'); end;
   begin perform ia_terminer(gen_random_uuid(), 'echoue', null, 0); r := array_append(r, 'interdit: A appelle ia_terminer: ACCEPTE'); exception when insufficient_privilege then r := array_append(r, 'interdit: A appelle ia_terminer: refusé'); end;
   reset role;
   -- Ce que fait la fonction serveur « ia » (rôle service) : réserver puis terminer un travail pour A.
+  delete from abonnements where user_id=a;
   j := ia_reserver(a, tr, 'cartes', 100, 'cours:'||cb);
   perform ia_terminer(tr, 'reussi', '{"cartes":[]}'::jsonb, 0.5);
   set local role authenticated;
@@ -295,6 +305,48 @@ begin
   perform set_config('request.jwt.claim.sub', b::text, true);
   select renzvi_plan() into s; r := array_append(r, ('B résilié et échu garde un plan payant: '||(case when s='gratuit' then 0 else 1 end))::text);
   select count(*) into n from abonnements where user_id=a; r := array_append(r, ('B lit l''abonnement de A: '||n)::text);
+  reset role;
+
+  update abonnements set statut='actif', fin=null where user_id=b;
+  set local role authenticated;
+  -- Même ordre que le navigateur, y compris après l'ancien plafond de 64 fichiers.
+  for i in 1..34 loop
+    code := gen_random_uuid()::text;
+    insert into storage.objects(bucket_id,name,owner) values ('cours', b||'/'||code||'/original.txt', b), ('cours', b||'/'||code||'/texte.json', b);
+    insert into study_courses(id,subject,title,kind,file_name,file_size,page_count,text_chars) values (code::uuid,'Bio','Worker '||i,'texte','a.txt',10,1,10);
+  end loop;
+  select count(*) into n from study_courses where user_id=b; r := array_append(r, ('ok 34 cours Worker importés: '||(n=34)::int)::text);
+  select count(*) into n from storage.objects where bucket_id='cours' and owner=b; r := array_append(r, ('ok 68 fichiers Worker importés: '||(n=68)::int)::text);
+  insert into storage.objects(bucket_id,name,owner)
+    select 'cours', b||'/'||gen_random_uuid()||'/texte.json', b from generate_series(1,64);
+  begin
+    insert into storage.objects(bucket_id,name,owner) values ('cours', b||'/'||gen_random_uuid()||'/texte.json', b);
+    r := array_append(r, 'limite: 65e fichier Worker sans cours ACCEPTE');
+  exception when insufficient_privilege then
+    r := array_append(r, 'limite: 65e fichier Worker sans cours refusé');
+  end;
+  code := (select id::text from study_courses where title='Worker 34');
+  update storage.objects set owner=b where bucket_id='cours' and name=b||'/'||code||'/original.txt';
+  get diagnostics n = row_count;
+  r := array_append(r, 'ok remplacement d''un fichier lié avec 64 fichiers en attente: '||n);
+  begin
+    update storage.objects set name=b||'/'||gen_random_uuid()||'/original.txt'
+      where bucket_id='cours' and name=b||'/'||code||'/original.txt';
+    r := array_append(r, 'limite: renommage vers un 65e fichier sans cours ACCEPTE');
+  exception when insufficient_privilege then
+    r := array_append(r, 'limite: renommage vers un 65e fichier sans cours refusé');
+  end;
+  reset role;
+  update abonnements set statut='expire' where user_id=b;
+  set local role authenticated;
+  update study_courses set title='Cours conservé' where title='Worker 34'; get diagnostics n = row_count;
+  r := array_append(r, ('ok cours Worker modifiable après expiration: '||n)::text);
+  begin
+    insert into study_courses(subject,title,kind,file_name,file_size,page_count,text_chars) values ('Bio','Cours après expiration','texte','a.txt',10,1,10);
+    r := array_append(r, 'limite: nouvel import après expiration ACCEPTE');
+  exception when raise_exception then
+    r := array_append(r, 'ok nouvel import bloqué après expiration: '||(sqlerrm='study_course_quota')::int);
+  end;
   reset role;
   set local role anon;
   begin select count(*) into n from abonnements; r := array_append(r, ('anon lit les abonnements: '||n)::text); exception when others then r := array_append(r, 'anon lit les abonnements: refusé'); end;

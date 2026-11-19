@@ -5,7 +5,7 @@
 // Une sélection du texte peut devenir une flashcard (cartes.js), qui garde la position du passage pour y revenir.
 // Utilise el, button, plural et listOf, définis par dashboard.html.
 const CAHIER = {
-  pdfBytes: 20 * 1048576, textBytes: 2 * 1048576, pdfPages: 200, courses: 30, chapters: 80,
+  pdfBytes: 20 * 1048576, textBytes: 2 * 1048576, pdfPages: 200, chapters: 80,
   subject: 60, title: 120, chapterTitle: 80, results: 40, positions: 30,
   pdfjs: 'vendor/pdfjs-6.4.299/',
 };
@@ -191,6 +191,19 @@ async function cahierReadPdf(file, onProgress, signal) {
   }
 }
 
+const CAHIER_LIMITS = { gratuit: 1, pro: 10, worker: Infinity };
+
+// Le nombre de cours Worker peut dépasser le nombre de lignes renvoyées par l'API en une fois.
+async function cahierLoadCourses(sb, fields) {
+  const rows = [], pageSize = 500;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await sb.from('study_courses').select(fields).order('created_at').order('id').range(from, from + pageSize - 1);
+    if (error) return { error };
+    rows.push(...data);
+    if (data.length < pageSize) return { data: rows };
+  }
+}
+
 function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
   const box = body.closest('.widget');
   const store = sb.storage.from('cours');
@@ -369,7 +382,7 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
   async function loadCourses() {
     state = 'loading';
     draw();
-    const { data: rows, error } = await sb.from('study_courses').select('id,subject,title,kind,file_name,file_size,page_count,text_chars,chapters').order('created_at');
+    const { data: rows, error } = await cahierLoadCourses(sb, 'id,subject,title,kind,file_name,file_size,page_count,text_chars,chapters');
     if (gone) return;
     if (error) { state = 'error'; draw(); return; }
     courses = rows.map(r => ({ ...r, chapters: listOf(r.chapters).length ? listOf(r.chapters) : [{ id: 'tout', title: 'Tout le cours', page: 0, offset: 0 }] }));
@@ -732,6 +745,10 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
   function drawImport() {
     const form = el('form', 'cahier-import');
     form.noValidate = true;
+    const quota = el('p', 'zone');
+    const quotaText = limit => limit === Infinity ? 'Nombre de cours illimité avec Worker.' : `Ton plan permet de garder ${limit} cours dans le Cahier.`;
+    const quotaFull = limit => `Limite atteinte : ${limit} cours maximum avec ton plan. Supprime un cours ou change de plan pour continuer.`;
+    quota.textContent = quotaText(CAHIER_LIMITS[planActuel]);
     const field = (label, input) => { const f = el('label', 'cahier-field', label); f.append(input); return f; };
     const subjects = Object.assign(el('datalist'), { id: 'cahier-subjects' });
     subjects.append(...[...new Set(courses.map(c => c.subject))].map(s => Object.assign(el('option'), { value: s })));
@@ -759,7 +776,7 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
     actions.append(submit, cancel);
     const fileRow = el('div', 'cahier-filerow');
     fileRow.append(choose, chosen);
-    form.append(field('Matière', subject), field('Titre du cours', title), fileRow, hint, file, subjects, paste, progress, status, actions);
+    form.append(quota, field('Matière', subject), field('Titre du cours', title), fileRow, hint, file, subjects, paste, progress, status, actions);
     file.onchange = () => {
       const f = file.files[0];
       chosen.textContent = f ? f.name : '';
@@ -774,7 +791,6 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
       status.classList.remove('msg');
       if (!subject.value.trim()) return fail('Indique la matière de ce cours.', subject);
       if (!f && !pasted) return fail('Choisis un fichier ou colle le texte de ton cours.', choose);
-      if (courses.length >= CAHIER.courses) return fail(`Tu as déjà ${CAHIER.courses} cours : supprimes-en un pour en importer un autre.`);
       if (f && !isPdf && !/^text\//.test(f.type) && !/\.(txt|md)$/i.test(f.name)) return fail('Ce type de fichier n’est pas encore lu : choisis un PDF ou un fichier texte (.txt).', choose);
       if (f && f.size > (isPdf ? CAHIER.pdfBytes : CAHIER.textBytes)) return fail(isPdf ? 'Ce PDF est trop lourd : 20 Mo au plus.' : 'Ce fichier texte est trop lourd : 2 Mo au plus.', choose);
       const original = f ?? new Blob([pasted], { type: 'text/plain' });
@@ -783,9 +799,18 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
       const signal = job.signal;
       submit.disabled = true;
       for (const input of [subject, title, paste, choose]) input.disabled = true;
-      progress.hidden = !isPdf;
-      status.textContent = isPdf ? 'Ouverture du PDF…' : 'Lecture du texte…';
+      status.textContent = 'Vérification de ton plan…';
       try {
+        const { data: plan } = await sb.rpc('renzvi_plan');
+        const limit = CAHIER_LIMITS[plan];
+        if (limit) quota.textContent = quotaText(limit);
+        if (Number.isFinite(limit)) {
+          const { count } = await sb.from('study_courses').select('id', { count: 'exact', head: true });
+          if (count >= limit) throw cahierUserError(quotaFull(limit));
+        }
+        if (signal.aborted) throw new DOMException('Import annulé', 'AbortError');
+        progress.hidden = !isPdf;
+        status.textContent = isPdf ? 'Ouverture du PDF…' : 'Lecture du texte…';
         const read = isPdf
           ? await cahierReadPdf(f, (n, total) => { progress.max = total; progress.value = n; status.textContent = `Lecture de la page ${n} sur ${total}…`; }, signal)
           : await cahierReadText(original);
@@ -809,6 +834,9 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
         if (!error) error = (await sb.from('study_courses').insert(c)).error;
         if (error) {
           await store.remove(files);
+          if (error.code === 'P0001' && error.message === 'study_course_quota') {
+            throw cahierUserError(quotaFull(Number(error.details)));
+          }
           throw cahierUserError("L'enregistrement n'a pas abouti. Vérifie ta connexion et réessaie.");
         }
         if (gone) return;
