@@ -16,6 +16,16 @@
 
 /* Place : le personnage en bas à droite, le panneau au-dessus de lui. */
 .chat-ia-launch { position: fixed; right: calc(16px + env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 35; width: 52px; height: 52px; }
+@media (prefers-reduced-motion: no-preference) {
+  [data-slot=live-orb][data-expression] > div > span {
+    transition: width 160ms ease-out, height 160ms ease-out, left 160ms ease-out, top 160ms ease-out;
+  }
+  [data-slot=live-orb][data-expression=idle] > div > span { animation: chat-ia-blink 6s ease-in-out infinite; }
+}
+@keyframes chat-ia-blink {
+  0%, 96%, 100% { transform: scaleY(1); }
+  98% { transform: scaleY(.29); }
+}
 .chat-ia-panel { position: fixed; right: calc(16px + env(safe-area-inset-right)); bottom: calc(80px + env(safe-area-inset-bottom)); z-index: 45; width: min(400px, 100vw - 32px); height: min(600px, 100dvh - 112px); transform-origin: bottom right; transition: opacity .18s cubic-bezier(.2,.8,.2,1), transform .18s cubic-bezier(.2,.8,.2,1); }
 .chat-ia-panel[hidden] { display: none; }
 @starting-style { .chat-ia-panel { opacity: 0; transform: translateY(8px) scale(.98); } }

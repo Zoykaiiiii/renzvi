@@ -7,6 +7,15 @@ export type LiveOrbVariant = "white" | "black" | "webgl" | "custom"
 
 export type LiveOrbTheme = "light" | "dark" | "auto"
 
+const EYE_POSES = {
+  idle: { height: 1, width: 1, spacing: 1 },
+  opened: { height: 1.2, width: 1.04, spacing: 1 },
+  waiting: { height: 0.78, width: 0.82, spacing: 0.84 },
+  replied: { height: 1.27, width: 1.08, spacing: 1 },
+  error: { height: 0.65, width: 1.14, spacing: 1 },
+}
+export type LiveOrbExpression = keyof typeof EYE_POSES
+
 export type LiveOrbOptions = {
   /**
    * Material preset. Omit it and the orb follows the theme: a white orb
@@ -32,6 +41,8 @@ export type LiveOrbOptions = {
   interactive?: boolean
   /** Occasional blink. Default `true`. */
   blink?: boolean
+  /** Chat pose with a centered gaze. */
+  expression?: LiveOrbExpression
   /** Fires when WebGL is ready (`true`) or torn down (`false`). */
   onHasGl?: (ok: boolean) => void
 }
@@ -104,6 +115,7 @@ uniform float u_time;
 uniform float u_speed;
 uniform vec2 u_look;
 uniform float u_blink;
+uniform vec3 u_pose;
 uniform float u_mode;
 uniform vec3 u_body;
 uniform vec3 u_eye;
@@ -195,11 +207,11 @@ void main() {
 
   vec3 right = orient(vec3(1.0, 0.0, 0.0), look);
   vec3 up = orient(vec3(0.0, 1.0, 0.0), look);
-  vec3 eL = orient(normalize(vec3(-0.32, 0.08, 1.0)), look);
-  vec3 eR = orient(normalize(vec3(0.32, 0.08, 1.0)), look);
+  vec3 eL = orient(normalize(vec3(-0.32 * u_pose.z, 0.08, 1.0)), look);
+  vec3 eR = orient(normalize(vec3(0.32 * u_pose.z, 0.08, 1.0)), look);
 
-  float halfH = mix(0.128, 0.012, u_blink);
-  float rad = mix(0.054, 0.062, u_blink);
+  float rad = mix(0.054 * u_pose.y, 0.062, u_blink);
+  float halfH = mix(0.182 * u_pose.x - rad, 0.012, u_blink);
   float eyes = max(
     eyeMask(n, eL, right, up, halfH, rad),
     eyeMask(n, eR, right, up, halfH, rad)
@@ -324,6 +336,7 @@ export function createLiveOrb(
   const targetLook = { x: 0, y: 0.08 }
   // Where the eyes drift while nobody is steering them.
   const glance = { x: 0, y: 0.08 }
+  const pose = { ...EYE_POSES[options.expression ?? "idle"] }
 
   const gl = canvas.getContext("webgl", {
     alpha: true,
@@ -344,6 +357,7 @@ export function createLiveOrb(
   let uSpeed: WebGLUniformLocation | null = null
   let uLook: WebGLUniformLocation | null = null
   let uBlink: WebGLUniformLocation | null = null
+  let uPose: WebGLUniformLocation | null = null
   let uMode: WebGLUniformLocation | null = null
   let uBody: WebGLUniformLocation | null = null
   let uEye: WebGLUniformLocation | null = null
@@ -390,6 +404,7 @@ export function createLiveOrb(
     uSpeed = gl.getUniformLocation(prog, "u_speed")
     uLook = gl.getUniformLocation(prog, "u_look")
     uBlink = gl.getUniformLocation(prog, "u_blink")
+    uPose = gl.getUniformLocation(prog, "u_pose")
     uMode = gl.getUniformLocation(prog, "u_mode")
     uBody = gl.getUniformLocation(prog, "u_body")
     uEye = gl.getUniformLocation(prog, "u_eye")
@@ -414,7 +429,9 @@ export function createLiveOrb(
   let last = 0
   // Milliseconds of motion so far; only advances while the orb is moving.
   let clock = 0
-  let nextBlink = 1800 + Math.random() * 2400
+  let nextBlink = options.expression === undefined
+    ? 1800 + Math.random() * 2400
+    : 4200 + Math.random() * 2200
   let blinkAt = -10_000
   let nextGlance = 600 + Math.random() * 900
   // When the pointer last moved, from performance.now().
@@ -464,7 +481,6 @@ export function createLiveOrb(
   }
 
   const onMove = (e: PointerEvent) => {
-    if (!options.interactive) return
     const parent = canvas.parentElement
     if (!parent) return
     const rect = parent.getBoundingClientRect()
@@ -477,12 +493,18 @@ export function createLiveOrb(
     // While moving the loop is already queued; a still frame follows the gaze.
     if (onScreen) wake()
   }
-  window.addEventListener("pointermove", onMove, { passive: true })
+  const tracksPointer = () => options.interactive && options.expression === undefined
+  const syncPointer = () => {
+    if (tracksPointer()) window.addEventListener("pointermove", onMove, { passive: true })
+    else window.removeEventListener("pointermove", onMove)
+  }
+  syncPointer()
 
   const tick = (now: number) => {
     raf = 0
     if (lost) return
-    const dt = Math.min(50, Math.max(0, now - last))
+    const elapsed = Math.max(0, now - last)
+    const dt = Math.min(50, elapsed)
     last = now
     const live = moving()
     if (live) clock += dt
@@ -499,26 +521,37 @@ export function createLiveOrb(
 
     // The pointer steers until it rests; then the eyes look around, now
     // and then back at you. Reduced motion holds a still, centred gaze.
-    const steering = options.interactive && now - pointerAt < IDLE_MS
-    if (!steering && live && clock >= nextGlance) {
+    const centered = options.expression !== undefined
+    const steering = tracksPointer() && now - pointerAt < IDLE_MS
+    if (!centered && !steering && live && clock >= nextGlance) {
       const back = Math.random() < 0.3
       glance.x = back ? 0 : (Math.random() * 2 - 1) * 0.8
       glance.y = back ? 0.08 : (Math.random() * 2 - 1) * 0.5
       nextGlance = clock + 900 + Math.random() * 2100
     }
-    const goal = steering ? targetLook : reduce ? REST_LOOK : glance
+    const goal = steering ? targetLook : centered || reduce ? REST_LOOK : glance
     // A still frame skips the easing and shows where the gaze settles.
     const ease = live ? (steering ? 0.16 : 0.1) : 1
     look.x += (goal.x - look.x) * ease
     look.y += (goal.y - look.y) * ease
 
-    if (!reduce && options.blink && clock >= nextBlink) {
+    const targetPose = EYE_POSES[options.expression ?? "idle"]
+    const poseEase = live ? 1 - Math.exp(-elapsed / 48) : 1
+    pose.height += (targetPose.height - pose.height) * poseEase
+    pose.width += (targetPose.width - pose.width) * poseEase
+    pose.spacing += (targetPose.spacing - pose.spacing) * poseEase
+
+    const blink = !reduce && options.blink && (options.expression ?? "idle") === "idle"
+    if (centered && !blink) {
+      blinkAt = -10_000
+      nextBlink = Math.max(nextBlink, clock + 4200)
+    } else if (blink && clock >= nextBlink) {
       blinkAt = clock
-      nextBlink = clock + 2200 + Math.random() * 3800
+      nextBlink = clock + (centered ? 4200 + Math.random() * 3000 : 2200 + Math.random() * 3800)
     }
     const bt = (clock - blinkAt) / 1000
     let b = 0
-    if (!reduce && options.blink) {
+    if (blink) {
       if (bt < 0.055) b = bt / 0.055
       else if (bt < 0.1) b = 1
       else if (bt < 0.18) b = 1 - (bt - 0.1) / 0.08
@@ -538,6 +571,7 @@ export function createLiveOrb(
     gl.uniform1f(uSpeed, reduce ? 0 : 0.55)
     gl.uniform2f(uLook, look.x, look.y)
     gl.uniform1f(uBlink, b)
+    gl.uniform3f(uPose, pose.height, pose.width, pose.spacing)
     gl.uniform1f(uMode, resolved.mode)
     gl.uniform3f(uBody, body[0], body[1], body[2])
     gl.uniform3f(uEye, eye[0], eye[1], eye[2])
@@ -597,7 +631,9 @@ export function createLiveOrb(
 
   return {
     setOptions(next) {
+      const wasTracking = tracksPointer()
       options = { ...options, ...next }
+      if (wasTracking !== tracksPointer()) syncPointer()
       dark = resolveDark(options.theme)
       wake()
     },
@@ -650,6 +686,7 @@ export function LiveOrb({
   colors,
   interactive = true,
   blink = true,
+  expression,
   theme = "auto",
 }: LiveOrbProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -675,6 +712,7 @@ export function LiveOrb({
       colors,
       interactive,
       blink,
+      expression,
       theme,
       onHasGl: setHasGl,
     })
@@ -694,16 +732,19 @@ export function LiveOrb({
       colors,
       interactive,
       blink,
+      expression,
       theme,
       onHasGl: setHasGl,
     })
-  }, [variant, color, eyeColor, colors, interactive, blink, theme])
+  }, [variant, color, eyeColor, colors, interactive, blink, expression, theme])
 
   const resolved = resolveVariant(variant, color, eyeColor, colors, dark)
+  const fallbackPose = EYE_POSES[expression ?? "idle"]
 
   return (
     <div
       data-slot="live-orb"
+      data-expression={expression}
       role="img"
       aria-label="Orb character"
       className={cn("relative shrink-0", className)}
@@ -715,26 +756,19 @@ export function LiveOrb({
           className="absolute inset-[2%] overflow-hidden rounded-full"
           style={fallbackFaceStyle(resolved)}
         >
-          <span
-            className="absolute rounded-full"
-            style={{
-              backgroundColor: resolved.eye,
-              width: "13%",
-              height: "28%",
-              left: "31%",
-              top: "34%",
-            }}
-          />
-          <span
-            className="absolute rounded-full"
-            style={{
-              backgroundColor: resolved.eye,
-              width: "13%",
-              height: "28%",
-              left: "56%",
-              top: "34%",
-            }}
-          />
+          {[37.5, 62.5].map(center => (
+            <span
+              key={center}
+              className="absolute rounded-full"
+              style={{
+                backgroundColor: resolved.eye,
+                width: `${13 * fallbackPose.width}%`,
+                height: `${28 * fallbackPose.height}%`,
+                left: `${50 + (center - 50) * fallbackPose.spacing - 6.5 * fallbackPose.width}%`,
+                top: `${48 - 14 * fallbackPose.height}%`,
+              }}
+            />
+          ))}
         </div>
       ) : null}
       <canvas ref={canvasRef} className="absolute inset-0 size-full" />

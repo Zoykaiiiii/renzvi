@@ -278,7 +278,7 @@ const PromptInputTextarea: React.FC<PromptInputTextareaProps & React.ComponentPr
   }, [value, maxHeight, disableAutosize]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey && !e.currentTarget.readOnly) {
       e.preventDefault();
       onSubmit?.();
     }
@@ -311,12 +311,13 @@ const PromptInputActions: React.FC<PromptInputActionsProps> = ({ children, class
 // couleurs lues dans les variables --chat-* du chat (styles Verre et Nuit, prototype/chat/chat.css).
 interface PromptInputBoxProps {
   onSend?: (message: string, files?: File[]) => void;
+  onCancel?: () => void;
   isLoading?: boolean;
   placeholder?: string;
   className?: string;
 }
 export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref: React.Ref<HTMLDivElement>) => {
-  const { onSend = () => {}, isLoading = false, placeholder = "Écris ton message…", className } = props;
+  const { onSend = () => {}, onCancel, isLoading = false, placeholder = "Écris ton message…", className } = props;
   const [input, setInput] = React.useState("");
   const [files, setFiles] = React.useState<File[]>([]);
   const [filePreviews, setFilePreviews] = React.useState<{ [key: string]: string }>({});
@@ -386,6 +387,10 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
   }, [handlePaste]);
 
   const handleSubmit = () => {
+    if (isLoading) {
+      onCancel?.();
+      return;
+    }
     if (input.trim() || files.length > 0) {
       onSend(input, files);
       setInput("");
@@ -404,7 +409,6 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
         isLoading={isLoading}
         onSubmit={handleSubmit}
         className={cn("w-full transition-all duration-300 ease-in-out", className)}
-        disabled={isLoading}
         ref={ref || promptBoxRef}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -438,7 +442,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
           </div>
         )}
 
-        <PromptInputTextarea placeholder={placeholder} className="text-base" />
+        <PromptInputTextarea placeholder={placeholder} className="text-base" readOnly={isLoading} />
 
         <PromptInputActions className="flex items-center justify-between gap-2 p-0 pt-2">
           <button
@@ -468,7 +472,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
             onClick={handleSubmit}
             disabled={!hasContent && !isLoading}
           >
-            {isLoading ? <Square className="h-4 w-4 fill-current animate-pulse" /> : <ArrowUp className="h-4 w-4" />}
+            {isLoading ? <Square className="h-4 w-4 fill-current motion-safe:animate-pulse" /> : <ArrowUp className="h-4 w-4" />}
           </button>
         </PromptInputActions>
       </PromptInput>

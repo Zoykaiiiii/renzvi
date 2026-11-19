@@ -3,6 +3,8 @@
 // clavier, coexistence (Disposer, vue agrandie, verrou, roue des modes, minuteur, points de Pages), téléphone et clavier virtuel.
 // Lancement : NODE_PATH=~/pw/node_modules node tests/chat.check.cjs   (SHOTS=dossier pour garder les captures)
 const assert = require('node:assert/strict');
+const path = require('node:path');
+const { build } = require('../prototype/node_modules/esbuild');
 const { chromium } = require('playwright');
 const { start } = require('./demo.cjs');
 const { dispose } = require('./menu.cjs');
@@ -16,8 +18,9 @@ const { dispose } = require('./menu.cjs');
     const context = await browser.newContext({ viewport, hasTouch: !!opts.touch, isMobile: !!opts.touch, reducedMotion: opts.reduced ? 'reduce' : 'no-preference' });
     const page = await context.newPage();
     page.on('pageerror', e => errors.push(e.message));
+    await opts.prepare?.(page);
     if (!opts.touch) await page.mouse.move(viewport.width / 2, viewport.height / 2);
-    await page.goto(`${srv.url}/dashboard.html?profil=plein&bac=${bac}&labo=${opts.labo ?? 1}${opts.query ?? ''}`);
+    await page.goto(`${srv.url}/dashboard.html?profil=${opts.profil ?? 'plein'}&bac=${bac}&labo=${opts.labo ?? 1}${opts.query ?? ''}`);
     await page.waitForSelector('#board .widget:not([hidden])');
     if (opts.labo !== 0) await page.waitForSelector('#renzvi-chat .chat-ia-launch');
     return { page, context };
@@ -29,6 +32,23 @@ const { dispose } = require('./menu.cjs');
   const box = async loc => loc.boundingBox();
   const inside = (a, w, h) => a.x >= 0 && a.y >= 0 && a.x + a.width <= w && a.y + a.height <= h;
   const overlap = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  const face = (page, area) => page.locator(`${area} [data-slot=live-orb]`).first();
+  const pose = (page, area, expression) => face(page, area).and(page.locator(`[data-expression=${expression}]`)).waitFor();
+  const eyes = orb => orb.locator('canvas').evaluate(c => {
+    const gl = c.getContext('webgl');
+    const program = gl.getParameter(gl.CURRENT_PROGRAM);
+    return Object.fromEntries(['look', 'pose', 'blink'].map(name => {
+      const value = gl.getUniform(program, gl.getUniformLocation(program, `u_${name}`));
+      return [name, typeof value === 'number' ? value : Array.from(value)];
+    }));
+  });
+  const waitForEyes = (page, index, min, max) => page.waitForFunction(({ index, min, max }) => {
+    const gl = document.querySelector('#renzvi-chat-panel header canvas')?.getContext('webgl');
+    const program = gl?.getParameter(gl.CURRENT_PROGRAM);
+    if (!program) return false;
+    const value = gl.getUniform(program, gl.getUniformLocation(program, 'u_pose'))[index];
+    return value > min && value < max;
+  }, { index, min, max }, { timeout: 5000 });
 
   // 0. Hors labo : rien n'est chargé.
   {
@@ -70,6 +90,14 @@ const { dispose } = require('./menu.cjs');
       gl.readPixels(c.width >> 1, c.height >> 1, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
       return px[3] > 0;
     }, null, { timeout: 5000 }).catch(() => assert.fail('le personnage est dessiné'));
+    const closedFace = face(page, '.chat-ia-launch');
+    const settled = await eyes(closedFace);
+    for (const [x, y] of [[0, 0], [1439, 899], [b.x + b.width / 2, b.y + b.height / 2]]) {
+      await page.mouse.move(x, y);
+      await page.evaluate(() => new Promise(requestAnimationFrame));
+      assert.deepEqual((await eyes(closedFace)).look, settled.look);
+      assert.deepEqual(await box(launch(page)), b, 'le bouton reste immobile');
+    }
     await shot(page, 'bureau-ferme');
     const widgets = () => page.locator('#board .widget:not([hidden])').evaluateAll(w => w.map(x => { const r = x.getBoundingClientRect(); return [r.x, r.y, r.width, r.height].map(Math.round).join(','); }));
     const before = await widgets();
@@ -119,6 +147,87 @@ const { dispose } = require('./menu.cjs');
     // Rien d'autre n'a bougé : mode, minuteur.
     assert.equal(await page.locator('[data-widget=minuteur]').getByRole('button', { name: 'Pause' }).count(), 1, 'le minuteur tourne toujours');
     assert.match(await page.textContent('#mode-now'), /Study/);
+    await context.close();
+  }
+
+  // Réponses pilotées par le service, dont les résultats tardifs après annulation.
+  {
+    const prototype = path.join(__dirname, '..', 'prototype');
+    const { outputFiles: [bundle] } = await build({
+      stdin: { contents: `
+        import React from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { ChatIA } from './chat/ChatIA';
+        window.zviRequests = [];
+        const host = document.createElement('div');
+        host.id = 'renzvi-chat';
+        document.body.append(host);
+        const repondre = (envoi, signal) => new Promise((resolve, reject) => {
+          window.zviRequests.push({ envoi, signal, resolve, reject });
+        });
+        createRoot(host).render(<ChatIA repondre={repondre} />);
+      `, resolveDir: prototype, loader: 'tsx' },
+      alias: { '@': prototype }, bundle: true, write: false, jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"' },
+    });
+    const prepare = page => page.route('**/dash/chat-ia.js', route => route.fulfill({ contentType: 'text/javascript', body: bundle.text }));
+    const { page, context } = await open({ width: 1440, height: 900 }, 'expressions', { prepare, profil: 'simple' });
+    const avatar = face(page, '#renzvi-chat-panel header');
+    const expectPose = expression => pose(page, '#renzvi-chat-panel header', expression);
+    await avatar.evaluate(orb => {
+      window.zviExpressions = [];
+      new MutationObserver(() => window.zviExpressions.push(orb.dataset.expression))
+        .observe(orb, { attributes: true, attributeFilter: ['data-expression'] });
+    });
+    const reactions = () => page.evaluate(() => window.zviExpressions.filter(p => p !== 'idle'));
+    const send = async texte => {
+      await field(page).fill(texte);
+      await panel(page).getByRole('button', { name: 'Envoyer' }).click();
+      await expectPose('waiting');
+    };
+    await launch(page).click();
+    await expectPose('idle');
+    assert.deepEqual(await reactions(), ['opened']);
+    const idle = await eyes(avatar);
+    await send('Une question');
+    await waitForEyes(page, 2, .8, .9);
+    const waiting = await eyes(avatar);
+    assert.ok(waiting.pose[0] < idle.pose[0] && waiting.pose[1] < idle.pose[1]);
+    await shot(page, 'zvi-attente');
+    await page.mouse.move(20, 20, { steps: 5 });
+    assert.deepEqual((await eyes(avatar)).look, idle.look);
+    await page.evaluate(() => window.zviRequests[0].resolve('Une réponse complète'));
+    await shot(page, 'zvi-reponse');
+    await panel(page).getByText('Une réponse complète').waitFor();
+    await expectPose('idle');
+    assert.deepEqual(await reactions(), ['opened', 'waiting', 'replied']);
+
+    await send('Une autre question');
+    await page.evaluate(() => window.zviRequests[1].reject(new Error('Service indisponible')));
+    await panel(page).getByText('La réponse n’a pas abouti.').waitFor();
+    await shot(page, 'zvi-erreur');
+    await expectPose('idle');
+    assert.deepEqual(await reactions(), ['opened', 'waiting', 'replied', 'waiting', 'error']);
+    await panel(page).getByRole('button', { name: 'Réessayer' }).click();
+    await expectPose('waiting');
+    assert.equal(await page.evaluate(() => window.zviRequests[2].envoi.texte), 'Une autre question');
+    assert.equal(await panel(page).getByText('Une autre question', { exact: true }).count(), 1);
+    await panel(page).getByRole('button', { name: 'Arrêter' }).click();
+    await expectPose('idle');
+    assert.ok(await page.evaluate(() => window.zviRequests[2].signal.aborted));
+
+    await send('À interrompre en fermant');
+    await field(page).focus();
+    await page.keyboard.press('Escape');
+    await pose(page, '.chat-ia-launch', 'idle');
+    assert.ok(await page.evaluate(() => window.zviRequests[3].signal.aborted));
+    await page.evaluate(() => {
+      window.zviRequests[2].resolve('Réponse annulée');
+      window.zviRequests[3].reject(new Error('Erreur annulée'));
+    });
+    await launch(page).click();
+    await expectPose('idle');
+    assert.deepEqual((await reactions()).slice(-3), ['waiting', 'waiting', 'opened']);
+    assert.equal(await panel(page).getByText(/Réponse annulée|La réponse n’a pas abouti/).count(), 0);
     await context.close();
   }
 
@@ -260,8 +369,16 @@ const { dispose } = require('./menu.cjs');
 
   // 6. Mouvement réduit : pas d'animation à l'ouverture.
   {
-    const { page, context } = await open({ width: 1440, height: 900 }, 'reduit', { reduced: true });
-    await launch(page).click();
+    const { page, context } = await open({ width: 1440, height: 900 }, 'reduit', { reduced: true, profil: 'simple' });
+    await Promise.all([
+      waitForEyes(page, 0, 1.19, 1.21),
+      launch(page).dispatchEvent('click'),
+    ]);
+    const orb = face(page, '#renzvi-chat-panel header');
+    const still = await eyes(orb);
+    assert.ok(still.pose[0] > 1.15 && still.blink === 0, 'le geste est une pose fixe');
+    await page.mouse.move(50, 50);
+    assert.deepEqual(await eyes(orb), still);
     assert.equal(await panel(page).evaluate(n => getComputedStyle(n).transitionDuration.split(',').every(d => d.trim() === '0s')), true);
     await context.close();
   }
