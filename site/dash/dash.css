@@ -14,20 +14,24 @@
 body:is(.dragging,.layout-resizing){-webkit-user-select:none;user-select:none}
 .widget>.body ::selection{background:var(--accent);color:var(--on-accent)}
 
-/* ---------- Barres de défilement ----------
+/* La page garde son défilement natif sans afficher de barre. */
+html{scrollbar-width:none}
+html::-webkit-scrollbar{display:none}
+
+/* ---------- Barres de défilement intérieures ----------
    Natives (molette, pavé, doigt, clavier intacts), seulement redessinées : piste invisible, pouce arrondi,
    plus marqué au survol de la zone. Pas de flèches. Pas de gouttière réservée sur la page : elle laissait une bande vide
    à droite des vues plein écran (vol). Les widgets à hauteur fixe, eux, gardent la leur (pas de saut quand ils défilent). */
 /* Chrome, Edge, Safari : pseudo-éléments (pas de flèches, survol et pression). Chrome les ignore si scrollbar-color est posé,
    d'où la norme réservée aux navigateurs qui n'ont pas ces pseudo-éléments (Firefox). */
-::-webkit-scrollbar{width:var(--sb-size);height:var(--sb-size);background:transparent}
-::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
-::-webkit-scrollbar-thumb{border:3px solid transparent;border-radius:9999px;background:var(--sb-thumb) padding-box}
-::-webkit-scrollbar-thumb:hover{background:var(--sb-thumb-hot) padding-box}
-::-webkit-scrollbar-thumb:active{background:var(--accent) padding-box}
-::-webkit-scrollbar-button{display:none;width:0;height:0}
+:where(:not(html,body))::-webkit-scrollbar{width:var(--sb-size);height:var(--sb-size);background:transparent}
+:where(:not(html,body))::-webkit-scrollbar-track,:where(:not(html,body))::-webkit-scrollbar-corner{background:transparent}
+:where(:not(html,body))::-webkit-scrollbar-thumb{border:3px solid transparent;border-radius:9999px;background:var(--sb-thumb) padding-box}
+:where(:not(html,body))::-webkit-scrollbar-thumb:hover{background:var(--sb-thumb-hot) padding-box}
+:where(:not(html,body))::-webkit-scrollbar-thumb:active{background:var(--accent) padding-box}
+:where(:not(html,body))::-webkit-scrollbar-button{display:none;width:0;height:0}
 @supports not selector(::-webkit-scrollbar){
-  *{scrollbar-width:thin;scrollbar-color:var(--sb-thumb) transparent}
+  :where(:not(html)){scrollbar-width:thin;scrollbar-color:var(--sb-thumb) transparent}
   :not(html):hover{scrollbar-color:var(--sb-thumb-hot) transparent}
 }
 
