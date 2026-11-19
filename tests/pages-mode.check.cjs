@@ -136,6 +136,7 @@ const { custom, closeCustom, modeNow, goMode } = require('./menu.cjs');
     await custom(page);
     await page.click('#layout-edit');
     await page.waitForFunction(() => document.body.classList.contains('pages-editing'));
+    await page.locator('#bar-toggle').click();
     // Dans la page : Habitudes va de la case (0,0) à (6,2).
     let h = await hold(page, 'habitudes');
     await toCell(page, h, 6, 2);
@@ -146,7 +147,7 @@ const { custom, closeCustom, modeNow, goMode } = require('./menu.cjs');
     h = await hold(page, 'habitudes');
     await page.mouse.move(4, h.y, { steps: 6 });
     await page.waitForTimeout(400);
-    assert.equal(await page.evaluate(() => document.body.classList.contains('bar-peek')), false, 'le menu latéral ne s’ouvre pas');
+    assert.equal(await page.locator('#bar-toggle').getAttribute('aria-expanded'), 'false', 'le menu latéral ne s’ouvre pas');
     assert.equal(await page.evaluate(() => !!document.querySelector('dialog.mode-wheel[open]')), false, 'la roue ne s’ouvre pas');
     await page.keyboard.press('Escape');
     await page.mouse.up();

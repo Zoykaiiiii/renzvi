@@ -36,10 +36,10 @@ const { openMe, acctSection } = require('./menu.cjs');
     await done();
     assert.ok(Math.abs(await gap() - 12) <= 1, 'rail replié : 12 px');
 
-    // Le survol automatique est désactivé. On reproduit les états de sa transition CSS en gardant la carte ouverte.
+    // On teste la géométrie de la transition CSS en gardant la carte ouverte.
     for (const expanded of [true, false]) {
       const transition = await page.locator('#bar').evaluateHandle((bar, expanded) => {
-        document.body.classList.toggle('bar-peek', expanded);
+        document.body.classList.toggle('drawer-open', expanded);
         const width = bar.getAnimations().find(a => a.transitionProperty === 'width');
         width.pause();
         return width;
@@ -154,6 +154,11 @@ const { openMe, acctSection } = require('./menu.cjs');
     await page.waitForFunction(() => !document.getElementById('menu').matches(':popover-open'));
     assert.equal(await page.evaluate(() => window.__hits), 0, 'le toucher qui ferme n’actionne rien');
     assert.ok(await page.locator('#open-custom').isVisible(), 'le tiroir reste ouvert : un seul niveau se ferme');
+    await openMe(page);
+    await page.waitForSelector('#menu:popover-open');
+    await page.locator('#bar-toggle').tap();
+    assert.equal(await page.locator('#bar-toggle').getAttribute('aria-expanded'), 'false');
+    assert.equal(await isOpen(page), false, 'le bouton replie le tiroir même si la carte est ouverte');
     await context.close();
   }
 

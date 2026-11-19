@@ -57,8 +57,9 @@
 .chat-ia-choix[aria-pressed=true] { background: var(--chat-choix); color: var(--chat-ink); font-weight: 600; }
 :where(#renzvi-chat) :focus-visible { outline: 2px solid var(--chat-send, var(--accent)); outline-offset: 2px; }
 
-/* Jamais par-dessus le verrou, la vue agrandie, le tiroir du menu, ni pendant qu'on dispose les widgets. */
-:is(.locked, .customizing, .pages-editing, .drawer-open, .zoom-lock) #renzvi-chat { display: none; }
+/* Jamais par-dessus le verrou, la vue agrandie, ni pendant qu'on dispose les widgets. */
+:is(.locked, .customizing, .pages-editing, .zoom-lock) #renzvi-chat { display: none; }
+@media (max-width: 1023px) { .drawer-open #renzvi-chat { display: none; } }
 /* De la place sous le dernier widget pour que le personnage ne le cache pas en fin de défilement. */
 body:has(#renzvi-chat) #app { padding-bottom: 76px; }
 

@@ -164,10 +164,10 @@ body{--side:0px;padding-left:var(--side)}
 body.has-wall .bar-mode{color:#fff;text-shadow:0 1px 2px #000,0 0 6px #0009}
 /* Icône d'un favori : celle du widget, en masque. */
 .fav-ic{flex:none;width:18px;height:18px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
-:is(.bar-peek,.drawer-open) .bar-mode{display:none}
+.drawer-open .bar-mode{display:none}
 /* Menu fermé, sur toutes les tailles : seulement le logo, puis le mode (« Renzvi » revient quand le menu s'ouvre). */
-body:not(.bar-peek,.drawer-open) .mark{flex:none;justify-content:center;width:44px;padding:0}
-body:not(.bar-peek,.drawer-open) .mark span{display:none}
+body:not(.drawer-open) .mark{flex:none;justify-content:center;width:44px;padding:0}
+body:not(.drawer-open) .mark span{display:none}
 .bar-toggle{flex:none;display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:12px;background:none;color:var(--ink);transition:background-color .15s}
 .bar-toggle:hover{background:var(--tint)}
 .bar-toggle svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round}
@@ -197,7 +197,7 @@ body:not(.bar-peek,.drawer-open) .mark span{display:none}
 .fav-where{margin-left:auto;padding-left:8px;font-size:12px;color:var(--slate);white-space:nowrap}
 .favs-empty{padding:0 12px;font-size:12px;line-height:1.45;color:var(--slate)}
 .favs-list:not(:empty) + .favs-empty{display:none}
-.bar-scrim{position:fixed;inset:0;z-index:39;background:var(--veil)}
+.bar-scrim{display:none;position:fixed;inset:0;z-index:39;background:var(--veil);pointer-events:none}
 /* Le widget atteint depuis un favori se signale un instant. */
 .widget.is-found{box-shadow:var(--glass-shine),0 0 0 2px var(--accent);transition:box-shadow .3s}
 @keyframes bar-in{from{opacity:0;transform:translateX(-8px)}}
@@ -207,6 +207,7 @@ body:not(.bar-peek,.drawer-open) .mark span{display:none}
   .bar-mode{left:calc(var(--mode-left) + env(safe-area-inset-left));max-width:calc(100% - var(--mode-left) - 12px - env(safe-area-inset-left) - env(safe-area-inset-right))}
   .bar-nav{display:none}
   .drawer-open .topbar{top:0;bottom:0;left:0;width:min(300px,86vw);padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));border-radius:0 18px 18px 0;--glass:var(--glass-solid);box-shadow:0 24px 64px rgba(0,0,0,.22)}
+  .drawer-open .bar-scrim{display:block}
   .drawer-open .bar-nav{display:flex}
   .drawer-open .topbar{animation:bar-in .22s var(--ease)}
 }
@@ -218,19 +219,18 @@ body:not(.bar-peek,.drawer-open) .mark span{display:none}
   .mark span{display:none}
   .bar-mode{--mode-left:20px}
   /* Rail fermé : les favoris en icônes seulement, sans titre ni aide. */
-  body:not(.bar-peek,.drawer-open) :is(.favs-head,.favs-empty){display:none}
-  body:not(.bar-peek,.drawer-open) .favs-list{align-items:center}
+  body:not(.drawer-open) :is(.favs-head,.favs-empty){display:none}
+  body:not(.drawer-open) .favs-list{align-items:center}
   /* Rail fermé : seulement les icônes. Les libellés restent lus par les lecteurs d'écran. */
-  body:not(.bar-peek,.drawer-open) .bar-btn > :is(span:not(.me-av,.fav-ic)){position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-  body:not(.bar-peek,.drawer-open) .bar-btn{justify-content:center;width:44px;padding:0}
-  body:not(.bar-peek,.drawer-open) .me-av{margin:0}
+  body:not(.drawer-open) .bar-btn > :is(span:not(.me-av,.fav-ic)){position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  body:not(.drawer-open) .bar-btn{justify-content:center;width:44px;padding:0}
+  body:not(.drawer-open) .me-av{margin:0}
   /* Ouvert par-dessus l'écran. Le contenu est posé à sa largeur finale : le panneau qui s'élargit le découvre, rien ne se recompose. */
-  :is(.bar-peek,.drawer-open) .topbar{width:244px;padding:12px;--glass:var(--glass-solid);box-shadow:0 24px 64px rgba(0,0,0,.18)}
-  :is(.bar-peek,.drawer-open) .bar-top{flex-direction:row;min-width:220px}
-  :is(.bar-peek,.drawer-open) .mark{justify-content:flex-start;padding:0 8px;width:auto}
-  :is(.bar-peek,.drawer-open) .mark span{display:inline}
-  :is(.bar-peek,.drawer-open) .bar-nav{min-width:220px;animation:bar-in .22s var(--ease)}
-  .bar-scrim{background:none}
+  .drawer-open .topbar{width:244px;padding:12px;--glass:var(--glass-solid);box-shadow:0 24px 64px rgba(0,0,0,.18)}
+  .drawer-open .bar-top{flex-direction:row;min-width:220px}
+  .drawer-open .mark{justify-content:flex-start;padding:0 8px;width:auto}
+  .drawer-open .mark span{display:inline}
+  .drawer-open .bar-nav{min-width:220px;animation:bar-in .22s var(--ease)}
 }
 @media (prefers-reduced-motion:reduce){.topbar,.topbar .bar-nav,.drawer-open .topbar,.bar-toggle,.bar-toggle .chev,.bar-btn,dialog.settings,#menu{transition:none;animation:none}}
 
@@ -1095,7 +1095,7 @@ dialog.settings,dialog.settings :is(h2,h3,h4){font-family:var(--marque)}
   </nav>
 </header>
 <button class="bar-mode" id="bar-mode" type="button" hidden><span class="bar-mode__name" id="bar-mode-name"></span></button>
-<div class="bar-scrim" id="bar-scrim" hidden></div>
+<div class="bar-scrim" aria-hidden="true"></div>
 <!-- Carte du compte : SpotlightCard (site/dash/spotlight.js) posée à l'ouverture. Les réglages se déplient un à la fois. -->
 <div id="menu" popover aria-labelledby="acct-name">
   <div class="acct-head">
@@ -4383,7 +4383,6 @@ if (!sb) {
     // « Personnaliser » ouvre directement ce panneau : fond, apparence, disposition, mode affiché.
     $('open-custom').onclick = () => {
       if (document.body.classList.contains('customizing')) setCustomizing(false);
-      closeDrawer(false);
       $('wall-slot').replaceChildren(wallpaperPicker());
       $('settings').showModal();
       syncFiniVideo();
@@ -4414,9 +4413,7 @@ if (!sb) {
     applyAccent();
   }
   // ---------- Menu latéral : une pastille, le menu complet s'ouvre par-dessus l'écran ----------
-  // Ouvert exprès, au clic, au toucher ou au clavier (drawer-open : voile qui avale le toucher à côté, Échap, reste de l'écran inerte).
   const narrow = matchMedia('(max-width:1023px)');
-  const canHover = matchMedia('(hover:hover) and (pointer:fine)');
   const sidebar = $('bar'), accountMenu = $('menu'), accountButton = $('me');
   function placeAccount() {
     if (narrow.matches) return;
@@ -4439,75 +4436,14 @@ if (!sb) {
       removeEventListener('resize', placeAccount);
     }
   });
-  const drawerOpen = () => document.body.classList.contains('drawer-open');
-  const peeked = () => document.body.classList.contains('bar-peek');
-  const menuShown = () => drawerOpen() || peeked();
-  function syncToggle() {
-    const on = menuShown(), t = $('bar-toggle');
-    t.setAttribute('aria-expanded', on);
-    t.ariaLabel = on ? 'Masquer le menu' : 'Afficher le menu';
-  }
-  function openDrawer() {
-    document.body.classList.remove('bar-peek');
-    document.body.classList.add('drawer-open');
-    $('bar-scrim').hidden = false;
-    $('app').inert = true; // le reste de l'écran attend : un toucher sur le voile ferme le menu sans rien activer dessous
-    syncToggle();
-  }
-  // Fermer, quelle que soit la façon dont il a été ouvert. Après une fermeture voulue avec la souris dessus, le survol ne le rouvre
-  // qu'une fois la souris sortie de la place qu'occupait le menu, puis revenue (sinon il se rouvrirait sous le pointeur).
-  let hush = null, peekT = 0;
-  const zones = [$('bar'), $('menu')];
-  const inZone = () => zones.some(z => z.matches(':hover'));
-  // explicit : fermé par le bouton, Échap ou un clic à côté (pas par le choix d'une action du menu).
-  function closeDrawer(refocus = true, explicit = refocus, keepAccount = false) {
-    clearTimeout(peekT);
-    if (!menuShown()) return;
-    hush = explicit && inZone() ? $('bar').getBoundingClientRect() : null;
-    document.body.classList.remove('bar-peek', 'drawer-open');
-    $('bar-scrim').hidden = true;
-    $('app').inert = false;
-    if (!keepAccount && accountMenu.matches(':popover-open')) accountMenu.hidePopover();
-    syncToggle();
-    if (refocus) $('bar-toggle').focus();
-  }
-  $('bar-toggle').onclick = () => (menuShown() ? closeDrawer(!peeked(), true) : openDrawer());
-  $('bar-scrim').onclick = () => closeDrawer();
-  // Échap : seulement si aucune fenêtre ni le menu du compte ne l'a pris pour lui.
-  addEventListener('keydown', e => { if (e.key === 'Escape' && menuShown() && !e.defaultPrevented && !document.querySelector('dialog[open]') && !$('menu').matches(':popover-open')) closeDrawer(drawerOpen() || $('bar').contains(document.activeElement), true); });
-  narrow.addEventListener('change', () => { closeDrawer(false, false, true); hush = null; syncToggle(); });
-  addEventListener('pointermove', e => {
-    if (hush && (e.clientX < hush.left - 8 || e.clientX > hush.right + 8 || e.clientY < hush.top - 8 || e.clientY > hush.bottom + 8)) hush = null;
-  }, { passive: true });
-
-  // Le survol ouvre la navigation sans bloquer le tableau. Un clic direct ouvre le tiroir.
-  sidebar.addEventListener('pointerenter', e => {
-    clearTimeout(peekT);
-    if (e.pointerType !== 'mouse' || narrow.matches || !canHover.matches || hush || menuShown() || e.buttons) return;
-    peekT = setTimeout(() => {
-      if (hush || menuShown() || !sidebar.matches(':hover') || document.querySelector('dialog[open], .widget.lifted, .widget.resizing')) return;
-      document.body.classList.add('bar-peek');
-      syncToggle();
-    }, 180);
-  });
-  sidebar.addEventListener('pointerdown', () => clearTimeout(peekT));
-  function closePeekLater() {
-    clearTimeout(peekT);
-    if (!peeked()) return;
-    peekT = setTimeout(() => {
-      if (inZone() || accountMenu.matches(':popover-open') || sidebar.querySelector(':focus-visible')) return;
-      closeDrawer(false);
-    }, 300);
-  }
-  sidebar.addEventListener('pointerleave', closePeekLater);
-  sidebar.addEventListener('focusout', closePeekLater);
-  accountMenu.addEventListener('toggle', e => { if (e.newState === 'closed') closePeekLater(); });
-
-  syncToggle();
-  // Où rendre le focus après une fenêtre ouverte depuis le menu : le bouton s'il est encore visible, sinon celui qui ouvre le menu.
-  // Le menu se referme dès qu'on choisit une action : c'est donc presque toujours le bouton de la pastille.
+  const sidebarToggle = $('bar-toggle');
+  sidebarToggle.onclick = () => {
+    const open = document.body.classList.toggle('drawer-open');
+    sidebarToggle.setAttribute('aria-expanded', open);
+    sidebarToggle.ariaLabel = open ? 'Masquer le menu' : 'Afficher le menu';
+    if (!open && accountMenu.matches(':popover-open')) accountMenu.hidePopover();
+  };
   const visible = b => b.checkVisibility?.() ?? !!b.offsetParent;
-  const focusTarget = () => $('bar-toggle');
   const focusMenu = b => (visible(b) ? b : $('bar-toggle')).focus();
 
   // ---------- Favoris : un raccourci vers un widget déjà sur l'écran, jamais une copie ----------
@@ -4532,7 +4468,6 @@ if (!sb) {
   function goFav(id) {
     const m = mounted.get(id);
     if (!m) return drawFavs();
-    closeDrawer(false);
     if (pageOf(id) !== currentPage) { wantReveal = id; showPage(pageOf(id)); }
     else { zoom(null); vue.reveal?.(id); }
     if (screen.collapsed.includes(id)) {
@@ -4598,7 +4533,6 @@ if (!sb) {
     actions.append(button('primary', 'Terminé', () => $('page-dialog').close()));
     $('page-title').textContent = 'Favoris';
     $('page-slot').replaceChildren(el('p', 'desc', 'Un favori t’emmène au widget, là où il est : rien n’est copié.'), box, actions);
-    closeDrawer(false);
     $('page-dialog').showModal();
     box.querySelector('[data-k]:not(:disabled)')?.focus();
   }
@@ -4689,7 +4623,7 @@ if (!sb) {
     drawPages();
     drawToday();
     drawAide();
-    $('open-add').onclick = () => { closeDrawer(false); openCatalog(user); };
+    $('open-add').onclick = () => openCatalog(user);
     if (LABO || planActuel === 'worker') chargerZvi();
     $('cat-search').oninput = () => drawCatalog(user);
     $('add-dialog').onclose = () => pickWidget(null, user);
@@ -4724,7 +4658,7 @@ if (!sb) {
       });
       drawPages();
     }
-    $('open-modes').onclick = e => { closeDrawer(false); modes.open(null, null, focusTarget(e.currentTarget)); };
+    $('open-modes').onclick = () => modes.open(null, null, $('open-modes'));
     $('bar-mode').onclick = () => modes.open(null, null, $('bar-mode'));
     // Une seule fenêtre de création, partagée avec la roue : nom, icône, couleur, fond de départ.
     $('page-new').onclick = () => modes.openCreate();
@@ -5431,7 +5365,7 @@ if (!sb) {
   let swallowAt = 0;
   addEventListener('pointerdown', e => {
     swallowAt = 0;
-    if (!$('menu').matches(':popover-open') || e.composedPath().some(n => n === $('menu') || n === $('me'))) return;
+    if (!$('menu').matches(':popover-open') || e.composedPath().some(n => n === $('menu') || n === $('me') || n === sidebarToggle)) return;
     swallowAt = e.timeStamp;
     e.preventDefault();
     e.stopPropagation();

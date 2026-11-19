@@ -1,5 +1,5 @@
 // Menu latéral du dashboard, dans un vrai Chromium, sur le serveur de démo (Supabase simulé en mémoire).
-// Ouvert et replié (souvenu), tiroir sur téléphone, « Changer de mode », favoris, Personnaliser d'un seul tenant,
+// Ouverture et repli par le bouton, tiroir sur téléphone, « Changer de mode », favoris, Personnaliser d'un seul tenant,
 // compte et verrou, enregistrement en panne, mouvement réduit.
 // Lancement : NODE_PATH=~/pw/node_modules node tests/menu-lateral.check.cjs   (SHOTS=dossier pour garder les captures)
 const assert = require('node:assert/strict');
@@ -16,7 +16,7 @@ const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, show
     const context = await browser.newContext({ viewport, hasTouch: !!opts.touch, isMobile: !!opts.touch, reducedMotion: opts.reduced ? 'reduce' : 'no-preference' });
     const page = await context.newPage();
     page.on('pageerror', e => errors.push(e.message));
-    if (!opts.touch) await page.mouse.move(720, 500); // la souris ne démarre pas sur le bord gauche (qui ouvre le menu)
+    if (!opts.touch) await page.mouse.move(720, 500);
     await page.goto(`${srv.url}/dashboard.html?profil=plein&bac=${bac}`);
     await page.waitForSelector('#board .widget:not([hidden])');
     return { page, context, db: srv.bac('plein', bac) };
@@ -26,7 +26,7 @@ const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, show
   const settle = page => page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running'));
   const toggle = page => page.locator('#bar-toggle');
 
-  // 1. Grand écran : survoler le rail révèle la navigation, cliquer ouvre le tiroir. Le mode ouvre la roue.
+  // 1. Grand écran : le pointeur ne change pas l'état du rail. Le mode ouvre la roue.
   {
     const { page, context } = await open({ width: 1440, height: 900 }, 'survol');
     const nav = page.getByRole('navigation', { name: 'Menu de ton écran' });
@@ -53,18 +53,18 @@ const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, show
     await logo.focus();
     assert.equal(await logo.evaluate(el => el === document.activeElement), true);
     await logo.blur();
+    await page.mouse.move(0, 450, { steps: 16 });
+    await page.waitForTimeout(400);
+    assert.equal(await shown(), false, 'le bord gauche ne déclenche rien');
     await toggle(page).hover();
-    await page.waitForSelector('body.bar-peek');
-    assert.equal(await toggle(page).getAttribute('aria-expanded'), 'true');
-    assert.equal(await page.locator('#app').evaluate(el => el.inert), false);
-    assert.equal(await shown(), false, 'le survol ouvre la navigation sans tiroir');
-    await page.mouse.move(4, 450);
-    await page.waitForSelector('body.bar-peek', { state: 'detached' });
+    await page.waitForTimeout(400);
+    assert.equal(await toggle(page).getAttribute('aria-expanded'), 'false', 'le survol du rail ne l’ouvre pas');
     // Clic : ouvert par-dessus l'écran, avec les libellés.
     await toggle(page).click();
     await settle(page);
     assert.equal(await shown(), true, 'le clic ouvre');
     assert.equal(await toggle(page).getAttribute('aria-expanded'), 'true');
+    assert.equal(await toggle(page).getAttribute('aria-label'), 'Masquer le menu');
     assert.deepEqual(await nav.getByRole('button').evaluateAll(b => b.filter(x => x.offsetParent).map(x => x.id || x.className)), ['open-add', 'open-modes', 'favs-edit', 'open-custom', 'me']);
     assert.equal(await page.getByRole('button', { name: 'Réglages', exact: true }).count(), 0, 'plus de bouton Réglages séparé');
     assert.equal(await page.locator('#bar').getByText('Chill', { exact: true }).count(), 0, 'les modes ne sont plus listés');
@@ -73,7 +73,9 @@ const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, show
     assert.ok((await page.locator('#bar').boundingBox()).width >= 240, 'ouvert avec les libellés');
     assert.equal(await mode.isVisible(), false, 'le mode en gras se cache pendant que le menu est ouvert');
     await shot(page, 'menu-ouvert');
-    // « Masquer » : fermé tout de suite, la souris dessus ne le rouvre pas.
+    await page.mouse.move(720, 500, { steps: 12 });
+    await page.waitForTimeout(400);
+    assert.equal(await shown(), true, 'le rail reste ouvert quand la souris le quitte');
     await toggle(page).click();
     assert.equal(await shown(), false, 'fermé tout de suite');
     assert.equal(await toggle(page).getAttribute('aria-expanded'), 'false');
@@ -102,22 +104,16 @@ const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, show
     assert.equal(await toggle(page).getAttribute('aria-expanded'), 'true');
     await page.keyboard.press('Tab');
     assert.equal(await page.evaluate(() => document.activeElement.id), 'open-add', 'Tab entre dans le menu');
-    await page.mouse.move(720, 500);
-    await page.waitForTimeout(600);
-    assert.equal(await shown(), true, 'ouvert exprès : la souris ailleurs ne le ferme pas');
     await page.keyboard.press('Escape');
-    assert.equal(await shown(), false, 'Échap ferme');
-    assert.equal(await toggle(page).evaluate(n => n === document.activeElement), true, 'le focus revient au bouton');
-    // Ouvert exprès : un clic à côté ferme, sans rien activer dessous.
-    await page.keyboard.press('Enter');
-    await page.evaluate(() => { window.__clics = 0; document.getElementById('app').addEventListener('click', () => window.__clics++, true); });
-    // Un bouton du tableau à droite du menu ouvert (le clic tombe sur le voile, pas sur le menu).
-    const right = (await page.locator('#bar').boundingBox()).x + (await page.locator('#bar').boundingBox()).width;
-    const start = page.locator('#board .widget button:visible').filter({ hasNot: page.locator('[disabled]') });
-    const sb = (await start.evaluateAll((all, r) => all.map(b => b.getBoundingClientRect()).find(b => b.left > r + 20 && b.width > 20 && b.top > 0 && b.bottom < innerHeight), right));
-    await page.mouse.click(sb.left + sb.width / 2, sb.top + sb.height / 2);
-    assert.equal(await shown(), false, 'un clic à côté ferme');
-    assert.equal(await page.evaluate(() => window.__clics), 0, 'rien n’est activé dessous');
+    assert.equal(await shown(), true, 'Échap laisse le menu ouvert');
+    await page.mouse.click(1200, 80);
+    assert.equal(await shown(), true, 'un clic à côté laisse le menu ouvert');
+    await toggle(page).press('Space');
+    assert.equal(await shown(), false, 'Espace replie');
+    await toggle(page).press('Space');
+    assert.equal(await shown(), true, 'Espace ouvre');
+    await toggle(page).press('Enter');
+    assert.equal(await shown(), false, 'Entrée replie');
     // L'ancien choix « ouvert » gardé sur l'appareil ne laisse plus le menu ouvert en permanence.
     await page.evaluate(() => localStorage.setItem('renzvi:menu', 'ouvert'));
     await page.reload();
@@ -130,6 +126,7 @@ const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, show
   {
     const { page, context } = await open({ width: 1440, height: 900 }, 'geste');
     await dispose(page);
+    await toggle(page).click();
     await page.mouse.move(720, 500);
     await page.waitForFunction(() => !document.body.classList.contains('drawer-open'));
     const grip = page.locator('[data-widget=minuteur] .grip');
@@ -163,6 +160,7 @@ const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, show
     await page.click('#open-add');
     assert.ok(await page.isVisible('#add-dialog #cat-search'));
     await page.keyboard.press('Escape');
+    assert.equal(await toggle(page).getAttribute('aria-expanded'), 'true', 'le catalogue laisse le menu ouvert');
     await context.close();
   }
 
@@ -280,7 +278,7 @@ const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, show
     await context.close();
   }
 
-  // 6. Téléphone : une pastille, un tiroir qu'on ferme (voile, Échap), rien d'autre ne répond pendant ce temps.
+  // 6. Téléphone : le même bouton ouvre et replie le tiroir.
   {
     const { page, context } = await open({ width: 390, height: 844 }, 'tel', { touch: true });
     const bar = await page.locator('#bar').boundingBox();
@@ -291,27 +289,24 @@ const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, show
     await toggle(page).tap();
     await settle(page);
     assert.equal(await toggle(page).getAttribute('aria-expanded'), 'true');
-    assert.equal(await page.evaluate(() => document.getElementById('app').inert), true);
+    assert.equal(await page.evaluate(() => document.getElementById('app').inert), false);
     const drawer = await page.locator('#bar').boundingBox();
     assert.ok(drawer.width <= 340 && drawer.height >= 800, 'un tiroir sur la hauteur');
     for (const id of ['#open-add', '#open-modes', '#open-custom', '#me']) assert.ok((await page.locator(id).boundingBox()).height >= 44, `${id} : 44 px`);
     await shot(page, 'telephone-tiroir');
-    await page.evaluate(() => { window.__clics = 0; document.getElementById('app').addEventListener('click', () => window.__clics++, true); });
     await page.touchscreen.tap(370, 400);
-    assert.equal(await toggle(page).getAttribute('aria-expanded'), 'false', 'un toucher sur le voile ferme');
-    assert.equal(await page.evaluate(() => window.__clics), 0, 'le toucher à côté n’active rien dessous');
-    await toggle(page).click();
-    await page.keyboard.press('Escape');
-    assert.equal(await toggle(page).getAttribute('aria-expanded'), 'false', 'Échap ferme');
-    assert.equal(await toggle(page).evaluate(n => n === document.activeElement), true, 'le focus revient au bouton');
+    assert.equal(await toggle(page).getAttribute('aria-expanded'), 'true', 'un toucher à côté laisse le tiroir ouvert');
+    await toggle(page).tap();
+    assert.equal(await toggle(page).getAttribute('aria-expanded'), 'false', 'le même bouton replie le tiroir');
+    assert.equal(await toggle(page).getAttribute('aria-label'), 'Afficher le menu');
     // Le choix « replié » du grand écran ne s'applique pas ici, et le tiroir repart fermé.
     await page.evaluate(() => localStorage.setItem('renzvi:menu', 'ouvert'));
     await page.reload();
     await page.waitForSelector('#board .widget:not([hidden])');
     assert.equal(await page.locator('#bar-nav').isVisible(), false);
-    // Personnaliser depuis le tiroir : le tiroir se ferme, le panneau s'ouvre.
+    // Personnaliser depuis le tiroir laisse le tiroir ouvert.
     await custom(page);
-    assert.equal(await toggle(page).getAttribute('aria-expanded'), 'false');
+    assert.equal(await toggle(page).getAttribute('aria-expanded'), 'true');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await context.close();
   }

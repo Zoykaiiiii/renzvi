@@ -5,7 +5,7 @@
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const { start } = require('./demo.cjs');
-const { custom, dispose, openMe, acctSection, modeNow, options, showMenu } = require('./menu.cjs');
+const { custom, dispose, openMe, acctSection, goMode, modeNow, options, showMenu } = require('./menu.cjs');
 
 (async () => {
   const srv = await start();
@@ -162,25 +162,18 @@ const { custom, dispose, openMe, acctSection, modeNow, options, showMenu } = req
     await page.waitForFunction(() => !document.querySelector('dialog.mode-wheel[open]'));
     assert.equal(await modeNow(page), 'Chill');
     // Le bouton « Changer de mode » du menu fait la même chose, au clavier.
-    await page.mouse.move(720, 450); // la souris quitte le bord gauche, qui ouvre le menu au survol
-    await page.waitForFunction(() => !document.body.classList.contains('bar-peek'));
-    await page.locator('#bar-toggle').focus();
-    await page.keyboard.press('Enter');
+    await showMenu(page);
     await page.getByRole('button', { name: 'Changer de mode' }).focus();
     await page.keyboard.press('Enter');
     assert.equal(await wheelOpen(page), true, 'bouton du menu');
-    await page.locator('.mode-wheel [role=option]').first().click();
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('Enter');
     await page.waitForFunction(() => !document.querySelector('dialog.mode-wheel[open]'));
     assert.equal(await modeNow(page), 'Study');
-    assert.equal(await page.evaluate(() => document.activeElement?.id), 'bar-toggle', 'le focus revient au bouton de la pastille');
+    assert.equal(await page.evaluate(() => document.activeElement?.id), 'open-modes', 'le focus revient à Changer de mode');
     // Changements de mode rapides, minuteur en cours : il continue, rien n'est remonté.
     await timer(page).getByRole('button', { name: 'Démarrer' }).click();
-    for (let i = 0; i < 4; i++) {
-      await showMenu(page);
-      await page.getByRole('button', { name: 'Changer de mode' }).click();
-      await page.locator('.mode-wheel [role=option]').nth(i % 2 ? 0 : 1).click();
-    }
-    await page.waitForFunction(() => !document.querySelector('dialog.mode-wheel[open]'));
+    for (const mode of ['Chill', 'Study', 'Chill', 'Study']) await goMode(page, mode);
     assert.equal(await page.locator('.widget[data-widget=minuteur]').count(), 1, 'un seul minuteur');
     assert.equal(await timer(page).getByRole('button', { name: 'Pause' }).count(), 1, 'toujours en cours');
     await context.close();
