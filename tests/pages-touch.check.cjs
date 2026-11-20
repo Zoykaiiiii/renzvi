@@ -40,7 +40,10 @@ const { start } = require('./demo.cjs');
     });
     await page.goto(server.url + '/dashboard.html?profil=plein&bac=doigt&pages=1');
     const card = id => page.locator('#board > [data-widget=' + id + ']');
-    const ready = () => page.locator('#board[data-vue=pages]').waitFor();
+    const ready = async () => {
+      await page.locator('#board[data-vue=pages]').waitFor();
+      await page.locator('#dashboard-entrance').waitFor({ state: 'detached' });
+    };
     await ready();
     async function holdText(target) {
       await target.scrollIntoViewIfNeeded();

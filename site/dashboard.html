@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon écran — Renzvi</title>
+<style>
+#dashboard-entrance{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;overflow:hidden;box-sizing:border-box;background:#fff;color:var(--brand-ink);padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#dashboard-entrance .brand-lockup{font-size:clamp(42px,13vw,51px);white-space:nowrap}
+#dashboard-entrance svg{overflow:visible}
+#dashboard-entrance use{transform-box:fill-box;transform-origin:center}
+#dashboard-entrance:not([data-playing]) :is(use,span){opacity:0}
+@media (min-width:728px){#dashboard-entrance .brand-lockup{font-size:62px}}
+@media (prefers-reduced-motion:reduce){#dashboard-entrance{display:none}}
+</style>
 <meta name="robots" content="noindex">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#f1f2f4">
@@ -72,7 +81,7 @@ try { const l = JSON.parse(localStorage.getItem('renzvi:look') || '{}'); for (co
 <style>
 /* Tous les choix visuels passent par ces variables : changer de style = changer ce bloc. */
 :root{
-  --ink:#17191c; --slate:#55565c; --error:#b3261e;
+  --brand-ink:#17191c; --ink:var(--brand-ink); --slate:#55565c; --error:#b3261e;
   /* Accent : posé par le script (applyAccent), toujours à 4,5:1 minimum avec --on-accent, vérifié par tests/personnalisation.check.cjs. */
   --accent:#1b6e66; --on-accent:#fff;
   --tint:rgba(23,25,28,.06); --rule:rgba(23,25,28,.08); --edge:rgba(23,25,28,.16); --week-bar:rgba(23,25,28,.24);
@@ -155,8 +164,10 @@ body{--side:0px;padding-left:var(--side)}
 .topbar{position:fixed;top:12px;left:12px;z-index:40;display:flex;flex-direction:column;gap:14px;padding:8px;border-radius:18px;color:var(--ink)}
 .topbar::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shine)}
 .bar-top{display:flex;align-items:center;gap:6px}
-.mark{flex:1;min-width:0;display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 8px;border-radius:10px;font-family:var(--marque);font-size:17px;font-weight:600;text-decoration:none}
-.mark svg{flex:none;width:22px;height:22px}
+.brand-lockup{display:inline-flex;align-items:center;gap:calc(10em / 17);font-family:var(--marque);font-weight:600;line-height:1.5;letter-spacing:calc(-.128em / 17)}
+.brand-lockup svg{flex:none;width:calc(22em / 17);height:calc(22em / 17);fill:currentColor}
+.brand-lockup use:not(:first-child){opacity:.22}
+.mark{flex:1;min-width:0;min-height:44px;padding:0 8px;border-radius:10px;font-size:17px;text-decoration:none}
 /* Le mode actuel, en gras à côté du logo, hors du menu : il ouvre la roue des modes. Caché quand le menu est ouvert (« Changer de mode » y est). */
 .bar-mode{--mode-left:130px;position:fixed;top:calc(20px + env(safe-area-inset-top));left:var(--mode-left);z-index:38;display:inline-flex;align-items:center;max-width:calc(100% - var(--mode-left) - 12px);min-height:44px;padding:0 10px;border:0;border-radius:10px;background:none;color:var(--ink);font-family:var(--display);font-size:clamp(22px,2vw,32px);font-weight:600;line-height:1.12;text-align:left;transition:background-color .15s}
 .bar-mode__name{display:-webkit-box;min-width:0;overflow:hidden;overflow-wrap:anywhere;-webkit-box-orient:vertical;-webkit-line-clamp:2}
@@ -1024,7 +1035,7 @@ dialog.settings,dialog.settings :is(h2,h3,h4){font-family:var(--marque)}
 .set-foot .link{margin:0;color:var(--slate)}
 .set-foot .link:hover{color:var(--ink)}
 /* Le logo garde ses carrés : sur fond sombre, les trois atténués passent à .45. */
-:root[data-theme=dark] .mark rect:not(:first-child){opacity:.45}
+:root[data-theme=dark] .mark use:not(:first-child){opacity:.45}
 @media (max-width:727px){
   dialog.settings{inset:auto 0 0 0;width:100%;max-height:88dvh;border-radius:var(--r-panel) var(--r-panel) 0 0;padding-bottom:env(safe-area-inset-bottom)}
   dialog.settings:not([open]){transform:translateY(32px)}
@@ -1072,10 +1083,65 @@ dialog.settings,dialog.settings :is(h2,h3,h4){font-family:var(--marque)}
 </style>
 </head>
 <body class="renzvi-dashboard">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><rect id="renzvi-square" width="9" height="9" rx="3" fill="currentColor"/></defs></svg>
+<div id="dashboard-entrance" aria-hidden="true">
+  <div class="brand-lockup"><svg viewBox="0 0 24 24"><use href="#renzvi-square" x="2" y="2"/><use href="#renzvi-square" x="13" y="2"/><use href="#renzvi-square" x="2" y="13"/><use href="#renzvi-square" x="13" y="13"/></svg><span>Renzvi</span></div>
+</div>
+<script>
+(() => {
+  const layer = document.getElementById('dashboard-entrance');
+  const motion = matchMedia('(prefers-reduced-motion: reduce)');
+  if (motion.matches || !layer.animate) { layer.remove(); return; }
+
+  const time = { arrive: 500, apex: 955, land: 1390, bounce: 1480, settle: 1600, fade: 2400, end: 3000 };
+  const started = Date.now();
+  const lifetime = new AbortController();
+  const listen = { signal: lifetime.signal };
+  const animations = [];
+  const fallback = setTimeout(finish, time.end + 100);
+  function finish() {
+    clearTimeout(fallback);
+    lifetime.abort();
+    for (const animation of animations) animation.cancel();
+    layer.remove();
+  }
+  function play(element, frames, duration, delay = 0, easing = 'linear', fill = 'backwards') {
+    const animation = element.animate(frames, { duration, delay, easing, fill });
+    animations.push(animation);
+    return animation;
+  }
+  play(layer.querySelector('span'), [{ opacity: 0 }, { opacity: 1 }], 390, 55, 'ease-out');
+  const [missing, ...stationary] = layer.querySelectorAll('use');
+  stationary.forEach((square, i) => play(square, [
+    { opacity: 0, transform: 'scale(.92)' },
+    { opacity: .22, transform: 'scale(1.035)', offset: .65 },
+    { opacity: .22, transform: 'none' },
+  ], 245, 65 + i * 50, 'ease-out'));
+
+  const jump = (at, transform, easing, opacity = 1) => ({ offset: (at - time.arrive) / (time.settle - time.arrive), transform, easing, opacity });
+  play(missing, [
+    jump(time.arrive, 'translate(-178%, 24%) rotate(-5deg)', 'linear', 0),
+    jump(time.arrive + 45, 'translate(-173%, 14%) rotate(-5deg)', 'cubic-bezier(.33,.58,.6,1)'),
+    jump(time.apex, 'translate(-78%, -55%) rotate(-3deg)', 'cubic-bezier(.42,0,.72,.52)'),
+    jump(time.land, 'none', 'ease-out'),
+    jump(time.bounce, 'translateY(-9%)', 'ease-in'),
+    jump(time.settle, 'none', 'linear'),
+  ], time.settle - time.arrive, time.arrive);
+
+  const fade = play(layer, [{ opacity: 1 }, { opacity: 0 }], time.end - time.fade, time.fade, 'ease-in-out', 'both');
+  layer.dataset.playing = '';
+  fade.addEventListener('finish', finish, listen);
+  addEventListener('pagehide', finish, listen);
+  motion.addEventListener('change', event => { if (event.matches) finish(); }, listen);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && Date.now() - started >= time.end) finish();
+  }, listen);
+})();
+</script>
 <div id="wall" aria-hidden="true"></div>
 <header class="topbar" id="bar">
   <div class="bar-top">
-    <a class="mark" href="./" aria-label="Renzvi, accueil"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="3" fill="currentColor"/><rect x="13" y="2" width="9" height="9" rx="3" fill="currentColor" opacity=".22"/><rect x="2" y="13" width="9" height="9" rx="3" fill="currentColor" opacity=".22"/><rect x="13" y="13" width="9" height="9" rx="3" fill="currentColor" opacity=".22"/></svg><span>Renzvi</span></a>
+    <a class="mark brand-lockup" href="./" aria-label="Renzvi, accueil"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#renzvi-square" x="2" y="2"/><use href="#renzvi-square" x="13" y="2"/><use href="#renzvi-square" x="2" y="13"/><use href="#renzvi-square" x="13" y="13"/></svg><span>Renzvi</span></a>
     <button class="bar-toggle" id="bar-toggle" type="button" aria-controls="bar-nav" aria-expanded="false" aria-label="Afficher le menu"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2.500" width="12" height="11" rx="2.500"/><path d="M6 2.500v11"/><path class="chev" d="M10.500 6.200 8.700 8l1.800 1.800"/></svg></button>
   </div>
   <nav class="bar-nav" id="bar-nav" aria-label="Menu de ton écran">

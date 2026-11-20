@@ -447,7 +447,7 @@ async function photo(browser, kind) {
     await custom(page);
     assert.equal(await page.textContent('#accent-name'), 'Vert');
     assert.equal(await page.locator('#swatches button.swatch').count(), 21);
-    const logo = () => page.locator('.mark rect').first().getAttribute('fill');
+    const logo = () => page.locator('.mark svg').evaluate(svg => getComputedStyle(svg).fill);
     const logoFill = await logo();
     const error = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--error').trim());
     const errorColor = await error();
