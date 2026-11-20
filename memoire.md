@@ -78,12 +78,10 @@ SVG viewBox 24×24, 4 carrés 9×9 à coins arrondis `rx=3` en grille 2×2 (x/y 
 ## 4. État technique réel
 
 ### Ce qui tourne
-- **En ligne :** https://renzvi-site.vercel.app (`/`, `/prototype.html`, `/login.html`, `/dashboard.html` répondent 200 le 6 nov., et le commit `b4c256b` y est bien). `renzvi.vercel.app` ne sert pas ce site.
-- **GitHub :** `Zoykaiiiii/renzvi`, branche `main`, repo public.
-- **Déploiement :** Vercel, réglé côté Vercel, dossier racine `site`. `site/vercel.json` pose des en-têtes de sécurité (pas d'affichage dans un cadre, `nosniff`, referrer). Pas de CI. Pour la nouvelle landing, il faudra passer le dossier racine à `prototype` (section 18).
+- Le site de production est [renzvi.vercel.app](https://renzvi.vercel.app). Le tableau est accessible sur [/espace](https://renzvi.vercel.app/espace). L’ancien domaine est `renzvi-site.vercel.app`.
+- Le dépôt GitHub est `Zoykaiiiii/renzvi`, branche `main`.
+- Le projet Vercel de production utilise la landing Next.js de `prototype/`. Au build, `prototype/scripts/copy-site.mjs` copie le dashboard HTML/CSS/JS de `site/` dans `public/`. Les routes courtes du site principal sont définies dans `prototype/next.config.ts`. L’ancien projet Vercel sert directement `site/`.
 
-### ⚠️ La stack réelle n'est pas celle de `CLAUDE.md`
-`CLAUDE.md` prévoit Next.js. **Le site est en réalité en HTML/CSS/JS statique, sans build, avec Supabase appelé depuis le navigateur.** Aucune migration vers Next.js n'a été faite. Si le sujet revient, présente-le comme un choix avec coût et délai.
 
 ### Les fichiers
 
