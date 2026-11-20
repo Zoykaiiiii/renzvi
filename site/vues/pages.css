@@ -57,11 +57,7 @@
 .pages-editing .board[data-vue=pages]>.widget>.head{padding-inline-start:32px;cursor:grab;touch-action:none}
 .pages-editing .board[data-vue=pages]>.widget>.head :is(button,a,select){cursor:pointer}
 .pages-editing.dragging .board[data-vue=pages]>.widget>.head{cursor:grabbing}
-.pg-move,.pg-size,.pg-to{display:none}
-/* Une action visible en édition, à l'écart des boutons de l'en-tête. */
-.pages-editing .pg-to{position:absolute;bottom:6px;left:6px;z-index:5;display:flex;align-items:center;gap:6px;padding:0 8px;border-radius:10px;background:var(--glass-solid);font-size:13px;max-width:calc(100% - 60px)}
-.pg-to select{height:32px;min-width:0;max-width:50%;border:0;background:transparent;color:var(--ink);font-size:16px}
-@media (pointer:coarse){.pg-to select{height:44px}}
+.pg-move,.pg-size{display:none}
 .pages-editing .pg-move,.pages-editing .pg-size{position:absolute;z-index:5;display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:10px;background:var(--glass-solid);color:var(--ink);touch-action:none}
 /* La poignée en pointillés ne sert plus qu'au clavier : invisible, elle apparaît si on y arrive avec Tab. */
 .pages-editing .pg-move{top:6px;left:48px;cursor:grab;clip-path:inset(50%)}

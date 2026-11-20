@@ -24,7 +24,7 @@ window.vuePages = function vuePages(ctx) {
   // remplissent une page (6 × 3 cases chacun en taille moyenne).
   const PRESET = { s: [4, 3], m: [6, 3], l: [12, 3] };
   // Jamais un départ d'appui long : un contrôle, un champ, un texte modifiable, un dessin, un lecteur, une poignée.
-  const NEVER = 'button,a,input,textarea,select,label,option,summary,[contenteditable]:not([contenteditable=false]),canvas,iframe,video,audio,svg,img,[role=slider],[role=listbox],[role=option],[role=button],[tabindex],.notes,.comet-dial,.pg-move,.pg-size,.pg-to,.pg-remove';
+  const NEVER = 'button,a,input,textarea,select,label,option,summary,[contenteditable]:not([contenteditable=false]),canvas,iframe,video,audio,svg,img,[role=slider],[role=listbox],[role=option],[role=button],[tabindex],.notes,.comet-dial,.pg-move,.pg-size,.pg-remove';
   const off = new AbortController(), signal = off.signal;
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -299,21 +299,6 @@ window.vuePages = function vuePages(ctx) {
     goTo(target);
     return { moved: moving.length, target, spilled: spilled.length };
   }
-  function moveTo(id, p) {
-    const q = state.d[id];
-    if (!q) return;
-    if (p >= state.n) { if (state.n >= MAX_PAGES) return ctx.say(`${MAX_PAGES} pages au maximum dans un mode.`); state.n++; state.t.push(''); p = state.n - 1; }
-    if (p === q.p) return;
-    const next = firstFree(state.d, id, q.w, q.h, p);
-    if (next.p !== p) {
-      ctx.box(id).querySelector('.pg-to select').value = String(q.p);
-      return ctx.say(renzviT('pageFull'));
-    }
-    commit(id, next, 'est déplacé');
-    goTo(p);
-    ctx.say(`${ctx.title(id)} est maintenant sur ${name(p)}.`);
-    ctx.box(id)?.querySelector('.pg-to select')?.focus();
-  }
   function reveal(id) {
     const q = (narrow() ? phoneLayout() : state).d[id];
     if (q) goTo(q.p);
@@ -358,7 +343,7 @@ window.vuePages = function vuePages(ctx) {
   function handles(id, on) {
     const box = ctx.box(id);
     if (!box) return;
-    box.querySelectorAll(':scope > .pg-move, :scope > .pg-size, :scope > .pg-to, :scope > .pg-remove').forEach(h => h.remove());
+    box.querySelectorAll(':scope > .pg-move, :scope > .pg-size, :scope > .pg-remove').forEach(h => h.remove());
     if (!on) return;
     const title = ctx.title(id);
     const move = node('button', 'pg-move');
@@ -371,15 +356,6 @@ window.vuePages = function vuePages(ctx) {
     size.ariaLabel = `Changer la taille de ${title} : flèches`;
     size.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 7v6H7M13 13 8.5 8.5"/></svg>';
     size.addEventListener('keydown', e => keyMove(e, id, true), { signal });
-    // Déplacer vers une page : sans glisser, pour le clavier, un lecteur d'écran ou un geste difficile.
-    const to = node('label', 'pg-to');
-    const pick = node('select', '');
-    pick.ariaLabel = renzviT('moveWidgetPage', title);
-    for (let p = 0; p < state.n; p++) pick.append(Object.assign(node('option', '', name(p)), { value: String(p) }));
-    if (state.n < MAX_PAGES) pick.append(Object.assign(node('option', '', 'Nouvelle page'), { value: String(state.n) }));
-    pick.value = String(state.d[id]?.p ?? 0);
-    pick.onchange = () => moveTo(id, Number(pick.value));
-    to.append(node('span', '', renzviT('movePage')), pick);
     // Retirer de la page (demande de Damien : à la place de la poignée en pointillés, qui ne sert plus qu'au clavier).
     // Le widget quitte cette page seulement : son contenu, ses données et les autres modes ne changent pas.
     const del = node('button', 'pg-remove');
@@ -387,7 +363,7 @@ window.vuePages = function vuePages(ctx) {
     del.ariaLabel = `Retirer ${title} de la page`;
     del.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path class="pg-lid" d="M2.5 4.5h11M6.5 4.5V3h3v1.5"/><path d="M4 4.5l.7 8.5h6.6l.7-8.5M6.8 7v4M9.2 7v4"/></svg>';
     del.addEventListener('click', () => ctx.remove?.(id), { signal });
-    box.append(del, move, size, to);
+    box.append(del, move, size);
   }
   function edit(on) {
     if (on === editing) return;

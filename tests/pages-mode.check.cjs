@@ -3,8 +3,7 @@
 //   1. créer une 2e page, naviguer par les points, y ajouter un widget, recharger et retrouver les pages ;
 //   2. glisser dans une page, vers une page existante, créer une page par le bord, annuler, Terminer et recharger.
 // Vérifie aussi : jamais de changement de mode, aucun widget perdu ni en double, le minuteur qui tourne reste le même,
-// le menu latéral et la roue ne s'ouvrent pas pendant un glisser, renommer et supprimer une page, « Déplacer vers une
-// page », clavier, téléphone (balayage, mêmes pages). VIDEO=dossier enregistre la vidéo de la création de page et du
+// le menu latéral et la roue ne s'ouvrent pas pendant un glisser, renommer et supprimer une page, clavier, téléphone (balayage, mêmes pages). VIDEO=dossier enregistre la vidéo de la création de page et du
 // passage d'un widget d'une page à l'autre ; SHOTS=dossier garde les captures.
 // Lancement : NODE_PATH=~/pw/node_modules node tests/pages-mode.check.cjs
 const assert = require('node:assert/strict');
@@ -189,13 +188,15 @@ const { custom, closeCustom, modeNow, goMode } = require('./menu.cjs');
     await until(() => places('a').d.habitudes.p === startN && places('a').d.habitudes.c === 2 && places('a').d.habitudes.r === 1, 'posé sur la page existante');
     assert.equal(await page.evaluate(() => String(getSelection())), '', 'aucun texte sélectionné en passant de page');
     assert.equal(places('a').n, startN + 2, 'la page devenue vide reste (créée exprès)');
-    // Sans glisser : « Déplacer vers une page ».
-    const pick = page.locator(`${W('habitudes')} .pg-to select`);
-    assert.equal(await pick.getAttribute('aria-label'), 'Déplacer Habitudes vers une page');
-    assert.deepEqual(await pick.locator('option').allTextContents(), [...Array.from({ length: startN }, (_, i) => `Page ${i + 1}`), 'Révisions du soir', `Page ${startN + 2}`, 'Nouvelle page']);
-    await pick.selectOption(String(startN + 1));
-    await until(() => places('a').d.habitudes.p === startN + 1, 'déplacé par la liste');
-    assert.match(await page.textContent('#custom-live'), new RegExp(`Habitudes est maintenant sur Page ${startN + 2}`));
+    assert.equal(await page.locator('#board .pg-to').count(), 0, 'aucun sélecteur de page sur les widgets');
+    // Remettre le widget sur la dernière page pour vérifier sa suppression plus bas.
+    h = await hold(page, 'habitudes');
+    await page.mouse.move(g.right - 8, h.y);
+    await page.waitForFunction(n => [...document.querySelectorAll('.pg-dot')].findIndex(d => d.getAttribute('aria-current') === 'page') === n, startN + 1);
+    await settle(page);
+    await toCell(page, h, 0, 0);
+    await page.mouse.up();
+    await until(() => places('a').d.habitudes.p === startN + 1, 'reposé sur la dernière page');
     await shot(page, '3-edition');
     // Terminer, puis recharger : tout est là, une seule fois.
     await page.getByRole('button', { name: 'Terminer', exact: true }).click();
