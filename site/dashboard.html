@@ -6,6 +6,11 @@
 <title>Mon écran — Renzvi</title>
 <style>
 #dashboard-entrance{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;overflow:hidden;box-sizing:border-box;background:#fff;color:var(--brand-ink);padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#dashboard-entrance{
+  --wipe-edge:clamp(12px,3vw,30px);
+  mask-image:linear-gradient(90deg,transparent calc(50% - var(--wipe-edge)),#000 calc(50% + var(--wipe-edge)));
+  mask-size:220% 100%;mask-position:100% 0;mask-repeat:no-repeat
+}
 #dashboard-entrance .brand-lockup{font-size:clamp(42px,13vw,51px);white-space:nowrap}
 #dashboard-entrance svg{overflow:visible}
 #dashboard-entrance use{transform-box:fill-box;transform-origin:center}
@@ -1093,7 +1098,7 @@ dialog.settings,dialog.settings :is(h2,h3,h4){font-family:var(--marque)}
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   if (motion.matches || !layer.animate) { layer.remove(); return; }
 
-  const time = { arrive: 500, apex: 955, land: 1390, bounce: 1480, settle: 1600, fade: 2400, end: 3000 };
+  const time = { arrive: 500, apex: 955, land: 1390, bounce: 1480, settle: 1600, wipe: 2400, end: 3000 };
   const started = Date.now();
   const lifetime = new AbortController();
   const listen = { signal: lifetime.signal };
@@ -1128,9 +1133,9 @@ dialog.settings,dialog.settings :is(h2,h3,h4){font-family:var(--marque)}
     jump(time.settle, 'none', 'linear'),
   ], time.settle - time.arrive, time.arrive);
 
-  const fade = play(layer, [{ opacity: 1 }, { opacity: 0 }], time.end - time.fade, time.fade, 'ease-in-out', 'both');
+  const wipe = play(layer, [{ maskPosition: '100% 0%' }, { maskPosition: '0% 0%' }], time.end - time.wipe, time.wipe, 'cubic-bezier(.45,.1,.55,.95)', 'both');
   layer.dataset.playing = '';
-  fade.addEventListener('finish', finish, listen);
+  wipe.addEventListener('finish', finish, listen);
   addEventListener('pagehide', finish, listen);
   motion.addEventListener('change', event => { if (event.matches) finish(); }, listen);
   document.addEventListener('visibilitychange', () => {

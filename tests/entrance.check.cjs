@@ -43,7 +43,7 @@ const { start } = require('./demo.cjs');
         const lockup = layer.firstElementChild.getBoundingClientRect();
         const style = node => getComputedStyle(node);
         return {
-          white: style(layer).backgroundColor, layer: +style(layer).opacity,
+          white: style(layer).backgroundColor, edge: parseFloat(style(layer).maskPosition),
           word: +style(layer.querySelector('span')).opacity,
           first: +style(first).opacity, still: still.map(square => +style(square).opacity),
           moving: first.getBoundingClientRect().toJSON(),
@@ -52,7 +52,7 @@ const { start } = require('./demo.cjs');
       }, [selector, ms]);
       const start = await seek(0);
       assert.equal(start.white, 'rgb(255, 255, 255)');
-      assert.equal(start.layer, 1);
+      assert.equal(start.edge, 100);
       assert.equal(start.word, 0);
       assert.equal(start.first, 0);
       assert.deepEqual(start.still, [0, 0, 0]);
@@ -72,8 +72,16 @@ const { start } = require('./demo.cjs');
       assert.ok(Math.abs(logo.center - width / 2) < .05);
       assert.ok(mobile ? logo.width >= 190 && logo.width <= 245 : logo.width >= 260 && logo.width <= 320, JSON.stringify(logo));
       if (artifacts) await page.screenshot({ path: `${artifacts}/renzvi-logo-${width}.png` });
-      const fading = await seek(2700);
-      assert.ok(Math.abs(fading.layer - .5) < .01);
+      assert.equal(logo.edge, 100);
+      const early = await seek(2550);
+      const middle = await seek(2700);
+      const late = await seek(2850);
+      assert.ok(early.edge < 100 && early.edge > middle.edge);
+      assert.ok(middle.edge > late.edge && late.edge > 0);
+      if (artifacts && width === 390) {
+        await seek(2700);
+        await page.screenshot({ path: `${artifacts}/renzvi-balayage.png` });
+      }
       await context.close();
     }
 
