@@ -47,7 +47,7 @@ function Personnage({ size, orbe, accent, expression }: { size: number; orbe: Or
   const props = orbe === "irise" ? { variant: "webgl" as const }
     : orbe === "accent" ? { variant: "custom" as const, ...accent }
     : { variant: orbe === "blanc" ? "white" as const : "black" as const };
-  return <span aria-hidden="true" className="pointer-events-none grid shrink-0"><LiveOrb size={size} expression={expression} {...props} /></span>;
+  return <span aria-hidden="true" className="pointer-events-none grid shrink-0"><LiveOrb interactive={false} size={size} expression={expression} {...props} /></span>;
 }
 
 export function ChatIA({ repondre }: { repondre?: Repondre }) {

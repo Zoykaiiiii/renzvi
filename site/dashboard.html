@@ -3749,11 +3749,12 @@ if (!sb) {
     saveScreen();
     $('custom-live').textContent = `Mode « ${page.name} » supprimé. Ses widgets restent dans « ${target.name} ».`;
   }
-  function askDeletePage() {
-    const page = pageNow();
+  function askDeletePage(id = currentPage) {
+    const page = screen.pages.find(p => p.id === id);
+    if (!page) return;
     const target = modeDeleteTarget(page);
     if (!target) return;
-    const count = onPage().length;
+    const count = screen.widgets.filter(widget => pageOf(widget) === id).length;
     const actions = el('div', 'actions');
     actions.append(button('ghost', 'Annuler', () => $('page-dialog').close()), button('primary', 'Supprimer le mode', () => {
       $('page-dialog').close();
@@ -4641,7 +4642,7 @@ if (!sb) {
         pages: () => screen.pages,
         current: () => currentPage,
         show: id => showPage(id),
-        remove: deleteMode,
+        remove: askDeletePage,
         canCreate: () => screen.pages.length < MAX_SCREEN_PAGES,
         create: ({ name, icon, accent, sameWall }) => {
           const page = { id: crypto.randomUUID(), name: name.slice(0, MAX_PAGE_NAME), icon, ...(accent && { accent }), wall: sameWall ? wallNow() : 'blanc' };
@@ -4692,7 +4693,7 @@ if (!sb) {
         drawPages();
       });
     };
-    $('page-delete').onclick = askDeletePage;
+    $('page-delete').onclick = () => askDeletePage();
     $('lp-add').onclick = () => { vue.add?.(); drawLayoutPages(); };
     $('lp-rename').onclick = () => {
       const i = vue.current(), here = vue.pages()[i];

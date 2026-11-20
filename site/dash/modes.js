@@ -28,7 +28,7 @@
 
   // Une cible sûre pour l'appui long : le fond de l'écran, ou le fond d'un widget (son cadre, son en-tête, le vide de son corps).
   // Jamais un contrôle, un champ, un texte modifiable, un dessin, un lecteur, une poignée ni le contenu d'un widget.
-  const NEVER = 'button,a,input,textarea,select,label,option,summary,[contenteditable=""],[contenteditable=true],canvas,iframe,video,audio,svg,img,[role=slider],[role=listbox],[role=option],[role=button],[tabindex],.edit,.grip,.resize-handle,.custom,dialog,[popover],.topbar,.option-wheel,.notes,.comet-dial,.drop-slot,#renzvi-chat,.cahier-open';
+  const NEVER = 'button,a,input,textarea,select,label,option,summary,[contenteditable]:not([contenteditable=false]),canvas,iframe,video,audio,svg,img,[role=slider],[role=listbox],[role=option],[role=button],[tabindex],.edit,.grip,.resize-handle,.custom,dialog,[popover],.topbar,.option-wheel,.notes,.comet-dial,.drop-slot,#renzvi-chat,.cahier-open';
   function safeTarget(t) {
     if (!(t instanceof Element) || t.closest(NEVER)) return false;
     if (!t.closest('#app') && t !== document.body && t !== document.documentElement && t.id !== 'wall' && !t.closest('#wall')) return false;
@@ -75,11 +75,8 @@
         cancelPress();
         if (ctx.blocked()) return;
         // Le relâchement qui suit ne doit rien cliquer : ni dessous, ni dans la roue.
-        const eat = ev => { ev.preventDefault(); ev.stopPropagation(); };
-        addEventListener('click', eat, { capture: true, once: true });
-        setTimeout(() => removeEventListener('click', eat, { capture: true }), 600);
-        addEventListener('contextmenu', eat, { capture: true, once: true });
-        setTimeout(() => removeEventListener('contextmenu', eat, { capture: true }), 600);
+        openingTouch = true;
+        panel.inert = true;
         open(x, y, document.activeElement);
       }, PRESS_MS);
       addEventListener('pointermove', onMove, true);
@@ -89,6 +86,21 @@
       addEventListener('blur', cancelPress);
       document.addEventListener('selectionchange', onSelect);
     }
+    let openingTouch = false;
+    const releasePanel = () => {
+      if (!panel.inert) return;
+      panel.inert = false;
+      if (wheel) wheel.el.focus({ preventScroll: true });
+    };
+    for (const event of ['pointerup', 'pointercancel', 'blur']) addEventListener(event, releasePanel, true);
+    addEventListener('pointerdown', () => { releasePanel(); openingTouch = false; }, true);
+    addEventListener('keydown', () => { openingTouch = false; }, true);
+    for (const event of ['contextmenu', 'click']) addEventListener(event, e => {
+      if (!openingTouch || event === 'click' && !e.detail) return;
+      if (event === 'click') openingTouch = false;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }, true);
     document.addEventListener('pointerdown', onDown);
 
     // ---------- La roue ----------
@@ -105,6 +117,7 @@
     document.body.append(dlg);
     // Un clic hors de la roue (le fond flouté) ferme.
     dlg.addEventListener('click', e => { if (!e.target.closest('.option-wheel__item')) close(); });
+    for (const event of ['selectstart', 'contextmenu']) dlg.addEventListener(event, e => e.preventDefault());
     dlg.addEventListener('cancel', e => { e.preventDefault(); close(); });
 
     function itemNode(page, current) {
@@ -121,7 +134,7 @@
       return row;
     }
     function open(x, y, back) {
-      if (wheel) return;
+      if (wheel || dlg.open) return;
       lastFocus = back instanceof HTMLElement && back !== document.body ? back : null;
       const pages = ctx.pages(), cur = ctx.current(), canCreate = ctx.canCreate();
       const canRemove = pages.length > 1;
@@ -135,7 +148,7 @@
       wheel = window.OptionWheel({
         items, fontSize: 1.6, spacing: 2.2, enter: 1.6, smoothing: 220, selected: Math.max(0, pages.findIndex(p => p.id === cur)), label: 'Modes',
         holdMs: 3000,
-        onHold: item => { if (wheel) close(() => { ctx.remove(item.id); lastFocus?.focus(); }); },
+        onHold: item => { openingTouch = true; close(() => ctx.remove(item.id)); },
         onPick: (i, item) => choose(item, wheel.el.children[i]),
       });
       wheel.el.setAttribute('aria-describedby', hint.id);
@@ -146,11 +159,12 @@
       dlg.dataset.state = 'open';
       dlg.showModal();
       // Plein écran, roue au centre, sur un fond flouté.
-      wheel.el.focus();
+      if (!panel.inert) wheel.el.focus({ preventScroll: true });
     }
     function close(after) {
       if (!wheel) return;
       const w = wheel;
+      w.el.inert = true;
       wheel = null;
       dlg.dataset.state = 'closing';
       const done = () => {

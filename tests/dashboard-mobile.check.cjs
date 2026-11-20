@@ -149,7 +149,22 @@ async function fits(card, selectors) {
         await cahier.locator('.cahier-livre-open').click();
         await cahier.and(page.locator('.cahier-open')).waitFor();
         assert.equal(await cahier.locator('.cahier-title').innerText(), chapter);
+        const paragraph = cahier.locator('.cahier-block').filter({ hasText: excerpt });
+        await paragraph.click({ clickCount: 3 });
+        const selected = await page.evaluate(() => String(getSelection()).trim());
+        assert.ok(selected.startsWith(excerpt));
+        if (engine === chromium) {
+          await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+          await page.keyboard.press('Control+c');
+          assert.equal((await page.evaluate(() => navigator.clipboard.readText())).trim().split("\n")[0], excerpt);
+        }
         await page.keyboard.press('Escape');
+        await page.locator('.pg-dot').nth(1).tap();
+        const notes = page.locator('[data-widget=notes] textarea');
+        await notes.fill('Une note');
+        await notes.selectText();
+        await page.keyboard.type('Note modifiée');
+        assert.equal(await notes.inputValue(), 'Note modifiée');
         await page.locator('#bar-mode').tap();
         const wheel = page.locator('dialog.mode-wheel[open]');
         await wheel.waitFor();

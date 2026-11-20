@@ -90,6 +90,8 @@ const { start } = require('./demo.cjs');
       await wheel.waitFor({ state: 'hidden', timeout: 8000 });
       if (touch) await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
       else await page.mouse.up();
+      assert.equal(db.rows.ecran.pages.length, 2, 'le maintien attend la confirmation');
+      await page.getByRole('button', { name: 'Supprimer le mode', exact: true }).click();
       await page.waitForFunction(name => document.getElementById('bar-mode').textContent === name, kept);
       await saved;
       assert.deepEqual(db.rows.ecran.pages.map(p => p.id), [key]);

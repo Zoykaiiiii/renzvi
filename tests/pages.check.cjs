@@ -264,7 +264,7 @@ const { start } = require('./demo.cjs');
     await context.close();
   }
 
-  // Téléphone : chaque page garde ses widgets (un par rangée, toute la largeur), points, pas d'édition, rien ne déborde.
+  // Téléphone : chaque page garde ses widgets (un par rangée, toute la largeur), points, édition, rien ne déborde.
   {
     const { page, context } = await open({ width: 390, height: 844 }, 'p3');
     await choosePages(page).catch(async () => {
@@ -281,7 +281,7 @@ const { start } = require('./demo.cjs');
     const head = await page.locator(`${W('cahier')} .head h2`).boundingBox();
     await longPress(page, head.x + 4, head.y + 4);
     await page.mouse.up();
-    assert.equal(await editing(page), false, 'pas d\'édition sur téléphone pour l\'instant');
+    assert.equal(await editing(page), true, 'appui long sur le titre en vue téléphone');
     await shot(page, 'pages-telephone');
     await context.close();
   }

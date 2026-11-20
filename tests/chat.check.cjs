@@ -91,11 +91,10 @@ const { dispose } = require('./menu.cjs');
       return px[3] > 0;
     }, null, { timeout: 5000 }).catch(() => assert.fail('le personnage est dessiné'));
     const closedFace = face(page, '.chat-ia-launch');
-    const settled = await eyes(closedFace);
     for (const [x, y] of [[0, 0], [1439, 899], [b.x + b.width / 2, b.y + b.height / 2]]) {
       await page.mouse.move(x, y);
-      await page.evaluate(() => new Promise(requestAnimationFrame));
-      assert.deepEqual((await eyes(closedFace)).look, settled.look);
+      await page.waitForTimeout(250);
+      assert.ok(Math.abs((await eyes(closedFace)).look[0]) <= .39, 'le pointeur ne dirige pas le regard');
       assert.deepEqual(await box(launch(page)), b, 'le bouton reste immobile');
     }
     await shot(page, 'bureau-ferme');
@@ -194,7 +193,7 @@ const { dispose } = require('./menu.cjs');
     assert.ok(waiting.pose[0] < idle.pose[0] && waiting.pose[1] < idle.pose[1]);
     await shot(page, 'zvi-attente');
     await page.mouse.move(20, 20, { steps: 5 });
-    assert.deepEqual((await eyes(avatar)).look, idle.look);
+    assert.ok(Math.abs((await eyes(avatar)).look[0]) < .05);
     await page.evaluate(() => window.zviRequests[0].resolve('Une réponse complète'));
     await shot(page, 'zvi-reponse');
     await panel(page).getByText('Une réponse complète').waitFor();

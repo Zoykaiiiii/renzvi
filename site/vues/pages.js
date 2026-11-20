@@ -24,7 +24,7 @@ window.vuePages = function vuePages(ctx) {
   // remplissent une page (6 × 3 cases chacun en taille moyenne).
   const PRESET = { s: [4, 3], m: [6, 3], l: [12, 3] };
   // Jamais un départ d'appui long : un contrôle, un champ, un texte modifiable, un dessin, un lecteur, une poignée.
-  const NEVER = 'button,a,input,textarea,select,label,option,summary,[contenteditable=""],[contenteditable=true],canvas,iframe,video,audio,svg,img,[role=slider],[role=listbox],[role=option],[role=button],[tabindex],.notes,.comet-dial,.pg-move,.pg-size,.pg-to,.pg-remove';
+  const NEVER = 'button,a,input,textarea,select,label,option,summary,[contenteditable]:not([contenteditable=false]),canvas,iframe,video,audio,svg,img,[role=slider],[role=listbox],[role=option],[role=button],[tabindex],.notes,.comet-dial,.pg-move,.pg-size,.pg-to,.pg-remove';
   const off = new AbortController(), signal = off.signal;
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -183,7 +183,7 @@ window.vuePages = function vuePages(ctx) {
   label.setAttribute('aria-live', 'polite');
   function goTo(p, focusDot = false) {
     page = clamp(p, 0, shownN - 1);
-    board.scrollTo({ left: startOf(page), behavior: reduced() ? 'auto' : 'smooth' });
+    board.scrollTo({ left: startOf(page), behavior: gesture || reduced() ? 'instant' : 'smooth' });
     remember();
     markDots();
     if (focusDot) dots.querySelector('[aria-current=page]')?.focus();
@@ -304,14 +304,14 @@ window.vuePages = function vuePages(ctx) {
     if (!q) return;
     if (p >= state.n) { if (state.n >= MAX_PAGES) return ctx.say(`${MAX_PAGES} pages au maximum dans un mode.`); state.n++; state.t.push(''); p = state.n - 1; }
     if (p === q.p) return;
-    const next = firstFree(Object.fromEntries(Object.entries(state.d).filter(([o]) => o !== id)), id, q.w, q.h, p);
-    state.d[id] = next;
-    fitPages();
-    paint();
-    if (editing) for (const i of ctx.ids()) handles(i, true);
-    save();
-    goTo(next.p);
-    ctx.say(`${ctx.title(id)} est maintenant sur ${name(next.p)}${next.p !== p ? ` (${name(p)} était pleine)` : ''}.`);
+    const next = firstFree(state.d, id, q.w, q.h, p);
+    if (next.p !== p) {
+      ctx.box(id).querySelector('.pg-to select').value = String(q.p);
+      return ctx.say(renzviT('pageFull'));
+    }
+    commit(id, next, 'est déplacé');
+    goTo(p);
+    ctx.say(`${ctx.title(id)} est maintenant sur ${name(p)}.`);
     ctx.box(id)?.querySelector('.pg-to select')?.focus();
   }
   function reveal(id) {
@@ -374,12 +374,12 @@ window.vuePages = function vuePages(ctx) {
     // Déplacer vers une page : sans glisser, pour le clavier, un lecteur d'écran ou un geste difficile.
     const to = node('label', 'pg-to');
     const pick = node('select', '');
-    pick.ariaLabel = `Déplacer ${title} vers une page`;
+    pick.ariaLabel = renzviT('moveWidgetPage', title);
     for (let p = 0; p < state.n; p++) pick.append(Object.assign(node('option', '', name(p)), { value: String(p) }));
     if (state.n < MAX_PAGES) pick.append(Object.assign(node('option', '', 'Nouvelle page'), { value: String(state.n) }));
     pick.value = String(state.d[id]?.p ?? 0);
     pick.onchange = () => moveTo(id, Number(pick.value));
-    to.append(pick);
+    to.append(node('span', '', renzviT('movePage')), pick);
     // Retirer de la page (demande de Damien : à la place de la poignée en pointillés, qui ne sert plus qu'au clavier).
     // Le widget quitte cette page seulement : son contenu, ses données et les autres modes ne changent pas.
     const del = node('button', 'pg-remove');
@@ -391,7 +391,6 @@ window.vuePages = function vuePages(ctx) {
   }
   function edit(on) {
     if (on === editing) return;
-    if (on && narrow()) { ctx.say('Pour disposer tes pages, ouvre Renzvi sur un écran plus large.'); return; }
     if (!on) endGesture();
     editing = on;
     document.body.classList.toggle('pages-editing', on);
@@ -400,13 +399,13 @@ window.vuePages = function vuePages(ctx) {
     drawEmpties(narrow() ? phoneLayout() : { ...state, rows: ROWS });
     drawCells();
     drawDots();
-    if (on) { done.focus(); ctx.say('Disposition : glisse un widget, ou utilise ses poignées au clavier.'); }
+    if (on) { done.focus({ preventScroll: true }); ctx.say('Disposition : glisse un widget, ou utilise ses poignées au clavier.'); }
     else ctx.say('Disposition terminée.');
   }
 
   // Place proposée pendant un geste : verte si elle est libre, rouge et refusée sinon.
   function showDrop(q, ok) {
-    const a = area(q, COLS);
+    const a = area(q, m.cols);
     drop.style.gridColumn = a.col;
     drop.style.gridRow = a.row;
     drop.classList.toggle('bad', !ok);
@@ -448,14 +447,49 @@ window.vuePages = function vuePages(ctx) {
   }
 
   const unfloat = box => { for (const k of ['position', 'left', 'top', 'width', 'height', 'margin', 'zIndex', 'transform']) box.style[k] = ''; };
-  function startDrag(box, pointerId, x0, y0) {
+  function startDrag(box, pointerId, x0, y0, held = false) {
     const id = box.dataset.widget, from = { ...state.d[id] }, fromPage = page;
     if (!from.w) return;
     const start = box.getBoundingClientRect(), origin = board.getBoundingClientRect();
-    let moved = false, q = from, ok = true, lastX = x0, lastY = y0, dwell = null, side = '', armX = 0;
-    try { box.setPointerCapture(pointerId); } catch { return; }
+    let moved = false, edgeLocked = false, q = from, ok = true, lastX = x0, lastY = y0, dwell = null, side = '', armX = 0;
+    try { board.setPointerCapture(pointerId); } catch { return; }
     // La case visée : celle où tombe le coin haut-gauche du widget, sur la page affichée (pas sur le défilement en cours).
     const aim = () => {
+      const origin = board.getBoundingClientRect();
+      if (lastY < origin.top || lastY > origin.bottom) {
+        q = { ...from, p: -1 };
+        ok = false;
+        drop.hidden = true;
+        return;
+      }
+      if (narrow()) {
+        // Le téléphone empile les cartes dans l'ordre (rangée, colonne) de la grille sauvegardée.
+        const others = onPageIds(page).filter(other => other !== id)
+          .sort((a, b) => state.d[a].r - state.d[b].r || state.d[a].c - state.d[b].c);
+        const index = others.filter(other => {
+          const rect = ctx.box(other).getBoundingClientRect();
+          return lastY > rect.top + rect.height / 2;
+        }).length;
+        let best = null, distance = Infinity, row = 0;
+        for (let r = 0; r <= ROWS - from.h; r++) for (let c = 0; c <= COLS - from.w; c++) {
+          const candidate = { ...from, p: page, c, r };
+          if (!fits(state.d, id, candidate)) continue;
+          const before = others.filter(other => {
+            const pos = state.d[other];
+            return pos.r < r || pos.r === r && pos.c < c;
+          });
+          const delta = Math.abs(before.length - index);
+          if (delta < distance || delta === distance && page === from.p && c === from.c && r === from.r) {
+            best = candidate;
+            distance = delta;
+            row = before.reduce((n, other) => n + Math.max(2, state.d[other].h), 0);
+          }
+        }
+        ok = !!best;
+        q = best ?? from;
+        showDrop({ p: page, c: 0, r: row, w: PHONE_COLS, h: Math.max(2, from.h) }, ok);
+        return;
+      }
       const c = Math.round((start.left + lastX - x0 - origin.left) / (m.cw + m.gap));
       const r = Math.round((start.top + lastY - y0 - origin.top) / (m.ch + m.gap));
       const next = { p: page, c: clamp(c, 0, COLS - from.w), r: clamp(r, 0, ROWS - from.h), w: from.w, h: from.h };
@@ -471,7 +505,8 @@ window.vuePages = function vuePages(ctx) {
       const want = right ? 'right' : left && page > 0 ? 'left' : '';
       // Un widget qu'on ramène vers le milieu ne compte pas comme tenu contre le bord, même s'il y est encore.
       const leaving = want && want === side && (want === 'right' ? lastX < armX - 8 : lastX > armX + 8);
-      if (want === side && !leaving) return;
+      if (!right && !left) edgeLocked = false;
+      if (edgeLocked || want === side && !leaving) return;
       if (leaving) { stopDwell(); return; }
       stopDwell();
       if (!want) return;
@@ -487,16 +522,19 @@ window.vuePages = function vuePages(ctx) {
         else if (openTemp()) goTo(state.n - 1);
         q = { ...q, p: -1 };
         aim();
-        // Rester contre le bord demande un nouvel instant pour la page d'après.
+        markValidity();
+        edgeLocked = true;
         side = '';
         edge.classList.remove('on');
       }, DWELL_MS);
     };
-    const move = e => {
-      if (e.pointerId !== pointerId) return;
-      lastX = e.clientX; lastY = e.clientY;
+    const markValidity = () => {
+      if (ok) delete box.dataset.dropError;
+      else box.dataset.dropError = renzviT('invalidDrop');
+    };
+    const follow = (trackEdge = true) => {
       const dx = lastX - x0, dy = lastY - y0;
-      if (!moved && Math.hypot(dx, dy) < LAYOUT_DRAG_PX) return;
+      if (!held && !moved && Math.hypot(dx, dy) < LAYOUT_DRAG_PX) return;
       if (!moved) {
         moved = true;
         box.classList.add('lifted');
@@ -507,22 +545,31 @@ window.vuePages = function vuePages(ctx) {
         Object.assign(box.style, { position: 'fixed', left: `${start.left}px`, top: `${start.top}px`, width: `${start.width}px`, height: `${start.height}px`, margin: '0', zIndex: '50' });
       }
       box.style.transform = `translate(${dx}px,${dy}px)`;
-      watchEdge();
+      if (trackEdge) watchEdge();
       aim();
+      markValidity();
+    };
+    const move = e => {
+      if (e.pointerId !== pointerId) return;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      follow();
     };
     const finish = keep => {
-      box.removeEventListener('pointermove', move);
-      box.removeEventListener('pointerup', up);
-      box.removeEventListener('pointercancel', cancel);
-      box.removeEventListener('lostpointercapture', lost);
-      if (box.hasPointerCapture(pointerId)) box.releasePointerCapture(pointerId);
+      board.removeEventListener('pointermove', move);
+      board.removeEventListener('pointerup', up);
+      board.removeEventListener('pointercancel', cancel);
+      board.removeEventListener('lostpointercapture', lost);
+      if (board.hasPointerCapture(pointerId)) board.releasePointerCapture(pointerId);
       stopDwell();
       for (const ed of edges) ed.hidden = true;
       gesture = null;
       drop.hidden = true;
       if (!moved) return;
+      suppressClick = true;
       const before = box.getBoundingClientRect();
       box.classList.remove('lifted');
+      delete box.dataset.dropError;
       document.body.classList.remove('dragging');
       unfloat(box);
       const same = q.p === from.p && q.c === from.c && q.r === from.r;
@@ -538,14 +585,19 @@ window.vuePages = function vuePages(ctx) {
       }
       settle(box, before);
     };
-    const up = e => { if (e.pointerId === pointerId) finish(true); };
+    const up = e => {
+      if (e.pointerId !== pointerId) return;
+      if (moved && (e.clientX !== lastX || e.clientY !== lastY)) move(e);
+      finish(true);
+    };
     const cancel = e => { if (!e || e.pointerId === pointerId) finish(false); };
-    const lost = e => { if (e.target === box) cancel(e); };
-    box.addEventListener('pointermove', move);
-    box.addEventListener('pointerup', up);
-    box.addEventListener('pointercancel', cancel);
-    box.addEventListener('lostpointercapture', lost);
+    const lost = e => { if (e.target === board) cancel(e); };
+    board.addEventListener('pointermove', move);
+    board.addEventListener('pointerup', up);
+    board.addEventListener('pointercancel', cancel);
+    board.addEventListener('lostpointercapture', lost);
     gesture = { cancel };
+    if (held) follow(false);
   }
 
   function startResize(e, box) {
@@ -631,18 +683,30 @@ window.vuePages = function vuePages(ctx) {
     e.preventDefault();
     startDrag(box, e.pointerId, e.clientX, e.clientY);
   }, { signal });
+  let suppressClick = false;
+  function interrupt() { cancelPress(); endGesture(); }
+  addEventListener('pointerdown', e => {
+    suppressClick = false;
+    if (!e.isPrimary) interrupt();
+  }, { capture: true, signal });
+  addEventListener('click', e => {
+    if (!suppressClick || !e.detail) return;
+    suppressClick = false;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }, { capture: true, signal });
+  addEventListener('blur', interrupt, { signal });
+  addEventListener('pagehide', interrupt, { signal });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) interrupt(); }, { signal });
   // Pendant un glissement au doigt, la page ne défile pas.
   board.addEventListener('touchmove', e => { if (gesture) e.preventDefault(); }, { signal, passive: false });
 
   // ---------- Appui long : entrer en édition depuis un widget ----------
   const ring = node('div', 'lp-ring');
   document.body.append(ring);
-  function surface(t, box) {
-    if (!(t instanceof Element)) return false;
-    return t === box || t.parentElement === box && t.classList.contains('body') || moveSurface(t, box);
-  }
   function moveSurface(t, box) {
-    return !t.closest(NEVER) && t.closest('.head')?.parentElement === box;
+    const head = t.closest('.head');
+    return head?.parentElement === box && !head.contains(t.closest(NEVER));
   }
   const blocked = () => !!document.querySelector('dialog[open], .widget.zoomed') || document.documentElement.classList.contains('zoom-lock') || document.body.classList.contains('customizing');
   function cancelPress() {
@@ -653,9 +717,9 @@ window.vuePages = function vuePages(ctx) {
     press = null;
   }
   board.addEventListener('pointerdown', e => {
-    if (editing || press || e.button !== 0 || !e.isPrimary || narrow() || blocked()) return;
+    if (editing || press || e.button !== 0 || !e.isPrimary || blocked()) return;
     const box = e.target.closest('.widget');
-    if (!box || box.parentElement !== board || !surface(e.target, box)) return;
+    if (!box || box.parentElement !== board || !moveSurface(e.target, box)) return;
     press = { id: e.pointerId, x: e.clientX, y: e.clientY, box };
     press.show = setTimeout(() => {
       ring.style.left = `${press.x}px`;
@@ -669,7 +733,7 @@ window.vuePages = function vuePages(ctx) {
       navigator.vibrate?.(10);
       edit(true);
       // Le doigt est encore posé : le widget suit tout de suite, sans relâcher.
-      startDrag(b, id, x, y);
+      startDrag(b, id, x, y, true);
     }, PRESS_MS);
   }, { signal });
   addEventListener('pointermove', e => { if (press && e.pointerId === press.id && Math.hypot(e.clientX - press.x, e.clientY - press.y) > MOVE_PX) cancelPress(); }, { signal });
@@ -686,7 +750,7 @@ window.vuePages = function vuePages(ctx) {
   let frame = 0;
   const repaint = () => {
     cancelAnimationFrame(frame);
-    frame = requestAnimationFrame(() => { if (editing && narrow()) edit(false); paint(); });
+    frame = requestAnimationFrame(() => { endGesture(); paint(); });
   };
   addEventListener('resize', repaint, { signal });
   const widths = new ResizeObserver(() => { if (m && board.clientWidth !== m.W) repaint(); });

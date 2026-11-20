@@ -20,7 +20,14 @@
   [data-slot=live-orb][data-expression] > div > span {
     transition: width 160ms ease-out, height 160ms ease-out, left 160ms ease-out, top 160ms ease-out;
   }
-  [data-slot=live-orb][data-expression=idle] > div > span { animation: chat-ia-blink 6s ease-in-out infinite; }
+  [data-slot=live-orb][data-expression=idle] > div > span { animation: chat-ia-blink 5.8s ease-in-out infinite, chat-ia-gaze 14s ease-in-out infinite; }
+}
+[data-slot=live-orb][data-expression=idle][data-paused] > div > span { animation-play-state: paused; }
+@keyframes chat-ia-gaze {
+  0%, 8%, 16%, 45%, 53%, 81%, 90%, 100% { translate: 0 0; scale: 1; }
+  10%, 14% { translate: -110% 0; }
+  47%, 51% { translate: 110% 0; }
+  83%, 88% { translate: 0 -27%; scale: 1 1.13; }
 }
 @keyframes chat-ia-blink {
   0%, 96%, 100% { transform: scaleY(1); }

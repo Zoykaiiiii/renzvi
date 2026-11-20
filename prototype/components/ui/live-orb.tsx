@@ -41,7 +41,7 @@ export type LiveOrbOptions = {
   interactive?: boolean
   /** Occasional blink. Default `true`. */
   blink?: boolean
-  /** Chat pose with a centered gaze. */
+  /** Chat reactions center the gaze; idle follows its own glance sequence. */
   expression?: LiveOrbExpression
   /** Fires when WebGL is ready (`true`) or torn down (`false`). */
   onHasGl?: (ok: boolean) => void
@@ -433,6 +433,7 @@ export function createLiveOrb(
     ? 1800 + Math.random() * 2400
     : 4200 + Math.random() * 2200
   let blinkAt = -10_000
+  let idleStep = 0
   let nextGlance = 600 + Math.random() * 900
   // When the pointer last moved, from performance.now().
   let pointerAt = -Infinity
@@ -504,10 +505,9 @@ export function createLiveOrb(
     raf = 0
     if (lost) return
     const elapsed = Math.max(0, now - last)
-    const dt = Math.min(50, elapsed)
     last = now
     const live = moving()
-    if (live) clock += dt
+    if (live) clock += elapsed
     const reduce = mqReduce.matches
 
     const resolved = resolveVariant(
@@ -521,21 +521,32 @@ export function createLiveOrb(
 
     // The pointer steers until it rests; then the eyes look around, now
     // and then back at you. Reduced motion holds a still, centred gaze.
-    const centered = options.expression !== undefined
+    const chatIdle = options.expression === "idle"
+    const centered = options.expression !== undefined && !chatIdle
     const steering = tracksPointer() && now - pointerAt < IDLE_MS
     if (!centered && !steering && live && clock >= nextGlance) {
-      const back = Math.random() < 0.3
-      glance.x = back ? 0 : (Math.random() * 2 - 1) * 0.8
-      glance.y = back ? 0.08 : (Math.random() * 2 - 1) * 0.5
-      nextGlance = clock + 900 + Math.random() * 2100
+      if (chatIdle) {
+        const steps = [[-.38, .08], [0, .08], [.38, .08], [0, .08], [0, .32], [0, .08]]
+        const [x, y] = steps[idleStep]
+        glance.x = x
+        glance.y = y
+        idleStep = (idleStep + 1) % steps.length
+        nextGlance = clock + (idleStep % 2 ? 750 : 2300 + Math.random() * 1600)
+      } else {
+        const back = Math.random() < 0.3
+        glance.x = back ? 0 : (Math.random() * 2 - 1) * 0.8
+        glance.y = back ? 0.08 : (Math.random() * 2 - 1) * 0.5
+        nextGlance = clock + 900 + Math.random() * 2100
+      }
     }
     const goal = steering ? targetLook : centered || reduce ? REST_LOOK : glance
     // A still frame skips the easing and shows where the gaze settles.
-    const ease = live ? (steering ? 0.16 : 0.1) : 1
+    const ease = live ? 1 - Math.exp(-elapsed / (steering ? 95 : 85)) : 1
     look.x += (goal.x - look.x) * ease
     look.y += (goal.y - look.y) * ease
 
-    const targetPose = EYE_POSES[options.expression ?? "idle"]
+    const curious = chatIdle && live && glance.y > .2
+    const targetPose = EYE_POSES[curious ? "opened" : options.expression ?? "idle"]
     const poseEase = live ? 1 - Math.exp(-elapsed / 48) : 1
     pose.height += (targetPose.height - pose.height) * poseEase
     pose.width += (targetPose.width - pose.width) * poseEase
@@ -592,7 +603,11 @@ export function createLiveOrb(
     wake()
   })
   io.observe(canvas)
-  const onVisibility = () => wake()
+  const onVisibility = () => {
+    cancelAnimationFrame(raf)
+    raf = 0
+    if (!document.hidden) wake()
+  }
   document.addEventListener("visibilitychange", onVisibility)
   const onReduce = () => wake()
   mqReduce.addEventListener("change", onReduce)
@@ -737,6 +752,15 @@ export function LiveOrb({
       onHasGl: setHasGl,
     })
   }, [variant, color, eyeColor, colors, interactive, blink, expression, theme])
+
+  useEffect(() => {
+    if (hasGl) return
+    const orb = canvasRef.current?.parentElement
+    const sync = () => orb?.toggleAttribute("data-paused", document.hidden)
+    sync()
+    document.addEventListener("visibilitychange", sync)
+    return () => document.removeEventListener("visibilitychange", sync)
+  }, [hasGl])
 
   const resolved = resolveVariant(variant, color, eyeColor, colors, dark)
   const fallbackPose = EYE_POSES[expression ?? "idle"]

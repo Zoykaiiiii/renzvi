@@ -15,7 +15,7 @@
 .pg-snap{grid-row:1/-1;scroll-snap-align:start;pointer-events:none}
 @media (max-width:727px){
   .board[data-vue=pages]{
-    height:auto;grid-template-rows:repeat(var(--pg-rows,6),minmax(var(--pg-ch),auto))
+    height:auto;grid-auto-rows:minmax(var(--pg-ch),auto);grid-template-rows:repeat(var(--pg-rows,6),minmax(var(--pg-ch),auto))
   }
   .board[data-vue=pages]>.widget:is(.cahier-livre-on:has(.cahier-book:not(.cahier-book-vide)),[data-widget=vol],[data-widget=semaine]):not([data-collapsed],.zoomed){
     min-height:min-content
@@ -58,10 +58,9 @@
 .pages-editing .board[data-vue=pages]>.widget>.head :is(button,a,select){cursor:pointer}
 .pages-editing.dragging .board[data-vue=pages]>.widget>.head{cursor:grabbing}
 .pg-move,.pg-size,.pg-to{display:none}
-/* « Déplacer vers une page » : invisible (demande de Damien), elle n'apparaît que si on y arrive au clavier. */
-.pages-editing .pg-to{position:absolute;top:6px;right:6px;z-index:5;display:block;max-width:calc(100% - 52px);clip-path:inset(50%);width:1px;height:1px;overflow:hidden}
-.pages-editing .pg-to:focus-within{clip-path:none;width:auto;height:auto;overflow:visible}
-.pg-to select{height:32px;max-width:100%;padding:0 8px;border:0;border-radius:10px;background:var(--glass-solid);color:var(--ink);font-size:13px}
+/* Une action visible en édition, à l'écart des boutons de l'en-tête. */
+.pages-editing .pg-to{position:absolute;bottom:6px;left:6px;z-index:5;display:flex;align-items:center;gap:6px;padding:0 8px;border-radius:10px;background:var(--glass-solid);font-size:13px;max-width:calc(100% - 60px)}
+.pg-to select{height:32px;min-width:0;max-width:50%;border:0;background:transparent;color:var(--ink);font-size:16px}
 @media (pointer:coarse){.pg-to select{height:44px}}
 .pages-editing .pg-move,.pages-editing .pg-size{position:absolute;z-index:5;display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:10px;background:var(--glass-solid);color:var(--ink);touch-action:none}
 /* La poignée en pointillés ne sert plus qu'au clavier : invisible, elle apparaît si on y arrive avec Tab. */
@@ -101,3 +100,22 @@
 .pg-hint{font-size:13px;color:var(--slate)}
 @media (max-width:727px){.pg-hint{display:none}}
 @media (prefers-reduced-motion:reduce){.pg-dot i{transition:none}}
+
+.board[data-vue=pages]>.widget:not(.zoomed)>.head{touch-action:none}
+.board[data-vue=pages]>.widget>.head,
+.board[data-vue=pages] :is(.week-total,.week,[data-widget=semaine]>.body>.desc,.pl-title,.pl-info,.pg-empty-title,.pg-empty-text){
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none
+}
+.pages-editing.dragging .widget.lifted{opacity:.75;pointer-events:none}
+.pages-editing.dragging .widget.lifted[data-drop-error]{outline:2px solid var(--error)}
+.widget.lifted[data-drop-error]::after{content:attr(data-drop-error);position:absolute;top:6px;left:50%;transform:translateX(-50%);padding:4px 10px;border-radius:var(--pill);background:var(--error);color:white;font-size:13px}
+@media(max-width:727px){.pages-editing .pg-size{display:none}}
+@media(pointer:coarse){
+  .board[data-vue=pages]>.widget:not(.zoomed)>.head h2::before{
+    content:"";display:inline-block;width:8px;height:12px;margin-right:6px;vertical-align:middle;opacity:.5;
+    background:radial-gradient(circle,currentColor 1px,transparent 1.2px) 0 0 / 4px 4px
+  }
+}
+.board[data-vue=pages]>.widget>.head :is(input,textarea,[contenteditable]:not([contenteditable=false])){
+  -webkit-user-select:text;user-select:text;-webkit-touch-callout:default
+}

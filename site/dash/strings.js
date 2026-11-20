@@ -1,5 +1,9 @@
 // Libellés partagés du tableau et de Study. La langue suit celle du document.
 const RENZVI_STRINGS = {
+  movePage: ['Déplacer vers une page', 'Move to a page', 'Mover a una página'],
+  moveWidgetPage: ['Déplacer {0} vers une page', 'Move {0} to a page', 'Mover {0} a una página'],
+  invalidDrop: ['Placement impossible', 'Cannot place here', 'No se puede colocar aquí'],
+  pageFull: ['Pas de place sur cette page.', 'No space on this page.', 'No hay espacio en esta página.'],
   changeMode: ['Changer de mode', 'Switch mode', 'Cambiar de modo'],
   modeHoldHint: ['Choisis un mode ou maintiens-le 3 s pour le supprimer.', 'Choose a mode or hold it for 3 seconds to delete it.', 'Elige un modo o mantenlo pulsado 3 s para eliminarlo.'],
   modeScrollHint: ['Fais défiler, puis choisis.', 'Scroll, then choose.', 'Desliza y elige.'],

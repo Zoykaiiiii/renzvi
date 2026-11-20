@@ -251,11 +251,15 @@ const { custom, closeCustom, modeNow, goMode } = require('./menu.cjs');
       await dots(p).first().click();
       await settle(p);
       const cdp = await c.newCDPSession(p);
-      // Le balayage part de l'en-tête d'un widget visible (une zone sans geste à elle).
-      const head = await p.evaluate(() => { const h = [...document.querySelectorAll('.board .widget:not([hidden]) .head h2')].map(n => n.getBoundingClientRect()).find(r => r.left >= 0 && r.right <= innerWidth && r.top > 0 && r.bottom < innerHeight); return h && { x: h.left, y: h.top }; });
-      assert.ok(head, 'un en-tête de widget visible');
-      // Un vrai doigt (événements tactiles) qui glisse de droite à gauche.
-      const y = Math.round(head.y + 8), touch = (type, x) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
+      // Le cadre défile normalement, l'en-tête est réservé au déplacement du widget.
+      const y = await p.evaluate(() => {
+        for (let y = 100; y < innerHeight - 90; y++) {
+          const target = document.elementFromPoint(330, y);
+          if (target?.matches('#board, #board > .widget')) return y;
+        }
+      });
+      assert.ok(y, 'une surface de balayage visible');
+      const touch = (type, x) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
       await touch('touchStart', 330);
       for (let x = 310; x >= 70; x -= 20) { await touch('touchMove', x); await p.waitForTimeout(16); }
       await touch('touchEnd', 70);
