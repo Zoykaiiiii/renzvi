@@ -172,6 +172,9 @@
 /* Pied : chapitre n sur N, progression, chapitre suivant */
 .carnet-foot{grid-area:foot;display:grid;grid-template-columns:1fr minmax(120px,460px) 1fr;align-items:center;gap:16px;min-height:60px;padding:8px 18px 8px var(--cn-pad);border-top:1px solid var(--rule)}
 .carnet-foot.carnet-foot-off{display:none}
+.carnet-foot-selecting>:not(.carnet-foot-tools),.carnet-foot-tools[hidden]{display:none}
+.carnet-foot-tools{grid-column:1 / -1;display:flex;justify-content:space-evenly;gap:4px}
+.carnet-foot-tools .carnet-tool{gap:4px;padding-inline:6px}
 .carnet-count{font-size:15px;font-weight:500;white-space:nowrap}
 .carnet-progress{height:4px;border-radius:4px;background:var(--rule);overflow:hidden}
 .carnet-progress i{display:block;height:100%;border-radius:inherit;background:var(--accent);transition:width .3s}

@@ -55,6 +55,8 @@ window.cahierCarnet = function cahierCarnet(api) {
   let rev = null; // { state, decks } de l'onglet Révisions
   let chapNotes = new Map(), chapNotesFor = null; // notes de chapitre (study_notes), partagées avec « Mon espace Study »
   const wide = matchMedia('(min-width:1100px)');
+  const touch = matchMedia('(pointer:coarse)');
+  let footerSelection = null;
   let sideOn = false, marginOn = wide.matches;
 
   // --- Cadre -----------------------------------------------------------------------------------------------------
@@ -309,6 +311,30 @@ window.cahierCarnet = function cahierCarnet(api) {
   prevBtn.append(el('span', '', 'Chapitre précédent'));
   prevBtn.ariaLabel = 'Chapitre précédent';
   foot.append(count, progress, prevBtn, nextBtn);
+  const selectionTools = el('div', 'carnet-foot-tools');
+  selectionTools.setAttribute('role', 'group');
+  selectionTools.ariaLabel = 'Annoter le passage';
+  selectionTools.hidden = true;
+  const highlight = labelBtn('carnet-tool', ICONS.surligner, 'Surligner', () => {
+    if (footerSelection) style({ sel: footerSelection }, 'surligne');
+  });
+  const underline = labelBtn('carnet-tool', ICONS.souligner, 'Souligner', () => {
+    if (footerSelection) style({ sel: footerSelection }, 'souligne');
+  });
+  const annotate = labelBtn('carnet-tool', ICONS.note, 'Note', () => {
+    if (!footerSelection) return;
+    noteFromSel(footerSelection);
+    getSelection()?.removeAllRanges();
+    hideBar();
+  });
+  selectionTools.append(highlight, underline, annotate);
+  selectionTools.addEventListener('pointerdown', e => {
+    if (!e.target.closest('button')) return;
+    // Lit les derniers offsets des poignées avant que le bouton puisse prendre le focus.
+    footerSelection = api.selection() ?? footerSelection;
+    e.preventDefault();
+  });
+  foot.append(selectionTools);
   const bar = el('div', 'carnet-bar');
   bar.setAttribute('role', 'toolbar');
   bar.ariaLabel = 'Annoter le passage';
@@ -477,7 +503,24 @@ window.cahierCarnet = function cahierCarnet(api) {
   }
 
   // --- Barre d'outils de la sélection (ou d'une annotation existante) -----------------------------------------------
-  function hideBar() { bar.hidden = true; barCtx = null; }
+  function hideBar() {
+    bar.hidden = true;
+    barCtx = null;
+    footerSelection = null;
+    selectionTools.hidden = true;
+    foot.classList.remove('carnet-foot-selecting');
+  }
+  function showFooter(sel) {
+    bar.hidden = true;
+    barCtx = null;
+    footerSelection = sel;
+    const mark = exact(sel);
+    highlight.setAttribute('aria-pressed', !!mark?.surligne);
+    underline.setAttribute('aria-pressed', !!mark?.souligne);
+    annotate.ariaLabel = mark?.note ? 'Modifier la note' : 'Ajouter une note';
+    foot.classList.add('carnet-foot-selecting');
+    selectionTools.hidden = false;
+  }
   function showBar(ctx, rect) {
     barCtx = ctx;
     const m = ctx.mark ?? (ctx.sel && exact(ctx.sel));
@@ -517,9 +560,9 @@ window.cahierCarnet = function cahierCarnet(api) {
   }
   // Au-dessus du passage à la souris ; dessous au doigt, où le navigateur affiche déjà ses poignées et son menu au-dessus.
   function place(rect) {
-    const w = bar.offsetWidth, h = bar.offsetHeight, touch = matchMedia('(pointer:coarse)').matches;
+    const w = bar.offsetWidth, h = bar.offsetHeight;
     const above = rect.top - h - 10, below = rect.bottom + 10;
-    const y = (!touch && above > 8) || below + h > innerHeight - 8 ? Math.max(8, above) : below;
+    const y = (!touch.matches && above > 8) || below + h > innerHeight - 8 ? Math.max(8, above) : below;
     const x = Math.round(Math.max(8, Math.min(innerWidth - w - 8, rect.left + rect.width / 2 - w / 2)));
     bar.style.left = `${x}px`;
     bar.style.top = `${Math.round(y)}px`;
@@ -534,7 +577,12 @@ window.cahierCarnet = function cahierCarnet(api) {
       if (!open || tab !== 'cours' || sheet) return;
       const s = api.selection();
       const sel = getSelection();
-      if (s && sel?.rangeCount) return showBar({ sel: s }, sel.getRangeAt(0).getBoundingClientRect());
+      if (s && sel?.rangeCount) {
+        if (touch.matches) showFooter(s);
+        else showBar({ sel: s }, sel.getRangeAt(0).getBoundingClientRect());
+        return;
+      }
+      if (footerSelection) hideBar();
       if (barCtx?.sel && !bar.contains(document.activeElement)) hideBar();
     }, 160);
   };
@@ -947,7 +995,7 @@ window.cahierCarnet = function cahierCarnet(api) {
     ticking = true;
     requestAnimationFrame(() => { ticking = false; drawSignet(); drawProgress(); if (barCtx) hideBar(); });
   };
-  const onResize = () => { if (open) { hideBar(); drawSignet(); } };
+  const onResize = () => { if (open) { if (barCtx) hideBar(); drawSignet(); } };
   addEventListener('resize', onResize);
   // Passer un seuil de largeur remet les panneaux à leur état par défaut pour cette taille.
   const onWide = () => { marginOn = wide.matches; layout(); };
@@ -993,6 +1041,7 @@ window.cahierCarnet = function cahierCarnet(api) {
     escape() {
       if (!lookPanel.hidden) { const from = lookView === 'texte' ? aaBtn : lookBtn; setLook(false); from.focus(); return true; }
       if (sheet) { closeSheet(); return true; }
+      if (footerSelection) { getSelection()?.removeAllRanges(); hideBar(); return true; }
       if (!bar.hidden) { hideBar(); return true; }
       if (marginOn && !wide.matches) { marginOn = false; layout(); marginBtn.focus(); return true; }
       if (sideOn) { sideOn = false; layout(); sideBtn.focus(); return true; }
