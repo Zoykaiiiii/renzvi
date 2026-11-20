@@ -89,8 +89,8 @@ const saved = page => page.waitForFunction(() => document.querySelector('.carnet
     const compact = await cahier(page).boundingBox();
     assert.strictEqual(await page.locator('.carnet-top, .carnet-side, .carnet-margin').evaluateAll(a => a.filter(n => n.checkVisibility()).length), 0, 'aucun élément du carnet dans le widget compact');
     // Widget fermé : un livre ouvert (le cours à gauche, mes notes à droite), « Ouvrir le cahier » en bas.
-    assert.match(await cahier(page).locator('.cahier-livre-titre').textContent(), /La cellule/);
-    assert.notEqual(await cahier(page).locator('.cahier-livre-titre').evaluate(n => getComputedStyle(n).userSelect), 'none');
+    assert.equal(await cahier(page).locator('.cahier-livre-titre').textContent(), 'La membrane');
+    assert.equal(await cahier(page).locator('.cahier-livre-titre').evaluate(n => getComputedStyle(n).userSelect), 'none');
     assert.strictEqual(await cahier(page).locator('.cahier-livre-foot span').textContent(), 'Chapitre 1 sur 2');
     assert.strictEqual(await cahier(page).locator('.cahier-text').isVisible(), false, 'la lecture se fait dans le carnet');
     await shot(page, 'carnet-compact');

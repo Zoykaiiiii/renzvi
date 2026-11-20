@@ -102,10 +102,6 @@
 @media (prefers-reduced-motion:reduce){.pg-dot i{transition:none}}
 
 .board[data-vue=pages]>.widget:not(.zoomed)>.head{touch-action:none}
-.board[data-vue=pages]>.widget>.head,
-.board[data-vue=pages] :is(.week-total,.week,[data-widget=semaine]>.body>.desc,.pl-title,.pl-info,.pg-empty-title,.pg-empty-text){
-  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none
-}
 .pages-editing.dragging .widget.lifted{opacity:.75;pointer-events:none}
 .pages-editing.dragging .widget.lifted[data-drop-error]{outline:2px solid var(--error)}
 .widget.lifted[data-drop-error]::after{content:attr(data-drop-error);position:absolute;top:6px;left:50%;transform:translateX(-50%);padding:4px 10px;border-radius:var(--pill);background:var(--error);color:white;font-size:13px}
@@ -115,7 +111,4 @@
     content:"";display:inline-block;width:8px;height:12px;margin-right:6px;vertical-align:middle;opacity:.5;
     background:radial-gradient(circle,currentColor 1px,transparent 1.2px) 0 0 / 4px 4px
   }
-}
-.board[data-vue=pages]>.widget>.head :is(input,textarea,[contenteditable]:not([contenteditable=false])){
-  -webkit-user-select:text;user-select:text;-webkit-touch-callout:default
 }

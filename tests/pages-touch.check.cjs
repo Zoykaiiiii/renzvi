@@ -17,6 +17,8 @@ const { start } = require('./demo.cjs');
     const slot = (p, r) => ({ p, r, c: 0, w: 6, h: 3 });
     db.rows.ecran.widgets = ['notes', 'semaine', 'taches', 'playlist'];
     db.rows.ecran.where.playlist = 'study';
+    db.rows.vol = { log: { [new Date().toLocaleDateString('sv')]: 360 } };
+    db.rows.minuteur = { log: {} };
     db.rows.playlist = { provider: 'spotify', kind: 'playlist', id: '37i9dQZF1DXcBWIGoYBM5M', title: 'Lecture calme' };
     db.rows.ecran.vues = { v: 1, places: { pages: { study: { n: 2, d: {
       notes: slot(0, 0), semaine: slot(0, 3), taches: slot(1, 0), playlist: slot(1, 3),
@@ -40,6 +42,21 @@ const { start } = require('./demo.cjs');
     const card = id => page.locator('#board > [data-widget=' + id + ']');
     const ready = () => page.locator('#board[data-vue=pages]').waitFor();
     await ready();
+    async function holdText(target) {
+      await target.scrollIntoViewIfNeeded();
+      const point = await target.evaluate(n => {
+        const range = document.createRange();
+        range.selectNodeContents(n);
+        const r = range.getClientRects()[0];
+        return { x: r.left + 4, y: r.top + r.height / 2 };
+      });
+      await touch('touchStart', [point]);
+      await page.waitForTimeout(850);
+      assert.equal(await page.evaluate(() => String(getSelection())), '');
+      await touch('touchEnd');
+      assert.equal(await page.evaluate(() => String(getSelection())), '');
+      assert.equal(await page.locator('.lifted').count(), 0);
+    }
     async function hold(id) {
       const title = card(id).locator('.head h2');
       await title.evaluate(n => n.scrollIntoView({ block: 'center', behavior: 'instant' }));
@@ -72,9 +89,21 @@ const { start } = require('./demo.cjs');
       assert.equal(await page.evaluate(() => window.screenWrites) - writes, cancel ? 0 : 1);
       await page.waitForTimeout(900);
     }
-    for (const selector of ['.week-total', '.week-day', '.pl-info']) {
+    for (const selector of ['.week-total', '.week-day', '.pl-info', '.pg-dot i', '.bar-btn span', '[data-widget=taches] .head h2']) {
       assert.equal(await page.locator(selector).first().evaluate(n => getComputedStyle(n).webkitUserSelect), 'none');
     }
+    const selection = await card('semaine').evaluate(widget => {
+      const sample = document.createElement('div');
+      sample.innerHTML = '<span>Libellé</span><div contenteditable="true"><b>Texte</b></div>';
+      widget.append(sample);
+      const styles = [sample.firstChild, sample.querySelector('b')].map(n => getComputedStyle(n).webkitUserSelect);
+      sample.remove();
+      return styles;
+    });
+    assert.deepEqual(selection, ['none', 'text']);
+    const total = card('semaine').locator('.week-total');
+    assert.equal(await total.textContent(), '6 h');
+    await holdText(total);
     await cross('semaine', 1, true);
     assert.deepEqual(placements().semaine, slot(0, 3));
     if (cdp) {
@@ -93,6 +122,7 @@ const { start } = require('./demo.cjs');
     await page.reload();
     await ready();
     assert.equal(await card('semaine').count(), 1);
+    await holdText(card('playlist').locator('.pl-info').last());
     await cross('playlist', 0);
     assert.equal(placements().playlist.p, 0);
     assert.equal(db.rows.ecran.where.playlist, 'study');
@@ -109,6 +139,8 @@ const { start } = require('./demo.cjs');
     await wheel.waitFor();
     await page.waitForTimeout(900);
     await touch('touchEnd');
+    await holdText(wheel.getByText('Study', { exact: true }));
+    assert.ok(await wheel.isVisible());
     const option = await wheel.locator('.is-current .mw-item').boundingBox();
     const x = option.x + 20, y = option.y + option.height / 2;
     await touch('touchStart', [{ x, y }]);
