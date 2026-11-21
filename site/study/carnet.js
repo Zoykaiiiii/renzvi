@@ -205,10 +205,11 @@ window.cahierCarnet = function cahierCarnet(api) {
   }
   function choix(label, list, value, onPick, cls = '') {
     const g = el('div', `carnet-look-row ${cls}`);
+    g.dataset.setting = label;
     g.setAttribute('role', 'group');
     g.ariaLabel = label;
     for (const [v, t] of list) {
-      const b = button(`carnet-look-opt carnet-look-${v}`, '', () => { onPick(v); applyLook(); drawLook(); lookPanel.querySelector(`[aria-label="${label}"] [data-v="${v}"]`)?.focus(); });
+      const b = button(`carnet-look-opt carnet-look-${v}`, '', () => { onPick(v); applyLook(); drawLook(); lookPanel.querySelector(`[data-setting="${label}"] [data-v="${v}"]`)?.focus(); });
       b.dataset.v = String(v);
       if (cls === 'carnet-look-surfaces') { const i = el('i', ''); i.innerHTML = icon(ICONS.coche); b.append(i); }
       b.append(el('span', '', t));

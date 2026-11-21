@@ -230,8 +230,9 @@ window.vuePages = function vuePages(ctx) {
     const where = dots.querySelector('.pg-where');
     if (where) {
       where.textContent = `${name(page)} · ${page + 1} sur ${shownN}`;
-      dots.querySelector('[aria-label="Page précédente"]').disabled = page === 0;
-      dots.querySelector('[aria-label="Page suivante"]').disabled = page === shownN - 1;
+      const [prev, next] = dots.querySelectorAll('.pg-step');
+      prev.disabled = page === 0;
+      next.disabled = page === shownN - 1;
       return;
     }
     dots.querySelectorAll('.pg-dot').forEach((b, p) => {

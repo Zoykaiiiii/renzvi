@@ -566,7 +566,7 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
     const reader = el('div', 'cahier-text');
     reader.tabIndex = 0;
     reader.ariaLabel = `Texte du chapitre ${ch.title}`;
-    reader.append(el('h3', 'cahier-title', ch.title));
+    reader.append(Object.assign(el('h3', 'cahier-title', ch.title), { translate: false }));
     const parts = cahierSlices(text.pages, ch, c.chapters[chapterIndex + 1]);
     // La ligne du titre est déjà affichée en tête : on ne la répète pas dans le texte.
     const first = parts[0], line = first && text.pages[first.page].slice(first.start).match(/^[ \t]*([^\n]*)\n?/);
@@ -578,6 +578,7 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
       // Les sous-titres du cours deviennent des blocs à part (même texte, même position : les annotations ne bougent pas).
       for (const b of cahierSousTitres(text.pages[s.page], s.start, s.end)) {
         const block = el('div', b.titre ? 'cahier-block cahier-sous-titre' : 'cahier-block', text.pages[s.page].slice(b.start, b.end));
+        block.translate = false;
         Object.assign(block.dataset, { page: s.page, start: b.start });
         reader.append(block);
       }

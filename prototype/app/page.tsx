@@ -164,6 +164,7 @@ export default function Page() {
               {NAV.map(([href, label]) => <a key={href} href={href} className="w-fit text-title font-semibold leading-none tracking-tight transition-transform duration-300 [font-stretch:82%] hover:translate-x-3">{label}</a>)}
             </nav>
             <div className="flex flex-col gap-6 text-small">
+              <div data-language-picker />
               <p className="flex flex-wrap gap-x-5 gap-y-2 text-[1rem]">
                 <a className="link" href={LOGIN}>Connexion</a>
                 <a className="link" href="/legal.html#mentions">Mentions légales</a>

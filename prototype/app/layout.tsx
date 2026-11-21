@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Gelasio, Gloock, Instrument_Sans, Instrument_Serif, Pixelify_Sans, Playpen_Sans, Syne, Unbounded } from "next/font/google";
 import "./globals.css";
 
@@ -25,7 +26,11 @@ export const viewport: Viewport = { themeColor: "#ffffff" };
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="fr" className={[sans, f1, f2, f3, f4, f5, f6, gelasio].map((f) => f.variable).join(" ")}>
-      <body>{children}</body>
+      <body>
+        <link rel="stylesheet" href="/dash/language.css" />
+        {children}
+        <Script src="/dash/language.js" strategy="lazyOnload" />
+      </body>
     </html>
   );
 }

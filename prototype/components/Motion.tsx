@@ -20,12 +20,19 @@ export default function Motion({ children }: { children: ReactNode }) {
       ScrollSmoother.create({ wrapper: root.current!, content: "#smooth-content", smooth: 1.1, effects: true });
 
       // Titres : ligne par ligne, depuis un masque.
-      const splits = gsap.utils.toArray<HTMLElement>("[data-split]").map((el) =>
+      const splitTitles = () => gsap.utils.toArray<HTMLElement>("[data-split]").map((el) =>
         SplitText.create(el, {
           type: "lines", mask: "lines", autoSplit: true,
           onSplit: (s) => gsap.from(s.lines, { yPercent: 110, duration: 0.9, ease: "power4.out", stagger: 0.09, scrollTrigger: { trigger: el, start: "top 88%", once: true } }),
         })
       );
+      let splits = document.documentElement.lang === "fr" ? splitTitles() : [];
+      const refreshTitles = () => {
+        splits.forEach((split) => split.revert());
+        splits = [];
+        ScrollTrigger.refresh();
+      };
+      document.addEventListener("renzvi:language", refreshTitles);
       // Le reste de chaque section : monte, en décalé.
       ScrollTrigger.batch("[data-rise]", {
         start: "top 90%", once: true,
@@ -59,7 +66,7 @@ export default function Motion({ children }: { children: ReactNode }) {
         h = now; clearTimeout(t); t = window.setTimeout(() => ScrollTrigger.refresh(), 200);
       });
       ro.observe(document.querySelector("#smooth-content")!);
-      return () => { ro.disconnect(); clearTimeout(t); sized.revert(); splits.forEach((s) => s.revert()); };
+      return () => { ro.disconnect(); clearTimeout(t); sized.revert(); splits.forEach((s) => s.revert()); document.removeEventListener("renzvi:language", refreshTitles); };
     });
   }, { scope: root });
 

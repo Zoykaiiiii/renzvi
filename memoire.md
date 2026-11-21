@@ -812,3 +812,8 @@ Damien a confié à Codex la préparation technique des prompts pour pouvoir se 
 - Les Favoris suivent l’identifiant du widget jusqu’au mode et à la page enregistrés. Dans un même mode, seules la page de départ et la page d’arrivée glissent. Le contour apparaît après le défilement, puis le widget garde le focus. Sur mobile, la sélection replie le tiroir pour dégager le tableau. En mouvement réduit, le contour est statique.
 - Le catalogue et la gestion des Favoris ont une entrée courte avec fondu du voile. Le catalogue anime uniquement l’aperçu lors d’une nouvelle sélection. Depuis Aujourd’hui, la fiche d’un rendez-vous attend l’ouverture de l’Agenda agrandi.
 - Les parcours clavier, souris et tactiles sont couverts par `tests/sidebar-openings.check.cjs`. La variable `VIDEO` permet d’enregistrer un passage entre deux pages.
+
+## 44. Langue de l’interface — Codex, 21 novembre 2026
+
+- Un sélecteur partagé entre l’accueil, la connexion, le tableau et les pages légales mémorise la langue dans le navigateur. Il utilise l’API Translator du navigateur, avec 39 choix selon les modèles disponibles. Le français reste la langue source. Sur un navigateur sans cette API, le sélecteur indique la traduction de page du navigateur.
+- Les valeurs saisies et le texte des cours dans le lecteur restent en place. Les tests navigateur utilisent un modèle simulé et vérifient aussi les libellés ajoutés dynamiquement au tableau.

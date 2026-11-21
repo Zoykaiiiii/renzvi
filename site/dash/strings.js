@@ -69,7 +69,8 @@ const RENZVI_STRINGS = {
 };
 
 function renzviT(key, ...args) {
-  const lang = document.documentElement.lang.toLowerCase().split('-')[0];
+  const root = document.documentElement;
+  const lang = (root.dataset.translationSource ?? root.lang).toLowerCase().split('-')[0];
   const index = lang === 'en' ? 1 : lang === 'es' ? 2 : 0;
   return RENZVI_STRINGS[key][index].replace(/\{(\d+)\}/g, (_, i) => args[i]);
 }

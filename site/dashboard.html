@@ -1095,6 +1095,8 @@ dialog.settings,dialog.settings :is(h2,h3,h4){font-family:var(--marque)}
 #menu .lock-more summary::-webkit-details-marker{display:none}
 #menu .lock-more p{margin-top:2px}
 </style>
+<link rel="stylesheet" href="dash/language.css">
+<script src="dash/language.js" defer></script>
 </head>
 <body class="renzvi-dashboard">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><rect id="renzvi-square" width="9" height="9" rx="3" fill="currentColor"/></defs></svg>
@@ -1181,7 +1183,7 @@ dialog.settings,dialog.settings :is(h2,h3,h4){font-family:var(--marque)}
   <div class="acct-head">
     <span class="acct-av" id="acct-av" aria-hidden="true"></span>
     <h2 class="acct-name" id="acct-name">Mon compte</h2>
-    <p id="who"></p>
+    <p id="who" translate="no"></p>
     <p class="acct-plan"><span class="visually-hidden">Abonnement : </span><button type="button" id="plan-nom" aria-describedby="plan-voir">Gratuit</button><span class="visually-hidden" id="plan-voir">Voir les plans</span></p>
   </div>
   <div class="acct-list" id="acct-list">
@@ -1212,6 +1214,7 @@ dialog.settings,dialog.settings :is(h2,h3,h4){font-family:var(--marque)}
     </div>
   </div>
   <div class="acct-foot">
+    <div data-language-picker></div>
     <button class="out" id="logout" type="button">Se déconnecter</button>
     <p class="msg" id="logout-msg" role="alert"></p>
   </div>
@@ -2479,7 +2482,7 @@ const WIDGETS = [
           refresh();
           save({ items });
         };
-        label.append(check, el('span', '', task.text));
+        label.append(check, Object.assign(el('span', '', task.text), { translate: false }));
         const remove = button('x', '×', () => {
           items = items.filter(t => t !== task);
           draw();
@@ -2507,7 +2510,7 @@ const WIDGETS = [
         const set = due => { task.due = due; if (!due) delete task.due; draw(); save({ items }); d.close(); };
         if (task.due) actions.append(button('ghost q-left', 'Retirer la date', () => set(null)));
         actions.append(button('ghost', 'Annuler', () => d.close()), Object.assign(el('button', 'primary', 'Enregistrer'), { type: 'submit' }));
-        form.append(el('p', 'q-texte', task.text), qChamp('Échéance', date), actions);
+        form.append(Object.assign(el('p', 'q-texte', task.text), { translate: false }), qChamp('Échéance', date), actions);
         form.onsubmit = e => { e.preventDefault(); if (Q.valide(date.value)) set(date.value); };
         const d = qFiche('Échéance', form, { onClose: () => from.isConnected ? from.focus() : input.focus() });
       }
