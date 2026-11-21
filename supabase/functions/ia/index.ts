@@ -1,5 +1,5 @@
 // Fonction serveur Supabase « ia ». Variables fournies par Supabase : SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_DB_URL.
-// FAL_KEY active Qwen via fal. IA_FOURNISSEUR=simule force le mode local.
+// FAL_KEY active Gemma via fal. IA_FOURNISSEUR=simule force le mode local.
 import postgres from 'npm:postgres@3.4.5';
 import { choisirFournisseur } from './fournisseur.ts';
 import { traiter } from './logique.ts';

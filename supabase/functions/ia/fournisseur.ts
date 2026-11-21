@@ -20,7 +20,7 @@ export const CONSIGNES: Record<string, string> = {
   quiz: 'Crée au plus 8 questions à choix multiple sur ce passage. Format : {"questions":[{"question":"…","choix":["…","…","…","…"],"bonne":0,"explication":"…","citation":"…"}]}.',
 };
 
-const MODELE = 'qwen/qwen3.6-35b-a3b';
+const MODELE = 'google/gemma-4-26b-a4b-it';
 const ZVI = `Tu es Zvi, l'assistant de Renzvi. Réponds dans la langue de la personne. Renvoie uniquement un objet JSON {"texte":"…","action":null}.
 Pour une action explicitement demandée dans le dernier message, action peut être {"type":"tache"|"note"|"cours"|"mode","valeur":"…"}.
 La valeur est le texte à ajouter pour tache ou note, le nom demandé pour cours ou mode. Propose au plus une action et ne prétends jamais l'avoir exécutée.

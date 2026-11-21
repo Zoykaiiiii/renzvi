@@ -169,7 +169,7 @@ test('fal commun au Cahier et à Zvi, Worker vérifié avant tout appel et image
   const fournisseur = creerFal('  Key cle-id:\u200b\ncle-test ', (_url, options) => {
     assertEquals(new Headers(options?.headers).get('authorization'), 'Key cle-id:cle-test');
     const demande = JSON.parse(String(options?.body));
-    assertEquals(demande.model, 'qwen/qwen3.6-35b-a3b');
+    assertEquals(demande.model, 'google/gemma-4-26b-a4b-it');
     appels.push(demande);
     const sortie = demande.messages[0].content.startsWith('Tu es Zvi')
       ? { texte: 'Je peux ajouter cette tâche.', action: { type: 'tache', valeur: 'Réviser' } }
