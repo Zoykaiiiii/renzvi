@@ -177,6 +177,66 @@ const settle = page => page.waitForFunction(() => ![...document.querySelectorAll
     console.log('ok téléphone et compte vide');
   }
 
+  // Le pied doit tenir dès le premier affichage, avant tout défilement dans le widget.
+  for (const [name, width, height, input, grid] of [
+    ['portable', 1280, 650, 'click', false],
+    ['pages-etroit-police-large', 728, 433, 'keyboard', false],
+    ['mobile', 320, 568, 'tap', false],
+    ['grille-hauteur-140', 1280, 650, 'click', true],
+  ]) {
+    const db = makeDb('un');
+    Object.assign(db.rows.ecran, {
+      sizes: { etude: 's' }, spans: { etude: 3 }, heights: { etude: 140 },
+      vues: { v: 1, places: { pages: { p1: { n: 1, d: { etude: { p: 0, c: 0, r: 0, w: 4, h: 2 } } } } } },
+    });
+    const { page, context } = await openBoard(browser, base, db, {
+      viewport: { width, height }, hasTouch: input === 'tap', reducedMotion: 'reduce', grid,
+    });
+    if (!grid) await page.locator('.board[data-vue=pages]').waitFor();
+    if (input === 'keyboard') await page.addStyleTag({ content: `
+      :root { --sans: Georgia, serif !important; --display: Georgia, serif !important; }
+      [data-widget=etude] :is(h2, .etude-pick-vue button, .etude-closed button, .etude-sum) { font-size: 22px; line-height: 1.3; }
+    ` });
+    const widget = W(page);
+    const openButton = widget.getByRole('button', { name: 'Ouvrir mon espace', exact: true });
+    for (const [label, id, drawing] of [
+      ['Arbre', 'arbre', '.arbre-wood'],
+      ['Constellations', 'constellations', '.cst-star'],
+    ]) {
+      const tab = widget.locator('.etude-pick-vue').getByRole('button', { name: label, exact: true });
+      await tab[input === 'tap' ? 'tap' : 'click']();
+      await widget.locator(`.etude-preview ${drawing}`).first().waitFor();
+      await widget.evaluate(card => window.scrollBy(0, Math.max(0, card.getBoundingClientRect().bottom - innerHeight)));
+      const dimensions = await openButton.evaluate(btn => {
+        const body = btn.closest('.body'), card = btn.closest('.widget');
+        const rect = btn.getBoundingClientRect(), bounds = card.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        return {
+          cardHeight: bounds.height, buttonHeight: rect.height,
+          buttonInset: bounds.bottom - rect.bottom, bodyScroll: body.scrollHeight - body.clientHeight,
+          visible: [rect.top + 2, rect.bottom - 2].every(y => btn.contains(document.elementFromPoint(x, y))),
+        };
+      });
+      assert.ok(dimensions.visible && dimensions.buttonHeight >= 44 && dimensions.buttonInset > 0 && dimensions.bodyScroll === 0,
+        `${name} / ${label} : ${JSON.stringify(dimensions)}`);
+      if (SHOTS) await widget.screenshot({ path: `${SHOTS}/${name}-${id}.png` });
+      if (input === 'keyboard') {
+        await tab.focus();
+        if (id === 'arbre') await page.keyboard.press('Tab');
+        await page.keyboard.press('Tab');
+        assert.ok(await openButton.evaluate(btn => btn === document.activeElement), 'le bouton suit les choix au clavier');
+        await page.keyboard.press(id === 'arbre' ? 'Enter' : 'Space');
+      } else {
+        await openButton[input]();
+      }
+      await widget.locator(`.etude-stage[data-vue=${id}] ${drawing}`).first().waitFor();
+      await widget.getByRole('button', { name: 'Retour au tableau' }).click();
+      await widget.locator('.etude-space').waitFor({ state: 'hidden' });
+    }
+    await context.close();
+    console.log(`ok petit widget : ${name}, Arbre et Constellations`);
+  }
+
   await browser.close();
   server.close();
   console.log('etude-scene : tout passe');

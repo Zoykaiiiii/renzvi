@@ -114,13 +114,16 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
   pick.ariaLabel = 'Présentation';
   const pickOf = new Map(VUES.filter(v => v.src).map(v => [v.id, button('', v.name, () => { prefs.vue = v.id; keep(); drawApercu(); })]));
   pick.append(...pickOf.values());
+  const header = meta.parentElement;
+  header.classList.add('etude-head');
+  header.append(pick);
   const preview = el('div', 'etude-preview');
   preview.setAttribute('aria-hidden', 'true');
   preview.onclick = () => { if (state === 'ready' && courses.length) setOpen(true); };
   const foot = el('div', 'etude-foot');
   foot.append(summary, openBtn);
   const closed = el('div', 'etude-closed');
-  closed.append(pick, preview, foot);
+  closed.append(preview, foot);
 
   const space = el('div', 'etude-space');
   space.hidden = true;
@@ -180,6 +183,7 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
     if (next) ouvrir(); else fermer();
   }
   function ouvrir() {
+    prefs.vue = apercuVue();
     open = true;
     leaveApercu();
     contraste();
@@ -294,9 +298,10 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
   });
   // L'aperçu du widget fermé : le même dessin, en lecture seule, cadré dans la place du widget. Aucun libellé n'est
   // cliquable, aucune caméra, aucun écouteur de geste ; il se redessine quand le contenu change.
+  const apercuVue = () => VUES.some(v => v.id === prefs.vue && v.src) ? prefs.vue : 'arbre';
   function leaveApercu() { apercu?.leave(); apercu = null; apercuId = null; preview.replaceChildren(); }
   async function drawApercu() {
-    const id = VUES.some(v => v.id === prefs.vue && v.src) ? prefs.vue : 'arbre';
+    const id = apercuVue();
     for (const [k, b] of pickOf) b.setAttribute('aria-pressed', k === id);
     box.dataset.etudeApercu = id;
     if (open || state !== 'ready') return;
@@ -339,8 +344,8 @@ window.etudeWidget = function etudeWidget({ body, meta, user, sb, peer = () => n
     openBtn.hidden = state !== 'ready';
     pick.hidden = state !== 'ready' || !courses.length;
     if (!open) drawApercu();
-    closed.querySelector('.etude-retry')?.remove();
-    if (state === 'error') closed.append(button('ghost etude-retry', 'Réessayer', () => load()));
+    foot.querySelector('.etude-retry')?.remove();
+    if (state === 'error') foot.append(button('ghost etude-retry', 'Réessayer', () => load()));
     if (!open) return;
     if (state !== 'ready') { leaveVue(); stage.replaceChildren(el('p', 'empty', summary.textContent)); panel.hidden = true; return; }
     finder.hidden = !courses.length;

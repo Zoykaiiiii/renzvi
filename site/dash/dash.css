@@ -179,8 +179,8 @@ dialog.mode-create::backdrop{background:var(--veil)}
 /* ---------- Disposer : taille fine et repli ---------- */
 @media (min-width:728px){
   .board .widget[data-span]{grid-column:span var(--span-m)}
-  .board .widget[data-h]:not([data-collapsed]){height:var(--h)}
-  .board .widget[data-h]:not([data-collapsed]) .body{overflow:auto;scrollbar-gutter:stable;overscroll-behavior:contain}
+  .board .widget[data-h]:not([data-collapsed],[data-widget=etude]){height:var(--h)}
+  .board .widget[data-h]:not([data-collapsed],[data-widget=etude]) .body{overflow:auto;scrollbar-gutter:stable;overscroll-behavior:contain}
 }
 @media (min-width:1040px){.board .widget[data-span]{grid-column:span var(--span-w)}}
 .widget[data-collapsed] .body{display:none}

@@ -10,7 +10,7 @@
 .board[data-vue=pages]::-webkit-scrollbar{display:none}
 /* Chaque widget prend exactement ses cases ; son contenu défile à l'intérieur s'il dépasse. */
 .board[data-vue=pages]>.widget,.board[data-vue=pages]>.widget[data-h]:not([data-collapsed]){height:auto;min-height:0;overflow:hidden}
-.board[data-vue=pages]>.widget>.body{overflow:auto;overscroll-behavior:contain}
+.board[data-vue=pages]>.widget:not([data-widget=etude])>.body{overflow:auto;overscroll-behavior:contain}
 .board[data-vue=pages]>.widget[data-collapsed]{align-self:start}
 .pg-snap{grid-row:1/-1;scroll-snap-align:start;pointer-events:none}
 @media (max-width:727px){

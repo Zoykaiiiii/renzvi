@@ -7,10 +7,14 @@
   --et-ground:#1c1c1d; --et-raise:#262627; --et-ink:#ecebe8; --et-soft:#a8a6a2; --et-line:rgba(236,235,232,.16); --et-press:rgba(236,235,232,.09);
 }
 /* Fermé : l'aperçu de la vraie présentation est l'élément principal ; le résumé et le bouton dessous. */
-.etude-closed{display:flex;flex-direction:column;gap:10px;height:100%;min-height:0}
-.etude-pick-vue{align-self:flex-start}
-.etude-pick-vue button{height:28px;font-size:12.5px}
-.etude-preview{position:relative;flex:1;min-height:200px;overflow:hidden;border-radius:calc(var(--r-panel) - 6px);cursor:pointer;--et-ink:var(--ink);--et-soft:var(--slate);--et-press:transparent;--et-raise:transparent}
+.etude-head{flex:none;display:grid;grid-template-columns:minmax(0,1fr) auto auto;row-gap:4px}
+.etude-head+.body{margin-top:8px;min-height:246px}
+.etude-pick-vue{grid-column:1/-1;justify-self:start;flex-wrap:wrap}
+.widget[data-collapsed] .etude-pick-vue{display:none}
+.etude-pick-vue button{flex:1 1 auto;height:auto;min-height:28px;padding-block:3px;overflow-wrap:anywhere;font-size:12.5px}
+.etude-closed{flex:1;display:grid;grid-template-rows:minmax(64px,1fr) auto;gap:8px;min-width:0}
+.etude-closed:has(.etude-preview-vide){grid-template-rows:minmax(88px,1fr) auto}
+.etude-preview{position:relative;container:etude-preview/size;min-width:0;overflow:hidden;border-radius:calc(var(--r-panel) - 6px);cursor:pointer;--et-ink:var(--ink);--et-soft:var(--slate);--et-press:transparent;--et-raise:transparent}
 .etude-preview .arbre-label,.etude-preview .cst-label,.etude-preview .cst-chap{pointer-events:none}
 /* Dans l'aperçu, le dessin est réduit mais les noms gardent une taille lisible (ils ne suivent pas le zoom).
    Constellations : seul le chapitre choisi et la matière sont nommés ; les titres complets sont dans l'espace ouvert. */
@@ -22,12 +26,23 @@
 .etude-preview .cst-label{font-size:calc(11px / var(--cst-k,1))}
 .etude-preview .cst-matiere{font-size:calc(15px / var(--cst-k,1))}
 .etude-preview :is(.arbre-due,.cst-due){display:none}
-.etude-preview-vide{display:grid;place-items:center;align-content:center;gap:10px;cursor:default;height:100%;color:var(--slate);font-size:14px;border:1.5px dashed var(--edge);border-radius:14px}
-.etude-preview-vide svg{width:72px;height:72px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+@container etude-preview (max-height:88px){
+  .etude-preview :is(.arbre-label,.cst-label,.cst-txt){visibility:hidden}
+}
+.etude-preview-vide{display:grid;grid-template-rows:minmax(0,72px) auto auto;place-items:center;align-content:center;gap:4px;cursor:default;height:100%;color:var(--slate);font-size:14px;text-align:center;border:1.5px dashed var(--edge);border-radius:14px}
+.etude-preview-vide svg{width:72px;height:100%;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 .etude-preview-vide p{margin:0}
-.etude-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.etude-sum{margin:0;color:var(--slate);font-size:13px}
-.widget[data-widget=etude]:not(.etude-open)>.body{min-height:280px}
+.etude-foot{display:flex;align-items:center;justify-content:space-between;gap:4px 10px;flex-wrap:wrap}
+.etude-foot .primary{max-width:100%;height:auto;min-height:44px;padding-block:6px;overflow-wrap:anywhere}
+.etude-sum{min-width:0;margin:0;color:var(--slate);font-size:13px}
+/* La taille fine donne la hauteur souhaitée ; le contenu peut l'agrandir si les contrôles en ont besoin. */
+@media (min-width:728px){
+  .board:not([data-vue=pages])>.widget[data-widget=etude][data-h]:not([data-collapsed],.etude-open){min-height:var(--h);align-self:start}
+  .board:not([data-vue=pages])>.widget[data-widget=etude][data-h]:not(.etude-open)>.body{min-height:auto}
+}
+.board[data-vue=pages]>.widget[data-widget=etude]>.body{min-height:0}
+.board[data-vue=pages] .etude-closed:not(:has(.etude-preview-vide)){grid-template-rows:minmax(0,1fr) auto}
+.board[data-vue=pages]>.widget[data-widget=etude] .etude-sum{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Ouvert : une scène posée sur le fond d'écran de la page. Aucun fond plein ; un voile léger selon le contraste. */
 .widget.etude-open{position:fixed;inset:0;z-index:60;border-radius:0;padding:0;overflow:hidden;background:transparent;color:var(--et-ink);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;border:0}
@@ -51,7 +66,7 @@
 .widget.etude-open :is(.arbre-label,.cst-txt,.cst-label){background:var(--et-label)}
 .widget.etude-open .arbre-titre{background:none}
 .widget.etude-open>.head,.widget.etude-open>.edit{display:none}
-.widget.etude-open>.body{height:100%;padding:0;margin:0;max-height:none;overflow:hidden}
+.widget.etude-open>.body{height:100%;min-height:0;padding:0;margin:0;max-height:none;overflow:hidden}
 .etude-space{position:relative;height:100%;display:grid;grid-template-rows:auto 1fr;color:var(--et-ink)}
 .etude-space[hidden]{display:none}
 .etude-top{display:flex;align-items:center;gap:12px 20px;flex-wrap:wrap;padding:16px 20px 14px 92px;position:relative;z-index:3}

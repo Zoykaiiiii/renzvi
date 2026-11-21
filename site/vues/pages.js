@@ -19,7 +19,8 @@ window.vuePages = function vuePages(ctx) {
   // 4 widgets au plus par page (Damien, 17 nov.) : des widgets plus grands, une page qui respire.
   const MAX_PER_PAGE = 4;
   // Taille minimale utile de chaque widget, en cases (colonnes, rangées), sur la grille de l'ordinateur.
-  const MIN = { heure: [3, 1], minuteur: [4, 3], cartes: [4, 3], cahier: [4, 3], etude: [4, 2], vol: [4, 3], semaine: [4, 2], habitudes: [4, 2], ambiance: [4, 3], lecture: [4, 3], inspiration: [4, 3], respiration: [3, 3], playlist: [4, 2], quiz: [4, 3], schemas: [4, 3], repas: [4, 3] };
+  // Study garde le sélecteur et le bouton visibles même avec une police agrandie à la largeur minimale.
+  const MIN = { heure: [3, 1], minuteur: [4, 3], cartes: [4, 3], cahier: [4, 3], etude: [4, 4], vol: [4, 3], semaine: [4, 2], habitudes: [4, 2], ambiance: [4, 3], lecture: [4, 3], inspiration: [4, 3], respiration: [3, 3], playlist: [4, 2], quiz: [4, 3], schemas: [4, 3], repas: [4, 3] };
   // Taille de départ d'un widget qui n'a pas encore de place, selon son préréglage : assez grande pour que 4 widgets
   // remplissent une page (6 × 3 cases chacun en taille moyenne).
   const PRESET = { s: [4, 3], m: [6, 3], l: [12, 3] };
