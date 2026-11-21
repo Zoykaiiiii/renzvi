@@ -2,7 +2,7 @@
 // de démo (Supabase simulé). Gratuit : le cadenas ouvre les plans, rien n'est envoyé. Pro : une vraie vidéo WebM (fabriquée
 // par le navigateur) part dans « fonds-video », tourne en boucle sans son derrière les widgets, revient au rechargement,
 // reste figée si on a réduit les animations, et le fichier est supprimé quand plus aucun mode ne l'utilise.
-// Refus : mauvais type, trop lourde, illisible (rien n'est envoyé).
+// Formats et lecture vérifiés avant envoi. La limite de taille vient de Storage.
 // Lancement : NODE_PATH=~/pw/node_modules node tests/fond-video.check.cjs
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
@@ -53,6 +53,11 @@ const { custom, closeCustom } = require('./menu.cjs');
   }));
   assert.ok(webm.length > 1000, 'la vidéo de test existe');
   const video = { name: 'boucle.webm', mimeType: 'video/webm', buffer: webm };
+  // Un élément EBML Void agrandit le WebM sans modifier sa vidéo.
+  const padding = Buffer.alloc(21 * 1048576 + 5);
+  padding[0] = 0xec;
+  padding.writeUInt32BE(0x10000000 + padding.length - 5, 1);
+  const largeVideo = { ...video, buffer: Buffer.concat([webm, padding]) };
 
   try {
     // 1. Gratuit : la tuile ouvre les plans, aucun fichier envoyé.
@@ -61,7 +66,7 @@ const { custom, closeCustom } = require('./menu.cjs');
       await custom(page);
       const hint = page.locator('#wall-video-hint');
       assert.ok(await hint.isVisible());
-      assert.match(await hint.textContent(), /MP4, WebM ou MOV, 20 Mo maximum/);
+      assert.match(await hint.textContent(), /MP4, WebM ou MOV/);
       assert.equal(await tile(page).getAttribute('aria-describedby'), 'wall-video-hint');
       assert.equal(await tile(page).getAttribute('title'), null);
       await tile(page).click();
@@ -71,17 +76,20 @@ const { custom, closeCustom } = require('./menu.cjs');
       await context.close();
     }
 
-    // 2. Pro : refus avant tout envoi (type, poids, fichier illisible).
+    // 2. Pro : refus avant envoi (type ou fichier illisible), puis erreur de taille renvoyée par Storage.
     {
       const { page, context } = await open('refus', 'pro');
       await custom(page);
       await choose(page, { name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('bonjour') });
       await assert.doesNotReject(note(page).getByText('Choisis une vidéo MP4, WebM ou MOV.').waitFor());
-      await choose(page, { name: 'lourde.mp4', mimeType: 'video/mp4', buffer: Buffer.alloc(20 * 1048576 + 1) });
-      await note(page).getByText(/trop lourde \(20 Mo maximum\)/).waitFor();
       await choose(page, { name: 'cassee.webm', mimeType: 'video/webm', buffer: Buffer.from('pas une vidéo') });
       await note(page).getByText(/ne sait pas lire cette vidéo/).waitFor({ timeout: 20000 });
       assert.equal(files('refus').size, 0, 'rien n’est envoyé');
+      await page.route('**/storage/v1/object/fonds-video/**', route => route.fulfill({
+        status: 413, json: { statusCode: '413', error: 'Payload too large', message: 'The object exceeded the maximum allowed size' },
+      }));
+      await choose(page, largeVideo);
+      await note(page).getByText(/taille maximale autorisée par le stockage/).waitFor();
       assert.equal(await tile(page).locator('span').textContent(), 'Ta vidéo');
       assert.equal(await tile(page).isDisabled(), false);
       await context.close();
@@ -91,7 +99,7 @@ const { custom, closeCustom } = require('./menu.cjs');
     {
       const { page, context } = await open('pro', 'pro');
       await custom(page);
-      await choose(page, video);
+      await choose(page, largeVideo);
       await page.waitForFunction(() => { const v = document.querySelector('#wall i.on video'); return v && !v.paused && v.currentTime > 0; }, null, { timeout: 15000 });
       const v = await page.locator('#wall i.on video').evaluate(v => ({ muted: v.muted, loop: v.loop, inline: v.playsInline, w: v.getBoundingClientRect().width, h: v.getBoundingClientRect().height }));
       assert.deepEqual(v, { muted: true, loop: true, inline: true, w: 1440, h: 900 }, 'plein écran, en boucle, sans son');
@@ -99,7 +107,7 @@ const { custom, closeCustom } = require('./menu.cjs');
       const stored = files('pro').get('fonds-video/demo-plein-pro/fond');
       assert.ok(stored, 'fichier rangé dans fonds-video/<compte>/fond');
       assert.equal(stored.type, 'video/webm', 'le bucket vérifie ce type');
-      assert.ok(stored.data.equals(webm), 'envoyée telle quelle');
+      assert.ok(stored.data.equals(largeVideo.buffer), 'vidéo de plus de 20 Mo envoyée telle quelle');
       await page.waitForFunction(() => document.getElementById('saved').textContent === 'Enregistré');
       assert.equal(usesVideo('pro'), true, 'le choix est enregistré');
       assert.equal(await tile(page).getAttribute('aria-pressed'), 'true');
@@ -147,7 +155,6 @@ const { custom, closeCustom } = require('./menu.cjs');
       const { page, context } = await open('xl', 'pro', { videoXL: true });
       await page.waitForSelector('#wall i.on video');
       await custom(page);
-      assert.match(await page.locator('#wall-video-hint').textContent(), /300 Mo maximum/);
       await choose(page, video);
       await page.waitForFunction(() => !document.querySelector('#wall-slot .tile[data-wall=video]').disabled);
       assert.ok(files('xl').get('fonds-video-xl/demo-plein-xl/fond')?.data.equals(webm));

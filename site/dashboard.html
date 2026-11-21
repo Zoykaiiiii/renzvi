@@ -1529,7 +1529,7 @@ const WALLPAPERS = [
 ];
 // Photo personnelle : réduite et réenregistrée dans le navigateur avant l'envoi, ce qui retire aussi ses données GPS.
 const MAX_SOURCE_BYTES = 30 * 1048576, MAX_UPLOAD_BYTES = 3 * 1048576, MAX_PHOTO_SIDE = 2560;
-// Vidéo de fond (Pro) : envoyée telle quelle, avec les mêmes limites côté Storage.
+// Vidéo de fond (Pro) : envoyée telle quelle, avec la limite de taille imposée par Storage.
 const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
 
 const $ = id => document.getElementById(id);
@@ -5213,8 +5213,7 @@ if (!sb) {
       return tile;
     });
     const photoTile = entries.at(-2), videoTile = entries.at(-1);
-    const videoLimit = videoXL ? 300 : 20;
-    const videoHint = el('p', 'desc', `Vidéo : MP4, WebM ou MOV, ${videoLimit} Mo maximum. Une courte boucle de quelques secondes suffit.`);
+    const videoHint = el('p', 'desc', 'Vidéo : MP4, WebM ou MOV. Une courte boucle de quelques secondes suffit.');
     videoHint.id = 'wall-video-hint';
     videoTile.setAttribute('aria-describedby', videoHint.id);
     const zoom = inlineSlider({
@@ -5262,7 +5261,6 @@ if (!sb) {
       if (!chosen) return;
       note.textContent = '';
       if (!VIDEO_TYPES.includes(chosen.type)) { note.textContent = 'Choisis une vidéo MP4, WebM ou MOV.'; return; }
-      if (chosen.size > videoLimit * 1048576) { note.textContent = `Cette vidéo est trop lourde (${videoLimit} Mo maximum). Une boucle de quelques secondes suffit.`; return; }
       videoTile.disabled = true;
       videoTile.lastChild.textContent = 'Envoi…';
       const local = URL.createObjectURL(chosen);
@@ -5279,7 +5277,12 @@ if (!sb) {
         note.textContent = "Ton navigateur ne sait pas lire cette vidéo. Essaie un MP4 classique (H.264).";
       } else {
         const { error } = await videoBucket().upload(videoPath(), chosen, { upsert: true, contentType: chosen.type, cacheControl: '0' });
-        if (error) { URL.revokeObjectURL(local); note.textContent = "L'envoi n'a pas abouti. Vérifie ta connexion et réessaie."; }
+        if (error) {
+          URL.revokeObjectURL(local);
+          note.textContent = String(error.statusCode ?? error.status) === '413'
+            ? 'Cette vidéo dépasse la taille maximale autorisée par le stockage.'
+            : "L'envoi n'a pas abouti. Vérifie ta connexion et réessaie.";
+        }
         else {
           if (videoUrl) URL.revokeObjectURL(videoUrl);
           videoUrl = local;
