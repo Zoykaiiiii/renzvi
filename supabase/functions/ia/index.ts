@@ -1,5 +1,5 @@
 // Fonction serveur Supabase « ia ». Variables fournies par Supabase : SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_DB_URL.
-// Variable à définir plus tard, seulement après validation du coût : IA_FOURNISSEUR (par défaut « simule »).
+// FAL_KEY active Qwen via fal. IA_FOURNISSEUR=simule force le mode local.
 import postgres from 'npm:postgres@3.4.5';
 import { choisirFournisseur } from './fournisseur.ts';
 import { traiter } from './logique.ts';
@@ -26,5 +26,5 @@ const base = {
   },
 };
 
-const fournisseur = choisirFournisseur(Deno.env.get('IA_FOURNISSEUR'));
+const fournisseur = choisirFournisseur(Deno.env.get('IA_FOURNISSEUR'), Deno.env.get('FAL_KEY'));
 Deno.serve(req => traiter(req, { utilisateur, base, fournisseur }));

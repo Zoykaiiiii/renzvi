@@ -2602,7 +2602,7 @@ const WIDGETS = [
   },
   {
     id: 'notes', title: 'Notes', desc: 'Une idée, une liste, un numéro.',
-    render({ body, data, save, user }) {
+    render({ body, data, save, user, peer, apercu }) {
       // Reprend les notes écrites quand elles étaient gardées dans le navigateur, puis efface cette copie.
       const oldKey = `renzvi:notes:${user.id}`;
       let text = typeof data?.text === 'string' ? data.text : '';
@@ -2615,6 +2615,7 @@ const WIDGETS = [
       notes.setAttribute('aria-labelledby', 'title-notes');
       notes.oninput = () => save({ text: notes.value });
       body.append(notes);
+      if (!apercu && peer) return qEcouter('notes', 'notes', () => { notes.value = peer('notes')?.text ?? ''; });
     },
   },
   {
@@ -3286,7 +3287,7 @@ const PAYANT = new Set(['quiz', 'schemas', 'etude', 'dictee', 'jardin', 'dessin'
 const PLANS = {
   gratuit: { nom: 'Gratuit', prix: 0, tag: 'Ton espace, sans payer.', inclus: ['Les widgets de base : minuteur, tâches, notes, habitudes…', `${CAHIER_LIMITS.gratuit} cours dans le Cahier`, 'Flashcards et Révisions du jour', 'Modes, pages et fonds d’écran'] },
   pro: { nom: 'Pro', prix: 999, tag: 'Pour réviser avec l’IA.', inclus: ['Tout Gratuit', `Jusqu’à ${CAHIER_LIMITS.pro} cours dans le Cahier`, 'L’IA sur tes cours : cartes, quiz et résumés', 'Quiz, Schémas et Mon espace Study', 'Dictée et les widgets Chill', 'Tes propres polices', 'Ton fond d’écran en vidéo'] },
-  worker: { nom: 'Worker', prix: 1799, tag: 'Pour les gros volumes de cours.', inclus: ['Tout Pro', 'Cours illimités dans le Cahier', '4 fois plus d’IA que Pro', 'PDF jusqu’à 300 pages (60 avec Pro)', 'Le chat IA sur tous tes cours'] },
+  worker: { nom: 'Worker', prix: 1799, tag: 'Pour les gros volumes de cours.', inclus: ['Tout Pro', 'Cours illimités dans le Cahier', '4 fois plus d’IA que Pro', 'PDF jusqu’à 300 pages (60 avec Pro)', 'Zvi, l’assistant de ton tableau'] },
 };
 let planActuel = 'gratuit';
 // Le labo (?labo=1, ?chill=1) sert aux essais : il ouvre tout, comme avant.
@@ -4757,10 +4758,73 @@ if (!sb) {
       return { ok: true, slot };
     })();
   });
-  // Zvi (le chat) : pour le plan Worker (demande de Damien, 17 nov.), et en labo pour les essais. Un îlot React construit depuis
-  // prototype/chat (node scripts/build-chat.mjs), chargé à la demande pour ne rien coûter aux autres. Aucun assistant n'est encore
-  // branché côté serveur : Zvi le dit, rien n'est inventé ni payé.
+  async function actionZvi({ type, valeur }) {
+    if (typeof valeur !== 'string' || !valeur.trim()) return '';
+    if (type === 'mode') {
+      const cible = screen.pages.filter(p => plain(p.name) === plain(valeur) || p.id === plain(valeur));
+      if (cible.length !== 1) return 'Précise le nom d’un mode déjà présent dans ton tableau.';
+      showPage(cible[0].id);
+      return `Mode « ${cible[0].name} » ouvert.`;
+    }
+    if (type === 'cours') {
+      if (!mounted.has('cahier')) return 'Ajoute le widget Cahier pour ouvrir un cours.';
+      if (pageOf('cahier') !== currentPage) await showPage(pageOf('cahier'));
+      const detail = { titre: valeur, message: 'Le Cahier est encore en cours de chargement.' };
+      document.dispatchEvent(new CustomEvent('renzvi:zvi-cours', { detail }));
+      return detail.message;
+    }
+    if (type === 'tache') {
+      const items = listOf(stored.taches?.items);
+      if (valeur.length > MAX_TASK_LENGTH || items.length >= MAX_TASKS) return 'La tâche ou la liste dépasse sa limite.';
+      if (!confirm(`Ajouter cette tâche ?\n\n${valeur}`)) return 'Ajout annulé.';
+      queueSave('taches', { ...stored.taches, items: [{ id: crypto.randomUUID(), text: valeur, done: false }, ...items] }, 'zvi');
+    } else if (type === 'note') {
+      const avant = stored.notes?.text ?? localStorage.getItem(`renzvi:notes:${userId}`) ?? '';
+      const text = avant ? `${avant}\n\n${valeur}` : valeur;
+      if (text.length > MAX_NOTES_LENGTH) return 'Cette note dépasse la place disponible dans Notes.';
+      if (!confirm(`Ajouter ce texte dans Notes ?\n\n${valeur}`)) return 'Ajout annulé.';
+      queueSave('notes', { ...stored.notes, text }, 'zvi');
+    } else return '';
+    return await flush() ? (type === 'note' ? 'Note ajoutée.' : 'Tâche ajoutée.') : 'Ajout effectué ici. L’enregistrement sera retenté.';
+  }
+  async function repondreZvi({ texte, fichiers }, signal, historique) {
+    const erreur = message => Object.assign(new Error(message), { name: 'ZviErreur' });
+    if (planActuel !== 'worker') throw erreur('Zvi est inclus dans Worker.');
+    const demande = texte.trim();
+    if (demande.length > 4000) throw erreur('Ton message dépasse 4 000 caractères.');
+    const fichier = fichiers?.[0];
+    let image;
+    if (fichier) {
+      if (!/^image\/(jpeg|png|webp)$/.test(fichier.type) || fichier.size > 3 * 1024 * 1024) {
+        throw erreur('Joins une image JPEG, PNG ou WebP de 3 Mo maximum.');
+      }
+      image = await new Promise((resolve, reject) => {
+        const lecteur = new FileReader();
+        lecteur.onload = () => resolve(lecteur.result);
+        lecteur.onerror = () => reject(erreur('L’image n’a pas pu être lue.'));
+        lecteur.readAsDataURL(fichier);
+      });
+    }
+    signal.throwIfAborted();
+    const r = await iaDemander(sb, {
+      travail: crypto.randomUUID(), type: 'zvi', texte: demande || 'Décris cette image.',
+      historique, image,
+    }, signal);
+    signal.throwIfAborted();
+    if (!r.ok) throw erreur(r.raison === 'fournisseur' ? 'Zvi est indisponible pour le moment. Réessaie dans un instant.' : r.message);
+    if (planActuel !== 'worker') throw erreur('Zvi est inclus dans Worker.');
+    const resultat = r.resultat;
+    if (typeof resultat?.texte !== 'string') throw erreur('La réponse de Zvi est illisible.');
+    const action = !image && resultat.action ? await actionZvi(resultat.action) : '';
+    return [resultat.texte, action].filter(Boolean).join('\n\n');
+  }
+  function configurerZvi() {
+    window.renzviZvi = planActuel === 'worker' ? repondreZvi : undefined;
+    document.dispatchEvent(new Event('renzvi:zvi'));
+  }
+  // L'îlot React est chargé à la demande pour Worker et le labo.
   function chargerZvi() {
+    configurerZvi();
     if ($('chat-ia-js')) return;
     document.head.append(Object.assign(document.createElement('link'), { rel: 'stylesheet', href: 'dash/chat-ia.css' }));
     document.body.append(Object.assign(document.createElement('script'), { id: 'chat-ia-js', src: 'dash/chat-ia.js', defer: true }));
@@ -5465,6 +5529,7 @@ if (!sb) {
     const plan = l.data.find(x => x.id === p.data);
     if (!plan || plan.id === 'gratuit') return;
     planActuel = plan.id;
+    configurerZvi();
     document.dispatchEvent(new Event('renzvi:plan'));
     if (planActuel === 'worker' && loaded) chargerZvi();
     if (loaded && screen.widgets.some(id => PAYANT.has(id) && !mounted.has(id))) {

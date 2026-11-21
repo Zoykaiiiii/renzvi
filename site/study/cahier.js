@@ -1063,6 +1063,25 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
   };
   document.addEventListener('renzvi:revoir', onRevoir);
 
+  const onZvi = ({ detail }) => {
+    if (apercu || box.dataset.widget !== 'cahier' || state !== 'ready') return;
+    if (job || importDialog?.open) { detail.message = 'Termine l’import en cours avant d’ouvrir un autre cours.'; return; }
+    if (box.closest('[inert]')) { detail.message = 'Ferme la vue agrandie avant d’ouvrir le cours.'; return; }
+    const replier = s => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().trim();
+    const titre = replier(detail.titre);
+    const exacts = courses.filter(c => replier(c.title) === titre);
+    const trouves = exacts.length ? exacts : courses.filter(c => replier(c.title).includes(titre));
+    if (trouves.length !== 1) {
+      detail.message = trouves.length ? 'Plusieurs cours correspondent. Précise le titre.' : 'Je ne trouve pas ce cours dans ton Cahier.';
+      return;
+    }
+    openCourse(trouves[0].id);
+    expand(true);
+    grow.focus({ preventScroll: true });
+    detail.message = `Cours « ${trouves[0].title} » ouvert.`;
+  };
+  if (!apercu) document.addEventListener('renzvi:zvi-cours', onZvi);
+
   const onSaved = e => {
     if (e.detail.widget !== 'cahier' || e.detail.from !== 'etude') return;
     const saved = peer('cahier');
@@ -1100,6 +1119,7 @@ function cahierWidget({ body, meta, data, save, user, sb, apercu, peer }) {
     document.removeEventListener('keydown', onKey);
     document.removeEventListener('selectionchange', onSelect);
     document.removeEventListener('renzvi:revoir', onRevoir);
+    document.removeEventListener('renzvi:zvi-cours', onZvi);
     document.removeEventListener('renzvi:donnees', onSaved);
     document.removeEventListener('renzvi:importer', onPrefill);
     document.removeEventListener('renzvi:cours', onClassified);

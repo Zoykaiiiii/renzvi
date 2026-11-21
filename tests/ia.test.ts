@@ -3,7 +3,7 @@
 import postgres from 'npm:postgres@3.4.5';
 import { assert, assertEquals } from 'jsr:@std/assert@1.0.8';
 import { traiter, type Base } from '../supabase/functions/ia/logique.ts';
-import { simule, type Fournisseur, ErreurFournisseur } from '../supabase/functions/ia/fournisseur.ts';
+import { creerFal, simule, type Fournisseur, ErreurFournisseur } from '../supabase/functions/ia/fournisseur.ts';
 
 const sql = postgres(Deno.env.get('DB_URL')!, { max: 10, prepare: false, onnotice: () => {} });
 const LEA = '00000000-0000-4000-8000-00000000000a', TOM = '00000000-0000-4000-8000-00000000000b', SANS = '00000000-0000-4000-8000-00000000000c';
@@ -162,6 +162,46 @@ test('aucune requête réseau du fournisseur simulé', async () => {
   try { await simule.generer({ type: 'cartes', texte: TEXTE }, AbortSignal.timeout(1000)); } finally { globalThis.fetch = vrai; }
   assertEquals(appels, 0);
   assert(new ErreurFournisseur('x', true) instanceof Error);
+});
+
+test('fal commun au Cahier et à Zvi, Worker vérifié avant tout appel et image sans action', async () => {
+  const appels: Record<string, unknown>[] = [];
+  const fournisseur = creerFal('cle-test', (_url, options) => {
+    assertEquals(new Headers(options?.headers).get('authorization'), 'Key cle-test');
+    const demande = JSON.parse(String(options?.body));
+    assertEquals(demande.model, 'qwen/qwen3.7-flash');
+    appels.push(demande);
+    const sortie = demande.messages[0].content.startsWith('Tu es Zvi')
+      ? { texte: 'Je peux ajouter cette tâche.', action: { type: 'tache', valeur: 'Réviser' } }
+      : { points: [{ texte: 'Elle produit de l’énergie.', citation: 'La mitochondrie produit l’énergie de la cellule.' }] };
+    return Promise.resolve(Response.json({ choices: [{ message: { content: JSON.stringify(sortie) } }], usage: { cost: 0.00042 } }));
+  });
+  const o = outils(fournisseur);
+  const chat = { type: 'zvi', texte: 'Ajoute une tâche pour réviser.' };
+  assertEquals((await appel('jeton-sans', { ...chat, travail: id() }, o)).raison, 'plan_worker');
+  assertEquals(appels.length, 0);
+  await sql`insert into public.abonnements (user_id, plan, statut, fin) values (${SANS}, 'worker', 'annule', now() - interval '1 hour')`;
+  assertEquals((await appel('jeton-sans', { ...chat, travail: id() }, o)).raison, 'plan_worker');
+  await sql`update public.abonnements set fin = now() + interval '1 hour' where user_id = ${SANS}`;
+  const travail = id();
+  const r = await appel('jeton-sans', { ...chat, travail }, o);
+  assertEquals([r.ok, r.credits, r.solde, r.resultat.action], [true, 0, 0, { type: 'tache', valeur: 'Réviser' }]);
+  const [trace] = await sql`select estimation_centimes::float as e, depense_centimes::float as d from public.ia_travaux where id = ${travail}`;
+  assertEquals([trace.e, trace.d], [1, 0.042]);
+  assertEquals((await appel('jeton-sans', { ...chat, travail }, o)).deja, true);
+  assertEquals(appels.length, 1);
+  assertEquals((await appel('jeton-sans', { ...chat, travail: id(), image: 'https://example.org/photo.jpg' }, o)).raison, 'entree');
+  const image = 'data:image/png;base64,iVBORw0KGgo=';
+  const photo = await appel('jeton-sans', { ...chat, travail: id(), image }, o);
+  assertEquals(photo.resultat.action, null);
+  const sortie = await appel('jeton-lea', { type: 'resume', texte: TEXTE, travail: id() }, o);
+  assertEquals(sortie.resultat.points[0].source.debut, 0);
+  assertEquals(appels.length, 3);
+  const delai = id();
+  const lenteur = creerFal('cle-test', () => new Promise(() => {}));
+  assertEquals((await appel('jeton-sans', { ...chat, travail: delai }, outils(lenteur, { delaiMs: 10 }))).statut, 502);
+  const [echec] = await sql`select tentatives, depense_centimes::float as d from public.ia_travaux where id = ${delai}`;
+  assertEquals([echec.tentatives, echec.d], [1, 1]);
 });
 
 addEventListener('unload', () => sql.end());

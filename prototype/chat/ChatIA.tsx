@@ -1,16 +1,16 @@
-// Chat du dashboard : sans service de réponse, les messages restent dans le fil local.
 // Le panneau n'est jamais démonté : fermer garde la conversation et le brouillon tant que la page est ouverte.
 import React from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import { PromptInputBox } from "@/components/ui/ai-prompt-box";
 import { LiveOrb, WEBGL_COLORS, type LiveOrbExpression } from "@/components/ui/live-orb";
 
-type Envoi = { texte: string; fichiers?: File[] };
+type Historique = { role: "user" | "assistant"; content: string }[];
+type Envoi = { texte: string; fichiers?: File[]; historique?: Historique };
 type Message = { id: number; texte: string } & (
   { role: "moi" | "note" | "zvi" } | { role: "erreur"; envoi: Envoi }
 );
 // Le service résout la promesse quand la réponse entière est prête.
-type Repondre = (envoi: Envoi, signal: AbortSignal) => Promise<string>;
+export type Repondre = (envoi: Envoi, signal: AbortSignal, historique: Historique) => Promise<string>;
 
 // Réglages du chat, choisis dans « Personnaliser le chat » et gardés sur cet appareil.
 // shortcut: localStorage seulement (pas suivi d'un appareil à l'autre) ; passer par le compte (LOOK du dashboard) si Damien le veut partout.
@@ -136,14 +136,15 @@ export function ChatIA({ repondre }: { repondre?: Repondre }) {
       setMsgs(m => m.filter(x => x.id !== retryId));
     }
     try {
-      const texte = await repondre(envoi, controller.signal);
+      const texte = await repondre(envoi, controller.signal, envoi.historique ?? []);
       if (request.current !== controller) return;
       const reply: Message = { id: ++id.current, role: "zvi", texte };
       setMsgs(m => [...m, reply]);
       reagir("replied");
-    } catch {
+    } catch (e) {
       if (request.current !== controller) return;
-      const error: Message = { id: ++id.current, role: "erreur", texte: "La réponse n’a pas abouti.", envoi };
+      const texte = e instanceof Error && e.name === "ZviErreur" ? e.message : "La réponse n’a pas abouti.";
+      const error: Message = { id: ++id.current, role: "erreur", texte, envoi };
       setMsgs(m => [...m, error]);
       reagir("error");
     } finally {
@@ -160,8 +161,10 @@ export function ChatIA({ repondre }: { repondre?: Repondre }) {
     const extra = files?.length ? ` (${files.length} image jointe)` : "";
     const sent: Message = { id: ++id.current, role: "moi", texte: message + extra };
     if (repondre) {
+      const historique: Historique = msgs.filter(m => m.role === "moi" || m.role === "zvi")
+        .slice(-6).map(m => ({ role: m.role === "moi" ? "user" : "assistant", content: m.texte.slice(0, 1500) }));
       setMsgs(m => [...m, sent]);
-      void demander({ texte: message, fichiers: files });
+      void demander({ texte: message, fichiers: files, historique });
     } else {
       const note: Message = { id: ++id.current, role: "note", texte: "Zvi n'est pas encore branché : ton message n'est parti nulle part." };
       setMsgs(m => [...m, sent, note]);

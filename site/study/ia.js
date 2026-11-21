@@ -5,6 +5,7 @@
 // Utilise el, button, plural, SUPABASE_URL, SUPABASE_KEY (dashboard.html) et cartesChanged, CARTES (cartes.js).
 const IA_MESSAGES = {
   session: 'Ta session a expiré : recharge la page et reconnecte-toi.',
+  plan_worker: 'Zvi est inclus dans Worker.',
   trop_de_travaux: 'Une génération est déjà en cours : attends qu’elle finisse.',
   trop_de_demandes: 'Beaucoup de demandes cette heure-ci : réessaie un peu plus tard.',
   budget_global: "L'IA est en pause pour aujourd'hui. Tes cours et tes cartes restent disponibles.",
@@ -26,8 +27,8 @@ async function iaInfos(sb) {
     const { data } = await sb.from('ia_prix').select('type,caracteres_par_credit,credits_min,credits_max,caracteres_max');
     if (data?.length) iaGrille = Object.fromEntries(data.map(p => [p.type, p]));
   }
-  const { data: w } = await sb.from('ia_portefeuilles').select('solde').maybeSingle();
-  return { grille: iaGrille, solde: w?.solde ?? null };
+  const { data: w } = await sb.from('ia_portefeuilles').select('solde,decouverte_donnee').maybeSingle();
+  return { grille: iaGrille, solde: w && (w.solde > 0 || w.decouverte_donnee) ? w.solde : null };
 }
 function iaCout(grille, type, caracteres) {
   const p = grille?.[type];
@@ -38,12 +39,12 @@ async function iaPrecedent(sb, type, cle) {
   const { data } = await sb.from('ia_travaux').select('id,resultat,created_at').eq('type', type).eq('cle', cle).eq('etat', 'reussi').order('created_at', { ascending: false }).limit(1);
   return data?.[0] ?? null;
 }
-async function iaDemander(sb, corps) {
+async function iaDemander(sb, corps, signal) {
   const { data } = await sb.auth.getSession();
   const jeton = data?.session?.access_token;
   if (!jeton) return { ok: false, raison: 'session', message: IA_MESSAGES.session };
   try {
-    const r = await fetch(`${SUPABASE_URL}/functions/v1/ia`, { method: 'POST', headers: { authorization: `Bearer ${jeton}`, apikey: SUPABASE_KEY, 'content-type': 'application/json' }, body: JSON.stringify(corps) });
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/ia`, { method: 'POST', signal, headers: { authorization: `Bearer ${jeton}`, apikey: SUPABASE_KEY, 'content-type': 'application/json' }, body: JSON.stringify(corps) });
     const j = await r.json().catch(() => ({ ok: false, raison: r.status === 401 ? 'session' : 'fournisseur' }));
     return j.ok ? j : { ...j, message: iaMessage(j) };
   } catch { return { ok: false, raison: 'reseau', message: IA_MESSAGES.reseau }; }

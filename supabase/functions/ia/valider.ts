@@ -26,10 +26,21 @@ export function retrouver(texte: string, citation: unknown): { debut: number; lo
 
 export class SortieInvalide extends Error {}
 
-export function valider(type: string, brute: unknown, texte: string) {
+const ACTIONS_ZVI = new Map([['tache', 140], ['note', 1500], ['cours', 200], ['mode', 200]]);
+
+export function valider(type: string, brute: unknown, texte: string, avecImage = false) {
   let s: Record<string, unknown>;
   try { s = typeof brute === 'string' ? JSON.parse(brute.replace(/^```(?:json)?\s*|\s*```$/g, '')) : brute as Record<string, unknown>; } catch { throw new SortieInvalide('réponse illisible'); }
   if (!s || typeof s !== 'object') throw new SortieInvalide('réponse vide');
+  if (type === 'zvi') {
+    const texte = typeof s.texte === 'string' ? s.texte.trim().slice(0, 4000) : '';
+    if (!texte) throw new SortieInvalide('message absent');
+    const choix = s.action as { type?: string; valeur?: string } | null;
+    const max = choix?.type ? ACTIONS_ZVI.get(choix.type) : undefined;
+    const valeur = typeof choix?.valeur === 'string' ? choix.valeur.trim() : '';
+    const action = !avecImage && max && valeur && valeur.length <= max ? { type: choix!.type, valeur } : null;
+    return { texte, action };
+  }
   const source = (citation: unknown) => { const r = retrouver(texte, citation); return r ? { citation: court(citation, 200), ...r } : null; };
   if (type === 'cartes') {
     if (!Array.isArray(s.cartes)) throw new SortieInvalide('cartes absentes');

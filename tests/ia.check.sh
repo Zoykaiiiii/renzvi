@@ -20,4 +20,9 @@ grant select on all tables in schema public to authenticated;
 alter default privileges in schema public grant select, insert, update, delete on tables to anon, authenticated;
 SQL
 docker exec -i "$name" psql -q -v ON_ERROR_STOP=1 -U postgres < supabase/migrations/20261109000300_ia_credits.sql
+docker exec -i "$name" psql -q -v ON_ERROR_STOP=1 -U postgres <<'SQL'
+alter table public.ia_reglages add column decouvertes_par_jour integer not null default 50;
+SQL
+docker exec -i "$name" psql -q -v ON_ERROR_STOP=1 -U postgres < supabase/migrations/20261115000000_abonnements.sql
+docker exec -i "$name" psql -q -v ON_ERROR_STOP=1 -U postgres < supabase/migrations/20261121165404_zvi_ia.sql
 docker run --rm --network "$name" -v "$PWD:/app" -w /app -e DB_URL="postgres://postgres:test@$name:5432/postgres" -e DENO_DIR=/app/.deno-cache denoland/deno:2.1.4 test -A tests/ia.test.ts

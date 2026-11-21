@@ -149,6 +149,40 @@ const { dispose } = require('./menu.cjs');
     await context.close();
   }
 
+  // Le dashboard Worker utilise la session et n'ajoute que les tâches acceptées.
+  {
+    const bac = srv.bac('plein', 'workerzvi');
+    bac.abonnement = { plan: 'worker', statut: 'actif' };
+    const requetes = [];
+    const { page, context } = await open({ width: 1440, height: 900 }, 'workerzvi', {
+      labo: 0,
+      prepare: page => page.route('**/functions/v1/ia', async route => {
+        const req = route.request();
+        assert.match(req.headers().authorization, /^Bearer /);
+        assert.equal(req.headers().authorization.includes('FAL_KEY'), false);
+        const corps = req.postDataJSON();
+        requetes.push(corps);
+        await route.fulfill({ json: { ok: true, resultat: { texte: 'Je peux préparer ta révision.', action: { type: 'tache', valeur: 'Réviser avec Zvi' } } } });
+      }),
+    });
+    await launch(page).click();
+    page.once('dialog', dialog => dialog.dismiss());
+    await field(page).fill('Ajoute Réviser avec Zvi.');
+    await panel(page).getByRole('button', { name: 'Envoyer' }).click();
+    await panel(page).getByText(/Ajout annulé/).waitFor();
+    assert.equal(await page.getByRole('checkbox', { name: 'Réviser avec Zvi', exact: true }).count(), 0);
+    page.once('dialog', dialog => dialog.accept());
+    await field(page).fill('Ajoute-la maintenant.');
+    await panel(page).getByRole('button', { name: 'Envoyer' }).click();
+    await panel(page).getByText(/Tâche ajoutée/).waitFor();
+    assert.equal(requetes.length, 2);
+    assert.equal(requetes[1].type, 'zvi');
+    assert.equal(requetes[1].historique[0].content, 'Ajoute Réviser avec Zvi.');
+    assert.equal(await page.getByRole('checkbox', { name: 'Réviser avec Zvi', exact: true }).count(), 1);
+    assert.equal(bac.rows.taches.items[0].text, 'Réviser avec Zvi');
+    await context.close();
+  }
+
   // Réponses pilotées par le service, dont les résultats tardifs après annulation.
   {
     const prototype = path.join(__dirname, '..', 'prototype');
