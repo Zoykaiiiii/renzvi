@@ -11,12 +11,12 @@ const { openMe, showMenu, custom } = require('./menu.cjs');
   const srv = await start();
   const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--use-gl=angle'] });
   const errors = [];
-  const open = async (bac, plan) => {
+  const open = async (bac, plan, query = '') => {
     if (plan) srv.bac('plein', bac).abonnement = { plan, statut: 'actif', fin: null };
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await context.newPage();
     page.on('pageerror', e => errors.push(e.message));
-    await page.goto(`${srv.url}/dashboard.html?profil=plein&bac=${bac}`);
+    await page.goto(`${srv.url}/dashboard.html?profil=plein&bac=${bac}${query}`);
     await page.waitForSelector('#board .widget:not([hidden])');
     if (plan) await page.waitForFunction(() => document.getElementById('plan-nom').textContent !== 'Gratuit');
     return { page, context };
@@ -76,6 +76,25 @@ const { openMe, showMenu, custom } = require('./menu.cjs');
     await page.waitForSelector('#paywall[open]');
     assert.equal(await cards(page).nth(1).locator('.pw-now').textContent(), 'Ton plan actuel');
     assert.equal(await cards(page).nth(0).getByRole('button').count(), 0, 'pas de bouton sur Gratuit');
+    await context.close();
+  }
+
+  // Le retour peut être saisi par n'importe qui. Les droits suivent uniquement la lecture Supabase.
+  {
+    const { page, context } = await open('whop', null, '&whop-test=1&whop=retour');
+    await page.waitForFunction(() => document.querySelector('.retrait-notice').textContent.includes('confirmation'));
+    assert.equal(await page.locator('#plan-nom').textContent(), 'Gratuit');
+    await openMe(page);
+    await page.locator('#plan-nom').click();
+    const url = 'https://sandbox.whop.com/checkout/ch_fixture/';
+    await page.route('**/functions/v1/whop/checkout', async route => {
+      assert.match(route.request().headers().authorization, /^Bearer /);
+      assert.equal(route.request().method(), 'POST');
+      await route.fulfill({ json: { url } });
+    });
+    await page.route(url, route => route.fulfill({ body: 'Checkout de test' }));
+    await page.getByRole('button', { name: 'Tester Pro avec Whop' }).click();
+    await page.waitForURL(url);
     await context.close();
   }
 

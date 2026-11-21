@@ -813,6 +813,11 @@ Damien a confié à Codex la préparation technique des prompts pour pouvoir se 
 - Le catalogue et la gestion des Favoris ont une entrée courte avec fondu du voile. Le catalogue anime uniquement l’aperçu lors d’une nouvelle sélection. Depuis Aujourd’hui, la fiche d’un rendez-vous attend l’ouverture de l’Agenda agrandi.
 - Les parcours clavier, souris et tactiles sont couverts par `tests/sidebar-openings.check.cjs`. La variable `VIDEO` permet d’enregistrer un passage entre deux pages.
 
+## 43. Whop Sandbox — Codex, 21 novembre 2026
+
+- Pro peut être testé depuis un aperçu configuré avec un Supabase séparé. La fonction `whop` lie le checkout au compte authentifié. Un paiement Whop signé et rattaché au checkout ouvre Pro dans `abonnements`. Une annulation programmée conserve l’accès jusqu’à l’échéance.
+- Le guide [supabase/whop.md](supabase/whop.md) détaille les variables et le parcours Sandbox. Vérifié avec deux comptes Auth sur Supabase local et des notifications Whop simulées signées. Le compte vendeur Whop Sandbox reste à vérifier avec ses accès.
+
 ## 44. Langue de l’interface — Codex, 21 novembre 2026
 
 - Un sélecteur partagé entre l’accueil, la connexion, le tableau et les pages légales mémorise la langue dans le navigateur. Il utilise l’API Translator du navigateur, avec 39 choix selon les modèles disponibles. Le français reste la langue source. Sur un navigateur sans cette API, le sélecteur indique la traduction de page du navigateur.

@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette du dashboard · Renzvi</title>
+<style>
+@font-face{font-family:Hanken;src:url(../site/fonts/hanken-grotesk-latin.woff2);font-weight:100 900;font-display:swap}
+@font-face{font-family:Instrument;src:url(../site/fonts/instrument-serif-latin.woff2);font-display:swap}
+:root{color-scheme:light;--ink:#181e20;--muted:#465257;--accent:#1c5699;--surface:#f6f9fa;--line:#35484b2b}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;color:var(--ink);font:16px/1.45 Hanken,system-ui,sans-serif;background:#d7e3e7}
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:#d7e3e7 url(../site/assets/misty-morning-by-bohinj-lake-3849327601.jpg) center/cover no-repeat}
+body[data-mode="chill"]::before{background-image:url(../site/assets/lake-mapourika-nz.jpg)}
+button,input{font:inherit}
+button{cursor:pointer;color:inherit;min-height:44px;border:0;background:none}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+button[aria-pressed="true"],button[aria-current="page"]{background:#e0e6e9;color:var(--ink)}
+h1,h2,p{margin:0}
+h1{font-size:27px;line-height:1.15;letter-spacing:-.035em}
+h2{font-size:18px;line-height:1.22}
+small,.muted{color:var(--muted)}
+header{background:#f5f8fa;color:var(--ink)}
+.top,.workspace,.preview-inner{width:min(100% - 48px,1056px);margin-inline:auto}
+.top{min-height:68px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:9px;font-size:22px;font-weight:750;letter-spacing:-.07em}
+.mark{display:grid;grid-template-columns:repeat(2,8px);gap:2px}
+.mark i{width:8px;height:8px;border-radius:2px;background:currentColor;opacity:.23}
+.mark i:first-child{opacity:1}
+.modes,.pages,.durations{display:flex;gap:4px}
+.modes button,.pages button,.durations button{padding:0 14px;border-radius:7px;font-weight:650}
+.workspace{padding-block:42px 38px}
+.glass,.solid,.page-row,.preview{border:1px solid #fff9;border-radius:12px}
+.glass{background:#eff5f7df;backdrop-filter:blur(16px)}
+.solid{background:#f8fafb}
+.intro{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 8px 7px 18px;margin-bottom:14px}
+.pages button{color:var(--muted)}
+.layout{display:grid;grid-template-columns:1.48fr 1fr;gap:14px;align-items:start}
+.column{display:grid;gap:12px}
+.card{padding:21px}
+.meta{font-size:14px;color:var(--muted)}
+.course{display:grid;gap:16px}
+.course h2,.onboard h1,.breathing h2{font:400 clamp(31px,5vw,44px)/1 Instrument,Georgia,serif;letter-spacing:-.02em}
+.course .sheet{padding:16px 18px;background:#ecefea;border-radius:7px}
+.course .sheet p{font:400 23px/1.1 Instrument,Georgia,serif}
+.progress{display:flex;align-items:center;gap:12px;margin-top:8px}
+progress{width:100%;height:7px;appearance:none;border:0;background:#dce3e4;border-radius:8px;overflow:hidden}
+progress::-webkit-progress-bar{background:#dce3e4}
+progress::-webkit-progress-value{background:var(--accent)}
+progress::-moz-progress-bar{background:var(--accent)}
+.progress small{white-space:nowrap}
+.primary,.secondary{display:inline-flex;align-items:center;justify-content:center;padding:0 16px;border-radius:7px;font-weight:700;width:fit-content}
+.primary{background:var(--ink);color:white}
+.primary:hover{background:#303e45}
+.secondary{border:1px solid var(--line)}
+.secondary:hover,.modes button:hover,.pages button:hover,.durations button:hover{background:#e1e7eb}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.row + .row{border-top:1px solid var(--line);margin-top:9px;padding-top:9px}
+.row h2{font-size:16px}
+.row .meta{margin-top:3px}
+.task{display:flex;align-items:center;gap:9px;min-height:44px}
+input[type="checkbox"],input[type="range"]{accent-color:var(--accent)}
+.task input{width:17px;height:17px}
+.task:has(input:checked) span{text-decoration:line-through;color:var(--muted)}
+.card > .meta + .primary,.card > h2 + .meta{margin-top:8px}
+.breathing{display:grid;grid-template-columns:1fr minmax(96px,145px);align-items:center;gap:16px}
+.durations{margin:10px 0 12px}
+.durations button{padding:0 9px;font-size:14px}
+.ring{width:100%;aspect-ratio:1;border:1px solid #89a6b4;border-radius:50%;background:#e4edf1;display:grid;place-items:center;color:#2b4d59;font-size:14px}
+.ring[data-active="true"]{animation:breathe 8s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(.85)}50%{transform:scale(1)}}
+.range{display:grid;grid-template-columns:85px 1fr;gap:8px;align-items:center;min-height:44px}
+.range input{width:100%}
+.onboard{width:min(100%,515px);margin:15px auto;padding:26px}
+.onboard p{margin-block:10px 14px}
+.choice{display:flex;align-items:center;justify-content:space-between;text-align:left;background:#eef2f3;border-radius:7px;width:100%;padding:12px 14px;margin-top:8px}
+.choice strong,.choice small{display:block}
+.choice:hover{background:#e1e7eb}
+.preview{width:min(100% - 48px,1056px);margin:0 auto 20px;background:#f5f8fa}
+.preview-inner{width:auto;padding:5px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:14px}
+.preview span,.preview a{padding:0 8px;color:var(--muted)}
+.preview a{margin-left:auto}
+.preview button{padding:0 9px;border-radius:7px}
+.preview button:hover{background:#e0e6e9}
+dialog{width:min(100% - 32px,480px);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:22px;background:var(--surface)}
+dialog::backdrop{background:#17262880}
+dialog h2{margin:8px 0}
+dialog p{margin-block:4px 14px}
+dialog form{display:grid;gap:10px}
+dialog input{width:100%;margin-bottom:6px}
+@media(max-width:640px){
+  .top,.workspace,.preview{width:calc(100% - 28px)}
+  .top{min-height:57px}
+  .workspace{padding-block:17px 18px}
+  .intro{margin-bottom:10px;padding-left:12px}
+  h1{font-size:22px}
+  .layout{grid-template-columns:1fr;gap:10px}
+  .column{gap:10px}
+  .card{padding:15px}
+  .course{gap:12px}
+  .course .sheet{padding:12px 14px}
+  .breathing{grid-template-columns:1fr minmax(76px,100px);gap:6px}
+  .onboard{margin-top:12px;padding:20px}
+  .preview-inner{padding:5px}
+  .preview span{width:100%;padding-top:4px}
+}
+@media(prefers-reduced-motion:reduce){.ring[data-active="true"]{animation:none}}
+</style>
+</head>
+<body data-mode="study">
+<header>
+  <div class="top">
+    <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Renzvi</div>
+    <nav class="modes" aria-label="Modes">
+      <button type="button" data-view="cours" data-mode-button="study" aria-pressed="true">Study</button>
+      <button type="button" data-view="chill" data-mode-button="chill" aria-pressed="false">Chill</button>
+    </nav>
+  </div>
+</header>
+<main class="workspace">
+  <div class="intro glass" id="intro">
+    <h1 id="greeting" tabindex="-1">Bonjour Léa.</h1>
+    <nav class="pages" id="pages" aria-label="Pages Study">
+      <button type="button" data-view="cours" data-page="cours" aria-current="page">Cours</button>
+      <button type="button" data-view="focus" data-page="focus">Focus</button>
+    </nav>
+  </div>
+
+  <section class="layout" data-panel="cours" aria-label="Cours">
+    <article class="card solid course" id="active-course">
+      <div>
+        <p class="meta">Cahier · Biologie</p>
+        <h2>La cellule</h2>
+      </div>
+      <div class="sheet">
+        <p>La membrane plasmique</p>
+        <div class="progress"><progress value="2" max="4" aria-label="Chapitres lus"></progress><small>Chapitre 3 sur 4</small></div>
+      </div>
+      <button class="primary" type="button" data-dialog="chapter">Reprendre le chapitre <span aria-hidden="true">&nbsp;→</span></button>
+    </article>
+    <article class="card solid" id="empty-course" hidden>
+      <h2>Ton premier cours</h2>
+      <p class="meta">Ajoute un PDF ou importe du texte dans ton cahier.</p>
+      <button class="primary" type="button" data-dialog="importer">Importer un cours</button>
+    </article>
+    <div class="column">
+      <article class="card glass">
+        <div class="row">
+          <div><h2>Révisions du jour</h2><p class="meta" id="review-text">1 carte à revoir</p></div>
+          <button class="secondary" id="review-button" type="button" data-dialog="revision">Réviser</button>
+        </div>
+      </article>
+      <article class="card glass">
+        <div class="row"><div><h2>Tâches</h2><p class="meta">Sur ta page Focus</p></div><button type="button" data-view="focus" class="secondary">Voir les tâches</button></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="layout" data-panel="focus" aria-label="Focus" hidden>
+    <article class="card solid">
+      <h2>Minuteur</h2>
+      <p class="meta">Session de focus · 25 min</p>
+      <button class="primary" type="button" id="focus-start">Lancer le focus</button>
+    </article>
+    <article class="card glass">
+      <h2>Tâches</h2>
+      <label class="task"><input type="checkbox"><span>Relire le chapitre sur la cellule</span></label>
+      <label class="task"><input type="checkbox"><span>Préparer les questions du prochain TD</span></label>
+    </article>
+  </section>
+
+  <section class="layout" data-panel="chill" aria-label="Chill" hidden>
+    <article class="card solid breathing">
+      <div>
+        <h2>Respiration guidée</h2>
+        <div class="durations" role="group" aria-label="Durée de la respiration">
+          <button type="button" data-duration="1" aria-pressed="false">1 min</button>
+          <button type="button" data-duration="3" aria-pressed="true">3 min</button>
+          <button type="button" data-duration="5" aria-pressed="false">5 min</button>
+        </div>
+        <button class="primary" type="button" id="breathe-start">Commencer</button>
+      </div>
+      <div class="ring" id="breathing-ring" aria-hidden="true">Prêt ?</div>
+    </article>
+    <div class="column">
+      <article class="card glass">
+        <h2>Ambiance sonore</h2>
+        <p class="meta">Aperçu des réglages sonores</p>
+        <label class="range">Pluie <input type="range" value="35" disabled></label>
+        <label class="range">Vent <input type="range" value="0" disabled></label>
+      </article>
+      <article class="card glass">
+        <h2>Suivi de lecture</h2>
+        <p class="meta">Le Comte de Monte-Cristo · page 320 sur 1 200</p>
+        <div class="progress"><progress value="320" max="1200" aria-label="Progression dans le livre"></progress></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="onboard solid" data-panel="debut" aria-labelledby="welcome" hidden>
+    <h1 id="welcome" tabindex="-1">Que veux-tu faire d’abord ?</h1>
+    <p class="meta">Ton bureau s’ouvre avec les outils qu’il te faut. Tu pourras choisir ton fond ensuite.</p>
+    <button type="button" class="choice" data-view="vide"><span><strong>Réviser un cours</strong><small>Ouvre ton cahier Study et importe ton premier cours.</small></span><span aria-hidden="true">→</span></button>
+    <button type="button" class="choice" data-view="focus"><span><strong>Lancer une session focus</strong><small>Retrouve le minuteur et ta liste de tâches.</small></span><span aria-hidden="true">→</span></button>
+  </section>
+</main>
+
+<aside class="preview" aria-label="Commandes de la maquette">
+  <div class="preview-inner">
+    <span>Maquette · Données de démo</span>
+    <button type="button" data-view="cours" data-example="cours" aria-pressed="true">Avec un cours</button>
+    <button type="button" data-view="vide" data-example="vide" aria-pressed="false">Sans cours</button>
+    <button type="button" data-view="debut" data-example="debut" aria-pressed="false">Premier démarrage</button>
+    <a href="../site/assets/credits.json">Crédits photo</a>
+  </div>
+</aside>
+
+<dialog id="chapter" aria-labelledby="chapter-title">
+  <h2 id="chapter-title">La membrane plasmique</h2>
+  <p>La membrane plasmique délimite la cellule et contrôle une partie de ses échanges avec son environnement.</p>
+  <form method="dialog"><button class="secondary">Fermer le cahier</button></form>
+</dialog>
+<dialog id="importer" aria-labelledby="import-title">
+  <h2 id="import-title">Importer un cours</h2>
+  <p>Dans cette maquette, tu peux ouvrir un cours d’exemple.</p>
+  <form method="dialog"><button class="primary" type="submit" data-view="cours">Ouvrir le cours d’exemple</button><button class="secondary">Fermer</button></form>
+</dialog>
+<dialog id="revision" aria-labelledby="review-title">
+  <h2 id="review-title">Révisions du jour</h2>
+  <details><summary>Quel est le rôle de la membrane plasmique ?</summary><p>Elle délimite la cellule et régule les échanges avec son environnement.</p></details>
+  <form method="dialog"><button class="secondary">Fermer</button></form>
+</dialog>
+<script>
+const panels = document.querySelectorAll('[data-panel]');
+const viewButtons = document.querySelectorAll('[data-view]');
+const pages = document.querySelector('#pages');
+const intro = document.querySelector('#intro');
+const greeting = document.querySelector('#greeting');
+const activeCourse = document.querySelector('#active-course');
+const emptyCourse = document.querySelector('#empty-course');
+const reviewText = document.querySelector('#review-text');
+const reviewButton = document.querySelector('#review-button');
+let studyView = 'cours';
+
+function showView(view) {
+  const study = view !== 'chill' && view !== 'debut';
+  const panel = view === 'vide' ? 'cours' : view;
+  if (view === 'cours' || view === 'vide') studyView = view;
+  for (const section of panels) section.hidden = section.dataset.panel !== panel;
+  document.body.dataset.mode = view === 'chill' ? 'chill' : 'study';
+  intro.hidden = view === 'debut';
+  pages.hidden = !study;
+  greeting.textContent = view === 'chill' ? 'Chill' : 'Bonjour Léa.';
+  const empty = view === 'vide';
+  activeCourse.hidden = empty;
+  emptyCourse.hidden = !empty;
+  reviewText.textContent = empty ? 'Aucune carte à revoir' : '1 carte à revoir';
+  reviewButton.hidden = empty;
+  for (const button of viewButtons) {
+    if (button.dataset.modeButton) button.setAttribute('aria-pressed', study ? button.dataset.modeButton === 'study' : button.dataset.modeButton === view);
+    if (button.dataset.example) button.setAttribute('aria-pressed', button.dataset.example === view);
+    if (button.dataset.page) {
+      if (button.dataset.page === panel) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
+    }
+  }
+}
+
+for (const button of viewButtons) {
+  button.addEventListener('click', () => {
+    const courseTab = button.dataset.page === 'cours' || button.dataset.modeButton === 'study';
+    showView(courseTab ? studyView : button.dataset.view);
+    if (button.dataset.view === 'debut') {
+      document.querySelector('#welcome').focus();
+    } else if (button.closest('[data-panel]')) {
+      const target = document.querySelector('[aria-current="page"]') || greeting;
+      target.focus();
+    }
+  });
+}
+for (const button of document.querySelectorAll('[data-dialog]')) {
+  button.addEventListener('click', () => document.getElementById(button.dataset.dialog).showModal());
+}
+
+const focusStart = document.querySelector('#focus-start');
+focusStart.addEventListener('click', () => {
+  const running = focusStart.textContent === 'Lancer le focus';
+  focusStart.textContent = running ? 'Arrêter le focus' : 'Lancer le focus';
+  focusStart.previousElementSibling.textContent = running ? 'Session en cours · 25 min' : 'Session de focus · 25 min';
+});
+
+const durations = document.querySelectorAll('[data-duration]');
+const breathe = document.querySelector('#breathe-start');
+const ring = document.querySelector('#breathing-ring');
+let breathingTimer;
+function stopBreathing() {
+  window.clearTimeout(breathingTimer);
+  ring.dataset.active = 'false';
+  ring.textContent = 'Prêt ?';
+  breathe.textContent = 'Commencer';
+}
+for (const button of durations) {
+  button.addEventListener('click', () => {
+    stopBreathing();
+    for (const duration of durations) duration.setAttribute('aria-pressed', duration === button);
+  });
+}
+breathe.addEventListener('click', () => {
+  if (ring.dataset.active === 'true') {
+    stopBreathing();
+    return;
+  }
+  ring.dataset.active = 'true';
+  ring.textContent = 'Respire';
+  breathe.textContent = 'Arrêter';
+  const minutes = Number(document.querySelector('[data-duration][aria-pressed="true"]').dataset.duration);
+  breathingTimer = window.setTimeout(stopBreathing, minutes * 60_000);
+});
+</script>
+</body>
+</html>

@@ -125,7 +125,7 @@ function start(port = 0) {
         // Plans et abonnement (supabase/migrations/20261115000000_abonnements.sql). Un test règle b.abonnement ;
         // la règle « en vigueur » est simplifiée ici : la vraie est testée par tests/rls.check.sql.
         if (table.startsWith('plans')) return json(res, 200, [{ id: 'gratuit', nom: 'Gratuit', prix_mensuel_ttc_centimes: 0 }, { id: 'pro', nom: 'Pro', prix_mensuel_ttc_centimes: 999 }, { id: 'worker', nom: 'Worker', prix_mensuel_ttc_centimes: 1799 }]);
-        if (table === 'rpc/renzvi_plan') return json(res, 200, b.abonnement && (!b.abonnement.fin || new Date(b.abonnement.fin) > new Date()) ? b.abonnement.plan : 'gratuit');
+        if (table === 'rpc/renzvi_plan') return json(res, 200, b.abonnement && b.abonnement.statut !== 'expire' && (!b.abonnement.fin || new Date(b.abonnement.fin) > new Date()) ? b.abonnement.plan : 'gratuit');
         if (table.startsWith('abonnements')) return json(res, 200, b.abonnement ? [b.abonnement] : []);
         // Les tables Study et IA sont vides ici : les widgets montrent leur état de départ.
         return json(res, req.method === 'POST' ? 201 : 200, [], { 'content-range': '*/0' });
@@ -156,7 +156,8 @@ function start(port = 0) {
         const html = fs.readFileSync(file, 'utf8');
         if (!html.includes(REAL_URL)) throw new Error('SUPABASE_URL introuvable dans dashboard.html : le serveur de démo doit être mis à jour');
         res.writeHead(200, { 'content-type': TYPES['.html'], 'cache-control': 'no-store' });
-        return res.end(html.replace(REAL_URL, 'const SUPABASE_URL = location.origin;').replace('<head>', `<head>${SESSION}`));
+        const dashboard = html.replace(REAL_URL, 'const SUPABASE_URL = location.origin;').replace('<head>', `<head>${SESSION}`);
+        return res.end(url.searchParams.has('whop-test') ? dashboard.replace('const WHOP_TEST = false;', 'const WHOP_TEST = true;') : dashboard);
       }
       res.writeHead(200, { 'content-type': TYPES[path.extname(file)] || 'application/octet-stream', 'cache-control': 'no-store' });
       fs.createReadStream(file).pipe(res);

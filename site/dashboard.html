@@ -1407,6 +1407,7 @@ dialog.settings,dialog.settings :is(h2,h3,h4){font-family:var(--marque)}
 // Clé publique par conception : ce sont les règles de sécurité de la base qui protègent les données.
 const SUPABASE_URL = 'https://xjkmztfsyyccveaeyzov.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_-RJvqWleUNCM9vu5TumV6w_r2SUd8mQ';
+const WHOP_TEST = false;
 // Limites choisies pour rester sous les 64 Ko par widget imposés par la base, même en caractères spéciaux.
 const MAX_TASKS = 100, MAX_TASK_LENGTH = 140, MAX_HABITS = 12, MAX_HABIT_LENGTH = 60, MAX_NOTES_LENGTH = 15000;
 const SAVE_DELAY = 600, SAVE_RETRY = 5000;
@@ -5409,39 +5410,88 @@ if (!sb) {
     $('ref-info').textContent = `Ton code : ${referral.referral_code} · ${plural(referral.referral_count, 'filleul')}`;
     $('ref-count').textContent = plural(referral.referral_count, 'filleul');
   }
-  // Le plan du compte (supabase/migrations/20261115000000_abonnements.sql) : Gratuit, Pro ou Worker, lu à l'ouverture du
-  // menu. Aucun paiement n'est branché et rien n'est encore réservé à un plan. Sans la migration, ou en panne : Gratuit.
+  // Le plan en vigueur vient de Supabase, y compris au retour du checkout de test.
   // Réservé à Pro : renvoie true (et ouvre les plans) si le compte est en Gratuit.
   function verrou(raison) {
     if (debloque()) return false;
     openPaywall(raison);
     return true;
   }
-  let planLu = false;
-  async function loadPlan() {
-    if (planLu) return;
+  let planRequest, planDeadline;
+  function loadPlan() {
+    return planRequest ??= readPlan().finally(() => { planRequest = null; });
+  }
+  async function readPlan() {
     const [p, a, l] = await Promise.all([sb.rpc('renzvi_plan'), sb.from('abonnements').select('plan,statut,fin').maybeSingle(), sb.from('plans').select('id,nom,prix_mensuel_ttc_centimes')]);
     if (p.error || l.error || !Array.isArray(l.data)) return;
-    planLu = true;
     for (const x of l.data) if (PLANS[x.id]) PLANS[x.id].prix = x.prix_mensuel_ttc_centimes;
     const plan = l.data.find(x => x.id === p.data);
-    if (!plan || plan.id === 'gratuit') return;
+    if (!plan || !PLANS[plan.id]) return;
+    const changed = planActuel !== plan.id;
     planActuel = plan.id;
-    configurerZvi();
-    document.dispatchEvent(new Event('renzvi:plan'));
-    if (planActuel === 'worker' && loaded) chargerZvi();
-    if (loaded && screen.widgets.some(id => PAYANT.has(id) && !mounted.has(id))) {
+    if (changed) configurerZvi();
+    if (changed) document.dispatchEvent(new Event('renzvi:plan'));
+    if (changed && planActuel === 'worker' && loaded) chargerZvi();
+    if (changed && loaded) {
+      for (const id of mounted.keys()) if (verrouille(id)) unmount(id);
       for (const id of screen.widgets) if (!mounted.has(id)) mount(WIDGETS.find(w => w.id === id), screenUser);
       drawPages();
     }
     $('plan-nom').textContent = plan.nom;
+    clearTimeout(planDeadline);
+    if (plan.id === 'gratuit') {
+      $('plan-info').textContent = 'Tu es en Gratuit.';
+      return plan.id;
+    }
     const prix = (plan.prix_mensuel_ttc_centimes / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
     const ab = a.error ? null : a.data, fin = ab?.fin ? new Date(ab.fin).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
     const quand = !fin ? '' : ab.statut === 'annule' ? ` · résilié, actif jusqu'au ${fin}` : ab.statut === 'essai' ? ` · essai jusqu'au ${fin}` : ` · renouvellement le ${fin}`;
     $('plan-info').textContent = `${prix} TTC par mois${quand}.`;
+    if (WHOP_TEST && ab?.fin) {
+      const delay = Date.parse(ab.fin) - Date.now();
+      if (delay > 0) planDeadline = setTimeout(loadPlan, Math.min(delay + 500, 2 ** 31 - 1));
+    }
+    return plan.id;
   }
   $('menu').addEventListener('toggle', e => { if (e.newState === 'open') { loadReferral(); loadPlan(); } });
   loadPlan(); // au démarrage aussi : les cadenas du catalogue en dépendent
+  if (WHOP_TEST) {
+    addEventListener('focus', loadPlan);
+    const returned = new URL(location.href);
+    if (returned.searchParams.get('whop') === 'retour') {
+      returned.searchParams.delete('whop');
+      history.replaceState(history.state, '', returned);
+      notice(renzviT('whopPending'), false);
+      (async () => {
+        for (let attempt = 0; attempt < 8; attempt++) {
+          if (await loadPlan() === 'pro') {
+            notice(renzviT('whopConfirmed'), false);
+            break;
+          }
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+      })();
+    }
+  }
+
+  async function openWhopTest(button) {
+    button.disabled = true;
+    $('pw-note').textContent = renzviT('whopOpening');
+    try {
+      const { data } = await sb.auth.getSession();
+      if (!data.session) throw new Error();
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/whop/checkout`, {
+        method: 'POST', headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${data.session.access_token}` },
+      });
+      if (!response.ok) throw new Error();
+      const url = new URL((await response.json()).url);
+      if (url.origin !== 'https://sandbox.whop.com') throw new Error();
+      location.assign(url);
+    } catch {
+      $('pw-note').textContent = renzviT('whopUnavailable');
+      button.disabled = false;
+    }
+  }
 
   $('plan-nom').onclick = $('plan-plans').onclick = () => openPaywall();
   let pixels = [];
@@ -5450,7 +5500,7 @@ if (!sb) {
     $('add-dialog').close();
     $('settings').close();
     $('pw-why').textContent = raison ? `${raison} fait partie de Pro. Prix TTC, par mois, sans engagement.` : 'Prix TTC, par mois, sans engagement.';
-    $('pw-note').textContent = '';
+    $('pw-note').textContent = WHOP_TEST ? renzviT('whopTestNote') : '';
     const check = '<svg viewBox="0 0 16 20" aria-hidden="true"><path d="M3 10.5l3.200 3.200L13 7"/></svg>';
     const cards = Object.entries(PLANS).map(([id, plan]) => {
       const card = el('article', `pw-card pw-${id}`);
@@ -5463,6 +5513,10 @@ if (!sb) {
       for (const f of plan.inclus) { const li = el('li'); li.innerHTML = check; li.append(el('span', '', f)); list.append(li); }
       card.append(nom, el('p', 'pw-tag', plan.tag), prix, list);
       if (id === planActuel) card.append(el('p', 'pw-now', 'Ton plan actuel'));
+      else if (id === 'pro' && WHOP_TEST && planActuel === 'gratuit') {
+        const checkout = button('primary', renzviT('whopTestPro'), () => openWhopTest(checkout));
+        card.append(checkout);
+      }
       else if (id !== 'gratuit') card.append(button(id === 'pro' ? 'primary' : 'ghost', `Choisir ${plan.nom}`, () => { $('pw-note').textContent = "Le paiement n'est pas encore ouvert : rien n'est débité."; }));
       return card;
     });

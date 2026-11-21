@@ -1,5 +1,11 @@
 // Libellés partagés du tableau et de Study. La langue suit celle du document.
 const RENZVI_STRINGS = {
+  whopTestPro: ['Tester Pro avec Whop', 'Test Pro with Whop', 'Probar Pro con Whop'],
+  whopTestNote: ['Bac à sable Whop · aucun débit réel.', 'Whop sandbox · no real charge.', 'Entorno de pruebas de Whop · sin cargos reales.'],
+  whopOpening: ['Ouverture du checkout de test…', 'Opening test checkout…', 'Abriendo el pago de prueba…'],
+  whopUnavailable: ['Checkout de test indisponible. Réessaie dans un instant.', 'Test checkout is unavailable. Try again shortly.', 'El pago de prueba no está disponible. Inténtalo de nuevo en breve.'],
+  whopPending: ['En attente de confirmation par Whop.', 'Waiting for confirmation from Whop.', 'Esperando la confirmación de Whop.'],
+  whopConfirmed: ['Pro actif sur ce compte de test.', 'Pro is active on this test account.', 'Pro está activo en esta cuenta de prueba.'],
   invalidDrop: ['Placement impossible', 'Cannot place here', 'No se puede colocar aquí'],
   changeMode: ['Changer de mode', 'Switch mode', 'Cambiar de modo'],
   modeHoldHint: ['Choisis un mode ou maintiens-le 3 s pour le supprimer.', 'Choose a mode or hold it for 3 seconds to delete it.', 'Elige un modo o mantenlo pulsado 3 s para eliminarlo.'],

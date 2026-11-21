@@ -1,0 +1,5 @@
+project_id = "renzvi"
+
+[functions.whop]
+# Cette fonction vérifie elle-même la session Supabase ou la signature Whop.
+verify_jwt = false
