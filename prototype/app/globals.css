@@ -1,4 +1,22 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+}
 
 /* Palette « blanc premium » (Damien, 17 nov.) : blanc, gris neutres, un seul accent bleu. Tout passe par ces variables. */
 @theme inline {
@@ -41,9 +59,9 @@
 
 html { background: var(--color-paper); color: var(--color-ink); scroll-padding-top: 80px; }
 body { font-family: var(--font-sans); font-size: var(--text-body); line-height: 1.55; -webkit-font-smoothing: antialiased; }
-h1, h2 { font-stretch: 82%; font-weight: 600; letter-spacing: -0.035em; line-height: 0.98; text-wrap: balance; }
-h1 { font-size: var(--text-display); }
-h2 { font-size: var(--text-title); }
+:is(h1, h2):where(:not(.pricing-reference *)) { font-stretch: 82%; font-weight: 600; letter-spacing: -0.035em; line-height: 0.98; text-wrap: balance; }
+h1:where(:not(.pricing-reference *)) { font-size: var(--text-display); }
+h2:where(:not(.pricing-reference *)) { font-size: var(--text-title); }
 :focus-visible { outline: 2px solid var(--color-ink); outline-offset: 3px; border-radius: 6px; }
 ::selection { background: var(--color-ink); color: var(--color-paper); }
 
@@ -62,13 +80,6 @@ h2 { font-size: var(--text-title); }
 .btn-paper { background: #fff; color: var(--color-ink); }
 .btn-paper:hover { background: var(--color-lin); }
 .link { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1.5px; }
-
-.pricing-frequency { min-height: 44px; padding-inline: 16px; border-radius: 999px; font-size: var(--text-small); font-weight: 600; color: var(--color-soft); }
-.pricing-frequency:hover { background: var(--color-lin); color: var(--color-ink); }
-.pricing-frequency[aria-pressed="true"] { background: var(--color-ink); color: white; }
-@media (prefers-reduced-motion: no-preference) {
-  .pricing-stars { transform: translate(var(--pricing-star-x, 0), var(--pricing-star-y, 0)); transition: transform .45s ease-out; }
-}
 
 /* Les carrés du logo : coins à un tiers, comme le rx=3 sur 9 du SVG. */
 .sq { border-radius: 30%; }

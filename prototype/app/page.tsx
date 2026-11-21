@@ -2,7 +2,6 @@ import Magnet from "@/components/Magnet";
 import Motion from "@/components/Motion";
 import Nav from "@/components/Nav";
 import { Hero10, type Hero10Props } from "@/components/ui/hero-10";
-import { PricingSection, type PricingPlan } from "@/components/ui/pricing";
 import planConstellations from "@/assets/hero/plan-constellations.jpg";
 import planCentre from "@/assets/hero/plan-centre.jpg";
 import planLofi from "@/assets/hero/plan-lofi.jpg";
@@ -23,7 +22,6 @@ const NAV = [
   ["#outils", "Outils"],
   ["#dashboards", "Dashboards"],
   ["#modes", "Study et Chill"],
-  ["#offres", "Tarifs"],
   ["#questions", "Questions"],
 ];
 
@@ -31,21 +29,6 @@ const STEPS = [
   ["D'abord Study, pour bosser.", "Ton cours au centre, flashcards, minuteur et tâches autour."],
   ["Puis Chill, pour souffler.", "Ta musique, ton ambiance sonore et ta lecture en cours."],
   ["Et tu passes de l'un à l'autre.", "Chaque mode garde ses widgets et son fond. Rien à refaire."],
-];
-
-const PLANS: PricingPlan[] = [
-  {
-    name: "Gratuit", monthlyCents: 0, href: LOGIN, description: "Organise ton quotidien.",
-    features: ["Minuteur, tâches, notes et habitudes", "Cahier, flashcards et révisions du jour", "Pages, modes et fonds d’écran"],
-  },
-  {
-    name: "Pro", monthlyCents: 799, recommended: true, description: "Révise tes cours avec l’IA.",
-    features: ["Tout le plan Gratuit", "Cartes, quiz et résumés à partir de tes cours", "Schémas et espace Study", "Polices perso et fond d’écran en vidéo"],
-  },
-  {
-    name: "Worker", monthlyCents: 1599, description: "Pour les gros volumes de cours.",
-    features: ["Tout le plan Pro", "Zvi, l’assistant de ton tableau", "4 fois plus de crédits IA que Pro", "Cours illimités et PDF jusqu’à 300 pages"],
-  },
 ];
 
 const FAQ = [
@@ -124,8 +107,6 @@ export default function Page() {
             <p className="max-w-[46ch] pt-6">D'autres moments pourront suivre, comme le sport ou la création. Ils ne sont pas encore là.</p>
           </section>
 
-          <PricingSection plans={PLANS} />
-
           {/* Questions : une ligne déroulante par question (demande de Damien, 13 nov.). */}
           <section id="questions" className="grid gap-10 px-[var(--m)] pt-32 lg:grid-cols-12 lg:pt-48">
             <h2 data-split className="lg:col-span-4">Questions<br /><em>fréquentes</em></h2>
@@ -161,6 +142,7 @@ export default function Page() {
               <div data-language-picker />
               <p className="flex flex-wrap gap-x-5 gap-y-2 text-[1rem]">
                 <a className="link" href={LOGIN}>Connexion</a>
+                <a className="link" href="/tarifs" target="_blank" rel="noopener">Tarifs</a>
                 <a className="link" href="/legal.html#mentions">Mentions légales</a>
                 <a className="link" href="/legal.html#cgv">CGV</a>
                 <a className="link" href="/legal.html#confidentialite">Confidentialité</a>
