@@ -125,7 +125,14 @@ function seed(b) {
     await ag.getByRole('button', { name: 'Nouveau rendez-vous' }).click();
     const f = fiche(page);
     await f.getByLabel('Titre').fill('Soirée');
-    await f.getByLabel('Début').fill(day(1));
+    await f.getByRole('button', { name: 'Choisir une date : Début' }).click();
+    const calendrier = page.getByRole('dialog', { name: 'Début', exact: true });
+    const lendemain = calendrier.locator(`[data-day="${day(1)}"]:not([data-outside]) button`);
+    await calendrier.getByRole('grid').waitFor();
+    if (!await lendemain.count()) await calendrier.getByRole('button', { name: 'Mois suivant' }).click();
+    await lendemain.click();
+    await calendrier.waitFor({ state: 'detached' });
+    assert.equal(await f.getByLabel('Début', { exact: true }).inputValue(), day(1));
     await f.getByLabel('Heure').first().fill('22:00');
     await f.getByLabel('Heure').nth(1).fill('02:00');
     await f.getByLabel('Heure').nth(1).dispatchEvent('change');
@@ -137,7 +144,7 @@ function seed(b) {
     // Répétition (Pro) : toutes les semaines.
     await ag.getByRole('button', { name: 'Nouveau rendez-vous' }).click();
     await f.getByLabel('Titre').fill('Yoga');
-    await f.getByLabel('Début').fill(day(0));
+    await f.getByLabel('Début', { exact: true }).fill(day(0));
     await f.getByLabel('Heure').first().fill('07:00');
     await f.getByLabel('Heure').first().dispatchEvent('change');
     await f.locator('select').last().selectOption('semaine');
@@ -439,6 +446,18 @@ function seed(b) {
     const r = await fiche(page).boundingBox();
     assert.ok(r.y + r.height >= 843, 'fiche posée en bas de l’écran');
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/agenda-fiche-telephone.png` });
+    const dateFin = fiche(page).getByRole('button', { name: 'Choisir une date : Fin' });
+    await dateFin.focus();
+    await page.keyboard.press('Enter');
+    const calendrier = page.getByRole('dialog', { name: 'Fin', exact: true });
+    await calendrier.getByRole('grid').waitFor();
+    const calBox = await calendrier.boundingBox();
+    assert.ok(calBox.x >= 0 && calBox.x + calBox.width <= 390, 'calendrier visible sans débordement');
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/calendrier-telephone.png` });
+    await page.keyboard.press('Escape');
+    await calendrier.waitFor({ state: 'detached' });
+    assert.equal(await dateFin.evaluate(button => button === document.activeElement), true, 'le bouton calendrier récupère le focus');
+    await fiche(page).getByLabel('Titre').focus();
     await page.keyboard.type('Pharmacie');
     await page.keyboard.press('Enter');
     await page.waitForSelector('dialog.q-fiche[open]', { state: 'detached' });

@@ -32,7 +32,7 @@ function depensesWidget({ body, meta, data, save, sb, peer, apercu }) {
   const montantBox = el('div', 'q-montant-box');
   montantBox.append(montant, euro);
   l1.append(montantBox, libelle);
-  l2.append(cat, jour, ok);
+  l2.append(cat, window.renzviDateInput?.(jour) ?? jour, ok);
   const msg = el('p', 'note');
   msg.hidden = true;
   msg.setAttribute('role', 'status');

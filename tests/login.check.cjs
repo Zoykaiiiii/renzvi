@@ -875,7 +875,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     await page.goto(`${base}/dashboard.html`);
     await page.waitForSelector('.add.stack');
     const w = section(page, 'compte');
-    const add = async (title, date) => { await w.getByRole('textbox', { name: "Nom de l'événement" }).fill(title); await w.getByLabel("Date de l'événement").fill(date || ''); await w.getByRole('button', { name: 'Ajouter' }).click(); };
+    const add = async (title, date) => { await w.getByRole('textbox', { name: "Nom de l'événement" }).fill(title); await w.getByLabel("Date de l'événement", { exact: true }).fill(date || ''); await w.getByRole('button', { name: 'Ajouter' }).click(); };
     await add('', dayIso(3));
     assert.match(await w.locator('.note').textContent(), /Donne un nom/);
     await add('Sans date', '');

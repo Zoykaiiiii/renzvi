@@ -258,8 +258,14 @@ function qConfirmer(titre, texte, ok = 'Supprimer') {
 }
 // Un champ avec son libellé visible.
 function qChamp(label, input, aide) {
-  const wrap = el('label', 'q-champ');
-  wrap.append(el('span', 'q-label', label), input);
+  const date = input.type === 'date' && window.renzviDateInput;
+  const wrap = el(date ? 'div' : 'label', 'q-champ');
+  const caption = el(date ? 'label' : 'span', 'q-label', label);
+  if (date) {
+    input.id ||= `q-date-${crypto.randomUUID()}`;
+    caption.htmlFor = input.id;
+  }
+  wrap.append(caption, date ? date(input, label) : input);
   if (aide) {
     const p = el('span', 'q-aide', aide);
     p.id = `q-aide-${Math.random().toString(36).slice(2, 8)}`;

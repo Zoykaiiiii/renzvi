@@ -37,6 +37,7 @@
 <link rel="stylesheet" href="dash/spotlight.css">
 <link rel="stylesheet" href="dash/pixelcard.css">
 <link rel="stylesheet" href="quotidien/quotidien.css">
+<link rel="stylesheet" href="dash/calendar-picker.css">
 <script src="install.js" defer></script>
 <style>@font-face{font-family:"Hanken Grotesk";src:url(fonts/hanken-grotesk-latin.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
 /* Polices au choix (Réglages) : le navigateur ne télécharge que celle qui est utilisée. */
@@ -655,7 +656,7 @@ h2{font-family:var(--display);font-size:14px;line-height:20px;font-weight:var(--
 .sound input{flex:1;min-width:0}
 .add.stack{flex-wrap:wrap}
 .add.stack input[type=text],.add.stack input[type=url]{flex:1 1 100%}
-.add.stack input[type=date]{flex:1 1 140px}
+.add.stack :is(input[type=date],.date-with-calendar){flex:1 1 140px}
 .row .grow{flex:1;min-width:0;padding:10px 0;overflow-wrap:anywhere}
 .row .left{flex:none;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .row.past .grow,.row.past .left{color:var(--slate);font-weight:400}
@@ -703,7 +704,7 @@ h2{font-family:var(--display);font-size:14px;line-height:20px;font-weight:var(--
   .pl-cover{width:56px;height:56px}
   .head{flex-wrap:wrap}
   .broute{font-size:clamp(1.6em,11cqi,2.2em)}
-  .add.stack input[type=date]{flex:1 1 100%}
+  .add.stack :is(input[type=date],.date-with-calendar){flex:1 1 100%}
   .row:has(.host){display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px}
   .row:has(.host) .grow{padding-bottom:0}
   .row .host{grid-area:2/1;max-width:none;padding-bottom:10px}
@@ -713,7 +714,7 @@ h2{font-family:var(--display);font-size:14px;line-height:20px;font-weight:var(--
 @container widget (min-width:560px){
   .rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;column-gap:32px;max-height:420px}
   .row:last-child{border-bottom:1px solid var(--rule)}
-  .add.stack input[type=text],.add.stack input[type=url],.add.stack input[type=date]{flex:1 1 180px}
+  .add.stack :is(input[type=text],input[type=url],input[type=date],.date-with-calendar){flex:1 1 180px}
   .notes{min-height:280px}
   .time{font-size:clamp(40px,10cqi,72px)}
   [data-widget=heure] .body{flex-direction:row;align-items:baseline;flex-wrap:wrap;gap:4px 24px}
@@ -1400,6 +1401,7 @@ dialog.settings,dialog.settings :is(h2,h3,h4){font-family:var(--marque)}
 <script src="dash/spotlight.js"></script>
 <script src="dash/pixelcard.js"></script>
 <script src="dash/select.js"></script>
+<script src="dash/calendar.js"></script>
 <script src="dash/polices.js"></script>
 <script src="quotidien/core.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>
@@ -2671,7 +2673,7 @@ const WIDGETS = [
       const title = Object.assign(el('input'), { type: 'text', placeholder: 'Quel événement ?', maxLength: MAX_COUNTDOWN_TITLE, ariaLabel: "Nom de l'événement", autocomplete: 'off' });
       const date = Object.assign(el('input'), { type: 'date', ariaLabel: "Date de l'événement" });
       const form = el('form', 'add stack');
-      form.append(title, date, Object.assign(el('button', 'ghost', 'Ajouter'), { type: 'submit' }));
+      form.append(title, window.renzviDateInput?.(date) ?? date, Object.assign(el('button', 'ghost', 'Ajouter'), { type: 'submit' }));
       form.onsubmit = e => {
         e.preventDefault();
         const text = title.value.trim();

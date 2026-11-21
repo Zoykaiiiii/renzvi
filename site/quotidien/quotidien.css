@@ -158,7 +158,7 @@ dialog.glass.q-fiche{width:min(520px,100vw - 24px)}
 .q-montant-box input{width:100%;padding-right:28px;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
 .q-devise{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--slate);font-size:14px;pointer-events:none}
 .q-saisie-l2 :is(select,.dd-trigger){flex:1}
-.q-saisie-l2 input[type=date]{flex:0 1 150px}
+.q-saisie-l2 :is(input[type=date],.date-with-calendar){flex:0 1 150px}
 .q-mois{display:flex;align-items:center;gap:8px;margin-top:16px}
 .q-mois .q-h3{flex:1;text-align:center;font-weight:500}
 .q-mois .q-icon{width:32px;height:32px}
@@ -184,7 +184,7 @@ dialog.glass.q-fiche{width:min(520px,100vw - 24px)}
   .q-saisie-l1,.q-saisie-l2{flex-wrap:wrap}
   .q-montant-box{flex:1 1 100%}
   .q-saisie-l1>input,.q-saisie-l2 :is(select,.dd-trigger){flex:1 1 100%}
-  .q-saisie-l2 input[type=date]{flex:1 1 auto}
+  .q-saisie-l2 :is(input[type=date],.date-with-calendar){flex:1 1 auto}
 }
 @media (max-width:727px){
   .widget.zoomed[data-widget=depenses] .body{display:flex}
@@ -210,11 +210,12 @@ dialog.glass.q-fiche{width:min(520px,100vw - 24px)}
 @media (max-width:727px){.q-trois{grid-template-columns:minmax(0,1fr)}}
 
 /* Saisie des dépenses, largeur moyenne : montant et description sur la première ligne, le reste dessous. */
-.q-saisie-l2 input[type=date]{min-width:0}
+.q-saisie-l2 :is(input[type=date],.date-with-calendar){min-width:0}
 .q-saisie-l2 .primary{flex:none}
 @container widget (min-width:301px) and (max-width:420px){
   .q-montant-box{flex-basis:104px}
-  .q-saisie-l2 input[type=date]{flex:0 1 128px;padding:0 8px}
+  .q-saisie-l2 :is(input[type=date],.date-with-calendar){flex:0 1 128px}
+  .q-saisie-l2 input[type=date]{padding:0 8px}
   .q-saisie-l2 .primary{padding:0 14px}
 }
 .widget.zoomed .q-cols .q-when{min-width:128px}
