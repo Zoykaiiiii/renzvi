@@ -334,7 +334,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     assert.equal(await box.locator('.week-total').textContent(), '1 h 45');
     assert.deepEqual(await labels(), ['lundi : 30 min', 'mardi : 50 min', 'mercredi : 25 min', 'jeudi : à venir', 'vendredi : à venir', 'samedi : à venir', 'dimanche : à venir']);
     assert.equal(await box.locator('.week li.today').getAttribute('aria-label'), 'mercredi : 25 min');
-    assert.equal(await box.locator('.week li').nth(0).locator('i').evaluate(i => i.style.height), '36px');
+    assert.equal(await box.locator('.week li').nth(0).locator('i').evaluate(i => Number(i.style.getPropertyValue('--week-value'))), .5);
     assert.equal(await box.locator('.desc').isVisible(), false);
     await page.getByRole('button', { name: 'Démarrer' }).click();
     await page.clock.runFor(15 * 60000 + 1000);
@@ -559,29 +559,17 @@ async function openDashboard(browser, base, options, rows, prepare) {
     assert.equal(await page.locator('.vol-time output').textContent(), '30 min', 'la durée choisie dans la cabine revient dans le widget');
 
     assert.match(await page.textContent('#flight-eta'), /^Arrivée à \d\d:\d\d$/);
-    // Le hublot : le paysage est bien dessiné (pas une image uniforme) et l'heure, en gras, est en plein milieu de l'écran.
-    assert.equal(await page.locator('#flight-view canvas').count(), 1);
-    // L'heure est posée sur la vitre, vue avec le même angle que le hublot : dedans, et à peu près au milieu.
     const clock = await page.locator('#flight-clock').boundingBox();
     const glass = await page.locator('#flight-view').boundingBox();
-    assert.ok(clock.x >= glass.x && clock.x + clock.width <= glass.x + glass.width && clock.y >= glass.y && clock.y + clock.height <= glass.y + glass.height, 'l\'heure est sur la vitre');
-    assert.ok(Math.abs(clock.x + clock.width / 2 - (glass.x + glass.width / 2)) <= glass.width * .06 && Math.abs(clock.y + clock.height / 2 - (glass.y + glass.height / 2)) <= glass.height * .06, 'l\'heure est au milieu de la vitre');
-    assert.ok(Number(await page.locator('#flight-clock').evaluate(c => getComputedStyle(c).fontWeight)) >= 700, 'l\'heure est en gras');
-    await page.waitForFunction(() => {
-      const canvas = document.querySelector('#flight-view canvas');
-      const copy = document.createElement('canvas');
-      copy.width = copy.height = 16;
-      const paint = copy.getContext('2d');
-      paint.drawImage(canvas, 0, 0, 16, 16);
-      const { data } = paint.getImageData(0, 0, 16, 16);
-      return data.some((v, i) => i % 4 !== 3 && Math.abs(v - data[i % 4]) > 30);
-    });
+    assert.ok(clock.x + clock.width < glass.x, 'le compteur reste sur la paroi à gauche du hublot');
+    assert.equal(await page.locator('#flight-phase').innerText(), 'Décollage');
+    assert.equal(await page.isVisible('.flight-wing'), true);
     await shot(page, 'vol-5-compteur');
     assert.deepEqual(errors, []);
     await context.close();
   }
 
-  // Vol de 3 h sur téléphone : l'heure la plus longue tient dans le hublot, et rien ne chevauche le hublot en bas.
+  // Vol de 3 h sur téléphone : l'heure la plus longue tient sous le hublot, et rien ne chevauche le hublot en bas.
   {
     const { context, page, errors } = await openDashboard(browser, base, { viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' }, { ecran: VOL_SCREEN });
     await page.goto(`${base}/dashboard.html`);
@@ -594,7 +582,7 @@ async function openDashboard(browser, base, options, rows, prepare) {
     const view = await page.locator('#flight-view').boundingBox();
     const clock = await page.locator('#flight-clock').boundingBox();
     const route = await page.locator('#flight-route').boundingBox();
-    assert.ok(clock.x >= view.x && clock.x + clock.width <= view.x + view.width, 'l\'heure tient dans le hublot');
+    assert.ok(clock.y >= view.y + view.height && clock.x >= 0 && clock.x + clock.width <= 390, 'le compteur tient sous le hublot');
     assert.ok(route.y >= view.y + view.height, 'le trajet est sous le hublot');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0);
     await shot(page, 'vol-9-long');

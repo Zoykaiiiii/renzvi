@@ -74,31 +74,38 @@ const { custom, closeCustom, modeNow } = require('./menu.cjs');
   {
     const { page, context } = await open({ width: 1440, height: 900 }, 'annule');
     await volWidget(page).scrollIntoViewIfNeeded();
-    const before = { mode: await modeNow(page), widgets: await widgets(page), scroll: await page.evaluate(() => scrollY), meta: await volWidget(page).locator('.meta').textContent() };
-    await page.getByRole('button', { name: 'Déchirer et décoller' }).click();
+    const before = { mode: await modeNow(page), widgets: await widgets(page), meta: await volWidget(page).locator('.meta').textContent() };
+    // Le navigateur peut faire défiler la page pour atteindre le bouton avant d'envoyer le clic.
+    const [scrollAtBoarding] = await Promise.all([
+      page.evaluate(() => new Promise(resolve => document.addEventListener('click', () => resolve(scrollY), { capture: true, once: true }))),
+      page.getByRole('button', { name: 'Déchirer et décoller' }).click()
+    ]);
     await takeOff(page);
     await page.getByRole('button', { name: 'Annuler le vol' }).click();
     const sure = page.getByRole('button', { name: 'Vraiment annuler ?' });
-    await sure.click();
+    // Relever le fondu dans la même tâche que le clic, même avec un GPU logiciel lent.
+    const fade = await sure.evaluate(b => {
+      b.click();
+      return document.getElementById('flight').getAnimations().map(a => a.effect.getTiming().duration);
+    });
     // Clics répétés pendant le retour : aucun effet.
     await page.locator('#flight-cancel').evaluate(b => { b.click(); b.click(); });
     assert.equal(await page.textContent('#flight-end-title'), 'Vol annulé', 'l’annulation est dite tout de suite');
     assert.equal(await page.isVisible('#flight-close'), false, 'pas de bouton à toucher pour revenir');
     // La scène s'efface en reculant (pas de disparition sèche), réglée sur 250 à 450 ms. Pas de mesure en temps réel :
     // sans carte graphique, ce navigateur de test met plusieurs secondes à redessiner le dashboard givré qui réapparaît.
-    const fade = await page.locator('#flight').evaluate(n => n.getAnimations().map(a => a.effect.getTiming().duration));
     assert.equal(fade.length, 1, 'la scène s’efface');
     assert.ok(fade[0] >= 250 && fade[0] <= 450, `fondu court (${fade[0]} ms)`);
     await page.waitForSelector('#flight', { state: 'hidden' });
     assert.equal(await page.locator('#app').evaluate(a => a.inert), false);
     assert.equal(await page.locator('#flight').evaluate(n => n.getAnimations().length), 0, 'aucune animation laissée sur la scène');
-    assert.equal(await page.locator('#flight-view canvas').count(), 0, 'paysage arrêté');
+    assert.equal(await page.locator('#flight-window canvas').count(), 0, 'paysage arrêté');
     assert.equal(await page.locator('#flight-scene').evaluate(n => n.childElementCount), 0);
     assert.equal(await page.evaluate(() => document.fullscreenElement), null);
     assert.equal(await page.title(), 'Mon écran — Renzvi');
     assert.equal(await modeNow(page), before.mode, 'même mode');
     assert.deepEqual(await widgets(page), before.widgets, 'mêmes widgets, même ordre');
-    assert.ok(Math.abs(await page.evaluate(() => scrollY) - before.scroll) <= 1, 'même défilement');
+    assert.ok(Math.abs(await page.evaluate(() => scrollY) - scrollAtBoarding) <= 1, 'même défilement');
     assert.equal(await volWidget(page).locator('.meta').textContent(), before.meta, 'rien n’est compté');
     assert.equal(await volWidget(page).locator('.vol-said').textContent(), 'Vol annulé. Il ne compte pas dans ta journée.');
     await page.waitForFunction(() => document.activeElement.textContent === 'Déchirer et décoller'); // le focus revient au bouton du vol
@@ -178,13 +185,13 @@ const { custom, closeCustom, modeNow } = require('./menu.cjs');
     await shade.focus();
     await page.keyboard.press('End');
     assert.equal(await shade.getAttribute('aria-valuetext'), 'Fermé');
-    assert.ok(await page.locator('#flight-clock').evaluate(c => c.classList.contains('on-shade')), 'heure en sombre sur le store');
+    const clock = await page.locator('#flight-clock').boundingBox();
     if (!touch) await shot(page, 'vol-store-ferme');
     await page.keyboard.press('ArrowUp');
     assert.equal(await shade.getAttribute('aria-valuenow'), '95');
     await page.keyboard.press('Home');
     assert.equal(await shade.getAttribute('aria-valuetext'), 'Ouvert');
-    assert.equal(await page.locator('#flight-clock').evaluate(c => c.classList.contains('on-shade')), false);
+    assert.deepEqual(await page.locator('#flight-clock').boundingBox(), clock, 'le store et le compteur de la paroi sont indépendants');
     await page.keyboard.press('PageDown');
     assert.equal(await page.evaluate(() => localStorage.getItem('renzvi:store')), '33', 'gardé sur l’appareil');
     await cancel(page);

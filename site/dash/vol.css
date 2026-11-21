@@ -1,0 +1,54 @@
+/* All the photographic layers share the coordinates of the 1672 × 941 cabin plate. */
+.hublot{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:#1d1c1d;animation:cabin-in .55s ease-out}
+#flight:not([hidden]) .hublot[hidden]{display:block!important;visibility:hidden;animation:none}
+@keyframes cabin-in{from{opacity:0}}
+.hublot-well{position:absolute;left:50%;top:50%;width:max(100%,150dvh);height:100%;transform:translate(-50%,-50%)}
+.hublot-frame,.flight-wing,.flight-rain,.flight-terrain,.flight-terrain::after,.flight-pane{position:absolute;inset:0;background-position:center;background-size:100% 100%;pointer-events:none}
+.hublot-frame{background-image:url(../assets/vol/cabine.webp)}
+.hublot-view{position:absolute;left:40.7895%;top:9.5643%;width:33.7919%;height:76.6206%;overflow:hidden;background:#47586d}
+.flight-wing{background-image:url(../assets/vol/aile.webp)}
+.flight-rain{background-image:url(../assets/vol/pluie.webp);opacity:calc(1 - var(--cruise,0))}
+.hublot-frame,.flight-wing{filter:saturate(var(--warmth,.28)) brightness(var(--light,.72))}
+.flight-pane{background:linear-gradient(112deg,rgba(207,223,241,.055),transparent 25% 73%,rgba(244,211,167,.07))}
+.flight-runway{background-image:url(../assets/vol/piste.webp);transform:translateY(var(--lift,0%)) scale(var(--runway-scale,1.24))}
+.flight-clouds{background-image:url(../assets/vol/nuages.webp);opacity:var(--cruise,0);transform:scale(1.06)}
+.flight-coast{background-image:url(../assets/vol/cote.webp);opacity:var(--approach,0);transform:scale(var(--descent,1))}
+.flight-runway::after{content:"";background-image:inherit;mask-image:linear-gradient(transparent 53%,black 76%);-webkit-mask-image:linear-gradient(transparent 53%,black 76%)}
+.flight-runway::after{background-image:url(../assets/vol/piste-defilante.webp);background-size:200% 100%;background-position:var(--runway-offset,0%) center;transition:background-position 1s linear}
+.hublot-shade{position:absolute;inset:0 0 auto;height:var(--shade,15%);touch-action:none;cursor:grab;outline-offset:-5px}
+.hublot-shade::before{content:"";position:absolute;inset:0 0 auto;height:var(--blind,18%);background:linear-gradient(110deg,#292626,#554b42 44%,#312d2d);border-bottom:2px solid #4e433c;box-shadow:0 3px 6px #0006}
+.hublot-shade.held{cursor:grabbing}
+.cockpit{--edge:clamp(20px,3.5vw,64px);position:absolute;inset:0;pointer-events:none;color:#faf9f7;font-family:"Hanken Grotesk",system-ui,sans-serif;text-shadow:0 1px 8px #08090b70;animation:cabin-in .55s ease-out}
+.flight-brand,.flight-deck,.flight-readout,#flight-cancel{position:absolute}
+.flight-brand{top:max(4.3%,env(safe-area-inset-top));left:max(var(--edge),env(safe-area-inset-left));font-size:clamp(17px,1.45vw,25px)}
+.flight-brand use:not(:first-child){opacity:.85}
+.flight-readout{left:max(7.8%,env(safe-area-inset-left));top:47%;transform:translateY(-50%)}
+.flight-clock{font-variant-numeric:tabular-nums;letter-spacing:-.035em;font-size:clamp(36px,5.4vw,100px);font-weight:540;line-height:1}
+.flight-phase{margin-top:.32em;font-size:clamp(17px,1.85vw,32px);color:#d5d1ce;line-height:1.25}
+.flight-deck,#flight-cancel{bottom:max(4.5%,calc(env(safe-area-inset-bottom) + 12px))}
+.flight-deck{left:max(var(--edge),env(safe-area-inset-left));max-width:56%;text-align:left}
+.flight-route{font-weight:570;font-size:clamp(16px,1.42vw,23px)}
+.flight-eta{margin-top:.2em;color:#d5d1ce;font-size:clamp(14px,1.12vw,19px)}
+#flight #flight-cancel{right:max(var(--edge),env(safe-area-inset-right));min-height:44px;height:auto;padding:8px 19px;border-radius:999px;border:1px solid #f3f0eb85;color:#fff;background:#18171886;font:inherit;pointer-events:auto}
+@media(min-aspect-ratio:2/1){.hublot-well{width:100%;height:112%;}}
+@media(max-aspect-ratio:1/1){
+  .hublot{background:#201f20 url(../assets/vol/paroi.webp) center/cover no-repeat}
+  .hublot-well{left:50%;top:36%;width:min(204vw,110dvh);height:auto;aspect-ratio:1672/941;transform:translate(-57.7%,-50%);mask-image:linear-gradient(transparent,black 7% 92%,transparent);-webkit-mask-image:linear-gradient(transparent,black 7% 92%,transparent)}
+  .flight-brand{top:max(17px,calc(env(safe-area-inset-top) + 9px))}
+  .flight-readout{left:0;right:0;top:71%;text-align:center;transform:translateY(-38%)}
+  .flight-clock{font-size:clamp(46px,min(14vw,9dvh),86px)}
+  .flight-phase{font-size:clamp(17px,2.5dvh,23px)}
+  #flight #flight-cancel{font-size:14px;padding-inline:12px;right:max(14px,env(safe-area-inset-right))}
+  .flight-deck{max-width:54%;left:max(16px,env(safe-area-inset-left))}
+}
+@media(prefers-reduced-motion:reduce){.hublot,.cockpit{animation:none}}
+.hublot:not([data-model]) .flight-terrain{transform:none}
+.hublot:not([data-model]) :is(.flight-rain,.flight-clouds,.flight-coast),
+.hublot:not([data-model]) .flight-runway::after{opacity:0;transition:none}
+.hublot:not([data-model])[data-phase=takeoff] .flight-rain,
+.hublot:not([data-model])[data-phase=cruise] .flight-clouds,
+.hublot:not([data-model])[data-phase=approach] .flight-coast{opacity:1}
+.flight-model{position:absolute;inset:0;z-index:1;width:100%;height:100%;pointer-events:none}
+.flight-glass{position:absolute;inset:0;z-index:2;pointer-events:none;mask:url(../assets/vol/vitre.webp) center/100% 100% no-repeat;-webkit-mask:url(../assets/vol/vitre.webp) center/100% 100% no-repeat}
+.flight-glass .hublot-shade{pointer-events:auto}
+.hublot[data-model] :is(.hublot-frame,.flight-wing){opacity:0}

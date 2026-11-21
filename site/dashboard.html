@@ -32,6 +32,7 @@
 <link rel="stylesheet" href="study/carnet.css">
 <link rel="stylesheet" href="study/cartes.css">
 <link rel="stylesheet" href="dash/dash.css">
+<link rel="stylesheet" href="dash/vol.css">
 <link rel="stylesheet" href="dash/agrandi.css">
 <link rel="stylesheet" href="dash/spotlight.css">
 <link rel="stylesheet" href="dash/pixelcard.css">
@@ -792,66 +793,18 @@ h2{font-family:var(--display);font-size:14px;line-height:20px;font-weight:var(--
 .piece{transform-style:preserve-3d;will-change:transform,opacity}
 .piece+.piece{position:absolute;inset:0}
 .shard{position:absolute;width:8px;height:5px;background:#fff;will-change:transform,opacity}
-/* Le hublot : le paysage est dessiné dans le canvas ; le cadre, le store et l'aile restent en CSS et SVG pour rester nets. */
-.hublot{--grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");position:absolute;inset:0;isolation:isolate;display:grid;place-items:center;background:var(--grain),radial-gradient(62vmax 54vmax at 50% 50%,color-mix(in srgb,var(--glow,#9db4c8) 20%,#10131a),#0d1016 72%);background-blend-mode:soft-light,normal;animation:hublot-in 1.2s ease-out} /* taste-skill-ignore : la paroi mate et la lumière du hublot font partie de la scène */
-@keyframes hublot-in{from{opacity:0}}
-/* Le hublot vu un peu de biais, comme assis à côté : une alcôve moulée dans la paroi, le cadre crème devant, un tunnel
-   éclairé par le dehors (une pile d'anneaux, de plus en plus clairs vers la vitre), la vitre au fond. Tout est dans le
-   même espace 3D (--tilt, --persp), que l'heure reprend pour rester posée sur la vitre. */
-#flight{--tilt:rotateX(-6deg) rotateY(-10deg);--persp:calc(var(--hublot-size)*2.4);--depth:calc(var(--hublot-size)*.11);--rim:calc(var(--hublot-size)*.075)}
-.hublot{perspective:var(--persp)}
-.hublot-well{position:relative;width:var(--hublot-size);aspect-ratio:.72;transform-style:preserve-3d;transform:var(--tilt)}
-.hublot-well::before{content:"";position:absolute;inset:-17% -26%;border-radius:40%/32%;transform:translateZ(calc(var(--depth)*-1 - 4px));background:radial-gradient(closest-side,color-mix(in srgb,var(--glow,#9db4c8) 46%,#454c57),color-mix(in srgb,var(--glow,#9db4c8) 20%,#30363f) 62%,#242931 92%);box-shadow:inset 0 22px 34px rgba(0,0,0,.42),inset 0 -10px 16px rgba(255,255,255,.09),inset 0 0 70px rgba(0,0,0,.22),0 0 120px 30px color-mix(in srgb,var(--glow,#9db4c8) 14%,transparent),0 3px 0 rgba(255,255,255,.05),0 -2px 0 rgba(0,0,0,.6)} /* taste-skill-ignore : le relief de l'alcôve et la lumière du dehors */
-.hublot-depth{position:absolute;inset:0;transform-style:preserve-3d}
-.hublot-well{pointer-events:none} /* en 3D, les boîtes du hublot sont devant la vitre : seul le store prend la main */
-.hublot-shade{pointer-events:auto}
-.hublot-depth i{position:absolute;inset:var(--rim);border:8px solid color-mix(in srgb,#fffaf0 calc(var(--k)*4.5%),color-mix(in srgb,var(--glow,#9db4c8) 16%,#cdc5b2));border-radius:47%/37%;transform:translateZ(calc(var(--k)*var(--depth)/-20)) scale(calc(1 - var(--k)*.0024))}
-.hublot-frame{position:absolute;inset:0;padding:var(--rim);border-radius:48%/38%;background:var(--grain),linear-gradient(160deg,color-mix(in srgb,var(--glow,#9db4c8) 14%,#ece7da),color-mix(in srgb,var(--glow,#9db4c8) 10%,#c3bcaa) 48%,color-mix(in srgb,var(--glow,#9db4c8) 8%,#958e7e) 78%,color-mix(in srgb,var(--glow,#9db4c8) 12%,#cdc6b4));background-blend-mode:soft-light,normal;box-shadow:inset 0 2px 2px rgba(255,255,255,.75),inset 0 -3px 4px rgba(40,34,20,.5),inset 0 0 0 1px rgba(10,13,19,.6);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)} /* taste-skill-ignore : le cadre moulé du hublot */
-.hublot-view{position:absolute;inset:var(--rim);overflow:hidden;border-radius:47%/37%;transform:translateZ(calc(var(--depth)*-1)) scale(.952);background:linear-gradient(#5f96c9,#d6e4ee 45%,#f4f7f9 62%,#a9bccb);box-shadow:0 0 0 2px rgba(255,255,255,.85),0 0 22px 6px color-mix(in srgb,var(--glow,#9db4c8) 55%,#fff)} /* taste-skill-ignore : ciel de secours si le navigateur ne peut pas dessiner le paysage */
-.hublot-view canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-.hublot-wing{position:absolute;inset:0;width:100%;height:100%;animation:wing-sway 9s ease-in-out infinite alternate;transform-origin:100% 80%}
-.wing-tip{fill:#9aa2aa}
-.wing-glow{fill:var(--glow,#9db4c8);opacity:.26}
-.wing-flap{fill:none;stroke:rgba(23,25,28,.24);stroke-width:1px;vector-effect:non-scaling-stroke}
-.wing-rivets{fill:none;stroke:rgba(23,25,28,.2);stroke-width:1px;stroke-dasharray:1 5;vector-effect:non-scaling-stroke}
-.wing-edge{fill:none;stroke:rgba(255,255,255,.75);stroke-width:1px;vector-effect:non-scaling-stroke}
-@keyframes wing-sway{from{transform:rotate(-.5deg)}to{transform:rotate(.5deg)}}
-/* Le store : fines nervures de plastique, et une ombre portée sur la vitre. */
-.hublot-shade{position:absolute;inset:0 0 auto;height:var(--shade,15%);cursor:grab;touch-action:none;background:repeating-linear-gradient(rgba(60,52,36,.07) 0 1px,transparent 1px 5px),linear-gradient(#e7e2d6,#c4bfb1);box-shadow:0 8px 18px rgba(0,0,0,.28)} /* taste-skill-ignore : le store porte une ombre, c'est ce qui donne la profondeur */
-.hublot-shade::after{content:"";position:absolute;left:36%;right:36%;bottom:7px;height:5px;border-radius:var(--pill);background:rgba(23,25,28,.32)}
-.hublot-shade.held{cursor:grabbing}
-#flight .hublot-shade:focus-visible{outline:2px solid #1b1e24;outline-offset:-6px} /* sombre : le store est clair */
-/* Store baissé sous l'heure : elle passe en sombre pour rester lisible sur le plastique clair. */
-.flight-clock.on-shade{color:#2b2720;text-shadow:0 1px 0 rgba(255,255,255,.45)}
-/* Le verre : reflet en biais, bord assombri et voile au centre pour que l'heure reste lisible sur les nuages clairs. */
-.hublot-view::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(118deg,rgba(255,255,255,.1),rgba(255,255,255,0) 26%,rgba(255,255,255,0) 72%,rgba(255,255,255,.05)),radial-gradient(closest-side,rgba(12,16,26,.2),rgba(12,16,26,.1) 55%,rgba(12,16,26,0));box-shadow:inset 0 0 26px 6px rgba(0,0,0,.3),inset 0 3px 6px rgba(0,0,0,.45);pointer-events:none} /* taste-skill-ignore : le verre du hublot */
-.cockpit{position:absolute;inset:0;display:grid;padding:24px 16px;pointer-events:none;animation:hublot-in .6s ease-out}
-.cockpit button{pointer-events:auto}
-/* L'heure posée sur la vitre, avec le même angle que le hublot ; sa taille suit la largeur du hublot pour que « 3:00:00 » y tienne. */
-.flight-clock{grid-area:1/1;place-self:center;transform:perspective(var(--persp)) var(--tilt) translateZ(calc(var(--depth)*-1 + 2px));font-size:calc(var(--hublot-size)*.2);line-height:1;font-weight:700;letter-spacing:-.025em;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px rgba(8,11,18,.45),0 2px 26px rgba(8,11,18,.55)}
-#flight{--hublot-size:min(58vw,calc((100dvh - 220px)*.6))}
-.flight-deck,.flight-end{grid-area:1/1;align-self:end;justify-self:center;display:flex;flex-direction:column;align-items:center;gap:4px;width:min(720px,100%);text-align:center}
+.flight-end{grid-area:1/1;align-self:end;justify-self:center;display:flex;flex-direction:column;align-items:center;gap:4px;width:min(720px,100%);text-align:center}
 .flight-end{position:relative;animation:flight-in .6s ease-out}
 .flight-end.quick{animation:none} /* « Vol annulé » : net dès la première image du retour (350 ms) */
 .flight-end h2{font-size:32px;line-height:1.15;font-weight:500}
 .flight-end .primary{margin-top:16px}
 @keyframes flight-in{from{opacity:0;transform:translateY(16px)}}
 #flight :focus-visible{outline-color:#fff}
-.flight-route{font-size:16px;font-weight:500}
-.flight-eta{margin-bottom:10px;font-size:14px;color:var(--flight-muted)}
-/* Écran large : le hublot prend la hauteur et les informations passent dans les coins. */
 @media (min-aspect-ratio:1/1){
-  #flight{--hublot-size:min(46vw,calc((100dvh - 48px)*.58))}
-  .flight-deck,.flight-end{width:100%;display:grid;grid-template-columns:1fr auto;align-items:end;justify-items:start;gap:2px 16px;text-align:left}
-  .flight-deck button,.flight-end button{grid-area:1/2/3/3;align-self:end}
-  .flight-eta{margin:0}
+  .flight-end{width:100%;display:grid;grid-template-columns:1fr auto;align-items:end;justify-items:start;gap:2px 16px;text-align:left}
+  .flight-end button{grid-area:1/2/3/3;align-self:end}
   .flight-end .primary{margin:0}
   .flight-end h2{font-size:24px}
-}
-/* Téléphone couché : le hublot occupe toute la hauteur. */
-@media (max-height:520px) and (min-aspect-ratio:1/1){
-  #flight{--hublot-size:calc((100dvh - 32px)*.6)}
-  .cockpit{padding:16px}
 }
 /* Le billet à déchirer : le talon se prend à la main. */
 .stub{pointer-events:auto;cursor:grab;touch-action:none}
@@ -939,7 +892,7 @@ h2{font-family:var(--display);font-size:14px;line-height:20px;font-weight:var(--
 }
 @media (prefers-reduced-motion:reduce){
   .drop-slot,.swatch i,#wall i,.zoom{transition:none}
-  .cockpit,.flight-end,.hublot,.hublot-wing,.widget.arrive{animation:none}
+  .flight-end,.widget.arrive{animation:none}
   .seat,.plane{transition:none}
   .breath{transition:none;transform:none}
   .ring .fill{transition:none}
@@ -1355,18 +1308,16 @@ dialog.settings,dialog.settings :is(h2,h3,h4){font-family:var(--marque)}
 <section id="flight" role="dialog" aria-modal="true" aria-label="Vol de focus" hidden>
   <div class="hublot" id="flight-window" hidden>
     <div class="hublot-well">
-      <div class="hublot-depth" aria-hidden="true"><i style="--k:1"></i><i style="--k:2"></i><i style="--k:3"></i><i style="--k:4"></i><i style="--k:5"></i><i style="--k:6"></i><i style="--k:7"></i><i style="--k:8"></i><i style="--k:9"></i><i style="--k:10"></i><i style="--k:11"></i><i style="--k:12"></i><i style="--k:13"></i><i style="--k:14"></i><i style="--k:15"></i><i style="--k:16"></i><i style="--k:17"></i><i style="--k:18"></i><i style="--k:19"></i><i style="--k:20"></i></div>
       <div class="hublot-view" id="flight-view">
-        <svg class="hublot-wing" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          <defs><linearGradient id="wing-light" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e8ebee"/><stop offset=".6" stop-color="#c3c9cf"/><stop offset="1" stop-color="#8f979f"/></linearGradient></defs>
-          <path class="wing-tip" d="M47 70.500 43.500 62.500 45.500 62.500 51 70z"/>
-          <path fill="url(#wing-light)" d="M100 60 50 70 47 70.500 100 96z"/>
-          <path class="wing-glow" d="M100 60 50 70 47 70.500 100 96z"/>
-          <path class="wing-flap" d="M100 84 62 74.800"/>
-          <path class="wing-rivets" d="M100 69 56 71.500M100 78 60 73.500"/>
-          <path class="wing-edge" d="M100 60 50 70"/>
-        </svg>
-        <div class="hublot-shade" role="slider" tabindex="0" aria-label="Store du hublot" aria-orientation="vertical" aria-valuemin="8" aria-valuemax="100"></div>
+        <div class="flight-terrain flight-runway" aria-hidden="true"></div>
+        <div class="flight-terrain flight-clouds" aria-hidden="true"></div>
+        <div class="flight-terrain flight-coast" aria-hidden="true"></div>
+        <div class="flight-wing" aria-hidden="true"></div>
+        <div class="flight-glass">
+          <div class="flight-pane" aria-hidden="true"></div>
+          <div class="flight-rain" aria-hidden="true"></div>
+          <div class="hublot-shade" role="slider" tabindex="0" aria-label="Store du hublot" aria-orientation="vertical" aria-valuemin="8" aria-valuemax="100"></div>
+        </div>
       </div>
       <div class="hublot-frame" aria-hidden="true"></div>
     </div>
@@ -1374,12 +1325,16 @@ dialog.settings,dialog.settings :is(h2,h3,h4){font-family:var(--marque)}
   <div class="scene" id="flight-scene" aria-hidden="true"></div>
   <div class="seats" id="flight-seats" hidden></div>
   <div class="cockpit" id="flight-run" hidden>
-    <div class="flight-clock" id="flight-clock" role="timer"></div>
+    <div class="flight-brand brand-lockup"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#renzvi-square" x="2" y="2"/><use href="#renzvi-square" x="13" y="2"/><use href="#renzvi-square" x="2" y="13"/><use href="#renzvi-square" x="13" y="13"/></svg><span id="flight-name">Vol de focus</span></div>
+    <div class="flight-readout">
+      <div class="flight-clock" id="flight-clock" role="timer" translate="no"></div>
+      <p class="flight-phase" id="flight-phase" role="status"></p>
+    </div>
     <div class="flight-deck">
       <p class="flight-route" id="flight-route"></p>
       <p class="flight-eta" id="flight-eta"></p>
-      <button class="ghost" id="flight-cancel" type="button">Annuler le vol</button>
     </div>
+    <button class="ghost" id="flight-cancel" type="button">Annuler le vol</button>
   </div>
   <div class="flight-alert" id="flight-alert" role="alert" hidden>
     <h2 id="flight-alert-title"></h2>
@@ -1816,13 +1771,9 @@ function boardCabin(ticket) {
     async function takeOff() {
       for (const b of board.querySelectorAll('button')) b.disabled = true;
       if (!still) {
-        // On plonge vers la place choisie, puis le hublot apparaît. Une animation figée (onglet caché) ne bloque pas le vol.
-        const p = stage.getBoundingClientRect(), s = chosen.b.getBoundingClientRect();
-        stage.style.transformOrigin = `${s.left + s.width / 2 - p.left}px ${s.top + s.height / 2 - p.top}px`;
-        const fade = panel.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' });
-        const dive = play(stage, [{ transform: 'none', opacity: 1 }, { transform: 'scale(3.4)', opacity: 0 }], { duration: 800, easing: 'cubic-bezier(.55,0,.75,.35)' });
-        title.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' });
-        await Promise.race([Promise.all([dive, fade.finished]).catch(() => {}), new Promise(r => setTimeout(r, 1300))]);
+        const fade = board.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'ease-out' });
+        await Promise.race([fade.finished.catch(() => {}), new Promise(r => setTimeout(r, 500))]);
+        fade.cancel();
       }
       finish({ seat: chosen.name, minutes });
     }
@@ -1841,83 +1792,12 @@ function boardCabin(ticket) {
   });
 }
 
-// L'ambiance du vol suit l'heure du départ : matin, jour, coucher de soleil ou nuit. Toujours au-dessus des nuages.
-// sun : hauteur du soleil (ou de la lune) ; glow : lumière rasante dorée sur les nuages ; night : étoiles et lune.
-const VOL_CIELS = {
-  matin: { zenith: [.36, .5, .72], horizon: [.98, .8, .66], lit: [1, .92, .82], shade: [.62, .6, .7], sun: .64, glow: .7, night: 0 },
-  jour: { zenith: [.3, .5, .74], horizon: [.82, .87, .92], lit: [.98, .98, .98], shade: [.56, .65, .76], sun: .8, glow: 0, night: 0 },
-  coucher: { zenith: [.34, .38, .56], horizon: [.99, .71, .47], lit: [1, .83, .71], shade: [.5, .42, .52], sun: .655, glow: 1, night: 0 },
-  nuit: { zenith: [.03, .05, .12], horizon: [.13, .17, .3], lit: [.5, .55, .7], shade: [.09, .12, .21], sun: .78, glow: 0, night: 1 },
-};
-const ambianceNow = (hour = new Date().getHours()) => VOL_CIELS[hour >= 21 || hour < 5 ? 'nuit' : hour < 9 ? 'matin' : hour < 17 ? 'jour' : 'coucher'];
-const LANDSCAPE_SHADER = `precision highp float;
-uniform vec2 size; uniform float t, sun, glow, night; uniform vec3 zenith, horizon, lit, shade;
-float hash(vec2 p){ vec3 q = fract(p.xyx * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
-float noise(vec2 p){
-  vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
-  return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
-}
-// La hauteur des nuages en un point : de grosses masses rondes, puis des bourgeons de plus en plus fins.
-float tops(vec2 p){
-  float a = .62, v = 0.;
-  for (int i = 0; i < 3; i++) {
-    float n = noise(p);
-    v += a * (i == 0 ? n : abs(2. * n - 1.));
-    p = p * 2.07 + vec2(11.7, 4.1);
-    a *= .42;
-  }
-  return v * .7;
-}
-void main(){
-  vec2 uv = gl_FragCoord.xy / size;
-  float aspect = size.x / size.y, line = .56, x = (uv.x - .5) * aspect;
-  vec2 sun2d = vec2(-.12, sun);
-  float toSun = length(vec2(x, uv.y) - sun2d);
-  vec3 sky = mix(horizon, zenith, smoothstep(0., .4, uv.y - line));
-  // Le soleil, ou la nuit la lune : un disque plus net et un halo plus discret.
-  sky = mix(sky, lit, clamp(exp(-toSun * 7.) * .55 * (1. - night * .75) + exp(-toSun * (40. + night * 50.)), 0., 1.));
-  // Les étoiles, la nuit seulement, plus nombreuses en haut du ciel.
-  sky += step(.9965, hash(floor(gl_FragCoord.xy / 1.5))) * night * smoothstep(line + .03, line + .3, uv.y) * .8;
-  vec3 color = sky;
-  if (uv.y < line + .02) {
-    // On descend tranche par tranche le long du regard jusqu'au sommet du premier nuage, puis on affine le point touché.
-    vec3 ray = normalize(vec3(x * 1.1, (uv.y - line) * 1.25 - .012, 1.));
-    // La vitesse : les nuages proches filent, les lointains glissent.
-    vec3 from = vec3(t * .16, 1., 0.);
-    float slope = max(-ray.y, .012), dist = .34 / slope, stepBy = .042 / slope, before = dist, hit = 0.;
-    for (int i = 0; i < 12; i++) {
-      vec3 p = from + ray * dist;
-      if (p.y < tops(p.xz * 1.5)) { hit = 1.; break; }
-      before = dist;
-      dist += stepBy;
-    }
-    for (int i = 0; i < 3; i++) {
-      float middle = (before + dist) * .5;
-      vec3 p = from + ray * middle;
-      if (p.y < tops(p.xz * 1.5)) dist = middle; else before = middle;
-    }
-    vec2 q = (from + ray * dist).xz * 1.5;
-    float height = tops(q);
-    // Le côté tourné vers le soleil est clair, le creux entre deux nuages tombe dans une ombre douce.
-    float towards = clamp((height - tops(q + vec2(-.14, .1))) * 6.5 + .5 + (noise(q * 7.) - .5) * .16, 0., 1.);
-    float tall = smoothstep(.2, .48, height);
-    vec3 cloud = mix(shade, lit, clamp(towards * .62 + tall * .6, 0., 1.));
-    cloud = mix(cloud, lit, exp(-length(vec2(x, uv.y - line) - vec2(sun2d.x, -.03)) * 4.) * .3 * glow);
-    float haze = 1. - exp(-dist * dist * .014);
-    color = mix(mix(shade, cloud, hit), horizon, haze);
-    color = mix(color, sky, smoothstep(line - .004, line + .012, uv.y));
-  }
-  // Un grain très fin : plus de bandes dans les dégradés, et la texture d'une vraie vitre.
-  color += (hash(gl_FragCoord.xy + fract(t) * 91.) - .5) * .022;
-  gl_FragColor = vec4(color, 1.);
-}`;
 const REDUCED_MOTION = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// Démarre le paysage et renvoie la fonction qui l'arrête. Rien ici ne touche au compteur : si le dessin échoue, le vol continue devant le ciel de secours.
 // Le store du hublot : on le descend ou le remonte à la main (souris, doigt), ou au clavier, jusqu'à fermer le hublot.
 // Sa position est gardée sur l'appareil.
 (() => {
-  const shade = document.querySelector('.hublot-shade'), view = $('flight-view'), clock = $('flight-clock');
+  const shade = document.querySelector('.hublot-shade'), view = $('flight-view');
   const MIN = 8, MAX = 100;
   let at = 15, from = null;
   try { const v = Number(localStorage.getItem('renzvi:store')); if (v >= MIN && v <= MAX) at = v; } catch { /* stockage bloqué : position par défaut */ }
@@ -1926,7 +1806,7 @@ const REDUCED_MOTION = () => matchMedia('(prefers-reduced-motion: reduce)').matc
     view.style.setProperty('--shade', `${at}%`);
     shade.setAttribute('aria-valuenow', at);
     shade.setAttribute('aria-valuetext', at >= MAX - 2 ? 'Fermé' : at <= MIN + 2 ? 'Ouvert' : `Baissé à ${at} %`);
-    clock.classList.toggle('on-shade', at > 50);
+    view.style.setProperty('--blind', `${Math.max(0, (at - 15) / .85) / at * 100}%`);
     if (keep) try { localStorage.setItem('renzvi:store', String(at)); } catch { /* pas grave : il reste en place pour ce vol */ }
   }
   set(at, false);
@@ -1951,87 +1831,59 @@ const REDUCED_MOTION = () => matchMedia('(prefers-reduced-motion: reduce)').matc
   });
 })();
 
-function startWindowView(view, ambiance) {
-  const canvas = el('canvas');
-  const gl = canvas.getContext('webgl', { alpha: false, antialias: false, powerPreference: 'low-power' });
-  const [r, g, b] = ambiance.horizon;
-  $('flight-window').style.setProperty('--glow', `rgb(${r * 255} ${g * 255} ${b * 255})`);
-  const stopGlow = () => $('flight-window').style.removeProperty('--glow');
-  if (!gl) return stopGlow;
-  const compile = (type, source) => { const s = gl.createShader(type); gl.shaderSource(s, source); gl.compileShader(s); return s; };
-  const program = gl.createProgram();
-  gl.attachShader(program, compile(gl.VERTEX_SHADER, 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}'));
-  gl.attachShader(program, compile(gl.FRAGMENT_SHADER, LANDSCAPE_SHADER));
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return stopGlow;
-  gl.useProgram(program);
-  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-  const corner = gl.getAttribLocation(program, 'p');
-  gl.enableVertexAttribArray(corner);
-  gl.vertexAttribPointer(corner, 2, gl.FLOAT, false, 0, 0);
-  const uniform = name => gl.getUniformLocation(program, name);
-  for (const name of ['zenith', 'horizon', 'lit', 'shade']) gl.uniform3fv(uniform(name), ambiance[name]);
-  for (const name of ['sun', 'glow', 'night']) gl.uniform1f(uniform(name), ambiance[name]);
-  const sizeAt = uniform('size'), timeAt = uniform('t');
-
-  // Les nuages sont flous : une image basse définition suffit et ménage la batterie sur un vol de 3 h.
-  const MAX_WIDTH = 560;
-  let scale = 1;
-  const fit = () => {
-    const width = Math.min(view.clientWidth * Math.min(devicePixelRatio, 2), MAX_WIDTH) * scale;
-    canvas.width = Math.max(1, Math.round(width));
-    canvas.height = Math.max(1, Math.round(width * view.clientHeight / (view.clientWidth || 1)));
-    gl.viewport(0, 0, canvas.width, canvas.height);
-    last = -Infinity;
-  };
-  const still = REDUCED_MOTION();
-  const seed = Math.random() * 100;
-  // 30 images par seconde : les nuages défilent vite, il faut que ça reste fluide.
-  let interval = still ? 30000 : 1000 / 30, last = -Infinity, late = 0, raf;
-  function draw(now) {
-    raf = requestAnimationFrame(draw);
-    if (now - last < interval) return;
-    // Téléphone trop lent : on baisse la définition, puis la cadence, puis on laisse le paysage presque immobile plutôt que de le faire chauffer.
-    late = last > 0 && now - last > interval * 2 ? late + 1 : Math.max(0, late - 1);
-    if (late > 20) {
-      late = 0;
-      if (scale > .5) { scale = .5; fit(); } else if (interval < 50) interval = 1000 / 20; else interval = 2000;
-    }
-    last = now;
-    gl.uniform2f(sizeAt, canvas.width, canvas.height);
-    gl.uniform1f(timeAt, seed + (still ? 0 : now / 1000));
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+// The crossfades straddle the phase boundaries and share the countdown's wall clock.
+function paintFlight(progress, elapsedSeconds) {
+  const scene = $('flight-window');
+  const ramp = (start, end) => Math.min(1, Math.max(0, (progress - start) / (end - start)));
+  const cruise = ramp(.09, .17), approach = ramp(.80, .90);
+  const phase = progress < .13 ? 'takeoff' : progress < .85 ? 'cruise' : 'approach';
+  if (scene.dataset.phase !== phase) {
+    scene.dataset.phase = phase;
+    $('flight-phase').textContent = renzviT(phase);
   }
-  const watcher = new ResizeObserver(fit);
-  view.prepend(canvas);
-  watcher.observe(view);
-  fit();
-  raf = requestAnimationFrame(draw);
-  const stop = () => {
-    cancelAnimationFrame(raf);
-    watcher.disconnect();
-    stopGlow();
-    gl.getExtension('WEBGL_lose_context')?.loseContext();
-    canvas.remove();
-  };
-  // Figer sur la dernière image (le temps du fondu de sortie) : plus aucun dessin, la toile garde ce qu'elle montre.
-  stop.pause = () => { cancelAnimationFrame(raf); watcher.disconnect(); };
-  return stop;
+  const warmth = cruise * (1 - approach);
+  scene.style.setProperty('--cruise', cruise);
+  scene.style.setProperty('--approach', approach);
+  scene.style.setProperty('--warmth', .25 + .7 * warmth);
+  scene.style.setProperty('--light', .72 + .28 * warmth - .06 * approach);
+  const lift = ramp(.02, .16);
+  scene.style.setProperty('--lift', `${4 * lift}%`);
+  scene.style.setProperty('--runway-scale', 1.24 - .12 * lift);
+  if (progress < .17) scene.style.setProperty('--runway-offset', `${elapsedSeconds * (3 + Math.min(1, progress / .07) * 9)}%`);
+  scene.style.setProperty('--descent', 1 + .20 * ramp(.80, 1));
 }
 
 // Le vol : on déchire le billet, on choisit sa place et sa durée dans la cabine, puis le hublot et le compte à rebours.
-// onLanded(minutes) à l'atterrissage ; onDuration(minutes) si la durée a changé dans la cabine ;
-// onCancelled(message) après une annulation, une fois revenu au dashboard (le widget l'affiche).
-function startFlight(ticket, onLanded, returnFocus, onDuration, onCancelled) {
+function readFlight(key) {
+  try {
+    const flight = JSON.parse(sessionStorage.getItem(key));
+    if (Number.isInteger(flight?.minutes) && flight.minutes >= MIN_FLIGHT && flight.minutes <= MAX_FLIGHT &&
+        /^[1-7][ACDF]$/.test(flight.seat) && Number.isSafeInteger(flight.endAt) &&
+        typeof flight.fullscreen === 'boolean' && typeof flight.landed === 'boolean' &&
+        (flight.leftAt === null || Number.isFinite(flight.leftAt))) return flight;
+  } catch { /* Le stockage peut être indisponible dans un navigateur privé. */ }
+  return null;
+}
+
+function startFlight(ticket, onLanded, returnFocus, onDuration, onCancelled, key, resumed) {
   const box = $('flight');
+  if (!box.hidden) return;
   const pageTitle = document.title;
   const page = [document.querySelector('header'), $('app')];
   const scrollAt = scrollY;
+  const visuals = new AbortController();
   let minutes = ticket.minutes, route = ticket.route, total = minutes * 60000;
-  let endAt, leftAt = null, ticker, wakeLock = null, fullscreen = false, flying = false, confirmTimer, stopView = null, ended = false, leaving = false;
+  let seat, endAt, leftAt = resumed?.leftAt ?? null, ticker, wakeLock = null, fullscreen = false, flying = false, confirmTimer, ended = false, leaving = false;
   const keepAwake = () => navigator.wakeLock?.request('screen').then(lock => { wakeLock = lock; }, () => {});
 
+  function remember(landed = false) {
+    if (!key) return;
+    try { sessionStorage.setItem(key, JSON.stringify({ minutes, seat, endAt, leftAt, fullscreen, landed })); } catch {}
+  }
+  const forget = () => {
+    if (key && readFlight(key)?.endAt === endAt) try { sessionStorage.removeItem(key); } catch {}
+  };
+  const depart = () => { leftAt ??= Date.now(); remember(); };
   const show = part => {
     for (const id of ['flight-run', 'flight-end']) $(id).hidden = id !== part;
     $('flight-alert').hidden = true;
@@ -2041,10 +1893,12 @@ function startFlight(ticket, onLanded, returnFocus, onDuration, onCancelled) {
   function tick() {
     if (!flying) return;
     const now = Date.now();
+    const previousAway = leftAt;
     if (away()) leftAt ??= now;
     // Vérifié même au retour : un onglet en arrière-plan peut ne se réveiller qu'une fois le délai dépassé.
     if (leftAt !== null && now - leftAt >= FLIGHT_GRACE) return finish(false, 'Vol annulé : tu l’as quitté plus de 10 secondes. Il ne compte pas dans ta journée.');
     if (!away()) leftAt = null;
+    if (previousAway !== leftAt) remember();
     $('flight-alert').hidden = leftAt === null;
     if (leftAt !== null) {
       $('flight-alert-title').textContent = document.hidden ? 'Tu as quitté le vol' : 'Tu as quitté le plein écran';
@@ -2053,8 +1907,12 @@ function startFlight(ticket, onLanded, returnFocus, onDuration, onCancelled) {
     }
     const remaining = endAt - now;
     if (remaining <= 0) return finish(true);
-    $('flight-clock').textContent = clockLabel(remaining);
-    document.title = `${clockLabel(remaining)} — ${route.city}`;
+    const time = clockLabel(remaining);
+    if ($('flight-clock').textContent !== time) {
+      $('flight-clock').textContent = time;
+      document.title = `${time} — ${route.city}`;
+      paintFlight(1 - remaining / total, (total - remaining) / 1000);
+    }
     // Le téléphone rend ce verrou dès qu'on quitte l'onglet : sans ça, l'écran s'éteint au retour et le vol s'annule tout seul.
     if (!document.hidden && wakeLock?.released) { wakeLock = null; keepAwake(); }
   }
@@ -2062,11 +1920,14 @@ function startFlight(ticket, onLanded, returnFocus, onDuration, onCancelled) {
   function finish(landed, why) {
     if (ended) return;
     ended = true;
+    if (landed) visuals.abort();
     flying = false;
     clearInterval(ticker);
     clearTimeout(confirmTimer);
     $('flight-cancel').disabled = true;
     removeEventListener('visibilitychange', tick);
+    removeEventListener('pagehide', depart);
+    removeEventListener('pageshow', tick);
     document.removeEventListener('fullscreenchange', tick);
     wakeLock?.release().catch(() => {});
     document.title = pageTitle;
@@ -2076,9 +1937,11 @@ function startFlight(ticket, onLanded, returnFocus, onDuration, onCancelled) {
     $('flight-end').classList.toggle('quick', !landed);
     show('flight-end');
     // Annulé : pas de clic de plus, on revient au dashboard ; le message reste dans le widget.
-    if (!landed) return close(why ?? 'Vol annulé. Il ne compte pas dans ta journée.');
+    if (!landed) { forget(); return close(why ?? 'Vol annulé. Il ne compte pas dans ta journée.'); }
+    paintFlight(1, total / 1000);
+    remember(true);
     $('flight-close').focus();
-    onLanded(minutes);
+    Promise.resolve(onLanded(minutes, endAt)).then(saved => { if (saved) forget(); });
   }
   // Retour au dashboard : la scène s'efface en reculant un peu (350 ms) et révèle le dashboard resté intact dessous
   // (mode, page, widgets : rien n'a été recréé). Onglet caché ou mouvement réduit : retour immédiat, sans attendre
@@ -2086,7 +1949,6 @@ function startFlight(ticket, onLanded, returnFocus, onDuration, onCancelled) {
   function close(message) {
     if (leaving) return;
     leaving = true;
-    stopView?.pause?.();
     // Tant que le navigateur n'a pas fini de quitter le plein écran, rien hors du vol ne peut prendre le focus.
     const exited = document.fullscreenElement ? document.exitFullscreen().catch(() => {}) : Promise.resolve();
     wakeLock?.release().catch(() => {});
@@ -2094,7 +1956,7 @@ function startFlight(ticket, onLanded, returnFocus, onDuration, onCancelled) {
     const done = () => {
       if (gone) return;
       gone = true;
-      stopView?.();
+      visuals.abort();
       $('flight-scene').replaceChildren();
       $('flight-seats').hidden = true;
       $('flight-window').hidden = true;
@@ -2120,40 +1982,54 @@ function startFlight(ticket, onLanded, returnFocus, onDuration, onCancelled) {
   $('flight-seats').hidden = true;
   box.hidden = false;
   // Doit partir tout de suite : le navigateur n'accepte le plein écran que dans la foulée du clic.
-  const entered = box.requestFullscreen ? box.requestFullscreen().then(() => true, () => false) : Promise.resolve(false);
+  const entered = resumed ? Boolean(resumed.fullscreen && box.requestFullscreen) : box.requestFullscreen ? box.requestFullscreen().then(() => true, () => false) : Promise.resolve(false);
   $('flight-close').onclick = () => close();
   $('flight-cancel').disabled = false;
   $('flight-back').onclick = () => box.requestFullscreen?.().catch(() => {});
-  $('flight-cancel').textContent = 'Annuler le vol';
+  $('flight-cancel').textContent = renzviT('cancelFlight');
   $('flight-cancel').onclick = () => {
     if (ended) return;
     if (confirmTimer) return finish(false);
-    $('flight-cancel').textContent = 'Vraiment annuler ?';
-    confirmTimer = setTimeout(() => { confirmTimer = null; $('flight-cancel').textContent = 'Annuler le vol'; }, CANCEL_CONFIRM);
+    $('flight-cancel').textContent = renzviT('confirmCancelFlight');
+    confirmTimer = setTimeout(() => { confirmTimer = null; $('flight-cancel').textContent = renzviT('cancelFlight'); }, CANCEL_CONFIRM);
   };
   (async () => {
     // shortcut: l'iPhone ne propose pas le plein écran aux pages web : l'écran y est couvert et seule la sortie de l'appli annule le vol.
     fullscreen = await entered;
     keepAwake();
-    if (!await tearTicket(ticket)) return close();
-    const choice = await boardCabin(ticket);
-    if (!choice) return close();
+    let choice = resumed;
+    if (!choice) {
+      if (!await tearTicket(ticket)) return close();
+      choice = await boardCabin(ticket);
+      if (!choice) return close();
+    }
     minutes = choice.minutes;
+    seat = choice.seat;
     route = ROUTES.find(r => minutes <= r.upTo);
     total = minutes * 60000;
     if (minutes !== ticket.minutes) onDuration?.(minutes);
-    endAt = Date.now() + total;
+    endAt = resumed?.endAt ?? Date.now() + total;
+    if (!resumed) remember();
+    delete $('flight-window').dataset.phase;
     $('flight-window').hidden = false;
-    try { stopView = startWindowView($('flight-view'), ambianceNow()); } catch { /* le paysage est un décor : le vol continue sans lui */ }
-    $('flight-route').textContent = `Paris → ${route.city} · place ${choice.seat}`;
-    $('flight-eta').textContent = `Arrivée à ${new Date(endAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+    $('flight-clock').textContent = '';
+    $('flight-name').textContent = box.ariaLabel = renzviT('focusFlight');
+    $('flight-route').textContent = renzviT('flightRouteSeat', route.city, seat);
+    const arrival = new Date(endAt).toLocaleTimeString(document.documentElement.lang || 'fr', { hour: '2-digit', minute: '2-digit' });
+    $('flight-eta').textContent = renzviT('flightArrival', arrival);
+    if (resumed?.landed) return finish(true);
     flying = true;
     show('flight-run');
     $('flight-cancel').focus();
     addEventListener('visibilitychange', tick);
+    addEventListener('pagehide', depart);
+    addEventListener('pageshow', tick);
     document.addEventListener('fullscreenchange', tick);
     ticker = setInterval(tick, 250);
     tick();
+    if (flying) import('./dash/vol-3d.js').then(({ fly3D }) => {
+      fly3D($('flight-window'), endAt - total, visuals.signal);
+    }).catch(() => {}); // La session reste utilisable avec les vues fixes.
   })();
 }
 
@@ -2390,7 +2266,9 @@ const WIDGETS = [
   },
   {
     id: 'vol', title: renzviT('focusFlight'), desc: 'Déchire ton ticket et décolle en plein écran.',
-    render({ body, meta, data, save, user }) {
+    render({ body, meta, data, save, flush, user, apercu }) {
+      const key = apercu ? null : `renzvi:vol:${user.id}`;
+      let lastLanding = data?.lastLanding;
       const validLength = Number.isInteger(data?.length) && data.length >= MIN_FLIGHT && data.length <= MAX_FLIGHT;
       let length = validLength ? data.length : 25;
       let day = dayKey(new Date());
@@ -2403,7 +2281,7 @@ const WIDGETS = [
       const output = el('output');
       const title = el('div', '', renzviT('flightDuration'));
       title.append(output);
-      const persist = () => save({ length, day, minutes, flights, log });
+      const persist = () => save({ length, day, minutes, flights, log, lastLanding });
       const ticket = () => ({
         minutes: length,
         route: ROUTES.find(r => length <= r.upTo),
@@ -2421,20 +2299,26 @@ const WIDGETS = [
       // Après une annulation : le dire ici, au retour sur le dashboard (effacé au prochain départ).
       const said = el('p', 'vol-said');
       said.setAttribute('role', 'status');
-      const go = button('primary vol-go', renzviT('takeOff'), () => {
+      const go = button('primary vol-go', renzviT('takeOff'), () => launch());
+      function launch(resumed) {
         said.textContent = '';
-        startFlight(ticket(), flightMinutes => {
-          const today = dayKey(new Date());
+        startFlight(ticket(), (flightMinutes, endAt) => {
+          if (endAt === lastLanding) return true;
+          lastLanding = endAt;
+          const today = dayKey(new Date(endAt));
           if (today !== day) { day = today; minutes = 0; flights = 0; }
           minutes += flightMinutes;
           flights += 1;
           log = { ...log, [today]: (log[today] ?? 0) + flightMinutes };
           persist();
           draw();
-        }, go, chosen => { length = chosen; dial.replaceWith(dial = makeDial()); persist(); draw(); }, message => { said.textContent = message; });
-      });
+          return flush?.() ?? true;
+        }, go, chosen => { length = chosen; dial.replaceWith(dial = makeDial()); persist(); draw(); }, message => { said.textContent = message; }, key, resumed);
+      }
       draw();
       body.append(slot, label, go, said);
+      const resumed = key && readFlight(key);
+      if (resumed) launch(resumed);
     },
   },
   {
@@ -2577,7 +2461,7 @@ const WIDGETS = [
           const li = el('li', d.key === today ? 'today' : '');
           const name = weekday.format(d.date);
           const future = d.key > today;
-          li.ariaLabel = future ? renzviT('futureFocusDay', name) : `${name}: ${d.minutes} min`;
+          li.ariaLabel = future ? renzviT('futureFocusDay', name) : renzviT('focusDayMinutes', name, d.minutes);
           const column = el('div', 'week-bar');
           column.setAttribute('aria-hidden', 'true');
           const bar = el('i');
@@ -3484,7 +3368,7 @@ if (!sb) {
       head.append(entry.zoomBtn, entry.backBtn);
     }
     // Un widget qui plante ne doit pas emporter tout l'écran.
-    try { entry.cleanup = w.render({ body, meta, user, sb, data: stored[w.id], save: data => queueSave(w.id, data), peer: id => stored[id], savePeer: (id, data) => queueSave(id, data, w.id), focusLogs: () => [focusLog(stored.vol), focusLog(stored.minuteur)] }); }
+    try { entry.cleanup = w.render({ body, meta, user, sb, flush, data: stored[w.id], save: data => queueSave(w.id, data), peer: id => stored[id], savePeer: (id, data) => queueSave(id, data, w.id), focusLogs: () => [focusLog(stored.vol), focusLog(stored.minuteur)] }); }
     catch (e) { console.error(w.id, e); body.replaceChildren(el('p', 'msg', "Ce widget n'a pas pu se charger.")); }
     $('board').append(box);
     mounted.set(w.id, entry);
