@@ -30,15 +30,18 @@ export default function Nav({ links, login }: { links: string[][]; login: string
         <a href="#top" aria-label="Renzvi, haut de page" className="flex min-h-11 items-center gap-2.5 pr-4 font-semibold text-ink">
           <Logo className="size-6" />Renzvi
         </a>
-        <nav aria-label="Sections de la page" className="hidden gap-1 lg:flex">
+        <nav aria-label="Navigation principale" className="ml-auto flex gap-1 lg:ml-0">
           {links.map(([href, label]) => (
             <a key={href} href={href} aria-current={active === href ? "true" : undefined}
-              className={`flex h-9 items-center rounded-[10px] px-3.5 font-medium transition-colors ${active === href ? "text-accent" : "text-soft hover:bg-lin hover:text-ink"}`}>{label}</a>
+              className={`hidden h-9 items-center rounded-[10px] px-3.5 font-medium transition-colors lg:flex ${active === href ? "text-accent" : "text-soft hover:bg-lin hover:text-ink"}`}>{label}</a>
           ))}
+          <a href="/tarifs" target="_blank" rel="noopener"
+            className="flex min-h-11 items-center rounded-[10px] px-2.5 font-medium text-soft transition-colors hover:bg-lin hover:text-ink lg:min-h-9 lg:px-3.5">Tarifs</a>
         </nav>
         <a href={login} className="ml-auto hidden h-10 items-center rounded-[10px] px-3 font-medium text-soft transition-colors hover:text-ink sm:flex">Connexion</a>
-        <a href={login} className="group ml-auto flex h-10 items-center gap-2 whitespace-nowrap rounded-full bg-accent px-4 font-semibold text-white transition-colors hover:bg-accent-deep focus-visible:outline-accent sm:ml-0">
-          Créer mon espace
+        <a href={login} className="group flex h-10 items-center gap-2 whitespace-nowrap rounded-full bg-accent px-3 font-semibold text-white transition-colors hover:bg-accent-deep focus-visible:outline-accent min-[440px]:px-4">
+          <span className="min-[440px]:hidden">S’inscrire</span>
+          <span className="hidden min-[440px]:inline">Créer mon espace</span>
           <svg viewBox="0 0 24 24" aria-hidden="true" className="hidden size-4 transition-transform group-hover:translate-x-0.5 min-[360px]:block"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </a>
       </div>
