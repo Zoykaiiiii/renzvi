@@ -63,6 +63,13 @@ h2 { font-size: var(--text-title); }
 .btn-paper:hover { background: var(--color-lin); }
 .link { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1.5px; }
 
+.pricing-frequency { min-height: 44px; padding-inline: 16px; border-radius: 999px; font-size: var(--text-small); font-weight: 600; color: var(--color-soft); }
+.pricing-frequency:hover { background: var(--color-lin); color: var(--color-ink); }
+.pricing-frequency[aria-pressed="true"] { background: var(--color-ink); color: white; }
+@media (prefers-reduced-motion: no-preference) {
+  .pricing-stars { transform: translate(var(--pricing-star-x, 0), var(--pricing-star-y, 0)); transition: transform .45s ease-out; }
+}
+
 /* Les carrés du logo : coins à un tiers, comme le rx=3 sur 9 du SVG. */
 .sq { border-radius: 30%; }
 

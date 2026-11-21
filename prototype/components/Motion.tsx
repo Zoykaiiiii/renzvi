@@ -17,7 +17,19 @@ export default function Motion({ children }: { children: ReactNode }) {
     // Mouvement réduit : rien n'est lancé, la page reste entière et lisible telle quelle.
     mm.add("(prefers-reduced-motion: no-preference)", () => {
       // Lissage à la souris seulement : au doigt (dont TikTok/Instagram), le défilement natif reste.
-      ScrollSmoother.create({ wrapper: root.current!, content: "#smooth-content", smooth: 1.1, effects: true });
+      const smoother = ScrollSmoother.create({ wrapper: root.current!, content: "#smooth-content", smooth: 1.1, effects: true });
+
+      // Le lien Tarifs doit faire défiler la page, même quand ScrollSmoother fixe son conteneur.
+      const pricingTitle = document.getElementById("tarifs-titre");
+      const scrollToPricing = (event: MouseEvent) => {
+        if (!pricingTitle || event.defaultPrevented || event.button || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        if (!(event.target instanceof Element) || !event.target.closest('a[href="#offres"]')) return;
+        event.preventDefault();
+        if (location.hash !== "#offres") history.pushState(history.state, "", "#offres");
+        pricingTitle.focus({ preventScroll: true });
+        smoother.scrollTo(pricingTitle, true, "top 112px");
+      };
+      document.addEventListener("click", scrollToPricing);
 
       // Titres : ligne par ligne, depuis un masque.
       const splitTitles = () => gsap.utils.toArray<HTMLElement>("[data-split]").map((el) =>
@@ -66,7 +78,7 @@ export default function Motion({ children }: { children: ReactNode }) {
         h = now; clearTimeout(t); t = window.setTimeout(() => ScrollTrigger.refresh(), 200);
       });
       ro.observe(document.querySelector("#smooth-content")!);
-      return () => { ro.disconnect(); clearTimeout(t); sized.revert(); splits.forEach((s) => s.revert()); document.removeEventListener("renzvi:language", refreshTitles); };
+      return () => { ro.disconnect(); clearTimeout(t); sized.revert(); splits.forEach((s) => s.revert()); document.removeEventListener("renzvi:language", refreshTitles); document.removeEventListener("click", scrollToPricing); };
     });
   }, { scope: root });
 
