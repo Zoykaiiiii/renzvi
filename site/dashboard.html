@@ -1529,8 +1529,8 @@ const WALLPAPERS = [
 ];
 // Photo personnelle : réduite et réenregistrée dans le navigateur avant l'envoi, ce qui retire aussi ses données GPS.
 const MAX_SOURCE_BYTES = 30 * 1048576, MAX_UPLOAD_BYTES = 3 * 1048576, MAX_PHOTO_SIDE = 2560;
-// Vidéo de fond (Pro) : envoyée telle quelle, sans réencodage. La limite et les types sont aussi imposés par le bucket « fonds-video ».
-const MAX_VIDEO_BYTES = 20 * 1048576, VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+// Vidéo de fond (Pro) : envoyée telle quelle, avec les mêmes limites côté Storage.
+const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
 
 const $ = id => document.getElementById(id);
 const el = (tag, className, text) => Object.assign(document.createElement(tag), { className, textContent: text ?? '' });
@@ -3227,6 +3227,7 @@ if (!sb) {
   const pending = new Map();
   const mounted = new Map();
   let userId, saveTimer, saving = null, loaded = false, stored = {}, photoUrl = null, videoUrl = null, referral = null;
+  let videoXL = false;
   // Polices personnelles : l'aperçu en cours (rien d'enregistré), les fichiers déjà chargés, ceux qui ont échoué.
   let fontPreview = null, fontToken = 0, fontImportFor = null; // fontImportFor : carte « + » des titres ou du texte
   const fontFaces = new Map(), fontFailed = new Set();
@@ -3250,6 +3251,7 @@ if (!sb) {
   const layout = window.renzviLayout({ get: layoutGet, set: layoutSet, flip: (change, skip) => flip(change, skip), board: () => $('board'), say: text => { $('custom-live').textContent = text; } });
   const photoPath = () => `${userId}/fond.jpg`;
   const videoPath = () => `${userId}/fond`;
+  const videoBucket = () => sb.storage.from(videoXL ? 'fonds-video-xl' : 'fonds-video');
 
   function showSaved(text, bad = false) {
     for (const id of ['saved', 'set-saved']) {
@@ -5147,7 +5149,8 @@ if (!sb) {
     applyWallpaper();
   }
   async function loadVideo() {
-    const { data, error } = await sb.storage.from('fonds-video').download(videoPath());
+    let { data, error } = await videoBucket().download(videoPath());
+    if (error && videoXL) ({ data, error } = await sb.storage.from('fonds-video').download(videoPath()));
     if (error) return showSaved("Ta vidéo de fond n'a pas pu se charger.", true);
     videoUrl = URL.createObjectURL(data);
     applyWallpaper();
@@ -5162,6 +5165,7 @@ if (!sb) {
     }
     if (hadVideo && !videoInUse()) {
       sb.storage.from('fonds-video').remove([videoPath()]);
+      if (videoXL) videoBucket().remove([videoPath()]);
       videoUrl = null;
     }
     applyWallpaper();
@@ -5209,7 +5213,8 @@ if (!sb) {
       return tile;
     });
     const photoTile = entries.at(-2), videoTile = entries.at(-1);
-    const videoHint = el('p', 'desc', 'Vidéo : MP4, WebM ou MOV, 20 Mo maximum. Une courte boucle de quelques secondes suffit.');
+    const videoLimit = videoXL ? 300 : 20;
+    const videoHint = el('p', 'desc', `Vidéo : MP4, WebM ou MOV, ${videoLimit} Mo maximum. Une courte boucle de quelques secondes suffit.`);
     videoHint.id = 'wall-video-hint';
     videoTile.setAttribute('aria-describedby', videoHint.id);
     const zoom = inlineSlider({
@@ -5257,7 +5262,7 @@ if (!sb) {
       if (!chosen) return;
       note.textContent = '';
       if (!VIDEO_TYPES.includes(chosen.type)) { note.textContent = 'Choisis une vidéo MP4, WebM ou MOV.'; return; }
-      if (chosen.size > MAX_VIDEO_BYTES) { note.textContent = 'Cette vidéo est trop lourde (20 Mo maximum). Une boucle de quelques secondes suffit.'; return; }
+      if (chosen.size > videoLimit * 1048576) { note.textContent = `Cette vidéo est trop lourde (${videoLimit} Mo maximum). Une boucle de quelques secondes suffit.`; return; }
       videoTile.disabled = true;
       videoTile.lastChild.textContent = 'Envoi…';
       const local = URL.createObjectURL(chosen);
@@ -5273,12 +5278,13 @@ if (!sb) {
         URL.revokeObjectURL(local);
         note.textContent = "Ton navigateur ne sait pas lire cette vidéo. Essaie un MP4 classique (H.264).";
       } else {
-        const { error } = await sb.storage.from('fonds-video').upload(videoPath(), chosen, { upsert: true, contentType: chosen.type, cacheControl: '0' });
+        const { error } = await videoBucket().upload(videoPath(), chosen, { upsert: true, contentType: chosen.type, cacheControl: '0' });
         if (error) { URL.revokeObjectURL(local); note.textContent = "L'envoi n'a pas abouti. Vérifie ta connexion et réessaie."; }
         else {
           if (videoUrl) URL.revokeObjectURL(videoUrl);
           videoUrl = local;
           chooseWallpaper('video');
+          if (videoXL) sb.storage.from('fonds-video').remove([videoPath()]);
         }
       }
       videoTile.disabled = false;
@@ -5574,6 +5580,7 @@ if (!sb) {
 
   function enter(user) {
     userId = user.id;
+    videoXL = user.app_metadata?.fonds_video_xl === true;
     // Le verrou de l'appareil passe avant tout affichage du contenu.
     if (!lock) {
       lock = window.renzviLock({

@@ -352,6 +352,29 @@ begin
   begin select count(*) into n from abonnements; r := array_append(r, ('anon lit les abonnements: '||n)::text); exception when others then r := array_append(r, 'anon lit les abonnements: refusé'); end;
   reset role;
 
+  select count(*) into n from storage.buckets where
+    (id = 'fonds-video' and file_size_limit = 20971520)
+    or (id = 'fonds-video-xl' and file_size_limit = 314572800 and not public);
+  r := array_append(r, 'ok limites des buckets vidéo: '||(n=2)::int);
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', a::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', a, 'app_metadata', json_build_object('fonds_video_xl', true))::text, true);
+  insert into storage.objects(bucket_id,name,owner) values ('fonds-video-xl', a||'/fond', a);
+  update storage.objects set owner=a where bucket_id='fonds-video-xl' and name=a||'/fond';
+  get diagnostics n = row_count;
+  r := array_append(r, 'A remplace son fond XL: '||n);
+  perform set_config('request.jwt.claim.sub', b::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', b, 'user_metadata', json_build_object('fonds_video_xl', true))::text, true);
+  begin
+    insert into storage.objects(bucket_id,name,owner) values ('fonds-video-xl', b||'/fond', b);
+    r := array_append(r, 'B active lui-même la vidéo XL: 1');
+  exception when insufficient_privilege then
+    r := array_append(r, 'B active lui-même la vidéo XL: refusé');
+  end;
+  select count(*) into n from storage.objects where bucket_id='fonds-video-xl';
+  r := array_append(r, 'B lit le fond XL de A: '||n);
+  reset role;
+
   raise exception 'RAPPORT % (tout annulé) | %',
     case when exists (select 1 from unnest(r) x where (x ~ '^(B|anon|limite|interdit)' and x !~ '(: 0|refusé.*)$') or (x ~ '^(A|ok) ' and x !~ ': 1$')) then 'ECHEC' else 'OK' end,
     array_to_string(r, ' | ');

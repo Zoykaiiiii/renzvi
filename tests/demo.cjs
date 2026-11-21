@@ -58,7 +58,7 @@ const PROFILS = {
 const SESSION = `<script>(()=>{const q=new URLSearchParams(location.search),net=v=>(v||'').toLowerCase().replace(/[^a-z0-9]/g,'');
 const sub='demo-'+(net(q.get('profil'))||'plein')+(net(q.get('bac'))?'-'+net(q.get('bac')):'');
 const b=o=>btoa(JSON.stringify(o)).replace(/=+$/,'').replace(/\\+/g,'-').replace(/\\//g,'_');
-const user={id:sub,aud:'authenticated',role:'authenticated',email:'lea@exemple.fr',app_metadata:{},user_metadata:{full_name:'Léa Martin'},created_at:'2026-11-03T00:00:00Z'};
+const user={id:sub,aud:'authenticated',role:'authenticated',email:'lea@exemple.fr',app_metadata:q.has('videoXL')?{fonds_video_xl:true}:{},user_metadata:{full_name:'Léa Martin'},created_at:'2026-11-03T00:00:00Z'};
 const session=JSON.stringify({access_token:b({alg:'HS256'})+'.'+b({sub,exp:4102444800,role:'authenticated'})+'.sig',refresh_token:'r',token_type:'bearer',expires_in:3600,expires_at:4102444800,user});
 for(const k of ['sb-127-auth-token','sb-localhost-auth-token'])localStorage.setItem(k,session);
 // Les anciens tests sont écrits pour la grille : elle reste la disposition de la démo, sauf avec ?pages=1 (la disposition de tout le monde).

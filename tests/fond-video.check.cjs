@@ -18,7 +18,7 @@ const { custom, closeCustom } = require('./menu.cjs');
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: opts.reduced ? 'reduce' : 'no-preference' });
     const page = await context.newPage();
     page.on('pageerror', e => errors.push(e.message));
-    await page.goto(`${srv.url}/dashboard.html?profil=plein&bac=${bac}`);
+    await page.goto(`${srv.url}/dashboard.html?profil=plein&bac=${bac}${opts.videoXL ? '&videoXL' : ''}`);
     await page.waitForSelector('#board .widget:not([hidden])');
     if (plan) await page.waitForFunction(() => document.getElementById('plan-nom').textContent !== 'Gratuit');
     return { page, context };
@@ -136,6 +136,22 @@ const { custom, closeCustom } = require('./menu.cjs');
       await page.waitForSelector('#wall i.on video');
       await page.waitForTimeout(800);
       assert.equal(await page.locator('#wall i.on video').evaluate(v => v.paused), true, 'figée');
+      await context.close();
+    }
+
+    // Compte autorisé : relit son ancien fond, puis envoie sa nouvelle vidéo dans le bucket privé XL.
+    {
+      const old = 'fonds-video/demo-plein-xl/fond';
+      files('xl').set(old, { type: 'video/webm', data: webm });
+      ecran('xl').pages = [{ id: 'study', name: 'Study', wall: 'video' }];
+      const { page, context } = await open('xl', 'pro', { videoXL: true });
+      await page.waitForSelector('#wall i.on video');
+      await custom(page);
+      assert.match(await page.locator('#wall-video-hint').textContent(), /300 Mo maximum/);
+      await choose(page, video);
+      await page.waitForFunction(() => !document.querySelector('#wall-slot .tile[data-wall=video]').disabled);
+      assert.ok(files('xl').get('fonds-video-xl/demo-plein-xl/fond')?.data.equals(webm));
+      assert.equal(files('xl').has(old), false);
       await context.close();
     }
 
