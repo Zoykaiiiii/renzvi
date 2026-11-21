@@ -47,7 +47,7 @@ function aujourdhuiWidget({ body, meta, data, save, peer, savePeer, apercu }) {
     if (apercu) return true;
     const detail = { id, zoom };
     document.dispatchEvent(new CustomEvent('renzvi:ouvrir', { detail }));
-    return detail.ok;
+    return zoom ? detail.opened : detail.ok;
   }
   // Le lien « Ouvrir » d'une section ; si le widget n'est pas sur l'écran, on propose de l'ajouter ici (rien n'est fait sans clic).
   function lienOuvrir(id, nom) {
@@ -162,10 +162,12 @@ function aujourdhuiWidget({ body, meta, data, save, peer, savePeer, apercu }) {
     if (!apercu && !taches.some(t => t.due) && quand === 'auj') vide.append(el('p', 'q-aide', 'Les tâches avec une échéance, tes rendez-vous et tes habitudes apparaîtront ici.'));
   }
 
-  function voirRdv(o, jour) {
+  async function voirRdv(o, jour) {
     if (apercu) return;
     // L'Agenda ouvre lui-même le rendez-vous (modifiable). Sinon : une fiche en lecture.
-    if (ouvrir('agenda', true)) {
+    const opened = ouvrir('agenda', true);
+    if (opened) {
+      if (!await opened) return;
       const detail = { cle: o.cle };
       document.dispatchEvent(new CustomEvent('renzvi:agenda', { detail }));
       if (detail.ok) return;

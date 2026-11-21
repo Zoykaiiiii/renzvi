@@ -181,12 +181,16 @@ window.vuePages = function vuePages(ctx) {
   board.after(dots);
   const label = node('span', 'pg-name');
   label.setAttribute('aria-live', 'polite');
-  function goTo(p, focusDot = false) {
+  function goTo(p, focusDot = false, instant = false) {
     page = clamp(p, 0, shownN - 1);
-    board.scrollTo({ left: startOf(page), behavior: gesture || reduced() ? 'instant' : 'smooth' });
+    board.scrollTo({ left: startOf(page), behavior: instant || gesture || reduced() ? 'instant' : 'smooth' });
     remember();
     markDots();
     if (focusDot) dots.querySelector('[aria-current=page]')?.focus();
+  }
+  function selectPage(p, focusDot) {
+    ctx.cancelFavorite?.();
+    goTo(p, focusDot);
   }
   function drawDots() {
     dots.replaceChildren();
@@ -197,8 +201,8 @@ window.vuePages = function vuePages(ctx) {
       prev.type = next.type = 'button';
       prev.ariaLabel = 'Page précédente';
       next.ariaLabel = 'Page suivante';
-      prev.onclick = () => goTo(page - 1);
-      next.onclick = () => goTo(page + 1);
+      prev.onclick = () => selectPage(page - 1);
+      next.onclick = () => selectPage(page + 1);
       where.setAttribute('aria-live', 'polite');
       group.append(prev, where, next);
     } else {
@@ -207,7 +211,7 @@ window.vuePages = function vuePages(ctx) {
         b.type = 'button';
         b.ariaLabel = state.t[p] ? `Aller à la page ${p + 1} : ${state.t[p]}` : `Aller à la page ${p + 1}`;
         b.append(node('i', ''));
-        b.onclick = () => goTo(p);
+        b.onclick = () => selectPage(p);
         group.append(b);
       }
     }
@@ -240,7 +244,7 @@ window.vuePages = function vuePages(ctx) {
     const step = { ArrowLeft: -1, ArrowRight: 1, Home: -99, End: 99 }[e.key];
     if (step == null || !e.target.closest('.pg-group')) return;
     e.preventDefault();
-    goTo(page + step, true);
+    selectPage(page + step, true);
   }, { signal });
   // Le défilement (doigt, pavé tactile, points) dit sur quelle page on est.
   board.addEventListener('scroll', () => {
@@ -299,9 +303,27 @@ window.vuePages = function vuePages(ctx) {
     goTo(target);
     return { moved: moving.length, target, spilled: spilled.length };
   }
-  function reveal(id) {
+  function reveal(id, options) {
     const q = (narrow() ? phoneLayout() : state).d[id];
-    if (q) goTo(q.p);
+    if (!q) return;
+    if (!options) return goTo(q.p);
+    const { signal: opening, animate } = options;
+    const from = nearest();
+    const offset = startOf(q.p) - board.scrollLeft;
+    goTo(q.p, false, true);
+    if (!animate || reduced() || from === q.p || !offset) return;
+
+    // Les deux pages traversent le cadre ensemble, même si des pages les séparent.
+    const step = Math.sign(q.p - from) * m.W;
+    const children = p => [...onPageIds(p).map(ctx.box), ...empties.filter(box => box.style.gridColumnStart === snaps[p].style.gridColumnStart)];
+    const slide = (boxes, start, end) => boxes.map(box => box.animate(
+      [{ translate: `${start}px` }, { translate: `${end}px` }],
+      { duration: 230, easing: getComputedStyle(board).getPropertyValue('--ease').trim() || 'ease-out' },
+    ));
+    const animations = [...slide(children(from), offset, offset - step), ...slide(children(q.p), step, 0)];
+    const cancel = () => animations.forEach(a => a.cancel());
+    opening.addEventListener('abort', cancel, { once: true });
+    return Promise.allSettled(animations.map(a => a.finished)).then(() => opening.removeEventListener('abort', cancel));
   }
   function reset() {
     state = { n: 1, t: [''], d: {} };
@@ -777,6 +799,6 @@ window.vuePages = function vuePages(ctx) {
     pages: () => Array.from({ length: state.n - (temp >= 0 ? 1 : 0) }, (_, p) => ({ name: name(p), custom: !!state.t[p], count: onPageIds(p).length })),
     current: () => page,
     destination: p => destination(p),
-    add: addPage, rename: renamePage, remove: removePage, goTo: p => goTo(p), max: MAX_PAGES, perPage: MAX_PER_PAGE,
+    add: addPage, rename: renamePage, remove: removePage, goTo: selectPage, max: MAX_PAGES, perPage: MAX_PER_PAGE,
   };
 };

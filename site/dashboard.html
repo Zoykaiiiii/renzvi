@@ -215,9 +215,12 @@ body:not(.drawer-open) .mark span{display:none}
 .favs-list:not(:empty) + .favs-empty{display:none}
 .bar-scrim{display:none;position:fixed;inset:0;z-index:39;background:var(--veil);pointer-events:none}
 /* Le widget atteint depuis un favori se signale un instant. */
-.widget.is-found{box-shadow:var(--glass-shine),0 0 0 2px var(--accent);transition:box-shadow .3s}
+.widget.is-found::after{content:"";position:absolute;inset:0;z-index:2;border:2px solid color-mix(in srgb,var(--accent) 78%,var(--ink));border-radius:inherit;pointer-events:none;animation:favorite-ring .54s both}
+@keyframes favorite-ring{0%,100%{opacity:0}19%,59%{opacity:.82}}
+@media (prefers-reduced-motion:reduce){.widget.is-found::after{opacity:.82;animation:none}}
 @keyframes bar-in{from{opacity:0;transform:translateX(-8px)}}
 @media (max-width:1023px){
+  html{scroll-padding-top:calc(76px + env(safe-area-inset-top))}
   body{padding-top:calc(64px + env(safe-area-inset-top))}
   .topbar{top:calc(12px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left))}
   .bar-mode{left:calc(var(--mode-left) + env(safe-area-inset-left));max-width:calc(100% - var(--mode-left) - 12px - env(safe-area-inset-left) - env(safe-area-inset-right))}
@@ -383,6 +386,12 @@ body.has-wall .hello{margin:16px 0;padding:16px 24px;border:1px solid var(--glas
 
 dialog.glass{width:min(640px,100vw - 32px);max-height:85dvh;margin:auto;padding:24px;border-radius:var(--r-panel);color:inherit;overflow:auto;--glass:var(--glass-solid);box-shadow:0 24px 64px rgba(23,25,28,.24)}
 dialog::backdrop{background:var(--veil,rgba(23,25,28,.36))}
+@media (prefers-reduced-motion:no-preference){
+  :is(dialog.cat,dialog.favorite-editor)[open]{animation:sidebar-panel-in .2s var(--ease)}
+  :is(dialog.cat,dialog.favorite-editor)[open]::backdrop{animation:sidebar-fade-in .2s ease}
+}
+@keyframes sidebar-panel-in{from{opacity:.6;translate:0 8px}}
+@keyframes sidebar-fade-in{from{opacity:0}}
 dialog h2{font-size:18px;line-height:1.3}
 dialog .actions{justify-content:flex-end}
 
@@ -449,7 +458,7 @@ dialog.cat[open]{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr
 .ref{display:flex;margin-bottom:8px}
 .ref input{flex:1;min-width:0;height:36px;padding:0 10px;border:1px solid var(--edge);border-right:0;border-radius:10px 0 0 10px;background:var(--paper);color:var(--ink);font-size:12px}
 .ref .ghost{height:36px;padding:0 12px;border-radius:0 10px 10px 0;font-size:13px}
-.widget{container:widget/inline-size;grid-column:span 12;display:flex;flex-direction:column;min-width:0;padding:var(--pad);border-radius:var(--r-panel)}
+.widget{position:relative;container:widget/inline-size;grid-column:span 12;display:flex;flex-direction:column;min-width:0;padding:var(--pad);border-radius:var(--r-panel)}
 .widget[data-size=s]{padding:calc(var(--pad) - 4px)}
 @media (min-width:728px){
   .widget{grid-column:span 6}
@@ -759,7 +768,7 @@ h2{font-family:var(--display);font-size:14px;line-height:20px;font-weight:var(--
 .vol-said{margin-top:8px;font-size:13px;line-height:1.4;color:var(--slate)}
 .vol-said:empty{display:none}
 @media (max-width:727px){
-  html{scroll-padding-block:calc(76px + env(safe-area-inset-top)) calc(72px + env(safe-area-inset-bottom))}
+  html{scroll-padding-bottom:calc(72px + env(safe-area-inset-bottom))}
   [data-widget=vol]>.head,[data-widget=semaine]>.head{flex-wrap:wrap}
   [data-widget=vol]>.head .meta{white-space:normal}
   [data-widget=semaine]>.head h2{margin-right:auto}
@@ -3507,6 +3516,7 @@ if (!sb) {
   }
   // Ouvrir et fermer un widget, depuis sa place : réutilisé par toutes les présentations.
   function zoom(next) {
+    if (next) cancelFavorite();
     const prev = zoomed;
     zoomed = next === prev ? null : next;
     const from = new Map([prev, zoomed].filter(Boolean).map(m => [m.box, m.box.getBoundingClientRect()]));
@@ -3644,12 +3654,13 @@ if (!sb) {
     }
     refreshBoard();
     drawFavs();
-    applyVue();
+    return vueReady = applyVue();
   }
   // Après un changement de mode : le focus va sur le bouton du menu, ou sur celui qui l'ouvre s'il est replié.
   const focusTab = () => { const b = $('open-modes'); (b.checkVisibility?.() ?? !!b.offsetParent) ? b.focus() : $('bar-toggle').focus(); };
   // Changer de mode : le fond passe en fondu, la pastille glisse, les widgets du mode se posent. Rien n'est rechargé ni perdu.
-  function showPage(id) {
+  function showPage(id, favorite) {
+    if (!favorite) cancelFavorite();
     const changed = id !== currentPage;
     zoom(null);
     currentPage = id;
@@ -3657,21 +3668,22 @@ if (!sb) {
     try { localStorage.setItem('renzvi:page', id); } catch {}
     applyWallpaper();
     applyAccent();
-    drawPages();
+    const ready = drawPages();
     if (changed) arrive(onPage());
+    return ready;
   }
   // Présentations. Contrat d'un fichier de présentation : window[make](ctx) rend { relayout(), leave() }.
   // ctx donne les boîtes déjà montées de la page, leur place d'avant (pour que rien ne saute), la disposition enregistrée
   // et de quoi l'enregistrer. relayout() est rappelé à chaque changement de la page ; leave() doit tout remettre comme avant.
-  let vue = { key: 'grille', leave() {} }, vueTurn = 0, wantReveal = null;
+  let vue = { key: 'grille', leave() {} }, vueTurn = 0, vueReady;
   // Pages (horizontales, comme un téléphone) pour tout le monde depuis le 16 nov. Le labo garde le choix de la présentation.
   const vueOf = page => (VUES_LABO && VUES.find(v => v.id === screen.vues.page[page])) || VUES.find(v => v.id === VUE_DEFAUT);
   const vueFiles = v => Promise.all([chillScript(v.script), new Promise((ok, ko) => {
-    if (document.querySelector(`link[href="${v.style}"]`)) return ok();
-    const link = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: v.style });
-    link.onload = ok;
-    link.onerror = () => { link.remove(); ko(new Error(v.style)); };
-    document.head.append(link);
+    const link = document.querySelector(`link[href="${v.style}"]`) ?? Object.assign(document.createElement('link'), { rel: 'stylesheet', href: v.style });
+    if (link.sheet) return ok();
+    link.addEventListener('load', ok, { once: true });
+    link.addEventListener('error', () => { link.remove(); ko(new Error(v.style)); }, { once: true });
+    if (!link.isConnected) document.head.append(link);
   })]);
   const shown = () => onPage().filter(id => mounted.has(id));
   function boxRects() {
@@ -3684,8 +3696,8 @@ if (!sb) {
   // animate : seulement quand la personne change elle-même de présentation, jamais au chargement.
   async function applyVue(animate = false) {
     const want = vueOf(currentPage), page = currentPage, key = want.id === 'grille' ? 'grille' : `${want.id}:${page}`;
-    if (vue.key === key) return vue.relayout?.();
     const turn = ++vueTurn;
+    if (vue.key === key) return vue.relayout?.();
     if (want.script) {
       try { await vueFiles(want); } catch (e) {
         console.error(e);
@@ -3714,11 +3726,10 @@ if (!sb) {
           },
           say: text => { $('custom-live').textContent = text; },
           mode: page,
+          cancelFavorite,
           addWidget: () => screenUser && openCatalog(screenUser),
           remove: id => retirerWidget(id),
         }) };
-        if (wantReveal && vue.reveal) vue.reveal(wantReveal);
-        wantReveal = null;
         drawLayoutPages();
       } catch (e) {
         console.error(e);
@@ -4522,10 +4533,12 @@ if (!sb) {
   const favIds = () => screen.favoris.filter(id => screen.widgets.includes(id) && mounted.has(id));
   const titleOf = id => WIDGETS.find(w => w.id === id).title;
   function drawFavs() {
+    const list = $('favs-list'), focused = document.activeElement?.dataset.favorite;
     const many = screen.pages.length > 1;
-    $('favs-list').replaceChildren(...favIds().map(id => {
+    list.replaceChildren(...favIds().map(id => {
       const li = el('li');
-      const b = button('bar-btn', '', () => goFav(id));
+      const b = button('bar-btn', '', () => goFav(id, { sidebar: true }));
+      b.dataset.favorite = id;
       const ic = el('span', 'fav-ic'), url = window.renzviIconeUrl?.(id);
       ic.setAttribute('aria-hidden', 'true');
       if (url) ic.style.setProperty('--ic', url);
@@ -4535,28 +4548,96 @@ if (!sb) {
       li.append(b);
       return li;
     }));
+    if (focused) list.querySelector(`[data-favorite="${CSS.escape(focused)}"]`)?.focus({ preventScroll: true });
   }
-  // Aller au widget : change de mode si besoin, le déplie s'il est replié, le montre et lui donne le focus.
-  function goFav(id) {
+  let favoriteOpening;
+  function cancelFavorite() {
+    favoriteOpening?.abort();
+    favoriteOpening = null;
+  }
+  addEventListener('pagehide', cancelFavorite);
+  document.addEventListener('beforetoggle', e => {
+    if (e.newState === 'open' && e.target.tagName === 'DIALOG') cancelFavorite();
+  }, true);
+  for (const type of ['pointerdown', 'wheel']) $('board').addEventListener(type, cancelFavorite, { passive: true });
+  function scrollToFavorite(box, signal) {
+    const root = document.scrollingElement;
+    const style = getComputedStyle(root);
+    const top = parseFloat(style.scrollPaddingTop) || 8;
+    const bottom = root.clientHeight - (parseFloat(style.scrollPaddingBottom) || 8);
+    const rect = box.getBoundingClientRect();
+    const delta = rect.top < top || rect.height > bottom - top ? rect.top - top : Math.max(0, rect.bottom - bottom);
+    const target = Math.max(0, Math.min(root.scrollHeight - root.clientHeight, Math.round(root.scrollTop + delta)));
+    if (Math.abs(root.scrollTop - target) <= 1) return;
+    const instant = REDUCED_MOTION();
+    root.scrollTo({ top: target, behavior: instant ? 'instant' : 'smooth' });
+    if (instant) return;
+    return new Promise(resolve => {
+      let frame;
+      const deadline = performance.now() + 650;
+      const finish = () => {
+        cancelAnimationFrame(frame);
+        signal.removeEventListener('abort', finish);
+        if (signal.aborted) root.scrollTo({ top: root.scrollTop, behavior: 'instant' });
+        resolve();
+      };
+      const wait = now => {
+        if (Math.abs(root.scrollTop - target) <= 1) finish();
+        else if (now >= deadline) {
+          root.scrollTo({ top: target, behavior: 'instant' });
+          finish();
+        } else frame = requestAnimationFrame(wait);
+      };
+      signal.addEventListener('abort', finish, { once: true });
+      frame = requestAnimationFrame(wait);
+    });
+  }
+  async function goFav(id, { sidebar = false, expand = false } = {}) {
     const m = mounted.get(id);
     if (!m) return drawFavs();
-    if (pageOf(id) !== currentPage) { wantReveal = id; showPage(pageOf(id)); }
-    else { zoom(null); vue.reveal?.(id); }
+    cancelFavorite();
+    const opening = favoriteOpening = new AbortController(), { signal } = opening;
+    const mode = pageOf(id), changingMode = mode !== currentPage, box = m.box;
+    if (sidebar && narrow.matches && document.body.classList.contains('drawer-open')) {
+      sidebarToggle.click();
+      sidebarToggle.focus({ preventScroll: true });
+    }
+    if (changingMode) await showPage(mode, true);
+    else { if (zoomed) zoom(null); await vueReady; }
+    const stillHere = () => !signal.aborted && currentPage === mode && mounted.get(id) === m;
+    if (!stillHere()) return;
     if (screen.collapsed.includes(id)) {
       layoutSet(id, { collapsed: false }, true);
       layout.apply(m.box, id);
       m.layout.markFold();
     }
-    const box = m.box;
-    box.scrollIntoView({ block: 'center', behavior: REDUCED_MOTION() ? 'auto' : 'smooth' });
+    await vue.reveal?.(id, { signal, animate: !changingMode });
+    if (changingMode) {
+      const arrival = box.getAnimations().find(a => a.animationName === 'arrive');
+      if (arrival) await arrival.finished.catch(() => {});
+    }
+    if (!stillHere()) return;
+    await scrollToFavorite(box, signal);
+    if (!stillHere()) return;
+    if (expand && m.zoomBtn) {
+      zoom(m);
+      return true;
+    }
     box.tabIndex = -1;
     box.focus({ preventScroll: true });
     box.addEventListener('blur', () => box.removeAttribute('tabindex'), { once: true });
     box.classList.add('is-found');
-    setTimeout(() => box.classList.remove('is-found'), 1400);
-    $('custom-live').textContent = `${titleOf(id)}, mode ${pageName(pageOf(id))}`;
+    const clear = () => box.classList.remove('is-found');
+    const timer = setTimeout(() => {
+      clear();
+      if (favoriteOpening === opening) favoriteOpening = null;
+    }, 540);
+    signal.addEventListener('abort', () => { clearTimeout(timer); clear(); }, { once: true });
+    $('custom-live').textContent = `${titleOf(id)}, mode ${pageName(mode)}`;
+    return true;
   }
   function editFavs() {
+    cancelFavorite();
     const box = el('div', 'fav-edit');
     const setFavs = (list, focusKey) => {
       screen.favoris = list;
@@ -4605,6 +4686,8 @@ if (!sb) {
     actions.append(button('primary', 'Terminé', () => $('page-dialog').close()));
     $('page-title').textContent = 'Favoris';
     $('page-slot').replaceChildren(el('p', 'desc', 'Un favori t’emmène au widget, là où il est : rien n’est copié.'), box, actions);
+    $('page-dialog').classList.add('favorite-editor');
+    $('page-dialog').addEventListener('close', () => $('page-dialog').classList.remove('favorite-editor'), { once: true });
     $('page-dialog').showModal();
     box.querySelector('[data-k]:not(:disabled)')?.focus();
   }
@@ -4639,8 +4722,7 @@ if (!sb) {
   document.addEventListener('renzvi:ouvrir', e => {
     const m = mounted.get(e.detail?.id);
     if (!m || m.box.hidden && !screen.widgets.includes(e.detail.id)) return;
-    goFav(e.detail.id);
-    if (e.detail.zoom && m.zoomBtn && zoomed !== m) zoom(m);
+    e.detail.opened = goFav(e.detail.id, { expand: e.detail.zoom && zoomed !== m });
     e.detail.ok = true;
   });
   // Labo Chill : « Mes ambiances » lit et change le fond de la page affichée, comme le sélecteur de fond.
@@ -4698,7 +4780,7 @@ if (!sb) {
     $('open-add').onclick = () => openCatalog(user);
     if (LABO || planActuel === 'worker') chargerZvi();
     $('cat-search').oninput = () => drawCatalog(user);
-    $('add-dialog').onclose = () => pickWidget(null, user);
+    $('add-dialog').onclose = () => { if (!$('add-dialog').open) pickWidget(null, user); };
     $('custom-done').onclick = () => setCustomizing(false);
     $('layout-edit').onclick = () => { $('settings').close(); if (vue.edit) vue.edit(true); else setCustomizing(true); };
     $('favs-edit').onclick = editFavs;
@@ -4860,6 +4942,7 @@ if (!sb) {
   };
   const pageName = id => screen.pages.find(p => p.id === id).name;
   function openCatalog(user) {
+    cancelFavorite();
     $('cat-search').value = '';
     drawCatalog(user);
     pickWidget(null, user);
@@ -4900,6 +4983,7 @@ if (!sb) {
     $('cat-count').textContent = query ? `${plural(found.length, 'widget')} dans la liste` : '';
   }
   function pickWidget(w, user) {
+    const changed = w && w.id !== picked;
     previewCleanup?.();
     previewCleanup = null;
     picked = w?.id ?? null;
@@ -4908,6 +4992,16 @@ if (!sb) {
     for (const item of $('catalog').querySelectorAll('.cat-item')) item.setAttribute('aria-pressed', item.dataset.widget === picked);
     $('add-dialog').dataset.vue = w ? 'apercu' : 'liste';
     drawPreview(w, user);
+    if (changed) {
+      const view = $('cat-view');
+      view.scrollTop = 0;
+      if (!REDUCED_MOTION()) {
+        if (matchMedia('(max-width:727px)').matches) view.animate([{ opacity: .6, translate: '0 8px' }, { opacity: 1, translate: 'none' }], { duration: 200, easing: 'ease-out' });
+        else for (const content of view.querySelectorAll('.stage,.cat-pick')) content.animate([{ opacity: .55 }, { opacity: 1 }], { duration: 160, easing: 'ease-out' });
+      }
+      const back = view.querySelector('.cat-back');
+      if (visible(back)) back.focus({ preventScroll: true });
+    }
   }
   function drawPreview(w, user) {
     const view = $('cat-view');

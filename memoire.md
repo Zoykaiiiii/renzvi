@@ -806,3 +806,9 @@ Damien a confié à Codex la préparation technique des prompts pour pouvoir se 
 - **Éléments fournis** : boîte de chat (`prototype/components/ui/ai-prompt-box.tsx`, déjà intégrée) ; trois petits points pendant que l'IA réfléchit (composant `MessageLoading`, collé dans le chat le 17 nov., pas encore intégré) ; image de référence d'un personnage rond avec des yeux qui clignent (variantes simple ou WebGL).
 - **Réponses attendues avant de coder** : nombre de cours en Gratuit (5 proposé) ; modèle de Zvi (Claude Haiku 5.5 recommandé, environ 0,1 centime par message, contre 2,4 centimes pour Sonnet 5.5 : Worker est à 17,99 € TTC) ; personnage simple ou WebGL ; SQL du fond vidéo (`20261117000000_fond_video.sql`) appliqué ou non.
 - **À lui rappeler** : écrire « illimité » alors qu'il existe une limite technique est une pratique trompeuse (je propose 500 cours, avec « usage raisonnable » dans les CGV). Zvi demandera une clé `ANTHROPIC_API_KEY` dans les secrets Supabase (jamais dans le chat), une vérification du plan Worker côté serveur et un plafond de messages par personne.
+
+## 42. Ouvertures depuis le menu latéral — Codex, 21 novembre 2026
+
+- Les Favoris suivent l’identifiant du widget jusqu’au mode et à la page enregistrés. Dans un même mode, seules la page de départ et la page d’arrivée glissent. Le contour apparaît après le défilement, puis le widget garde le focus. Sur mobile, la sélection replie le tiroir pour dégager le tableau. En mouvement réduit, le contour est statique.
+- Le catalogue et la gestion des Favoris ont une entrée courte avec fondu du voile. Le catalogue anime uniquement l’aperçu lors d’une nouvelle sélection. Depuis Aujourd’hui, la fiche d’un rendez-vous attend l’ouverture de l’Agenda agrandi.
+- Les parcours clavier, souris et tactiles sont couverts par `tests/sidebar-openings.check.cjs`. La variable `VIDEO` permet d’enregistrer un passage entre deux pages.

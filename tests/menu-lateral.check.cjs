@@ -192,6 +192,7 @@ const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, show
     await showMenu(page);
     await page.locator('#favs-list').getByRole('button', { name: /Ambiance sonore/ }).click();
     assert.equal(await modeNow(page), 'Chill');
+    await page.waitForFunction(() => document.activeElement?.dataset.widget === 'ambiance');
     assert.equal(await page.evaluate(() => document.activeElement?.dataset.widget), 'ambiance');
     assert.equal(await page.locator('#board .widget').count(), count);
     // Replié : un favori le déplie.
@@ -199,6 +200,7 @@ const { custom, closeCustom, dispose, openMe, acctSection, goMode, modeNow, show
     await page.getByRole('button', { name: 'Replier Minuteur focus' }).click();
     await showMenu(page);
     await page.locator('#favs-list').getByRole('button', { name: /Minuteur focus/ }).click();
+    await page.waitForFunction(() => document.activeElement?.dataset.widget === 'minuteur');
     assert.equal(await page.locator('[data-widget=minuteur]').getAttribute('data-collapsed'), null, 'déplié');
     await shot(page, 'favoris');
     // Retiré de l'écran : le favori disparaît aussi.
