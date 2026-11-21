@@ -18,7 +18,7 @@ void main() {
 const modelFragment = `#version 300 es
 precision highp float;
 uniform sampler2D albedo;
-uniform float warmth, metal;
+uniform float warmth, dusk, metal;
 in vec3 projectedUV;
 in vec3 surface, towardEye;
 out vec4 color;
@@ -27,12 +27,17 @@ void main() {
   vec3 normal=faceforward(normalize(surface),-normalize(towardEye),normalize(surface));
   vec3 light=normalize(vec3(-.78,.31,.52));
   float diffuse=max(0.,dot(normal,light));
-  vec3 tint=mix(vec3(.69,.76,.86),vec3(1.00,.98,.96),warmth);
-  float grey=dot(ink,vec3(.22,.69,.09));
-  ink=mix(vec3(grey),ink,.33+.67*warmth);
-  vec3 highlight=mix(vec3(.16,.23,.33),vec3(.90,.53,.28),warmth);
+  float wing=step(.1,metal);
+  // The rim catches cabin light even after the metal wing loses the sun.
+  vec3 daylight=mix(vec3(.71,.81,.98),vec3(1.03,.97,.89),warmth);
+  vec3 rim=mix(vec3(.97,.84,.73),vec3(1.02,.98,.93),warmth);
+  vec3 tint=mix(rim,daylight,wing);
+  float luminance=dot(ink,vec3(.22,.69,.09));
+  ink=mix(vec3(luminance),ink,.51+.49*warmth);
+  float exposure=mix(.79+.21*warmth-.16*dusk,.73+.27*warmth-.37*dusk,wing);
+  vec3 highlight=mix(vec3(.38,.32,.28),vec3(.99,.65,.36),warmth);
   float gloss=pow(max(0.,dot(normal,normalize(light+normalize(towardEye)))),24.);
-  color=vec4(ink*tint*(.92+.12*diffuse)+highlight*gloss*(.015+.12*metal),1.);
+  color=vec4(ink*tint*(.92+.12*diffuse)*exposure+highlight*gloss*(.015+.10*metal),1.);
 }`;
 const quadVertex = `#version 300 es
 out vec2 uv;
@@ -70,8 +75,10 @@ void main() {
   vec3 sun=normalize(vec3(-.82,.53,-.20));
   vec3 scattered=vec3(0.);
   float transmission=1.;
+  // Stagger adjacent rays so their sampling planes never form horizontal bands.
+  float jitter=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));
   for(int i=0;i<32;i++) {
-    vec3 p=origin+ray*(start+(float(i)+.5)*stepLength);
+    vec3 p=origin+ray*(start+(float(i)+jitter)*stepLength);
     float water=density(p);
     if(water>.012) {
       float opacity=1.-exp(-water*stepLength*1.9);
@@ -83,25 +90,41 @@ void main() {
       if(transmission<.025) break;
     }
   }
-  float depthMix=.45*smoothstep(.015,.19,down);
+  float depthMix=.26*smoothstep(.045,.27,down);
   color=vec4(scattered*depthMix,(1.-transmission)*depthMix);
 }`;
 const displayFragment = `#version 300 es
-precision mediump float;
+precision highp float;
 in vec2 uv;
-uniform sampler2D clouds, horizon;
-uniform highp float seconds;
-uniform float opacity;
+uniform sampler2D clouds, horizon, runway, coast;
+uniform float seconds, climb, dusk, lift, descent;
 out vec4 color;
 void main() {
-  highp vec2 pane=vec2(uv.x,1.-uv.y);
-  vec3 sky=texture(horizon,pane).rgb;
-  vec3 farDeck=texture(horizon,pane+vec2(seconds*.0025,0.)).rgb;
-  vec3 nearDeck=texture(horizon,pane+vec2(seconds*.013,0.)).rgb;
-  vec3 distanceColor=mix(sky,farDeck,smoothstep(.43,.50,pane.y));
-  distanceColor=mix(distanceColor,nearDeck,smoothstep(.61,.80,pane.y));
-  vec4 vapor=texture(clouds,uv);
-  color=vec4(vapor.rgb+(1.-vapor.a)*distanceColor,opacity);
+  vec2 pane=vec2(uv.x,1.-uv.y);
+  // A passing bank of haze reveals the next landscape without exposing two horizons.
+  float front=.25+.50*pane.y+.06*sin(pane.x*5.+pane.y*3.);
+  vec3 view;
+  if(climb<front) {
+    vec2 ground=(pane-.5)*mix(.78,.96,lift)+.5;
+    ground.y-=.14*lift;
+    // Integral of a gradual acceleration, in real seconds, keeps lights and reflections together.
+    ground.x+=seconds*(.012+.031*lift);
+    view=texture(runway,ground).rgb;
+  } else if(dusk<front) {
+    float depth=smoothstep(.43,.94,pane.y);
+    vec2 drift=vec2((.012+.065*depth)*sin(seconds*.019),0.);
+    vec3 farDeck=texture(horizon,pane+drift).rgb;
+    vec4 vapor=texture(clouds,uv);
+    view=vapor.rgb+(1.-vapor.a)*farDeck;
+  } else {
+    vec2 ground=(pane-.5)/mix(1.02,1.30,descent)+.5;
+    ground.x+=.045*sin(seconds*.012);
+    view=texture(coast,clamp(ground,0.,1.)).rgb*vec3(.82,.88,.96);
+    view=mix(vec3(.16,.21,.30),view,.78+.22*descent);
+  }
+  float mist=1.-smoothstep(.0,.22,min(abs(climb-front),abs(dusk-front)));
+  vec3 haze=mix(vec3(.57,.60,.67),vec3(.29,.34,.44),dusk);
+  color=vec4(mix(view,haze*(1.06-.14*pane.y),mist),1.);
 }`;
 
 function program(gl, vertex, fragment, uniforms) {
@@ -207,7 +230,7 @@ function noiseVolume(gl) {
   return texture;
 }
 
-export function fly3D(scene, startAt, flightSignal) {
+export function fly3D(scene, viewAt, flightSignal) {
   if (flightSignal.aborted) return;
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   let engine;
@@ -216,14 +239,14 @@ export function fly3D(scene, startAt, flightSignal) {
     if (motion.matches || flightSignal.aborted) return;
     engine = new AbortController();
     const current = engine;
-    renderSeat(scene, startAt, current).catch(() => current.abort());
+    renderSeat(scene, viewAt, current).catch(() => current.abort());
   }
   motion.addEventListener('change', select, { signal: flightSignal });
   flightSignal.addEventListener('abort', () => engine?.abort(), { once: true });
   select();
 }
 
-async function renderSeat(scene, startAt, controller) {
+async function renderSeat(scene, viewAt, controller) {
   const { signal } = controller,
     stage = scene.querySelector('.hublot-well');
   const cockpit = document.getElementById('flight-run');
@@ -231,7 +254,7 @@ async function renderSeat(scene, startAt, controller) {
   canvas.className = 'flight-model';
   canvas.setAttribute('aria-hidden', 'true');
   const gl = canvas.getContext('webgl2', {
-    alpha: true,
+    alpha: false,
     premultipliedAlpha: false,
     antialias: true,
     powerPreference: 'low-power'
@@ -251,16 +274,17 @@ async function renderSeat(scene, startAt, controller) {
   );
   canvas.addEventListener('webglcontextlost', () => controller.abort(), { once: true, signal });
   const model = await loadModel(gl, signal);
-  const response = await fetch(new URL('../assets/vol/nuages.webp', import.meta.url), { signal });
-  if (!response.ok) throw Error('Horizon indisponible');
-  const image = await createImageBitmap(await response.blob());
-  let horizon;
-  try {
-    signal.throwIfAborted();
-    horizon = texture2D(gl, image, true);
-  } finally {
-    image.close();
-  }
+  const outside = await Promise.all(['nuages', 'piste', 'cote'].map(async name => {
+    const response = await fetch(new URL('../assets/vol/' + name + '.webp', import.meta.url), { signal });
+    if (!response.ok) throw Error('Paysage indisponible');
+    const bitmap = await createImageBitmap(await response.blob());
+    try {
+      signal.throwIfAborted();
+      return texture2D(gl, bitmap, true);
+    } finally {
+      bitmap.close();
+    }
+  }));
 
   const shell = program(gl, modelVertex, modelFragment, [
     'lens',
@@ -268,13 +292,22 @@ async function renderSeat(scene, startAt, controller) {
     'seconds',
     'metal',
     'albedo',
-    'warmth'
+    'warmth',
+    'dusk'
   ]);
   const mist = program(gl, quadVertex, cloudFragment, ['field', 'seconds']);
-  const display = program(gl, quadVertex, displayFragment, ['clouds', 'horizon', 'seconds', 'opacity']);
+  const display = program(gl, quadVertex, displayFragment, ['clouds', 'horizon', 'runway', 'coast', 'seconds', 'climb', 'dusk', 'lift', 'descent']);
   const mobile = matchMedia('(pointer:coarse)').matches;
   let cloud = cloudTarget(gl, mobile ? 128 : 168, mobile ? 164 : 214);
   const noise = noiseVolume(gl);
+  gl.useProgram(display.id);
+  gl.uniform1i(display.clouds, 0);
+  for (const [i, name] of ['horizon', 'runway', 'coast'].entries()) {
+    gl.activeTexture(gl.TEXTURE1 + i);
+    gl.bindTexture(gl.TEXTURE_2D, outside[i]);
+    gl.uniform1i(display[name], i + 1);
+  }
+  gl.activeTexture(gl.TEXTURE0);
   const lensY = 1 / Math.tan(model.camera.yfov / 2);
   let targetX = 0,
     targetY = 0,
@@ -329,16 +362,13 @@ async function renderSeat(scene, startAt, controller) {
       lastCloud = -Infinity;
     }
     last = now;
-    const seconds = Math.max(0, (Date.now() - startAt) / 1000);
-    const cruise =
-      Number(scene.style.getPropertyValue('--cruise')) *
-      (1 - Number(scene.style.getPropertyValue('--approach')));
+    const { seconds, climb, dusk, lift, descent, warmth } = viewAt(Date.now());
     const w = canvas.width,
       h = canvas.height;
     gl.bindVertexArray(null);
     gl.disable(gl.DEPTH_TEST);
     gl.activeTexture(gl.TEXTURE0);
-    if (cruise > 0 && now - lastCloud >= 1000 / 15) {
+    if (warmth > 0 && now - lastCloud >= 1000 / 15) {
       lastCloud = now;
       gl.bindFramebuffer(gl.FRAMEBUFFER, cloud.buffer);
       gl.viewport(0, 0, cloud.width, cloud.height);
@@ -350,24 +380,20 @@ async function renderSeat(scene, startAt, controller) {
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    if (cruise > 0) {
-      gl.viewport(
-        Math.round((w * 682) / 1672),
-        Math.round((h * 130) / 941),
-        Math.ceil((w * 565) / 1672),
-        Math.ceil((h * 721) / 941)
-      );
-      gl.useProgram(display.id);
-      gl.bindTexture(gl.TEXTURE_2D, cloud.texture);
-      gl.uniform1i(display.clouds, 0);
-      gl.activeTexture(gl.TEXTURE1);
-      gl.bindTexture(gl.TEXTURE_2D, horizon);
-      gl.uniform1i(display.horizon, 1);
-      gl.uniform1f(display.seconds, seconds);
-      gl.uniform1f(display.opacity, cruise);
-      gl.activeTexture(gl.TEXTURE0);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
-    }
+    gl.viewport(
+      Math.round((w * 682) / 1672),
+      Math.round((h * 130) / 941),
+      Math.ceil((w * 565) / 1672),
+      Math.ceil((h * 721) / 941)
+    );
+    gl.useProgram(display.id);
+    gl.bindTexture(gl.TEXTURE_2D, cloud.texture);
+    gl.uniform1f(display.seconds, seconds);
+    gl.uniform1f(display.climb, climb);
+    gl.uniform1f(display.dusk, dusk);
+    gl.uniform1f(display.lift, lift);
+    gl.uniform1f(display.descent, descent);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.viewport(0, 0, w, h);
     gl.enable(gl.DEPTH_TEST);
     gl.useProgram(shell.id);
@@ -376,7 +402,8 @@ async function renderSeat(scene, startAt, controller) {
     eyeY += (targetY - eyeY) * 0.09;
     gl.uniform2f(shell.eye, eyeX, eyeY);
     gl.uniform1f(shell.seconds, seconds);
-    gl.uniform1f(shell.warmth, cruise);
+    gl.uniform1f(shell.warmth, warmth);
+    gl.uniform1f(shell.dusk, dusk);
     gl.uniform1i(shell.albedo, 0);
     for (const part of model.parts) {
       gl.uniform1f(shell.metal, part.metal);

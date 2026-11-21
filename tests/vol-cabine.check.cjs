@@ -4,7 +4,7 @@ const path = require('node:path');
 const { chromium, webkit, devices } = require('playwright');
 const { start } = require('./demo.cjs');
 
-(async () => {
+async function verifyFlight(minutes) {
   const srv = await start();
   const mobile = process.env.WEBKIT === '1';
   const standalone = mobile && process.env.STANDALONE === '1';
@@ -16,7 +16,9 @@ const { start } = require('./demo.cjs');
   await context.addInitScript(() => {
     const wall = Date.now.bind(Date);
     let offset = Number(sessionStorage.getItem('test-flight-offset')) || 0;
-    Date.now = () => wall() + offset;
+    let frozen;
+    Date.now = () => frozen ?? wall() + offset;
+    window.freezeFlight = time => { frozen = time; dispatchEvent(new Event('visibilitychange')); };
     window.advanceFlight = ms => {
       offset += ms;
       sessionStorage.setItem('test-flight-offset', String(offset));
@@ -29,11 +31,14 @@ const { start } = require('./demo.cjs');
   page.on('pageerror', e => errors.push(e.message));
   const bac = mobile ? 'v2phone' : 'v2desktop';
   const shot = async name => {
-    if (process.env.SHOTS) await page.screenshot({ path: path.join(process.env.SHOTS, name + '.png') });
+    if (process.env.SHOTS) await page.screenshot({ path: path.join(process.env.SHOTS, minutes + 'min-' + name + '.png') });
   };
   const phase = name => page.locator('#flight-window[data-phase="' + name + '"]').waitFor();
   const startFlight = async () => {
-    await page.locator('.vol-time .dial').press('Home');
+    const dial = page.locator('.vol-time .dial');
+    await dial.press('Home');
+    for (let n = 5; n < minutes; n += 5) await dial.press('ArrowUp');
+    assert.equal(await dial.getAttribute('aria-valuenow'), String(minutes));
     await page.getByRole('button', { name: 'Déchirer et décoller' }).click();
     await page.getByRole('button', { name: 'Déchirer le billet' }).click();
     await page.getByRole('button', { name: 'Place 3C', exact: true }).click();
@@ -46,12 +51,25 @@ const { start } = require('./demo.cjs');
     const weekly = page.locator('.week-total');
     const initial = await weekly.innerText();
     await startFlight();
+    const route = 'Paris → ' + (minutes === 90 ? 'Lisbonne' : 'Nantes') + ' · place 3C';
+    const session = () => page.evaluate(() => JSON.parse(sessionStorage.getItem(Object.keys(sessionStorage).find(k => k.startsWith('renzvi:vol:')))));
+    const { endAt } = await session();
+    const startAt = endAt - minutes * 60000;
+    const takeoff = minutes === 90 ? 240 : 117;
+    const approach = minutes === 90 ? 360 : 135;
+    const seek = seconds => page.evaluate(time => advanceFlight(time - Date.now()), startAt + seconds * 1000);
+    const model = page.locator('#flight-window[data-model="3d"] canvas');
+    const checkLayers = async () => {
+      if (!reduced) await model.waitFor();
+      const plates = await page.locator('.flight-terrain').evaluateAll(els => els.filter(e => getComputedStyle(e).display !== 'none').length);
+      assert.equal(plates, reduced ? 1 : 0, 'une seule source de paysage');
+    };
     const sceneBounds = async () => Promise.all(['#flight-view', '.flight-wing', '.flight-readout'].map(sel => page.locator(sel).boundingBox()));
     const seats = await sceneBounds();
     const assertAligned = async () => {
       const current = await sceneBounds();
       seats.forEach((box, i) => {
-        for (const k of Object.keys(box)) assert.ok(Math.abs(box[k] - current[i][k]) < 1, k + ' stable à un pixel près');
+        for (const k of (i === 2 ? ['x','y'] : Object.keys(box))) assert.ok(Math.abs(box[k] - current[i][k]) < 1, k + ' stable à un pixel près');
       });
     };
     const cancelBounds = await page.locator('#flight-cancel').boundingBox();
@@ -59,13 +77,17 @@ const { start } = require('./demo.cjs');
     assert.ok(cancelBounds.x >= 0 && cancelBounds.y >= 0 && cancelBounds.y + cancelBounds.height <= viewport.height);
     const [view, , timer] = seats;
     assert.ok(mobile ? timer.y >= view.y + view.height : timer.x + timer.width < view.x);
-    assert.equal(await page.locator('#flight-route').innerText(), 'Paris → Nantes · place 3C');
+    assert.equal(await page.locator('#flight-route').innerText(), route);
     assert.equal(await page.locator('#flight-phase').innerText(), 'Décollage');
+    await checkLayers();
     await page.waitForTimeout(900);
     if (!mobile) await shot('01-decollage');
-    await page.evaluate(() => advanceFlight(120000));
+    await seek(takeoff - 5);
+    await phase('takeoff');
+    await seek(takeoff + 1);
     await phase('cruise');
-    const model = page.locator('#flight-window[data-model="3d"] canvas');
+    await seek(minutes * 30);
+    await checkLayers();
     if (reduced) {
       assert.equal(await model.count(), 0);
     } else {
@@ -91,46 +113,60 @@ const { start } = require('./demo.cjs');
     // Le navigateur suspend les ticks. L’heure de fin ne change pas au retour.
     await page.evaluate(() => {
       Object.defineProperty(document, 'hidden', { configurable: true, value: true });
-      dispatchEvent(new Event('visibilitychange'));
+      document.dispatchEvent(new Event('visibilitychange', { bubbles:true }));
     });
     await page.evaluate(() => advanceFlight(3500));
-    await page.evaluate(() => { delete document.hidden; dispatchEvent(new Event('visibilitychange')); });
-    const snapshot = await page.evaluate(() => JSON.parse(sessionStorage.getItem(Object.keys(sessionStorage).find(k => k.startsWith('renzvi:vol:')))));
+    await page.evaluate(() => { delete document.hidden; document.dispatchEvent(new Event('visibilitychange', { bubbles:true })); });
+    const snapshot = await session();
     assert.equal(snapshot.leftAt, null);
-    await page.reload();
+    await page.reload({waitUntil:'domcontentloaded'});
     await phase('cruise');
     if (await page.locator('#flight-back').isVisible()) await page.locator('#flight-back').click();
     await page.locator('#flight-alert').waitFor({ state: 'hidden' });
-    assert.equal(await page.locator('#flight-route').innerText(), 'Paris → Nantes · place 3C');
-    const endAt = await page.evaluate(() => JSON.parse(sessionStorage.getItem(Object.keys(sessionStorage).find(k => k.startsWith('renzvi:vol:')))).endAt);
+    assert.equal(await page.locator('#flight-route').innerText(), route);
+    assert.equal((await session()).endAt, snapshot.endAt);
     assert.equal(endAt, snapshot.endAt);
     const clock = await page.locator('#flight-clock').textContent();
     const remaining = await page.evaluate(end => (end-Date.now())/1000, endAt);
-    const [min,sec] = clock.split(':').map(Number);
-    assert.ok(Math.abs(min*60+sec-remaining) <= 2);
-    await page.evaluate(end => advanceFlight(end-Date.now()-24000), endAt);
+    const clockSeconds = clock.split(':').reduce((sum, value) => sum * 60 + Number(value), 0);
+    assert.ok(Math.abs(clockSeconds-remaining) <= 2);
+    await seek(minutes * 60 - approach - 5);
+    await phase('cruise');
+    await seek(minutes * 60 - approach + 1);
     await phase('approach');
+    await seek(minutes * 60 - 40);
+    await page.reload({waitUntil:'domcontentloaded'});
+    await phase('approach');
+    if (await page.locator('#flight-back').isVisible()) await page.locator('#flight-back').click();
+    await page.locator('#flight-alert').waitFor({ state: 'hidden' });
     await assertAligned();
+    await checkLayers();
     if (!mobile) await shot('03-approche');
     if (!reduced) {
       await model.waitFor();
       await model.evaluate(canvas => canvas.getContext('webgl2').getExtension('WEBGL_lose_context').loseContext());
       await model.waitFor({state:'detached'});
       assert.equal(await page.locator('#flight-phase').innerText(), 'Approche');
+      assert.equal(await page.locator('.flight-coast').evaluate(el=>getComputedStyle(el).display), 'block');
       assert.equal(await page.locator('.hublot-frame').evaluate(el=>getComputedStyle(el).opacity), '1');
     }
-    await page.evaluate(() => advanceFlight(30000));
+    await page.evaluate(time => freezeFlight(time), endAt - 1);
+    assert.equal(await page.locator('#flight-clock').innerText(), '00:01');
+    assert.equal(await page.locator('#flight-end').isVisible(), false);
+    await page.evaluate(time => freezeFlight(time), endAt);
+    assert.ok(await page.locator('#flight-end').isVisible());
+    assert.equal(await page.locator('#flight-clock').textContent(), '00:00');
     await page.locator('#flight-close').click();
     await page.locator('#flight').waitFor({ state: 'hidden' });
     const db = srv.bac('plein', bac);
-    assert.deepEqual([db.rows.vol.minutes, db.rows.vol.flights, Object.values(db.rows.vol.log)], [5, 1, [5]]);
-    const expected = await page.evaluate(before => {
+    assert.deepEqual([db.rows.vol.minutes, db.rows.vol.flights, Object.values(db.rows.vol.log)], [minutes, 1, [minutes]]);
+    const expected = await page.evaluate(([before, minutes]) => {
       const [h, m] = before.includes(' h') ? before.split(' h') : ['0', before.replace(' min', '')];
-      return durationLabel(Number(h) * 60 + Number(m) + 5);
-    }, initial);
+      return durationLabel(Number(h) * 60 + Number(m) + minutes);
+    }, [initial, minutes]);
     assert.equal(await weekly.innerText(), expected);
     const after = await weekly.innerText();
-    await page.reload();
+    await page.reload({waitUntil:'domcontentloaded'});
     assert.equal(await weekly.innerText(), after);
     await startFlight();
     await page.locator('#flight-cancel').click();
@@ -140,9 +176,13 @@ const { start } = require('./demo.cjs');
     assert.equal(db.rows.vol.flights, 1);
     assert.equal(await page.locator('.flight-model').count(), 0);
     assert.deepEqual(errors, []);
-    console.log((mobile ? 'WebKit iPhone' : 'Chromium desktop') + ' : trois phases, reprise, semaine et annulation OK');
+    console.log((mobile ? 'WebKit iPhone' : 'Chromium desktop') + ' ' + minutes + ' min : trois phases, reprise, semaine et annulation OK');
   } finally {
     await browser.close();
     await srv.close();
   }
+}
+
+(async () => {
+  for (const minutes of [15, 90]) await verifyFlight(minutes);
 })().catch(e => { console.error(e); process.exitCode = 1; });

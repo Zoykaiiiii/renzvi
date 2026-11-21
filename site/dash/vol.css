@@ -1,20 +1,24 @@
+body:has(#flight:not([hidden])) #dashboard-entrance{display:none}
 /* All the photographic layers share the coordinates of the 1672 × 941 cabin plate. */
 .hublot{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:#1d1c1d;animation:cabin-in .55s ease-out}
 #flight:not([hidden]) .hublot[hidden]{display:block!important;visibility:hidden;animation:none}
 @keyframes cabin-in{from{opacity:0}}
 .hublot-well{position:absolute;left:50%;top:50%;width:max(100%,150dvh);height:100%;transform:translate(-50%,-50%)}
-.hublot-frame,.flight-wing,.flight-rain,.flight-terrain,.flight-terrain::after,.flight-pane{position:absolute;inset:0;background-position:center;background-size:100% 100%;pointer-events:none}
+.hublot-frame,.flight-wing,.flight-rain,.flight-terrain,.flight-pane{position:absolute;inset:0;background-position:center;background-size:100% 100%;pointer-events:none}
 .hublot-frame{background-image:url(../assets/vol/cabine.webp)}
 .hublot-view{position:absolute;left:40.7895%;top:9.5643%;width:33.7919%;height:76.6206%;overflow:hidden;background:#47586d}
 .flight-wing{background-image:url(../assets/vol/aile.webp)}
-.flight-rain{background-image:url(../assets/vol/pluie.webp);opacity:calc(1 - var(--cruise,0))}
-.hublot-frame,.flight-wing{filter:saturate(var(--warmth,.28)) brightness(var(--light,.72))}
+.flight-rain{background-image:url(../assets/vol/pluie.webp);opacity:var(--rain,1)}
+.hublot-frame{filter:saturate(var(--warmth,.55)) brightness(var(--light,.76))}
+.flight-wing{filter:saturate(var(--warmth,.55)) brightness(var(--wing-light,.68))}
 .flight-pane{background:linear-gradient(112deg,rgba(207,223,241,.055),transparent 25% 73%,rgba(244,211,167,.07))}
-.flight-runway{background-image:url(../assets/vol/piste.webp);transform:translateY(var(--lift,0%)) scale(var(--runway-scale,1.24))}
-.flight-clouds{background-image:url(../assets/vol/nuages.webp);opacity:var(--cruise,0);transform:scale(1.06)}
-.flight-coast{background-image:url(../assets/vol/cote.webp);opacity:var(--approach,0);transform:scale(var(--descent,1))}
-.flight-runway::after{content:"";background-image:inherit;mask-image:linear-gradient(transparent 53%,black 76%);-webkit-mask-image:linear-gradient(transparent 53%,black 76%)}
-.flight-runway::after{background-image:url(../assets/vol/piste-defilante.webp);background-size:200% 100%;background-position:var(--runway-offset,0%) center;transition:background-position 1s linear}
+.flight-terrain{display:none}
+.flight-runway{background-image:url(../assets/vol/piste.webp)}
+.flight-clouds{background-image:url(../assets/vol/nuages.webp)}
+.flight-coast{background-image:url(../assets/vol/cote.webp)}
+.hublot:not([data-model])[data-phase=takeoff] .flight-runway,
+.hublot:not([data-model])[data-phase=cruise] .flight-clouds,
+.hublot:not([data-model])[data-phase=approach] .flight-coast{display:block}
 .hublot-shade{position:absolute;inset:0 0 auto;height:var(--shade,15%);touch-action:none;cursor:grab;outline-offset:-5px}
 .hublot-shade::before{content:"";position:absolute;inset:0 0 auto;height:var(--blind,18%);background:linear-gradient(110deg,#292626,#554b42 44%,#312d2d);border-bottom:2px solid #4e433c;box-shadow:0 3px 6px #0006}
 .hublot-shade.held{cursor:grabbing}
@@ -42,13 +46,8 @@
   .flight-deck{max-width:54%;left:max(16px,env(safe-area-inset-left))}
 }
 @media(prefers-reduced-motion:reduce){.hublot,.cockpit{animation:none}}
-.hublot:not([data-model]) .flight-terrain{transform:none}
-.hublot:not([data-model]) :is(.flight-rain,.flight-clouds,.flight-coast),
-.hublot:not([data-model]) .flight-runway::after{opacity:0;transition:none}
-.hublot:not([data-model])[data-phase=takeoff] .flight-rain,
-.hublot:not([data-model])[data-phase=cruise] .flight-clouds,
-.hublot:not([data-model])[data-phase=approach] .flight-coast{opacity:1}
-.flight-model{position:absolute;inset:0;z-index:1;width:100%;height:100%;pointer-events:none}
+.flight-model{visibility:hidden;position:absolute;inset:0;z-index:1;width:100%;height:100%;pointer-events:none}
 .flight-glass{position:absolute;inset:0;z-index:2;pointer-events:none;mask:url(../assets/vol/vitre.webp) center/100% 100% no-repeat;-webkit-mask:url(../assets/vol/vitre.webp) center/100% 100% no-repeat}
 .flight-glass .hublot-shade{pointer-events:auto}
+.hublot[data-model] .flight-model{visibility:visible}
 .hublot[data-model] :is(.hublot-frame,.flight-wing){opacity:0}
