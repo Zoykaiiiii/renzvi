@@ -26,5 +26,7 @@ const base = {
   },
 };
 
-const fournisseur = choisirFournisseur(Deno.env.get('IA_FOURNISSEUR'), Deno.env.get('FAL_KEY'));
+const cleFal = Deno.env.get('FAL_KEY');
+const fournisseur = choisirFournisseur(Deno.env.get('IA_FOURNISSEUR'), cleFal?.trim());
+console.info('IA fournisseur', { fournisseur: fournisseur.nom, cleFalPresente: !!cleFal?.trim() });
 Deno.serve(req => traiter(req, { utilisateur, base, fournisseur }));

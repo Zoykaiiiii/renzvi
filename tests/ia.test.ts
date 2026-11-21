@@ -166,8 +166,8 @@ test('aucune requête réseau du fournisseur simulé', async () => {
 
 test('fal commun au Cahier et à Zvi, Worker vérifié avant tout appel et image sans action', async () => {
   const appels: Record<string, unknown>[] = [];
-  const fournisseur = creerFal('cle-test', (_url, options) => {
-    assertEquals(new Headers(options?.headers).get('authorization'), 'Key cle-test');
+  const fournisseur = creerFal('  Key cle-id:\u200b\ncle-test ', (_url, options) => {
+    assertEquals(new Headers(options?.headers).get('authorization'), 'Key cle-id:cle-test');
     const demande = JSON.parse(String(options?.body));
     assertEquals(demande.model, 'qwen/qwen3.7-flash');
     appels.push(demande);
@@ -198,10 +198,17 @@ test('fal commun au Cahier et à Zvi, Worker vérifié avant tout appel et image
   assertEquals(sortie.resultat.points[0].source.debut, 0);
   assertEquals(appels.length, 3);
   const delai = id();
-  const lenteur = creerFal('cle-test', () => new Promise(() => {}));
+  const lenteur = creerFal('cle-id:cle-test', () => new Promise(() => {}));
   assertEquals((await appel('jeton-sans', { ...chat, travail: delai }, outils(lenteur, { delaiMs: 10 }))).statut, 502);
   const [echec] = await sql`select tentatives, depense_centimes::float as d from public.ia_travaux where id = ${delai}`;
   assertEquals([echec.tentatives, echec.d], [1, 1]);
+  const invalide = creerFal('clé non valide', () => {
+    throw new Error('une clé invalide ne doit déclencher aucun appel');
+  });
+  const tentative = id();
+  assertEquals((await appel('jeton-sans', { ...chat, travail: tentative }, outils(invalide))).statut, 502);
+  const [secret] = await sql`select erreur, depense_centimes::float as d from public.ia_travaux where id = ${tentative}`;
+  assertEquals([secret.erreur, secret.d], ['FAL_KEY mal formée', 0]);
 });
 
 addEventListener('unload', () => sql.end());
