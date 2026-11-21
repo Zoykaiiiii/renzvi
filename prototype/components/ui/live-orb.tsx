@@ -11,8 +11,10 @@ const EYE_POSES = {
   idle: { height: 1, width: 1, spacing: 1 },
   opened: { height: 1.2, width: 1.04, spacing: 1 },
   waiting: { height: 0.78, width: 0.82, spacing: 0.84 },
+  speaking: { height: 1.12, width: 1, spacing: 1 },
   replied: { height: 1.27, width: 1.08, spacing: 1 },
   error: { height: 0.65, width: 1.14, spacing: 1 },
+  limit: { height: 1.34, width: 1.1, spacing: 1.04 },
 }
 export type LiveOrbExpression = keyof typeof EYE_POSES
 
@@ -685,6 +687,8 @@ export type LiveOrbProps = Omit<LiveOrbOptions, "onHasGl"> & {
   className?: string
   /** Edge length in CSS pixels. Default `280`. */
   size?: number
+  /** Use the lightweight CSS face for repeated avatars. */
+  useWebGL?: boolean
 }
 
 /**
@@ -703,6 +707,7 @@ export function LiveOrb({
   blink = true,
   expression,
   theme = "auto",
+  useWebGL = true,
 }: LiveOrbProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const instanceRef = useRef<LiveOrbInstance | null>(null)
@@ -712,10 +717,11 @@ export function LiveOrb({
   const [dark, setDark] = useState(false)
 
   useEffect(() => {
+    if (variant) return
     const sync = () => setDark(resolveDark(theme))
     sync()
     return watchTheme(sync)
-  }, [theme])
+  }, [theme, variant])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -737,7 +743,7 @@ export function LiveOrb({
     }
     // Engine reads live options via setOptions; mount once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [useWebGL])
 
   useEffect(() => {
     instanceRef.current?.setOptions({
@@ -754,13 +760,13 @@ export function LiveOrb({
   }, [variant, color, eyeColor, colors, interactive, blink, expression, theme])
 
   useEffect(() => {
-    if (hasGl) return
+    if (hasGl || !useWebGL) return
     const orb = canvasRef.current?.parentElement
     const sync = () => orb?.toggleAttribute("data-paused", document.hidden)
     sync()
     document.addEventListener("visibilitychange", sync)
     return () => document.removeEventListener("visibilitychange", sync)
-  }, [hasGl])
+  }, [hasGl, useWebGL])
 
   const resolved = resolveVariant(variant, color, eyeColor, colors, dark)
   const fallbackPose = EYE_POSES[expression ?? "idle"]
@@ -774,7 +780,7 @@ export function LiveOrb({
       className={cn("relative shrink-0", className)}
       style={{ width: size, height: size }}
     >
-      {!hasGl ? (
+      {!useWebGL || !hasGl ? (
         <div
           aria-hidden
           className="absolute inset-[2%] overflow-hidden rounded-full"
@@ -795,7 +801,7 @@ export function LiveOrb({
           ))}
         </div>
       ) : null}
-      <canvas ref={canvasRef} className="absolute inset-0 size-full" />
+      {useWebGL && <canvas ref={canvasRef} className="absolute inset-0 size-full" />}
     </div>
   )
 }

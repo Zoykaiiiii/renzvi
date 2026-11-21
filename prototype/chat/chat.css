@@ -6,6 +6,7 @@
 @import "tw-animate-css";
 @source "../components/ui/ai-prompt-box.tsx";
 @source "../components/ui/live-orb.tsx";
+@source "../components/ui/message-loading.tsx";
 @source "./ChatIA.tsx";
 
 /* Remise à zéro limitée à l'îlot et aux bulles d'aide du composant (portées dans <body>), au plus bas niveau de priorité. */
@@ -37,6 +38,29 @@
 .chat-ia-panel[hidden] { display: none; }
 @starting-style { .chat-ia-panel { opacity: 0; transform: translateY(8px) scale(.98); } }
 .chat-ia-compose textarea { max-height: 160px; }
+.chat-ia-reply { max-width: 100%; }
+.chat-ia-thought { display: flex; align-items: center; height: 30px; color: var(--chat-muted); }
+.chat-ia-reply [data-expression=waiting] > div > span { translate: 40% -30%; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .chat-ia-reply[data-reveal] { --chat-reveal-time: 720ms; }
+  .chat-ia-reply[data-reveal] .chat-ia-answer { animation: chat-ia-reveal var(--chat-reveal-time) cubic-bezier(.25,.7,.25,1) both; }
+  .chat-ia-reply [data-expression=speaking] { animation: chat-ia-speak var(--chat-reveal-time) ease-in-out; }
+  .chat-ia-reply [data-expression=limit] { animation: chat-ia-startled 280ms ease-out; }
+}
+@keyframes chat-ia-reveal {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0); }
+}
+@keyframes chat-ia-speak {
+  0%, 32%, 64%, 100% { transform: translateY(0) scale(1); }
+  16%, 48% { transform: translateY(-1px) scale(1.03,.97); }
+  84% { transform: translateY(-3px) scale(.97,1.04); }
+}
+@keyframes chat-ia-startled {
+  25% { transform: translateX(-2px) scale(1.06); }
+  65% { transform: translateX(2px); }
+}
 
 /* Les deux styles du chat (« Personnaliser le chat »). Tout passe par ces variables, lues aussi par le composant (ai-prompt-box.tsx).
    Verre : le verre du dashboard, donc il suit déjà le mode clair/sombre, l'accent, le flou et les coins choisis dans Personnaliser. */

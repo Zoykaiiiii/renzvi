@@ -3,11 +3,12 @@ import React from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import { PromptInputBox } from "@/components/ui/ai-prompt-box";
 import { LiveOrb, WEBGL_COLORS, type LiveOrbExpression } from "@/components/ui/live-orb";
+import { MessageLoading } from "@/components/ui/message-loading";
 
 type Historique = { role: "user" | "assistant"; content: string }[];
 type Envoi = { texte: string; fichiers?: File[]; historique?: Historique };
 type Message = { id: number; texte: string } & (
-  { role: "moi" | "note" | "zvi" } | { role: "erreur"; envoi: Envoi }
+  { role: "moi" | "note" | "zvi" | "attente" } | { role: "erreur"; envoi: Envoi }
 );
 // Le service résout la promesse quand la réponse entière est prête.
 export type Repondre = (envoi: Envoi, signal: AbortSignal, historique: Historique) => Promise<string>;
@@ -43,17 +44,19 @@ function accentDuTheme() {
 
 // Le personnage de l'assistant : LiveOrb (components/ui/live-orb.tsx, composant fourni).
 // Sans WebGL, le composant montre lui-même un visage en CSS. Décoratif : le nom vient du bouton ou du titre.
-function Personnage({ size, orbe, accent, expression }: { size: number; orbe: Orbe; accent: { color: string; eyeColor: string }; expression: LiveOrbExpression }) {
+function Personnage({ size, orbe, accent, expression, dansLeFil = false }: { size: number; orbe: Orbe; accent: { color: string; eyeColor: string }; expression?: LiveOrbExpression; dansLeFil?: boolean }) {
   const props = orbe === "irise" ? { variant: "webgl" as const }
     : orbe === "accent" ? { variant: "custom" as const, ...accent }
     : { variant: orbe === "blanc" ? "white" as const : "black" as const };
-  return <span aria-hidden="true" className="pointer-events-none grid shrink-0"><LiveOrb interactive={false} size={size} expression={expression} {...props} /></span>;
+  return <span aria-hidden="true" className="pointer-events-none grid shrink-0"><LiveOrb interactive={false} useWebGL={!dansLeFil} size={size} expression={expression} {...props} /></span>;
 }
 
 export function ChatIA({ repondre }: { repondre?: Repondre }) {
   const [open, setOpen] = React.useState(false);
   const [msgs, setMsgs] = React.useState<Message[]>([]);
-  const [pending, setPending] = React.useState(false);
+  const [attenteId, setAttenteId] = React.useState<number | null>(null);
+  const [revealId, setRevealId] = React.useState<number | null>(null);
+  const pending = attenteId !== null;
   const [reaction, setReaction] = React.useState<LiveOrbExpression>("idle");
   const reactionTimer = React.useRef(0);
   const request = React.useRef<AbortController | null>(null);
@@ -74,7 +77,7 @@ export function ChatIA({ repondre }: { repondre?: Repondre }) {
   const annuler = React.useCallback(() => {
     request.current?.abort();
     request.current = null;
-    setPending(false);
+    setAttenteId(null);
   }, []);
   React.useEffect(() => () => {
     clearTimeout(reactionTimer.current);
@@ -91,7 +94,10 @@ export function ChatIA({ repondre }: { repondre?: Repondre }) {
   // Ouvrir : le focus va dans la zone de saisie. Fermer : il revient au personnage.
   const toggle = React.useCallback((next: boolean, refocus = true) => {
     if (!next && log.current) reading.current = log.current.scrollTop;
-    if (!next) annuler();
+    if (!next) {
+      annuler();
+      setRevealId(null);
+    }
     reagir(next ? "opened" : "idle");
     setOpen(next);
     if (next) setAccent(accentDuTheme());
@@ -122,7 +128,7 @@ export function ChatIA({ repondre }: { repondre?: Repondre }) {
   // Le fil ne redescend que si on était déjà en bas (ou pour son propre envoi) : lire l'historique n'est jamais interrompu.
   React.useLayoutEffect(() => {
     if (follow.current && log.current) log.current.scrollTop = log.current.scrollHeight;
-  }, [msgs]);
+  }, [msgs, attenteId]);
 
   const demander = async (envoi: Envoi, retryId?: number) => {
     if (!repondre || request.current) return;
@@ -130,7 +136,8 @@ export function ChatIA({ repondre }: { repondre?: Repondre }) {
     request.current = controller;
     follow.current = true;
     reagir("idle");
-    setPending(true);
+    const replyId = ++id.current;
+    setAttenteId(replyId);
     if (retryId !== undefined) {
       panel.current?.querySelector("textarea")?.focus({ preventScroll: true });
       setMsgs(m => m.filter(x => x.id !== retryId));
@@ -138,19 +145,20 @@ export function ChatIA({ repondre }: { repondre?: Repondre }) {
     try {
       const texte = await repondre(envoi, controller.signal, envoi.historique ?? []);
       if (request.current !== controller) return;
-      const reply: Message = { id: ++id.current, role: "zvi", texte };
+      const reply: Message = { id: replyId, role: "zvi", texte };
       setMsgs(m => [...m, reply]);
+      setRevealId(window.matchMedia("(prefers-reduced-motion: reduce)").matches ? null : replyId);
       reagir("replied");
     } catch (e) {
       if (request.current !== controller) return;
       const texte = e instanceof Error && e.name === "ZviErreur" ? e.message : "La réponse n’a pas abouti.";
-      const error: Message = { id: ++id.current, role: "erreur", texte, envoi };
+      const error: Message = { id: replyId, role: "erreur", texte, envoi };
       setMsgs(m => [...m, error]);
       reagir("error");
     } finally {
       if (request.current === controller) {
         request.current = null;
-        setPending(false);
+        setAttenteId(null);
       }
     }
   };
@@ -173,7 +181,9 @@ export function ChatIA({ repondre }: { repondre?: Repondre }) {
   };
 
   const expression = open ? (pending ? "waiting" : reaction) : "idle";
-  const personnage = { orbe: reglages.orbe, accent, expression };
+  const apparence = { orbe: reglages.orbe, accent };
+  const personnage = { ...apparence, expression };
+  const messages: Message[] = attenteId === null ? msgs : [...msgs, { id: attenteId, role: "attente", texte: "" }];
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape" && !e.defaultPrevented && !document.querySelector('[role="dialog"][data-state="open"]')) {
@@ -199,7 +209,7 @@ export function ChatIA({ repondre }: { repondre?: Repondre }) {
           <div className="min-w-0 flex-1">
             <h2 id="renzvi-chat-titre" className="text-[15px] font-semibold leading-5">Zvi</h2>
             <p id="renzvi-chat-statut" role="status" className="text-[13px] leading-[18px] text-[var(--chat-muted)]">
-              {pending ? "Réponse en cours…" : repondre ? "" : "Pas encore branché"}
+              {pending ? "Zvi réfléchit…" : repondre ? "" : "Pas encore branché"}
             </p>
           </div>
           <button
@@ -262,14 +272,25 @@ export function ChatIA({ repondre }: { repondre?: Repondre }) {
             </div>
           ) : (
             <ol className="flex flex-col gap-3">
-              {msgs.map(m => m.role === "moi" ? (
+              {messages.map(m => m.role === "moi" ? (
                 <li key={m.id} className="max-w-[85%] self-end whitespace-pre-wrap break-words rounded-2xl bg-[var(--chat-bubble)] px-3.5 py-2 text-[15px] leading-normal">{m.texte}</li>
-              ) : m.role === "zvi" ? (
-                <li key={m.id} className="max-w-[85%] self-start whitespace-pre-wrap break-words px-3.5 py-2 text-[15px] leading-normal">{m.texte}</li>
+              ) : m.role === "zvi" || m.role === "attente" ? (
+                <li key={m.id} className="chat-ia-reply flex items-start gap-2.5 self-start" data-reveal={m.id === revealId || undefined}>
+                  <Personnage size={30} dansLeFil {...apparence} expression={m.role === "attente" ? "waiting" : m.id === revealId ? "speaking" : undefined} />
+                  {m.role === "attente" ? (
+                    <span className="chat-ia-thought"><MessageLoading /></span>
+                  ) : (
+                    <p className="chat-ia-answer min-w-0 whitespace-pre-wrap break-words py-1 text-[15px] leading-normal"
+                      onAnimationEnd={() => setRevealId(current => current === m.id ? null : current)}>{m.texte}</p>
+                  )}
+                </li>
               ) : m.role === "erreur" ? (
-                <li key={m.id} className="max-w-[85%] self-start text-[13px] leading-snug text-[var(--chat-error)]">
-                  <p>{m.texte}</p>
-                  <button type="button" className="min-h-11 underline disabled:opacity-50" disabled={pending} onClick={() => void demander(m.envoi, m.id)}>Réessayer</button>
+                <li key={m.id} className="chat-ia-reply flex items-start gap-2.5 self-start text-[13px] leading-snug text-[var(--chat-error)]">
+                  <Personnage size={30} dansLeFil {...apparence} expression="limit" />
+                  <div className="min-w-0 break-words pt-1">
+                    <p>{m.texte}</p>
+                    <button type="button" className="min-h-11 underline disabled:opacity-50" disabled={pending} onClick={() => void demander(m.envoi, m.id)}>Réessayer</button>
+                  </div>
                 </li>
               ) : (
                 <li key={m.id} className="max-w-[85%] self-end text-right text-[13px] leading-snug text-[var(--chat-error)]">{m.texte}</li>
