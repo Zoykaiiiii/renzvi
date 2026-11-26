@@ -729,8 +729,10 @@ const completedSheet = {
   "c32-checks": 1,
   "c32-last": "18/25"
 };
-let S={...completedSheet};try{const saved=localStorage.getItem("rev3032");if(saved!==null)S=JSON.parse(saved)??S}catch(e){}
-const save=()=>{try{localStorage.setItem("rev3032",JSON.stringify(S))}catch(e){}};
+// La fiche remplie possède sa propre sauvegarde, distincte du modèle vierge.
+const storageKey="rev3032-complete";
+let S={...completedSheet};try{const saved=localStorage.getItem(storageKey);if(saved!==null)S=JSON.parse(saved)??S}catch(e){}
+const save=()=>{try{localStorage.setItem(storageKey,JSON.stringify(S))}catch(e){}};
 const ac=(c,k)=>{const id=`${c.id}-${k}`;return `<div class="ac" id="${id}-ac"><button type="button" class="ghost" data-ac="${id}">Comparer avec les éléments attendus</button><span class="small" id="${id}-acm"></span><div class="acl" id="${id}-acl" hidden><p class="small">Cochez les éléments que votre réponse contient déjà. Pour les autres, complétez votre réponse ci-dessus.</p>${c.pts[k].map((p,i)=>`<label><input type="checkbox" id="${id}-ck${i}">${esc(p)}</label>`).join("")}<p class="acs" id="${id}-acs"></p></div></div>`};
 const main=document.getElementById("main");
 main.innerHTML=D.map((c,ci)=>{
@@ -738,9 +740,9 @@ const fill=c.fill.map(([t,blanks],fi)=>"<p>"+t.split(/\{(\d)\}/).map((part,k)=>{
 if(k%2===0)return esc(part);const b=+part,opts=shuf(blanks[b],ci*100+fi*10+b+7),id=`${c.id}-f${fi}-${b}`;
 return `<select id="${id}" data-ans="${esc(blanks[b][0])}" aria-label="Mot manquant"><option value="">…</option>${opts.map(o=>`<option>${esc(o)}</option>`).join("")}</select>`}).join("")+"</p>").join("");
 const match=c.match.it.map(([l,a],mi)=>`<div class="mrow" id="${c.id}-m${mi}r"><span>${esc(l)}</span><select id="${c.id}-m${mi}" data-ans="${esc(a)}" aria-label="${esc(l)}"><option value="">Choisir…</option>${c.match.ch.map(o=>`<option>${esc(o)}</option>`).join("")}</select></div>`).join("");
-const qcm=c.qcm.map(([q,o,a,e],qi)=>`<div class="q" id="${c.id}-q${qi}" data-ans="${a}"><div class="t">${qi+1}. ${esc(q)}</div><div class="opts">${o.map((x,oi)=>`<label><input type="radio" name="${c.id}-q${qi}" value="${oi}">${esc(x)}</label>`).join("")}</div><div class="expl">${esc(e)}</div></div>`).join("");
+const qcm=c.qcm.map(([q,o,a,e],qi)=>`<div class="q" id="${c.id}-q${qi}" data-ans="${a}"><div class="t">${qi+1}. ${esc(q)}</div><div class="opts">${o.map((x,oi)=>`<label><input type="radio" name="${c.id}-q${qi}" value="${oi}"${S[`${c.id}-q${qi}`]===String(oi)?" checked":""}>${esc(x)}</label>`).join("")}</div><div class="expl">${esc(e)}</div></div>`).join("");
 const defs=c.defs.map(([term,ok,bad],di)=>{const all=ok.concat(bad),id=`${c.id}-d${di}`;return `<div class="def" id="${id}"><div class="dt">${esc(term)}</div><div class="chips">${shuf(all.map((f,i)=>i),ci*50+di*7+3).map(i=>`<button type="button" class="chip" data-def="${id}" data-f="${i}" aria-pressed="false">${esc(all[i])}</button>`).join("")}</div><p class="built" id="${id}-b"></p></div>`}).join("");
-const auto=c.not.map((n,ni)=>`<tr><td>${esc(n)}</td><td><div class="lv">${LV.map((l,li)=>`<label><input type="radio" name="${c.id}-n${ni}" value="${li}">${l}</label>`).join("")}</div></td></tr>`).join("");
+const auto=c.not.map((n,ni)=>`<tr><td>${esc(n)}</td><td><div class="lv">${LV.map((l,li)=>`<label><input type="radio" name="${c.id}-n${ni}" value="${li}"${S[`${c.id}-n${ni}`]===String(li)?" checked":""}>${l}</label>`).join("")}</div></td></tr>`).join("");
 return `<section class="ch" id="${c.id}" style="--c:${c.color}"><div class="band"><span class="n">${c.num}</span><h2>${esc(c.title)}</h2></div><div class="body">
 <div class="ex fill"><h3>1. Je complète la synthèse <span>texte à trous</span></h3><p class="hint">Choisissez le mot juste dans chaque liste.</p>${fill}</div>
 <div class="ex"><h3>2. ${esc(c.match.t)} <span>association</span></h3>${match}</div>
@@ -762,7 +764,6 @@ D.forEach(c=>c.defs.forEach((_,di)=>dRender(`${c.id}-d${di}`)));
 // restore
 document.querySelectorAll("input:not([type=radio]):not([type=checkbox]),select,textarea").forEach(el=>{if(S[el.id]!=null)el.value=S[el.id]});
 document.querySelectorAll("input[type=checkbox]").forEach(el=>{el.checked=!!S[el.id]});
-document.querySelectorAll("input[type=radio]").forEach(el=>{if(S[el.name]===el.value)el.checked=true});
 document.addEventListener("input",e=>{const el=e.target;if(el.type==="radio")S[el.name]=el.value;else if(el.type==="checkbox")S[el.id]=el.checked;else if(el.id)S[el.id]=el.value;save();
 const q=el.closest(".q");if(q)q.classList.remove("ok","ko");if(el.tagName==="SELECT")el.classList.remove("ok","ko");const mr=el.closest(".mrow");if(mr)mr.classList.remove("ok","ko");summary()});
 function grade(c,mark){let ok=0,n=0;const items=[];
