@@ -599,7 +599,137 @@ const LV=["Acquis","En cours","À revoir"];
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const rnd=(seed)=>()=>{seed=(seed*9301+49297)%233280;return seed/233280};
 function shuf(a,seed){const r=rnd(seed),b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
-let S={};try{S=JSON.parse(localStorage.getItem("rev3032")||"{}")}catch(e){S={}}
+const completedSheet = {
+  "nom": "Fauconnier",
+  "prenom": "Damien",
+  "c30-f0-0": "employeur",
+  "c30-f0-1": "salarié",
+  "c30-f1-0": "rémunération",
+  "c30-f1-1": "lien de subordination",
+  "c30-f2-0": "déclarer le salarié aux organismes sociaux",
+  "c30-f3-0": "règlement intérieur",
+  "c30-f4-0": "client",
+  "c30-f4-1": "prestataire",
+  "c30-f4-2": "commerciale",
+  "c30-f5-0": "payer le prestataire",
+  "c30-f5-1": "service",
+  "c30-m0": "Employeur",
+  "c30-m1": "Salarié",
+  "c30-m2": "Client",
+  "c30-m3": "Prestataire",
+  "c30-m4": "Employeur",
+  "c30-m5": "Salarié",
+  "c30-q0": "1",
+  "c30-q1": "0",
+  "c30-q2": "1",
+  "c30-q3": "0",
+  "c30-q4": "1",
+  "c30-q5": "1",
+  "c30-d0-sel": [
+    0,
+    1,
+    2
+  ],
+  "c30-d1-sel": [
+    0,
+    1
+  ],
+  "c30-d2-sel": [
+    0,
+    1
+  ],
+  "c30-n0": "0",
+  "c30-n1": "0",
+  "c30-n2": "2",
+  "c30-n3": "1",
+  "c30-checks": 1,
+  "c30-last": "20/26",
+  "c31-f0-0": "indéterminée",
+  "c31-f0-1": "partiel",
+  "c31-f1-0": "licenciement",
+  "c31-f2-0": "déterminée",
+  "c31-f2-1": "écrit",
+  "c31-f2-2": "indemnité de fin de contrat",
+  "c31-f3-0": "entreprise de travail temporaire (ETT)",
+  "c31-f3-1": "entreprise utilisatrice",
+  "c31-f4-0": "salaire minimal garanti",
+  "c31-f5-0": "16 à 29 ans",
+  "c31-f5-1": "alternance",
+  "c31-m0": "CDI",
+  "c31-m1": "CDD",
+  "c31-m2": "CTT",
+  "c31-m3": "CDI intérimaire",
+  "c31-m4": "Apprentissage",
+  "c31-q0": "0",
+  "c31-q1": "1",
+  "c31-q2": "0",
+  "c31-q3": "0",
+  "c31-q4": "1",
+  "c31-q5": "2",
+  "c31-d0-sel": [
+    0,
+    1
+  ],
+  "c31-d1-sel": [
+    0,
+    1
+  ],
+  "c31-d2-sel": [
+    0,
+    1,
+    2
+  ],
+  "c31-d3-sel": [
+    0,
+    1,
+    2
+  ],
+  "c31-n0": "0",
+  "c31-n1": "1",
+  "c31-n2": "2",
+  "c31-checks": 1,
+  "c31-last": "20/26",
+  "c32-f0-0": "loyauté",
+  "c32-f0-1": "concurrence",
+  "c32-f0-2": "horaires de travail",
+  "c32-f1-0": "exclusivité",
+  "c32-f2-0": "propre compte",
+  "c32-f2-1": "tarification",
+  "c32-f3-0": "chambre des métiers",
+  "c32-f3-1": "URSSAF",
+  "c32-m0": "Salarié",
+  "c32-m1": "Indépendant",
+  "c32-m2": "Salarié",
+  "c32-m3": "Indépendant",
+  "c32-m4": "Salarié",
+  "c32-m5": "Indépendant",
+  "c32-m6": "Salarié",
+  "c32-m7": "Salarié",
+  "c32-q0": "0",
+  "c32-q1": "1",
+  "c32-q2": "0",
+  "c32-q3": "1",
+  "c32-q4": "0",
+  "c32-q5": "1",
+  "c32-d0-sel": [
+    0,
+    1
+  ],
+  "c32-d1-sel": [
+    0,
+    1
+  ],
+  "c32-d2-sel": [
+    0,
+    1
+  ],
+  "c32-n0": "0",
+  "c32-n1": "0",
+  "c32-n2": "2",
+  "c32-checks": 1,
+  "c32-last": "18/25"
+};
+let S={...completedSheet};try{const saved=localStorage.getItem("rev3032");if(saved!==null)S=JSON.parse(saved)??S}catch(e){}
 const save=()=>{try{localStorage.setItem("rev3032",JSON.stringify(S))}catch(e){}};
 const ac=(c,k)=>{const id=`${c.id}-${k}`;return `<div class="ac" id="${id}-ac"><button type="button" class="ghost" data-ac="${id}">Comparer avec les éléments attendus</button><span class="small" id="${id}-acm"></span><div class="acl" id="${id}-acl" hidden><p class="small">Cochez les éléments que votre réponse contient déjà. Pour les autres, complétez votre réponse ci-dessus.</p>${c.pts[k].map((p,i)=>`<label><input type="checkbox" id="${id}-ck${i}">${esc(p)}</label>`).join("")}<p class="acs" id="${id}-acs"></p></div></div>`};
 const main=document.getElementById("main");
